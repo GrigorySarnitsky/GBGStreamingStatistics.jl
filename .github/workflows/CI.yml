@@ -1,14 +1,12 @@
 name: CI
 
 on:
-  # Every commit is authored locally and the FULL matrix is run before it is pushed
-  # (`julia +1.11` 1-thread + `julia +release` 4-thread, both installed via juliaup),
-  # so a push-triggered run would only re-verify what is already green. Kept manual
-  # plus on release tags — the one thing a single local run cannot give is a
-  # from-scratch clean-environment resolve, which a tagged release then exercises.
+  # Tests are run LOCALLY before every push (the full matrix: `julia +1.11` 1-thread +
+  # `julia +release` 4-thread, via juliaup). GitHub Actions test runs are deliberately kept OFF
+  # to avoid CI cost — this workflow is MANUAL-ONLY (`workflow_dispatch`), with no push or tag
+  # trigger; only the docs workflow runs automatically (on push). Trigger this by hand from the
+  # Actions tab when a from-scratch clean-environment resolve is wanted (e.g. before a release).
   workflow_dispatch:
-  push:
-    tags: '*'
 
 jobs:
   test:

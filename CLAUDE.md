@@ -210,5 +210,8 @@ mirror before writing `Accumulators`: `OnlineStats.jl`'s mergeable streaming-mom
   work is committed **directly on `master`** (do not branch) and **pushed in the same step**; the
   docs site deploys on push. End every commit message with `Co-Authored-By: Claude Opus 4.8
   <noreply@anthropic.com>`; never use `[skip ci]`.
-- **CI is manual-only** (`workflow_dispatch` + tags) — run the test matrix locally pre-commit. Docs
-  deploy on push to `master`.
+- **CI tests never run on GitHub — manual-only** (`workflow_dispatch`, no push or tag trigger):
+  GitHub Actions test runs are kept off to avoid CI cost, so run the full test matrix **locally**
+  before every push. **Only the docs workflow runs on GitHub** (it builds + deploys on push to
+  `master`). Trigger `CI.yml` by hand from the Actions tab if a clean-environment resolve is ever
+  wanted.
