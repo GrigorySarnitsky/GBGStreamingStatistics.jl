@@ -1,0 +1,14 @@
+.ipynb_checkpoints/
+Manifest.toml
+benchmark/results/
+examples/output/
+docs/build/
+docs/site/
+docs/src/architecture.md
+docs/src/formalization.md
+docs/src/testing.md
+docs/src/performance.md
+docs/src/examples/
+
+# Local-only reference material (papers, notes, sibling-package clones) — never committed
+inspiration/

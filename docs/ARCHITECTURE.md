@@ -1,0 +1,564 @@
+# GBGStreamingStatistics — Architecture and Rationale
+
+This document explains **why** `GBGStreamingStatistics` is built the way it is, in the style of its
+sibling `GBGPeriodicFields` (PF). It is **self-contained**: every symbol — a math symbol or a `code`
+identifier — is introduced in plain language at its first use, and it reads top to bottom. All
+mathematics is rendered LaTeX in standard probability notation. The naming rationale is in §9;
+deliberate absences are stated as invariants in §6; open decisions are flagged **[OPEN]**.
+
+---
+
+## 0. Provenance
+
+The driving requirement is **conditional statistics of the highest quality with no storage of the
+underlying state and no recompute-from-raw reruns** — which forces the central architectural choice
+of §2.
+
+The package is designed to be shared across at least three consumers — **turbulence** (Lagrangian
+tracer statistics: conditional averages, transition densities, Kramers–Moyal coefficients), **cloud
+microphysics** (droplet growth conditioned on size and supersaturation), and **molecular dynamics**
+(the van Hove and intermediate scattering functions *are* two-time conditional densities) — so it is
+domain-neutral from the first commit.
+
+---
+
+## 1. Purpose and scope
+
+A **backend-agnostic library for online nonparametric statistics**: it estimates marginal
+densities, conditional expectations, conditional and two-time transition densities, and standard
+functionals of these, from a **stream of samples that is never stored**. Each sample is observed
+once, folded into a fixed-size summary, and discarded.
+
+The relationship to `GBGPeriodicFields` is exact and deliberate:
+
+> **PF is all mathematics, no physics. This package is all statistics, no physics.**
+
+PF provides field operations a solver consumes; it carries no concept of time, no particle, no
+tracer (those are the consumer's). This package provides *estimators* a solver consumes; it
+carries no concept of velocity, droplet, trajectory, or turbulence — and, one level deeper, **no
+probabilistic model**: the data is not assumed stationary, Markov, diffusive, or parametric. Those
+are consumer hypotheses the package's diagnostics *test*, never premises its estimators *require*.
+
+**Boundary — samples in, statistics out.** The package never sees a grid, an FFT, a tracer, or a
+droplet. It consumes a stream of values (scalars / vectors, optionally lagged pairs tagged by a lag
+``\tau``) and returns estimators. The *sampling and transport layer* — interpolating off an Eulerian
+field, reading particle states, walking parcel trajectories — stays in each consumer. The instant a
+grid or tracer concept crosses this line, reuse across the three domains dies.
+
+**Execution target**, inherited from PF: a **single node**, **shared-memory** only (CPU
+multithreading and a single GPU); distributed / multi-GPU is out of scope. Development is
+**GPU-first** but the code is **backend-agnostic** (CPU `Array`, CUDA, ROCm) through
+KernelAbstractions — §5.
+
+---
+
+## 2. The central principle: the architecture follows established statistics
+
+Every abstraction is the code image of a standard object of probability and mathematical
+statistics, and design decisions are settled by **estimation theory**, not implementation
+convenience — the direct analog of PF's "architecture follows established mathematics." As in PF,
+the recurring lesson is that an *absence* is a precise statement (§6).
+
+### The spine: empirical measure → summary → post-hoc-smoothed estimator
+
+Let ``X_1, X_2, \dots`` be the observed stream. The object that carries all information is the
+**empirical measure**
+```math
+\hat\mu_n \;=\; \frac1n \sum_{i=1}^{n} \delta_{X_i},
+```
+where ``\delta_x`` is the unit point mass at ``x`` and ``n`` the number of samples seen. We do **not**
+store the ``n`` point masses. We store a **finite-dimensional summary** ``T(\hat\mu_n)`` that is
+
+1. **mergeable** — ``T`` is an *additive monoid* over the sample stream: the unnormalized summary of
+   a batch is a running sum, so two batches' summaries combine by `merge!` and
+   accumulate-then-merge equals accumulate-together (to round-off). This is just additivity of
+   measures, and it is what makes multi-device reduction and time-chunk stitching free (§5, §6);
+2. **rich enough** that every reported quantity is recoverable from it *post hoc*, with no second
+   pass over the data.
+
+Every reported quantity is then an **estimator** — a functional
+```math
+\hat\theta \;=\; S_h\!\big(T(\hat\mu_n)\big)
+```
+of that summary, where ``S_h`` is a **smoothing** operator (a choice of kernel, bandwidth ``h``, and any
+secondary smoothing). The load-bearing decision:
+
+> **The summary ``T`` is accumulated online and is response-agnostic; the smoothing ``S_h`` is applied
+> entirely post hoc.** Accumulation knows nothing of bandwidth, kernel, or which response channel
+> will be asked for. This separation is the architectural invariant of the package — the analog of
+> PF's representation/operator split — and it is exactly what delivers the user's requirement:
+> *no state storage* (only ``T`` survives a step) and *no reruns* (every ``h``, every channel, every
+> secondary smoothing is computed from the one stored ``T``).
+
+### Why a fine histogram is the canonical ``T`` (and the honest caveat)
+
+The canonical summary is a **finely binned empirical measure** — a histogram — optionally carrying
+**per-bin moments** (below). For nonparametric estimation there is, strictly, *no* finite
+sufficient statistic; the histogram is **lossy**. The justification is quantitative and sets the
+bin count: with bin width ``b`` and smoothing bandwidth ``h``, the binning error is ``O(b^2)`` while the
+irreducible smoothing bias is ``O(h^2)``, so choosing ``b \ll h`` (in practice ``\gtrsim 10^3`` bins over
+``\pm 5\sigma``, so ``b \approx \sigma/100 \ll h``) makes the summary **approximately sufficient**: it
+loses nothing at the target accuracy (the WARPing / binned-KDE / average-shifted-histogram result,
+Hall & Wand 1996; Scott 2015). We therefore say "approximately-sufficient summary," never
+"sufficient statistic" — the latter would be the category overclaim PF's correctness policy exists
+to catch.
+
+### Estimand families (the operation taxonomy)
+
+Mirroring PF's operation families (vertical algebra / differential / reductions / transfer), the
+package's families are organized by **estimand** — the population quantity targeted. Each is
+detailed in §4:
+
+- **Marginal density** ``f_X`` — from a 1-D histogram.
+- **Conditional expectation** ``m(x) = \mathbb{E}[Y \mid X = x]`` and conditional variance — from
+  per-bin power-sums.
+- **Conditional / transition density** ``f_{Y\mid X}``, ``p_\tau(y \mid x)`` — from a 2-D (joint)
+  histogram, per lag.
+- **Conditional increment moments and their functionals** — Kramers–Moyal coefficients,
+  drift/diffusion, Pawula / Q diagnostics — domain-neutral functionals of the above; the SDE
+  *reading* stays consumer-side.
+- **Bandwidth selection** (cross-cutting) — global and **response-aware local**.
+- **[OPEN]** a streaming **projection road** (basis projection à la Stochastic Force Inference /
+  ULI) as an alternative accumulator.
+
+### The histogram is the carrier; the ECF is deferred (likely never needed)
+
+The empirical measure could also be carried in a **Fourier** representation — the **empirical
+characteristic function** ``\hat\varphi_n(s) = \frac1n\sum_i e^{\mathrm{i} s X_i}`` — but the histogram
+is the **sole** carrier. Tail estimation (the heavy-tailed acceleration / ``(\Delta X)^6`` channels) is
+robust only in the histogram, where the ECF inverse rings; the ECF would earn its place only for a
+strictly near-Gaussian marginal, which the consumers do not require. It is therefore **deferred and,
+per the user, most likely never built.**
+
+**This does not forgo the FFT** — and the distinction is the crux. Storing the ECF as a *sufficient
+statistic* (an **accumulation** choice) is a different thing from using the FFT to *smooth the
+histogram* (a **post-hoc computation** choice). The former is dropped; the latter is kept as a major
+performance lever (§4.5): smoothing a binned density or regression is a convolution of the bin counts
+with the kernel, which the FFT does in ``O(B\log B)`` for ``B`` bins and — decisively — **amortizes over
+bandwidth** (transform the counts once; each bandwidth ``h`` is then a multiply by the kernel's
+transform). So FFT-*smoothing* is recommended; the ECF *carrier* is not.
+
+### Naming conventions
+
+Following PF's mathematics-first naming:
+
+- **Estimands / estimated quantities** take the **quantity's noun**: `density`, `conditional_mean`,
+  `conditional_variance`, `conditional_density`, `transition_density`, `drift`, `diffusion`.
+- **Operations on the summary** that are actions take the **verb**: `observe!` (fold a sample
+  batch in), `merge!` (combine summaries), `estimate`/`smooth`.
+- **In-place** forms append `!` uniformly (`observe!`, `merge!`).
+- **Standard named statistical objects** keep their standard name (`histogram`,
+  `characteristic_function`, the eponymous `nadaraya_watson`, `local_linear`).
+
+### Documentation policy — **estimand first, estimator second**
+
+This is the user's explicit requirement and the exact mirror of PF's *"physical-space meaning
+first — even for spectral-representation operations."* In PF, because a field is a real object and
+spectral is only a representation, a docstring must state what the operation does to the real object
+in physical space — with the formula — before the spectral form it actually computes. Here, because
+**every operation estimates a population quantity from data**:
+
+> A docstring (and every doc-page entry) for an estimator must **state the estimand — the
+> population quantity, in standard probability notation, with its defining formula — *before* the
+> estimator** that approximates it from the accumulated summary.
+
+`conditional_mean` is the intended reference implementation. It must lead with the estimand
+```math
+m(x) \;=\; \mathbb{E}[Y \mid X = x] \;=\; \int y\, f_{Y\mid X}(y \mid x)\,\mathrm{d}y
+```
+— named as the ``L^2`` projection of ``Y`` onto ``\sigma(X)``, the regression function — and *only then*
+give the local-linear estimator ``\hat m_h(x)`` computed from the per-bin power-sums. State the
+estimand whenever a clean population definition exists; when an object is intrinsically
+finite-sample (a bandwidth selector, a `merge!`), say so plainly rather than forcing a population
+form — the analog of PF allowing "this is the symbol of ``-\nabla^2``, not a kernel" when no clean
+physical form exists.
+
+As in PF, the symbol is **bound to the code on first mention**: `density` ``\equiv f_X``,
+`conditional_mean` ``\equiv m(x)``, `transition_density` ``\equiv p_\tau(y\mid x)``, `drift`
+``\equiv D^{(1)}``, `diffusion` ``\equiv D^{(2)}``.
+
+**Correctness is its own check** (PF's separate-from-formatting rule). Verify the estimator is
+actually **consistent for the stated estimand** under the stated assumptions, and that **every
+normalization is exact**: the ``1/n``, the ``1/(nh)``, ``\int K = 1``, the kernel moments
+``\mu_2(K) = \int u^2 K(u)\,\mathrm{d}u`` and roughness ``R(K) = \int K^2``, the bias/variance
+constants. A stray ``1/h`` or a kernel-moment factor is the easy slip here — the statistics analog of
+PF's stray ``1/N`` or Parseval factor.
+
+---
+
+## 3. The accumulated summary (carriers — the universal lower half)
+
+These types are the load-bearing, domain-agnostic core; they are pure numerics over a stream and
+transfer verbatim to every consumer.
+
+- **`Histogram1D`** — a binned empirical measure of a conditioning variable ``X``: linear (WARPing)
+  bins over a fixed range (default ``\pm 5\sigma``, ``\gtrsim 10^3`` bins), each bin carrying its
+  **count** and **per-bin standardized central moments to order ``p \approx 12``**. The high order is
+  required by the heavy-tailed channels: the turbulence Q-criterion needs ``M_6``, whose *sampling
+  variance* involves up to the 12th moment, so the carrier must survive it. Moments are accumulated
+  by the **Pébay (2008) central-moment recursion** with **Kahan–Neumaier compensated summation**,
+  per bin, so the stream is single-pass and numerically stable.
+- **`Histogram2D`** — a joint binned measure of ``(X, Y)``, one per lag ``\tau``, for conditional and
+  transition densities. Same per-bin carriers.
+- **`HistogramND` [OPEN]** — the ``n``-D generalization, deferred until a consumer needs conditioning
+  on more than one variable (the PF rule against speculative structure).
+- **per-bin power-sums** — for regression, each bin stores ``S_{rs} = \sum_{i \in \text{bin}} Y_i^{r}\,(X_i - c)^{s}`` (about the bin center ``c``), the local sufficient statistic for local-polynomial
+  fitting (the binscatter / local-moment construction; Cattaneo et al. 2024; Hjort & Jones in
+  Jones et al. 2010). All bandwidths and kernels are recovered from these post hoc.
+- **the mergeable-monoid interface** — `merge!` on every carrier; unnormalized counts and
+  power-sums add. Tested: accumulate-then-merge ``=`` accumulate-together.
+- **the backend-agnostic scatter-add primitive** — one KernelAbstractions + Atomix kernel that
+  scatters a batch of samples into bins with atomic accumulation, the direct analog of PF's
+  `_bin_by_shell` shell-binning. Allocation-free on preallocated carriers; runs on CPU and any GPU
+  backend (§5).
+
+**Numeric precision — accumulate wider than the data.** Samples often arrive in **Float32** (the
+GPU-first, low-memory consumers), but the carriers do **not** accumulate in Float32:
+
+- **Counts are integers** (`UInt64` merged). Float32 represents integers exactly only up to
+  ``2^{24} = 16{,}777{,}216`` — beyond which adding one sample is silently lost — yet a single ``256^3``
+  snapshot is *exactly* ``2^{24}`` points, and a run accumulates ``10^{10}``+ into the peak (modal) bins.
+  Float32 counting is disqualified outright.
+- **Moment accumulators are Float64.** The order-``\sim 12`` central moments span an enormous dynamic
+  range and are formed by cancellation-sensitive sums; Float32 would discard the ~7 digits the
+  Float32 *input* genuinely carries, through the reduction over ``n``. The Pébay recursion runs in
+  Float64 regardless of input type.
+
+Accumulator precision is a **type parameter** (PF-style element-type genericity) but its **default is
+Float64**, counts integer — *accumulate-wider-than-the-data*, the deliberate opposite of PF's
+preserve-the-field's-eltype (a **reduction** should out-precision its inputs; a **transform** should
+not). It costs almost nothing: the histogram is **small** (a few ``\times10^3`` bins ``\times`` a dozen
+Float64 moments — kilobytes per channel, versus a gigabyte field), and on the GPU the Float64
+arithmetic is hidden behind the memory- and atomic-bound accumulation (§5), not FP64 throughput.
+
+**Two-time samples / lag handling — settled: the package bins pairs; the consumer produces them.**
+For a two-time quantity like ``m_\tau(u) = \langle Y_{t+\tau}\mid X_t = u\rangle`` the conditioning
+value ``X(t)`` and the response ``Y(t+\tau)`` must be paired **per source** — two separate marginal
+histograms cannot recover the joint (for the OU oracle both marginals are the *same* stationary
+Gaussian; the entire ``\tau``-dependence lives in the pair). The one histogram entry is made at the
+response step, into the bin of ``X(t)``. The package surface for this is just:
+
+- the **memoryless** `observe_pairs!(stat, x_past, y_now; lag)` — bins a batch of pre-formed,
+  lag-labelled pairs into the per-lag carrier (§4.2 / §4.3); and
+- the **binning map** `bin_index(stat, x)` — exposed so a caller can pre-quantize.
+
+Everything that *produces* the pairs is the **consumer's**, being sample-source policy a
+domain-neutral package must not hold: the **snapshot buffer** of past ``X(t)`` (held until the response
+arrives — the irreducible ``O(M)``-per-lag state for ``M`` sources, optionally stored as compact
+`UInt16` bin indices via `bin_index` when memory is tight); which **sources** to sample; which
+**lags** to form (e.g. log-spaced); and the **origin cadence / buffer depth** (a memory-vs-variance
+budget). Pairing is by source identity — for a stably-ordered set just element-wise array alignment
+(no id tag), an explicit id only if the ordering can change (re-meshing, sorting, birth/death).
+
+What the package *keeps* is the per-lag **histograms** — the accumulated power-sums, the small
+*output* (``L \times`` bins ``\times`` moments, a few MB), never the ``O(ML)`` snapshot buffer (the
+expensive object, consumer-side). For the **nonstationary** case the running origin ``t`` and lag
+``\tau`` are explicit labels on the carrier set (``p_{t,\tau}``), never assumed away. (If the
+ring-and-pair boilerplate proves worth sharing, it can be a **non-domain-aware utility offered
+alongside** the carrier — never something the package's vocabulary depends on.)
+
+---
+
+## 4. Estimand families (estimators — the exportable upper half)
+
+Each entry is written **estimand first** (per §2), demonstrating the convention.
+
+### 4.1 Marginal density ``f_X``
+
+**Estimand.** ``f_X = \mathrm{d}\mu_X/\mathrm{d}\lambda``, the Lebesgue density:
+``P(X \in A) = \int_A f_X\,\mathrm{d}\lambda``.
+**Estimator** (binned KDE / WARPing): from bin counts ``n_j`` at centers ``c_j``,
+```math
+\hat f_h(x) \;=\; \frac{1}{n\,h}\sum_{j} n_j\, K\!\Big(\frac{x - c_j}{h}\Big), \qquad \int K = 1,
+```
+the binned approximation to ``\frac{1}{nh}\sum_i K(\frac{x-X_i}{h})``. Bandwidth from §4.5.
+
+### 4.2 Conditional expectation ``m(x)`` and variance ``\sigma^2(x)``
+
+**Estimand.** ``m(x) = \mathbb{E}[Y\mid X=x]`` (the ``L^2(\sigma(X))`` projection; §2 reference) and
+``\sigma^2(x) = \mathrm{Var}(Y\mid X=x) = \mathbb{E}[Y^2\mid X=x] - m(x)^2``.
+**Estimator** (local-linear; Fan & Gijbels): from the per-bin power-sums form the kernel-weighted
+sums ``T_\ell(x) = \sum_i K_h(X_i-x)(X_i-x)^\ell`` and ``P_\ell(x) = \sum_i K_h(X_i-x)(X_i-x)^\ell Y_i``,
+then
+```math
+\hat m_h(x) \;=\; \frac{T_2 P_0 - T_1 P_1}{T_0 T_2 - T_1^{2}}.
+```
+Nadaraya–Watson is the ``T_1 = T_2 = 0`` reduction ``\hat m_h = P_0/T_0`` (kept for reference, but
+local-linear is the default — it removes the design-density bias term ``2 m'(x) f'(x)/f(x)``).
+Conditional variance by the same fit applied to ``Y^2`` (Fan & Yao 1998). For heavy-tailed channels
+(e.g. ``(\Delta X)^6``) a **one-step robust local M-estimator** (Fan & Jiang 2000) replaces the
+least-squares fit.
+
+### 4.3 Conditional and transition density
+
+**Estimand.** ``f_{Y\mid X}(y\mid x) = f_{X,Y}(x,y)/f_X(x)``; the **two-time transition density**
+``p_\tau(y\mid x) = f_{X_{t+\tau}\mid X_t}(y\mid x)`` (nonstationary: ``p_{t,\tau}``).
+**Estimator** (double-kernel; Rosenblatt 1969; Hyndman et al. 1996): from the joint histogram,
+```math
+\hat f(y\mid x) \;=\; \frac{\sum_i K_{h_1}(X_i-x)\,K_{h_2}(Y_i-y)}{\sum_i K_{h_1}(X_i-x)}.
+```
+
+### 4.4 Conditional increment moments and their functionals
+
+**Estimand.** The conditional increment moment ``M_n(x,\tau) = \mathbb{E}[(X_{t+\tau}-X_t)^n \mid X_t = x]``
+— a pure statistical object (a conditional expectation of a power of an increment), estimated by
+§4.2 applied to the response ``(\Delta X)^n``.
+**Standard functionals** (named, but model-neutral): the **Kramers–Moyal coefficient**
+``D^{(n)}(x) = \lim_{\tau\to 0}\frac{1}{n!\,\tau}M_n(x,\tau)``, with the **drift** ``D^{(1)}`` and
+**diffusion** ``D^{(2)}``; the finite-``\tau`` bias removed by the **all-orders Bell-polynomial
+correction** (Rydin Gorjão et al. 2021) that inverts the ``\tau``-expansion rather than extrapolating
+``\tau\to 0``; the **Pawula / Q diagnostic** ``Q(x) = M_6(x,\tau)/(5\,M_4(x,\tau)^2)``.
+
+> **Model-neutrality is the invariant here.** These functions are defined and estimated without
+> assuming the data *is* a diffusion. That the conditional moments *are* the coefficients of a
+> Fokker–Planck operator, that Pawula's theorem makes ``D^{(n\ge 3)}`` vanish, that ``D^{(1)}`` "is"
+> drift — these are the **consumer's interpretation**, exactly as "energy" is the consumer's reading
+> of PF's `inner(u,u)`. The package supplies the estimators and the **tests of the hypothesis**
+> (the Pawula ratio, a ``\chi^2`` Markov / Chapman–Kolmogorov test); the consumer asserts the model.
+
+### 4.5 Bandwidth selection (cross-cutting)
+
+**Estimand.** the MSE-optimal bandwidth for the requested channel.
+Global rules (Silverman; Sheather–Jones 1991) for marginals; the load-bearing one for conditional
+moments is the **response-aware *local* plug-in** that answered the user's original question:
+```math
+h^\star(x) \;=\; \left[\frac{R(K)\,\sigma^2(x)}{\mu_2(K)^2\,m''(x)^2\,f_X(x)\,n}\right]^{1/5}.
+```
+It depends on the **response's** conditional variance ``\sigma^2(x)`` **and** regression curvature
+``m''(x)``, so **each response channel (``\Delta X, \dots, (\Delta X)^6``, the acceleration ``A``) gets
+its own ``h^\star``** — a single shared bandwidth is provably suboptimal. This is why accumulation
+must be response-agnostic and rich (per-bin moments to high order): ``\sigma^2(x)``, ``m''(x)``, and
+``f_X(x)`` are all read back from the *one* stored summary, per channel, post hoc.
+
+**Fast smoothing (FFT). [performance]** Because the data is binned on a regular grid, every smoother
+here — the binned KDE (§4.1) and the local-polynomial sums ``T_\ell, P_\ell`` (§4.2) — is a
+**convolution** of bin arrays with the kernel. The FFT computes it in ``O(B\log B)`` (Silverman 1982;
+Wand 1994; Fan & Marron 1994 for the binned local-poly form), and the decisive gain is
+**amortization over bandwidth**: transform the bin counts once, then each ``h`` — and the bandwidth
+*grid* the local ``h^\star(x)`` sweep needs — is a multiply by the kernel's transform
+(``e^{-h^2\omega^2/2}`` for the Gaussian) and an inverse FFT, no re-convolution. On the GPU the
+transforms are tiny (``B\sim10^3``) and **batched** across all channels / lags / ``t``-windows in one
+plan. Lead with direct compact-kernel convolution (simple, exact); switch to batched FFT when the
+sweep is large; a recursive Gaussian (Deriche) is the ``O(B)``-per-channel alternative for the
+fixed-bandwidth Gaussian. **Priority:** this smoothing is post-hoc on a small grid and is dwarfed —
+by ``\sim10^3`` in total work — by the per-sample accumulation over ``N^3\times``steps (§5), so the
+dominant performance lever is the accumulation hot loop, *not* the smoother. This is the FFT use the
+deferred ECF carrier (§2) does **not** preclude.
+
+### 4.6 Projection road [OPEN, alternative]
+
+An alternative to bin-and-smooth: estimate drift/diffusion by **projecting onto a function basis**
+using running inner-product accumulators (the Gram matrix and projection vector are themselves a
+mergeable summary) — Stochastic Force Inference (Frishman & Ronceray 2020) and the underdamped ULI
+(Brückner et al. 2020), which fits on ``(X, \dot X)`` data exactly as tracer sampling provides. Shares
+the lower-half monoid foundation. Include if a consumer wants parametric-in-basis drift fields;
+otherwise defer.
+
+---
+
+## 5. Backend-agnosticism and the hot-loop contract
+
+Inherited wholesale from PF (its invariants 6 and 13):
+
+- **Storage is generic `AbstractArray`**; no scalar indexing of device arrays in package methods;
+  allocate via `similar`.
+- **Accumulation is allocation-free.** `observe!(summary, batch)` allocates nothing on a
+  preallocated summary — required for GPU hot loops, where a per-call device temporary escapes the
+  host GC and wedges the run. Enforced by an `@allocated` audit **on the CPU** (where a materialized
+  array's bytes are visible), the direct analog of PF's `test/allocations.jl`.
+- **One portable kernel** (KernelAbstractions + Atomix) does the atomic scatter-add binning, on CPU
+  and any GPU backend; the vendor stacks (CUDA/AMDGPU) stay test-only dependencies.
+- **Mergeable across devices** — `merge!` is the multi-device / multi-chunk reduction (§2). The
+  monoid laws are the spec; tested for associativity and accumulate-then-merge equality.
+- **Contention, not FP64, is the hot-loop enemy.** The conditioning variable is peaked
+  (Gaussian-ish), so the modal bins are atomic hot spots. The performant pattern is
+  **privatization** — per-block local histograms in fast (shared) memory, accumulated then `merge!`d
+  hierarchically — which the mergeable-monoid design (§2) already provides; it also sidesteps global
+  Float64 atomics, so the wider-than-data precision (§3) is free. This per-sample accumulation over
+  ``N^3\times``steps is the package's true performance-critical path; the post-hoc smoothing (§4.5) is
+  second-order.
+
+Getting backend-portability and mergeability right **from the first commit** is the one piece of
+"design for reuse now" that pays — both are expensive to retrofit and are the reason the package
+survives contact with three different execution models.
+
+---
+
+## 6. Invariants — deliberate absences are statements
+
+The PF discipline: a missing capability encodes a decision. The candidate invariants:
+
+1. **Accumulation is response-agnostic; smoothing is post hoc.** No carrier stores a bandwidth,
+   kernel, or channel choice. An API that bakes a bandwidth into accumulation is the banned analog
+   of PF's spectral product-as-`*`. *(This is the invariant that makes "no reruns" true.)*
+2. **Samples in, statistics out — no domain, no model.** Domain-neutral vocabulary
+   (sample / variate / response / lag / conditioning value), never particle / tracer / droplet /
+   velocity. No stationarity, Markov, diffusion, or parametric assumption is a *premise*; such
+   structure is only ever *tested*. (The analog of PF's "no time, no particles.")
+3. **Everything is a mergeable monoid.** Every carrier supports `merge!`; the unnormalized summary
+   is additive over the stream. No non-mergeable accumulator is admitted.
+4. **The hot path is allocation-free and backend-agnostic** (§5).
+5. **The summary is rich enough to recover every target post hoc.** A target that would need a
+   finer or different summary is a recorded coverage gap, **not** silently approximated — the "no
+   reruns" promise made falsifiable.
+6. **Accumulate wider than the data.** Counts are integer; moment accumulators default to Float64
+   even on Float32 input (§3). A Float32 count saturates (``2^{24}``); a Float32 high-order moment
+   loses the data's own precision through the reduction. (The deliberate opposite of PF's
+   preserve-the-eltype, for the opposite reason: this is a reduction, not a transform.)
+
+---
+
+## 7. Documentation, correctness, and testing conventions
+
+Mirrors PF; the deltas are noted.
+
+- **Estimand-first docstrings** (§2), self-contained pages, **rendered LaTeX in standard notation**,
+  every code object **bound to its math symbol** on first mention.
+- **A `FORMALIZATION.md` analog.** PF records a typed statement per operation, expansion-checked
+  against the code and **test-linked**. Here the typed entry states the **estimand**, the
+  **estimator**, and the **consistency claim** — its bias and variance, e.g.
+  ``\mathrm{bias}\,\hat m_h(x) \approx \tfrac12 h^2 \mu_2(K)\,m''(x)`` and
+  ``\mathrm{Var}\,\hat m_h(x) \approx \frac{R(K)\,\sigma^2(x)}{n\,h\,f_X(x)}`` for local-linear
+  regression — every normalization constant pinned, each linked to the test that verifies the
+  **convergence rate** numerically.
+- **Testing against analytic oracles** — the statistics analog of PF's analytic round-trips:
+  estimators are checked against distributions with closed forms (Gaussian marginals; an
+  **Ornstein–Uhlenbeck process**, whose drift, diffusion, and transition density
+  ``p_\tau(y\mid x)`` are known exactly — the natural end-to-end oracle for §4.3–4.4), plus
+  **consistency / rate tests** (error falls at the theoretical ``n^{-2/5}`` as ``n`` grows),
+  **mergeability tests**, the **`@allocated` audit**, and **GPU-vs-CPU parity** under
+  `allowscalar(false)`.
+- **A `check-docs` battery** — adapt PF's `.claude/commands/check-docs.md`: the same matrix of
+  (Correct / Self-contained / Notation / Formatted / Current / Cited) × (every surface), with
+  *Correct* extended to **consistency and normalization of every estimator against its estimand**.
+
+---
+
+## 8. Proposed repository layout (mirrors PF)
+
+```
+GBGStreamingStatistics/
+  CLAUDE.md                      # operational summary + invariants (mirror PF's)
+  README.md  Project.toml
+  src/
+    GBGStreamingStatistics.jl    # umbrella
+    Accumulators.jl              # foundation: AbstractAccumulator, merge! monoid,
+                                 #   Pébay+Kahan recursions, the KA/Atomix scatter primitive, observe!
+    Histograms.jl                # Histogram1D / Histogram2D, linear (WARP) binning, per-bin power-sums
+    DensityEstimation.jl         # §4.1   f_X
+    Regression.jl                # §4.2   m(x), σ²(x)  [estimand-first reference module]
+    ConditionalDensity.jl        # §4.3   f_{Y|X}, transition p_τ
+    MarkovInference.jl           # §4.4   increment moments, KM/drift/diffusion, Pawula/Q, Markov test
+    Bandwidth.jl                 # §4.5   global + response-aware local plug-in
+    # CharacteristicFunctions.jl # [OPEN, secondary] ECF carrier
+    # ProjectionInference.jl     # [OPEN] SFI / ULI road
+  docs/   ARCHITECTURE.md  FORMALIZATION.md  TESTING.md  PERFORMANCE.md  src/…  make.jl
+  test/   runtests.jl  per-module  oracles.jl(OU/Gaussian)  mergeability.jl  allocations.jl  aqua.jl  jet.jl  gpu/
+  benchmark/
+  examples/
+  .claude/commands/check-docs.md
+```
+
+Internal split, made explicit: **`Accumulators` + `Histograms` are the universal lower half**
+(every domain shares them verbatim, and they hold the hard, write-once numerics — GPU atomic
+high-order moment recursions); **`DensityEstimation … Bandwidth` are the estimator upper half**
+(turbulence-leaning but genuinely cross-domain — MD's van Hove function is `ConditionalDensity` with
+a different sampler). Keeping the halves separable lets a consumer that only wants marginal PDFs
+avoid the SDE machinery.
+
+---
+
+## 9. Naming the package
+
+**Settled: `GBGStreamingStatistics`** (confirmed by the user). Operationally precise
+(online/streaming is *the* defining constraint), no overclaim, legible to all three consumer
+domains, parallel to PF's descriptive compound. The alternatives weighed, for the record:
+
+- **`GBGEmpiricalMeasures`** — the most PF-like choice, naming the *mathematical object* the package
+  is about (as "PeriodicFields" names fields), and honest (the empirical measure and its summaries
+  *are* the object). Risk: undersells the regression/conditional scope to a casual reader.
+- **`GBGSufficientStatistics`** — names the *architectural principle*. Risk: a mild category
+  overclaim (there is no finite sufficient statistic in nonparametrics — §2's caveat), which PF's
+  correctness policy would itself flag.
+
+`GBGOnlineStatistics` is avoided to prevent confusion with the existing `OnlineStats.jl` (whose
+mergeable streaming-moment design is, however, worth mirroring — §10).
+
+---
+
+## 10. Open questions
+
+- **Name — settled:** `GBGStreamingStatistics` (§9).
+- **Numeric precision — settled:** integer counts, Float64 moment accumulators by default
+  (type-parameterized), Float32 input promoted at accumulation (§3, invariant 6).
+- **ECF carrier — settled: deferred, likely never built** (§2). FFT-*smoothing* of the histogram is
+  kept regardless (§4.5) — a separate, post-hoc computation, not a stored representation.
+- **Lag handling — settled:** the package bins pre-formed pairs (`observe_pairs!`) and exposes the
+  `bin_index` map; the snapshot buffer and all lag / sampling / cadence policy are consumer-side (§3).
+- **[OPEN] Projection road** — include SFI/ULI from the start or defer (§4.6)?
+- **[OPEN] `HistogramND`** — wait for a multi-conditioning consumer (§3)?
+- **[OPEN] Prior art to mirror** — study `OnlineStats.jl` for its mergeable streaming-moment design
+  and `merge` semantics before writing `Accumulators` (it lacks the GPU-resident path and the
+  conditional/SDE estimators, but its composition model is a good CPU-side template).
+- **[OPEN] Vector-valued conditioning / responses** — reuse PF's `FiberVector`/`FiberTensor` fiber
+  algebra, or stay scalar-channel and let the consumer loop components? (Lean scalar-channel: the
+  estimators are per-component, and a fiber dependency would re-import structure the package doesn't
+  otherwise need.)
+
+---
+
+## 11. Decision log
+
+Append-only; mirrors PF's decision log. The settled decisions of §9–§10 are recorded here as the
+first entries so later sessions extend rather than re-litigate them (the overlap with the body is
+intentional — do not dedupe it).
+
+- **Package name — `GBGStreamingStatistics`** (§9). Operationally precise; avoids `OnlineStats.jl`
+  confusion. Alternatives `GBGEmpiricalMeasures` / `GBGSufficientStatistics` weighed and declined.
+- **Numeric precision — integer counts, `Float64` moment accumulators by default** (§3, invariant 6),
+  type-parameterized; `Float32` input promoted at accumulation.
+- **ECF carrier — deferred, likely never built** (§2). FFT-*smoothing* of the histogram is kept
+  (§4.5) — a post-hoc computation, not a stored representation.
+- **Lag handling — the package bins pre-formed pairs** (`observe_pairs!`) and exposes `bin_index`;
+  the snapshot buffer and all lag / sampling / cadence policy stay consumer-side (§3).
+
+Open decisions still flagged **[OPEN]** in §10 (the projection road, `HistogramND`, vector-valued
+conditioning, prior-art mirroring) graduate to entries here when they are settled.
+
+---
+
+## References
+
+The load-bearing works the package implements or pins to:
+
+- P. Pébay (2008), *Formulas for robust, one-pass parallel computation of covariances and
+  arbitrary-order statistical moments*, Sandia SAND2008-6212. (Streaming per-bin moments.)
+- D. W. Scott (2015), *Multivariate Density Estimation*, 2nd ed., Wiley; P. Hall & M. P. Wand
+  (1996), *On the accuracy of binned kernel density estimators*, J. Multivariate Anal. 56. (WARPing
+  / binned-KDE sufficiency.)
+- M. D. Cattaneo, R. K. Crump, M. H. Farrell & Y. Feng (2024), *On binscatter*, Amer. Econ. Rev.
+  114(5). (Per-bin local-polynomial / binscatter.)
+- J. Fan & I. Gijbels (1996), *Local Polynomial Modelling and Its Applications*, Chapman & Hall.
+  (Local-linear regression; the response-aware local bandwidth.)
+- J. Fan & Q. Yao (1998), *Efficient estimation of conditional variance functions in stochastic
+  regression*, Biometrika 85(3). (Conditional variance.)
+- J. Fan & J. Jiang (2000), *Variable bandwidth and one-step local M-estimator*, Sci. China Ser. A
+  43. (Robust heavy-tailed channels.)
+- M. Rosenblatt (1969), *Conditional probability density and regression estimators*, in
+  *Multivariate Analysis II*; R. J. Hyndman, D. M. Bashtannyk & G. K. Grunwald (1996), *Estimating
+  and visualizing conditional densities*, J. Comput. Graph. Statist. 5(4). (Double-kernel
+  conditional density.)
+- M. C. Jones, et al. — local-moment density estimation from pre-binned data (in the survey).
+- S. P. Sheather & M. C. Jones (1991), *A reliable data-based bandwidth selection method for kernel
+  density estimation*, J. R. Statist. Soc. B 53(3). (Plug-in bandwidth.)
+- A. Rydin Gorjão, et al. (2021), *Kramers–Moyal coefficients … finite-time corrections* — the
+  all-orders Bell-polynomial ``\tau``-correction (the `kramersmoyal` lineage).
+- A. Frishman & P. Ronceray (2020), *Learning force fields from stochastic trajectories*, Phys. Rev.
+  X 10; D. B. Brückner, et al. (2020), *Inferring the dynamics of underdamped stochastic systems*,
+  Phys. Rev. Lett. 125. (Projection road; ULI on ``(X,\dot X)``.)
+- L. van Hove (1954), *Correlations in space and time …*, Phys. Rev. 95. (The MD two-time
+  conditional density — the cross-domain anchor.)
+
+> Every reference above is a published, reader-accessible source — per PF's policy, *never cite an
+> inaccessible source*. The private design notes and literature survey behind this architecture are
+> deliberately not cited by the package itself.

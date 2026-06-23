@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  # Every commit is authored locally and the FULL matrix is run before it is pushed
+  # (`julia +1.11` 1-thread + `julia +release` 4-thread, both installed via juliaup),
+  # so a push-triggered run would only re-verify what is already green. Kept manual
+  # plus on release tags — the one thing a single local run cannot give is a
+  # from-scratch clean-environment resolve, which a tagged release then exercises.
+  workflow_dispatch:
+  push:
+    tags: '*'
+
+jobs:
+  test:
+    name: Julia ${{ matrix.version }} — ${{ matrix.threads }} thread(s)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - version: '1.11'   # the package's minimum (compat floor)
+            threads: '1'
+          - version: '1'      # current stable, threaded lane
+            threads: '4'
+
+    steps:
+      - uses: actions/checkout@v6
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: ${{ matrix.version }}
+      - uses: julia-actions/cache@v3
+      - uses: julia-actions/julia-buildpkg@v1
+      - uses: julia-actions/julia-runtest@v1
+        env:
+          JULIA_NUM_THREADS: ${{ matrix.threads }}
