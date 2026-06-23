@@ -6,10 +6,10 @@ This tour shows the intended **samples in, statistics out** workflow. The archit
 
 and the API follows it directly.
 
-!!! warning "Scaffold stage"
-    The estimator numerics are not yet implemented, so the snippets below are illustrative of the
-    intended API, not yet runnable. They will become a live, doctested walkthrough as the modules
-    land. See the [Architecture](architecture.md) for the design and roadmap.
+!!! note "Status"
+    The carrier and the marginal density below are implemented and runnable today; the two-time
+    (conditional / transition) path at the end is forthcoming. See the
+    [Architecture](architecture.md) for the design and roadmap.
 
 ## The workflow
 
@@ -19,7 +19,7 @@ conditioning variable ``X`` — the canonical summary. It is fixed-size and live
 ```julia
 using GBGStreamingStatistics
 
-summary = Histogram1D(...)   # a fixed range and bin count; the carrier never grows with the stream
+summary = Histogram1D(-5.0, 5.0, 1000)   # fixed range and bin count; never grows with the stream
 ```
 
 **2. Observe the stream.** Each batch is folded in once with [`observe!`](@ref GBGStreamingStatistics.Accumulators.observe!) and then discarded —
@@ -43,11 +43,12 @@ merge!(summary, other_summary)
 summary — computed after accumulation, at any bandwidth, for any channel, with no second pass:
 
 ```julia
-fX = density(summary, x; h = bandwidth(summary, :density))   # the marginal density f_X
+bw = bandwidth(summary)              # a global plug-in bandwidth from the recovered σ̂
+fX = density(summary, 0.0; h = bw)   # the marginal density f_X at x = 0
 ```
 
-For two-time quantities (conditional and transition densities, conditional increment moments), the
-consumer forms lag-labelled pairs ``\bigl(X(t), Y(t+\tau)\bigr)`` and bins them with
+For two-time quantities (conditional and transition densities, conditional increment moments) —
+*forthcoming* — the consumer forms lag-labelled pairs ``\bigl(X(t), Y(t+\tau)\bigr)`` and bins them with
 [`observe_pairs!`](@ref GBGStreamingStatistics.Histograms.observe_pairs!) into a [`Histogram2D`](@ref GBGStreamingStatistics.Histograms.Histogram2D); the snapshot buffer and lag policy stay
 consumer-side.
 

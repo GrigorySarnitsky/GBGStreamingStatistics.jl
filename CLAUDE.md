@@ -26,9 +26,12 @@ deliberate absences of the invariants). The conceptual model and the writing/doc
 are recorded once — in `docs/ARCHITECTURE.md` and this file; the umbrella module
 `src/GBGStreamingStatistics.jl` only points there.
 
-> **Status: scaffold.** The repository layout, conventions, and the full public API surface (as
-> estimand-first docstrings on bare bindings and struct skeletons) are in place and load green; the
-> estimator numerics are **declared, not yet implemented**. See *Current state and roadmap*.
+> **Status: foundation + first estimator implemented.** The `Histogram1D` carrier (`Accumulators`
+> Pébay add/merge + linear binning), the marginal density `density` (§4.1), and global `bandwidth`
+> selection are implemented and tested (Gaussian oracle, mergeability, allocation-free
+> `observe!`/`merge!`). `Histogram2D`/`observe_pairs!`, the conditional/Markov/regression estimators,
+> the response-aware local bandwidth, the GPU-resident KernelAbstractions+Atomix kernel, and
+> Kahan–Neumaier compensation are declared and forthcoming. See *Current state and roadmap*.
 
 ## Modules and wiring
 
@@ -182,26 +185,37 @@ Mechanical bar:
 
 ## Current state and roadmap
 
-**Scaffold stage.** Everything below is *declared and documented* (estimand-first docstrings on bare
-bindings, struct skeletons with their fields) and loads green; **no estimator numerics are
-implemented yet**. The test files are passing placeholders to be filled as each module lands.
+**Done (implemented + tested).**
 
-Next steps, in dependency order (the lower half is the hard, write-once numerics that everything
-depends on — build and lock it first):
+1. **`Accumulators`** — the Pébay single-sample update (`_observe_moment!`) and parallel merge
+   (`_merge_moment!`), both written high-order → low-order; the single-sample update is the ``n_B=1``
+   case of the merge, so `observe!` and `merge!` agree by construction. `Float64` accumulation
+   (accumulate wider than the data); allocation-free; hand-verified and oracle-tested.
+2. **`Histograms.Histogram1D`** — linear (WARP) binning over ``[lo, hi)`` (out-of-range skipped),
+   per-bin counts + central moments to a configurable `order`; `observe!` (batch + scalar),
+   `merge!`, `bin_index`, and the internal global-moment reduction (`_sample_mean`/`_variance`/`_std`/
+   `_central_moment`). Tested: Gaussian moment recovery (exact vs direct, and vs the true moments),
+   mergeability (accumulate-then-merge == accumulate-together), `@allocated == 0` for
+   `observe!`/`merge!`, Float32→Float64.
+3. **`DensityEstimation.density`** (§4.1) — binned KDE (Gaussian kernel), the first estimand-first
+   reference; recovers the Gaussian pdf to ``< 10^{-3}`` and integrates to 1.
+4. **`Bandwidth.bandwidth`** (§4.5) — global Silverman/Scott plug-in from the recovered ``\\hat\\sigma``.
 
-1. **`Accumulators` + `Histograms`** (the universal lower half) — the Pébay+Kahan per-bin moment
-   recursion, the linear/WARP binning, the per-bin power-sums, the KernelAbstractions + Atomix
-   scatter-add primitive, `observe!` / `observe_pairs!` / `bin_index` / `merge!`. Allocation-free CPU
-   path; mergeability + `@allocated` + GPU-parity tests.
-2. **`DensityEstimation`** (§4.1) — `density` as the first end-to-end estimand-first reference,
-   verified against a Gaussian oracle.
-3. **`Regression`** (§4.2), **`ConditionalDensity`** (§4.3), **`MarkovInference`** (§4.4),
-   **`Bandwidth`** (§4.5) — each estimand-first, OU-oracle-tested, with its `FORMALIZATION.md` entry.
+**Next, in dependency order:**
+
+1. **GPU + numerics hardening** for the lower half — the one portable KernelAbstractions + Atomix
+   scatter-add kernel with per-block privatization (merged via the monoid), GPU-vs-CPU parity under
+   `allowscalar(false)`, and **Kahan–Neumaier compensation** for the very-large-``n`` regime.
+2. **`Histogram2D` + `observe_pairs!`** — the two-time joint carrier, and the per-bin power-sums
+   ``S_{rs}`` for regression.
+3. **`Regression`** (§4.2), **`ConditionalDensity`** (§4.3), **`MarkovInference`** (§4.4), and the
+   **response-aware local bandwidth** ``h^\\star(x)`` (§4.5) — each estimand-first, OU-oracle-tested,
+   with its `FORMALIZATION.md` entry. Plus the FFT-amortized smoothing (§4.5).
 
 Deferred (recorded, not built): the ECF carrier (`docs/ARCHITECTURE.md` §2 — likely never); the
 projection / SFI–ULI road (§4.6); `HistogramND` (§3, wait for a multi-conditioning consumer);
-vector-valued conditioning (lean scalar-channel — let the consumer loop components). Prior art to
-mirror before writing `Accumulators`: `OnlineStats.jl`'s mergeable streaming-moment design.
+vector-valued conditioning (lean scalar-channel — let the consumer loop components). Prior art worth
+mirroring for the GPU moment-merge: `OnlineStats.jl`'s mergeable streaming-moment design.
 
 ## Working agreements
 

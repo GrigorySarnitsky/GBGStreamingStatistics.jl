@@ -35,6 +35,6 @@ The package has a single performance-critical path: the **per-sample accumulatio
 For a perf-relevant change, add a benchmark in the matching `benchmark/` class and run it before and
 after against a saved baseline; confirm on the GPU, since platform optima diverge.
 
-!!! note "Scaffold stage"
-    The benchmark suite is not yet built; the accumulation hot loop is the first thing to benchmark
-    once `Accumulators` lands.
+!!! note "Status"
+    The benchmark suite is not yet built. The accumulation hot loop (`observe!`) is now implemented
+    and is the first thing to benchmark, alongside the forthcoming GPU-resident kernel.

@@ -37,7 +37,8 @@ ops, GPU parity, and a `FORMALIZATION.md` entry with its test link.
 constants do not collide. The cross-cutting files are `test/oracles.jl` (the Gaussian/OU oracles and
 the rate tests), `test/mergeability.jl`, and `test/allocations.jl`.
 
-!!! note "Scaffold stage"
-    The per-module test files and the oracle/mergeability/allocation suites are passing placeholders;
-    `Aqua.test_all` and JET already run for real against the loadable package. Assertions are added
-    as each module is implemented.
+!!! note "Status"
+    The `Histogram1D` foundation, `density`, and `bandwidth` suites are real — the Gaussian moment
+    oracle, the Gaussian density oracle, mergeability (accumulate-then-merge == together), and the
+    `@allocated == 0` audit; `Aqua.test_all` and JET run for real throughout. The OU / conditional and
+    the ``n^{-2/5}`` rate tests remain placeholders until those estimators land.

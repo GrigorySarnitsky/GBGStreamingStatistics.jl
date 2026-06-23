@@ -36,7 +36,7 @@ consistency claim (`docs/FORMALIZATION.md`):
 Reference: J. Fan & I. Gijbels (1996), *Local Polynomial Modelling and Its Applications*,
 Chapman & Hall.
 
-!!! note "Scaffold stage"
+!!! note "Forthcoming"
     Declared; not yet implemented.
 """
 function conditional_mean end
@@ -57,7 +57,7 @@ least-squares fit.
 Reference: J. Fan & Q. Yao (1998), *Efficient estimation of conditional variance functions in
 stochastic regression*, Biometrika 85(3).
 
-!!! note "Scaffold stage"
+!!! note "Forthcoming"
     Declared; not yet implemented.
 """
 function conditional_variance end

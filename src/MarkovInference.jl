@@ -20,7 +20,7 @@ statistical object (a conditional expectation of a power of an increment).
 **Estimator.** [`conditional_mean`](@ref GBGStreamingStatistics.Regression.conditional_mean) applied to the response ``(\\Delta X)^n`` over the per-lag
 joint histogram `summary`.
 
-!!! note "Scaffold stage"
+!!! note "Forthcoming"
     Declared; not yet implemented.
 """
 function increment_moment end
@@ -44,7 +44,7 @@ extrapolating ``\\tau \\to 0``.
 
 Reference: A. Rydin Gorjão et al. (2021), *Kramers–Moyal coefficients with finite-time corrections*.
 
-!!! note "Scaffold stage"
+!!! note "Forthcoming"
     Declared; not yet implemented.
 """
 function kramers_moyal end
@@ -56,7 +56,7 @@ function kramers_moyal end
 **Estimand.** the first Kramers–Moyal coefficient ``D^{(1)}(x)`` — the ``n = 1`` case of
 [`kramers_moyal`](@ref GBGStreamingStatistics.MarkovInference.kramers_moyal). A consumer reads it as the SDE drift; the package does not assert the model.
 
-!!! note "Scaffold stage"
+!!! note "Forthcoming"
     Declared; not yet implemented.
 """
 function drift end
@@ -69,7 +69,7 @@ function drift end
 [`kramers_moyal`](@ref GBGStreamingStatistics.MarkovInference.kramers_moyal). A consumer reads it as the SDE diffusion; the package does not assert the
 model.
 
-!!! note "Scaffold stage"
+!!! note "Forthcoming"
     Declared; not yet implemented.
 """
 function diffusion end
@@ -84,7 +84,7 @@ function diffusion end
 (Pawula's theorem), not a premise. A small ``Q`` supports a diffusion reading; a large one refutes
 it.
 
-!!! note "Scaffold stage"
+!!! note "Forthcoming"
     Declared; not yet implemented.
 """
 function pawula_quotient end
@@ -98,7 +98,7 @@ Markovian, comparing the two-step transition density against the Chapman–Kolmo
 one-step densities (see [`transition_density`](@ref GBGStreamingStatistics.ConditionalDensity.transition_density)). Intrinsically finite-sample — a test, not an
 estimand.
 
-!!! note "Scaffold stage"
+!!! note "Forthcoming"
     Declared; not yet implemented.
 """
 function markov_test end

@@ -13,8 +13,34 @@ Throughout, ``K`` is the smoothing kernel with ``\int K = 1``, ``\mu_2(K) = \int
 du`` its second moment, and ``R(K) = \int K^2`` its roughness; ``h`` is the bandwidth, ``n`` the
 number of samples, ``f_X`` the marginal density of the conditioning variable.
 
-!!! note "Scaffold stage"
-    The single seeded entry below fixes the format. Entries are added as each module is implemented.
+The implemented entries are test-linked; the conditional entry is the format for what lands next.
+
+## Per-bin central moments — the Pébay recursion (`Accumulators`, `Histogram1D`)
+
+- **Object.** per bin, the count, mean, and unnormalized central moments ``M_p = \sum_{i \in
+  \text{bin}}(X_i - \bar X)^p`` for ``p = 2 \dots`` `order` (intrinsically finite-sample — no
+  population estimand).
+- **Recursion.** the single-sample update (`_observe_moment!`) and the parallel merge
+  (`_merge_moment!`) are the Pébay (2008) formulas, accumulated in `Float64`; the single-sample update
+  is the ``n_B = 1`` case of the merge, so streaming accumulation and `merge!` are the *same*
+  arithmetic.
+- **Correctness.** the recursion is *exact* — it computes the same ``M_p`` as a direct two-pass sum,
+  to round-off — and the merge gives accumulate-then-merge ``=`` accumulate-together.
+- **Test.** `test/histograms.jl` (recovered ``M_2 \dots M_6`` match the direct sum to ``10^{-8}`` and
+  the true Gaussian moments to sampling error); `test/mergeability.jl` (merge ``=`` together);
+  `test/allocations.jl` (`observe!`/`merge!` allocate 0 bytes).
+
+## Marginal density (§4.1) — `density`
+
+- **Estimand.** ``f_X = \mathrm{d}\mu_X/\mathrm{d}\lambda``, the Lebesgue density of ``X``.
+- **Estimator.** the binned KDE ``\hat f_h(x) = \frac{1}{nh}\sum_j n_j K\!\left(\frac{x-c_j}{h}\right)``
+  (``\int K = 1``, Gaussian ``K``) from the bin counts ``n_j`` at centers ``c_j``, with ``h`` from
+  `bandwidth` (Silverman ``h = (4/3)^{1/5}\hat\sigma\,n^{-1/5}``).
+- **Consistency claim** (``h \to 0``, ``nh \to \infty``): ``\operatorname{bias}\hat f_h(x) \approx
+  \tfrac12 h^2 \mu_2(K)\, f_X''(x)`` and ``\operatorname{Var}\hat f_h(x) \approx R(K)\,f_X(x)/(n h)``;
+  the binning error ``O(b^2)`` is dominated by the ``O(h^2)`` smoothing bias when ``b \ll h``.
+- **Test.** `test/oracles.jl` (recovers the ``N(0,1)`` pdf to ``< 3\times10^{-3}`` over ``[-3,3]``,
+  integrates to 1; the Silverman/Scott bandwidths match their formulas).
 
 ## Local-linear conditional mean (§4.2) — `conditional_mean`
 
@@ -32,5 +58,5 @@ number of samples, ``f_X`` the marginal density of the conditioning variable.
   ```
 
   giving the optimal rate ``\hat m_{h^\star}(x) - m(x) = O_p(n^{-2/5})`` at ``h^\star \sim n^{-1/5}``.
-- **Test.** *(to be linked: `test/oracles.jl` — Gaussian/OU oracle; a rate test that the error falls
-  as ``n^{-2/5}``.)*
+- **Test.** *(forthcoming with the estimator: an OU oracle, and a rate test that the error falls as
+  ``n^{-2/5}``.)*

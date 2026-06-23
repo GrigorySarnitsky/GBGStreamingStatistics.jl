@@ -28,7 +28,7 @@ The conditional MISE rate is slower than a marginal density (``O(n^{-2/3})``).
 Reference: M. Rosenblatt (1969), *Conditional probability density and regression estimators*, in
 *Multivariate Analysis II*.
 
-!!! note "Scaffold stage"
+!!! note "Forthcoming"
     Declared; not yet implemented.
 """
 function conditional_density end
@@ -45,7 +45,7 @@ Ornstein–Uhlenbeck oracle this is known in closed form (the natural end-to-end
 **Estimator.** the [`conditional_density`](@ref GBGStreamingStatistics.ConditionalDensity.conditional_density) double-kernel estimator applied to the per-lag joint
 histogram of pairs ``\\bigl(X_t,\\, X_{t+\\tau}\\bigr)`` (binned by [`observe_pairs!`](@ref GBGStreamingStatistics.Histograms.observe_pairs!)).
 
-!!! note "Scaffold stage"
+!!! note "Forthcoming"
     Declared; not yet implemented.
 """
 function transition_density end
