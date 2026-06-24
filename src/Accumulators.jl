@@ -58,8 +58,8 @@ Combine two summaries into `into`, forming the summary of the concatenated strea
 operation that makes accumulation additive: ``T(\\hat\\mu_{A \\cup B}) = T(\\hat\\mu_A) \\oplus
 T(\\hat\\mu_B)``. Because compatible summaries share the same binning (hence the same bin centers),
 their **counts and power-sums simply add elementwise**, so `merge!` is exact and trivially parallel —
-this is what makes multi-device reduction and time-chunk stitching free, and lets the hot loop
-privatize (per-block local histograms, merged hierarchically).
+this is what makes multi-device reduction and time-chunk stitching free (combine per-device or
+per-time-chunk summaries by addition).
 
 `merge!` is intrinsically a finite-sample operation, so it has no population estimand; its
 specification is the monoid law, tested as *accumulate-then-merge `=` accumulate-together*. Extends
