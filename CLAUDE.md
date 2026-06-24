@@ -258,8 +258,9 @@ its first consumer).
   work is committed **directly on `master`** (do not branch) and **pushed in the same step**; the
   docs site deploys on push. End every commit message with `Co-Authored-By: Claude Opus 4.8
   <noreply@anthropic.com>`; never use `[skip ci]`.
-- **CI tests never run on GitHub — manual-only** (`workflow_dispatch`, no push or tag trigger):
-  GitHub Actions test runs are kept off to avoid CI cost, so run the full test matrix **locally**
-  before every push. **Only the docs workflow runs on GitHub** (it builds + deploys on push to
-  `master`). Trigger `CI.yml` by hand from the Actions tab if a clean-environment resolve is ever
-  wanted.
+- **CI tests do not run on every push — manual + release tags** (`CI.yml` is `workflow_dispatch`
+  plus `push: tags: '*'`): per-commit GitHub Actions test runs are kept off to avoid CI cost, so run
+  the full test matrix **locally** before every push. The matrix runs on GitHub only when triggered
+  by hand (Actions tab) or on a **release tag** — the from-scratch, clean-environment resolve a local
+  run cannot give. This is the shared policy of the sibling GBG packages (GBGIsotropicTurbulence,
+  GBGCloudPhysics). **The docs workflow builds + deploys on every push to `master`.**
