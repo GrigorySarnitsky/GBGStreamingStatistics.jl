@@ -18,7 +18,7 @@ export Histogram1D, Histogram2D, bin_index, observe_pairs!
     Histogram1D(lo, hi, nbins; order = 4, accumulator = Float64)
 
 A **finely binned empirical measure** of a conditioning variable ``X`` — the canonical summary
-``T(\\hat\\mu_n)`` (`docs/ARCHITECTURE.md` §3). `nbins` equal-width (WARPing) bins tile ``[lo, hi)``;
+``T(\\hat\\mu_n)`` (`docs/ARCHITECTURE.md` §3). `nbins` equal-width (WARPing) bins tile the half-open range `[lo, hi)`;
 choosing the range to cover the data (e.g. ``\\pm 5\\sigma`` for the data's standard deviation
 ``\\sigma``) with ``\\gtrsim 10^3`` bins makes the bin width ``b \\approx \\sigma/100`` far below any
 post-hoc smoothing bandwidth ``h`` (``b \\ll h``), so the summary is *approximately sufficient*.
@@ -32,7 +32,7 @@ exact; they are stable for the even high-order moments (the Pawula ``Q``-criteri
 Counts are `UInt64`; power-sums are accumulated in `accumulator` (`Float64` by default) regardless of
 the input element type — *accumulate wider than the data*.
 
-Samples outside ``[lo, hi)`` are **skipped** (not counted) — set the range to cover the data.
+Samples outside `[lo, hi)` are **skipped** (not counted) — set the range to cover the data.
 """
 struct Histogram1D{T<:AbstractFloat,C<:AbstractVector,M<:AbstractMatrix} <: AbstractAccumulator
   lo::T          # lower edge of the binned range
@@ -66,8 +66,8 @@ _total(h::Histogram1D) = sum(h.counts)
     bin_index(summary, x) -> i
 
 The **binning map**: the index ``i`` of the bin containing `x`. For a
-[`Histogram1D`](@ref GBGStreamingStatistics.Histograms.Histogram1D) over ``[lo, hi)`` with `nbins`
-bins, ``i = \\lfloor (x - lo)\\,\\mathrm{scale} \\rfloor + 1``; a valid bin satisfies
+[`Histogram1D`](@ref GBGStreamingStatistics.Histograms.Histogram1D) over `[lo, hi)` with `nbins`
+bins, ``i = \\lfloor (x - \\texttt{lo})\\,\\texttt{scale} \\rfloor + 1``; a valid bin satisfies
 ``1 \\le i \\le`` `nbins`, and `x` outside the range yields ``i < 1`` or ``i >`` `nbins`. Exposed so a
 consumer can pre-quantize a snapshot buffer (e.g. store compact `UInt16` bin indices) before forming
 lagged pairs for [`observe_pairs!`](@ref GBGStreamingStatistics.Histograms.observe_pairs!).
@@ -191,7 +191,7 @@ _sample_std(h::Histogram1D) = sqrt(_sample_variance(h))
 
 A **joint binned empirical measure** of ``(X, Y)`` — one per lag ``\\tau`` — for conditional and
 two-time transition densities (`docs/ARCHITECTURE.md` §3, §4.3). `nx × ny` equal-width cells tile
-``[xlo, xhi) \\times [ylo, yhi)``; each cell `(i_x, i_y)` (flattened `i_x + (i_y-1)·nx`) carries its
+`[xlo, xhi) × [ylo, yhi)`; each cell `(i_x, i_y)` (flattened `i_x + (i_y-1)·nx`) carries its
 **count** and the order-2 bivariate **power-sums** ``S_{rs} = \\sum_{(X,Y)\\in\\text{cell}} (X -
 c^x)^r (Y - c^y)^s`` about the cell center ``(c^x, c^y)`` — ``S_{10}, S_{01}, S_{20}, S_{11},
 S_{02}`` — the local sufficient statistic for the joint density and for local-linear conditioning.
