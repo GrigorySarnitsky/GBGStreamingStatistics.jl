@@ -21,7 +21,7 @@ The implemented entries are test-linked; the conditional entry is the format for
   \sum_{i\in\text{bin}}(X_i - c_j)^p`` for ``p = 1 \dots`` `order` (and order-2 bivariate ``S_{rs}``
   per cell for `Histogram2D`). Intrinsically finite-sample — no population estimand.
 - **Accumulation.** an atomic scatter-add (`observe!` / `observe_pairs!`): one work-item per sample
-  adds ``(X_i - c_j)^p`` to its bin's ``S_p``, in `Float64`. `merge!` is elementwise addition (same
+  adds ``(X_i - c_j)^p`` to its bin's ``S_p``, in the accumulator type (`Float64` by default). `merge!` is elementwise addition (same
   binning ``\Rightarrow`` same centers). The local offsets are well-conditioned, so no compensated
   summation is used.
 - **Recovery.** the global central moments are the **shift formula**

@@ -42,8 +42,8 @@ preallocated summary (no scratch). It runs identically on a CPU `Array` and any 
 allocation-free up to the kernel launch.
 Because ``X_i - c_j`` is small within a bin, the local power-sums are well-conditioned (no compensated
 summation needed); global central moments are recovered post hoc by the shift formula
-(`docs/ARCHITECTURE.md` §3). Accumulated in `Float64` regardless of input element type — *accumulate
-wider than the data*.
+(`docs/ARCHITECTURE.md` §3). Accumulated in the summary's accumulator type (`Float64` by default),
+never narrowed to the input element type — *accumulate wider than the data*.
 
 Reference: D. W. Scott (2015), *Multivariate Density Estimation*, 2nd ed.; M. D. Cattaneo et al.
 (2024), *On binscatter* (the local-moment / WARPing construction).

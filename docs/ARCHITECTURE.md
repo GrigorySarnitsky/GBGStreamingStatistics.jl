@@ -229,10 +229,10 @@ GPU-first, low-memory consumers), but the summaries do **not** accumulate in Flo
   ``2^{24} = 16{,}777{,}216`` — beyond which adding one sample is silently lost — yet a single ``256^3``
   snapshot is *exactly* ``2^{24}`` points, and a run accumulates ``10^{10}``+ into the peak (modal) bins.
   Float32 counting is disqualified outright.
-- **Power-sum accumulators are Float64.** The local sums are well-conditioned, but the *global* moment
+- **Power-sum accumulators default to Float64.** The local sums are well-conditioned, but the *global* moment
   recovery (the shift formula combines them with large bin-center offsets) and the high-order channels
   still want full precision; Float32 would discard the ~7 digits the Float32 *input* carries, through
-  the reduction over ``n``. The power-sums accumulate in Float64 regardless of input type.
+  the reduction over ``n``. The power-sums accumulate in Float64 by default, regardless of input type.
 
 Accumulator precision is a **type parameter** (PF-style element-type genericity) but its **default is
 Float64**, counts integer — *accumulate-wider-than-the-data*, the deliberate opposite of PF's
