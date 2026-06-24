@@ -22,13 +22,14 @@ This package is the statistics sibling of [`GBGPeriodicFields.jl`](https://githu
     [`density`](@ref GBGStreamingStatistics.DensityEstimation.density) (§4.1), global
     [`bandwidth`](@ref GBGStreamingStatistics.Bandwidth.bandwidth) selection, and the conditional mean
     and variance ([`conditional_mean`](@ref GBGStreamingStatistics.Regression.conditional_mean),
-    `conditional_variance`, §4.2), and the Kramers–Moyal
-    [`drift`](@ref GBGStreamingStatistics.MarkovInference.drift) /
+    `conditional_variance`, §4.2), the conditional and transition densities
+    ([`conditional_density`](@ref GBGStreamingStatistics.ConditionalDensity.conditional_density),
+    [`transition_density`](@ref GBGStreamingStatistics.ConditionalDensity.transition_density), §4.3),
+    and the Kramers–Moyal [`drift`](@ref GBGStreamingStatistics.MarkovInference.drift) /
     [`diffusion`](@ref GBGStreamingStatistics.MarkovInference.diffusion) (§4.4) are implemented and
     tested on **CPU and GPU** (Gaussian, bivariate-Gaussian, and Ornstein–Uhlenbeck oracles,
-    mergeability, allocation, AMD-ROCm parity). The §4.3 conditional and transition densities, the
-    response-aware local bandwidth, and the higher Kramers–Moyal / Pawula / Markov diagnostics are
-    forthcoming; see the
+    mergeability, allocation, AMD-ROCm parity). The response-aware local bandwidth and the higher
+    Kramers–Moyal / Pawula / Markov diagnostics are forthcoming; see the
     [Architecture](architecture.md) for the design and roadmap.
 
 ## Installation

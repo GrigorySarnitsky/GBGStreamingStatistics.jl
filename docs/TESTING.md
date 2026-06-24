@@ -41,9 +41,10 @@ the rate tests), `test/mergeability.jl`, and `test/allocations.jl`.
 
 !!! note "Status"
     The summary suites (`Histogram1D`, `Histogram2D`), `density`, `bandwidth`, the §4.2 regression
-    (`conditional_mean`, `conditional_variance`), and the §4.4 `drift` / `diffusion` /
-    `increment_moment` are real — the Gaussian moment and density oracles, the bivariate-Gaussian and
-    **Ornstein–Uhlenbeck** oracles (exact stationary lagged pairs), mergeability, the bounded
-    `@allocated` audit, and **CPU-vs-AMD-GPU parity** (`test/gpu/`, ROCm); `Aqua.test_all` and JET run
-    for real throughout. The §4.3 conditional / transition density and the ``n^{-2/5}`` rate tests
-    remain placeholders until those estimators land.
+    (`conditional_mean`, `conditional_variance`), the §4.3 `conditional_density` / `transition_density`,
+    and the §4.4 `drift` / `diffusion` / `increment_moment` are real — the Gaussian moment and density
+    oracles, the bivariate-Gaussian and **Ornstein–Uhlenbeck** oracles (exact stationary lagged pairs;
+    closed-form drift, diffusion, and transition density), mergeability, the bounded `@allocated` audit,
+    and **CPU-vs-AMD-GPU parity** (`test/gpu/`, ROCm); `Aqua.test_all` and JET run for real throughout.
+    The response-aware local bandwidth, the Pawula / Markov diagnostics, and the ``n^{-2/5}`` / ``n^{-2/3}``
+    rate tests remain placeholders until those land.

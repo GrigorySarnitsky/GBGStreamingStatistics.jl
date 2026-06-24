@@ -29,12 +29,12 @@ are recorded once — in `docs/ARCHITECTURE.md` and this file; the umbrella modu
 > **Status: lower half complete (CPU + GPU); estimators landing.** The summaries `Histogram1D` and
 > `Histogram2D` (`observe!` / `observe_pairs!` as one KernelAbstractions + Atomix scatter-add of counts
 > and power-sums about the bin center, `merge!` by addition, allocation-free), the marginal density
-> `density` (§4.1), local-linear `conditional_mean` / `conditional_variance` (§4.2), the Kramers–Moyal
-> `drift` / `diffusion` (§4.4), and global `bandwidth` selection (§4.5) are implemented and tested —
-> Gaussian, bivariate-Gaussian, and **Ornstein–Uhlenbeck** oracles, mergeability, allocation, and
-> **GPU-vs-CPU parity verified on the AMD RX 6700 XT** (ROCm). The §4.3 conditional / transition
-> density, the response-aware local bandwidth, and the Pawula / Markov diagnostics are declared and
-> forthcoming. See *Current state and roadmap*.
+> `density` (§4.1), local-linear `conditional_mean` / `conditional_variance` (§4.2), the conditional /
+> transition density `conditional_density` / `transition_density` (§4.3), the Kramers–Moyal `drift` /
+> `diffusion` (§4.4), and global `bandwidth` selection (§4.5) are implemented and tested — Gaussian,
+> bivariate-Gaussian, and **Ornstein–Uhlenbeck** oracles, mergeability, allocation, and **GPU-vs-CPU
+> parity verified on the AMD RX 6700 XT** (ROCm). The response-aware local bandwidth and the Pawula /
+> Markov diagnostics are declared and forthcoming. See *Current state and roadmap*.
 
 ## Modules and wiring
 
@@ -225,17 +225,25 @@ Mechanical bar:
    (linear OU mean ⇒ no smoothing bias); `diffusion` recovers the closed-form ``D^{(2)}`` to ``8\%``
    (the curved-``\mathbb E[Y^2\mid x]`` local-linear bias); plus the variance decomposition, the
    ``1/(n!\tau)`` scaling, coverage-gap errors (``n\ge3``, static lag), and mergeability.
+8. **`ConditionalDensity`** (§4.3) — `conditional_density` ``\equiv f_{Y\mid X}`` and `transition_density`
+   ``\equiv p_\tau(y\mid x)`` by the binned double-kernel (Rosenblatt) from the `Histogram2D` cell
+   counts: the joint is reduced at ``x`` to an X-kernel-weighted Y-profile, then smoothed in ``y`` with
+   the surviving ``1/(\sqrt{2\pi}\,h_2)`` normalization (``\int \hat f\,\mathrm dy = 1`` exactly). Two
+   supplied bandwidths `hx`, `hy`. Tested: the bivariate-Gaussian conditional ``N(\rho x, 1-\rho^2)``
+   (normalization + pointwise) and the **Ornstein–Uhlenbeck** transition density
+   ``N(x e^{-\theta\tau}, s^2(1-e^{-2\theta\tau}))``; scalar/vector forms, `transition_density`
+   equivalence, off-support NaN, and mergeability.
 
 **Next, in dependency order:**
 
-1. **`ConditionalDensity`** (§4.3) and the **response-aware local bandwidth** ``h^\\star(x)`` (§4.5) —
-   each estimand-first, OU-oracle-tested, with its `FORMALIZATION.md` entry, from the `Histogram2D`
-   joint summary. Plus the Fan–Yao conditional-variance refinement, the ``n^{-2/5}`` rate tests, and
-   the FFT-amortized smoothing (§4.5).
+1. **The response-aware local bandwidth** ``h^\\star(x)`` (§4.5) — estimand-first, OU-oracle-tested,
+   with its `FORMALIZATION.md` entry, from the `Histogram2D` joint summary. Plus the Fan–Yao
+   conditional-variance refinement, the ``n^{-2/5}`` / ``n^{-2/3}`` rate tests, and the FFT-amortized
+   smoothing (§4.5).
 2. **The rest of `MarkovInference` §4.4** — `kramers_moyal` for ``n \ge 3``, the **Pawula `Q`**
    diagnostic (``M_4``, ``M_6``) and the all-orders Bell-polynomial finite-time correction, and
-   `markov_test`. The higher moments need the `Histogram2D` order-raise (Deferred, below); `markov_test`
-   composes the §4.3 transition density.
+   `markov_test` (now unblocked — it composes the §4.3 transition density). The higher moments need the
+   `Histogram2D` order-raise (Deferred, below).
 
 Deferred (recorded, not built): the ECF summary (`docs/ARCHITECTURE.md` §2 — likely never); the
 projection / SFI–ULI road (§4.6); `HistogramND` (§3, wait for a multi-conditioning consumer);

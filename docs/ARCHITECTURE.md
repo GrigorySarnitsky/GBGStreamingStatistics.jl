@@ -563,6 +563,17 @@ intentional — do not dedupe it).
   bias), diffusion ``\to \sigma^2/2`` carrying the local-linear bias of the curved
   ``\mathbb{E}[Y^2\mid x]``.
 
+- **Conditional / transition density §4.3 — binned double-kernel from the joint counts** (§4.3). The
+  Rosenblatt double-kernel estimator (§4.3) is evaluated from the `Histogram2D` **cell counts** (no
+  power-sums needed): at the conditioning value ``x`` the joint is reduced to an ``x``-kernel-weighted
+  Y-profile ``P_k = \sum_j n_{jk} K_{h_1}(c^x_j - x)`` with ``D = \sum_k P_k``, and then
+  ``\hat f(y\mid x) = \sum_k P_k K_{h_2}(c^y_k - y) / (\sqrt{2\pi}\,h_2 D)``. The ``x``-kernel
+  normalization cancels in the conditional ratio — only the ``1/(\sqrt{2\pi}\,h_2)`` survives, giving
+  ``\int \hat f(y\mid x)\,\mathrm dy = 1`` exactly. `transition_density` is the same computation on a
+  lag-``\tau`` joint (the two-time reading). The two bandwidths ``h_1`` (`hx`, conditioning) and
+  ``h_2`` (`hy`, response) are supplied; the conditional MISE rate is the slower ``O(n^{-2/3})``.
+  OU-oracle-tested against the closed-form Gaussian ``p_\tau(y\mid x)``.
+
 Open decisions still flagged **[OPEN]** in §10 (the projection road, `HistogramND`, vector-valued
 conditioning, prior-art mirroring) graduate to entries here when they are settled.
 

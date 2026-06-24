@@ -26,7 +26,7 @@ const H = Histograms
     @test sum(density(h, xs; h = bw)) * 0.01 ≈ 1 atol = 1e-2
   end
 
-  @testset "Ornstein–Uhlenbeck oracle: drift & diffusion (§4.4)" begin
+  @testset "Ornstein–Uhlenbeck oracle: drift, diffusion & transition density (§4.3–4.4)" begin
     # OU process  dX = −θ X dt + σ dW : stationary N(0, s²) with s² = σ²/(2θ); the lag-τ transition is
     # exactly  X_{t+τ} | X_t = x ∼ N(x e^{−θτ}, s²(1 − e^{−2θτ})), so exact stationary lagged pairs are
     # sampled directly (no Euler discretization). The finite-τ Kramers–Moyal coefficients are known:
@@ -55,11 +55,19 @@ const H = Histograms
     # the increment moments line up: M_1 = τ D⁽¹⁾, M_2 = 2τ D⁽²⁾
     @test increment_moment(g, 0.5, 1; h = hh) ≈ τ * D1(0.5)  atol = 0.02
     @test increment_moment(g, 0.5, 2; h = hh) ≈ 2τ * D2(0.5) rtol = 0.08
-  end
 
-  @testset "Ornstein–Uhlenbeck oracle (transition density, §4.3)" begin
-    # Forthcoming with ConditionalDensity: p_τ(y∣x) is Gaussian in closed form for the OU process.
-    @test_skip transition_density_matches_ou_oracle()
+    # transition density (§4.3): p_τ(y∣x) = N(x e^{−θτ}, s²(1−e^{−2θτ})), from the same OU pairs. The
+    # double-kernel estimate carries the usual O(h²) KDE bias, worst at the mode; atol reflects it.
+    vt = s^2 * (1 - exp(-2θ * τ))
+    ptrans(y, x) = exp(-(y - x * exp(-θ * τ))^2 / (2vt)) / sqrt(2π * vt)
+    for x in (-0.5, 0.0, 0.5)
+      μx = x * exp(-θ * τ)
+      for y in (μx - 0.4, μx, μx + 0.4)
+        @test transition_density(g, x, y; hx = 0.25, hy = 0.15) ≈ ptrans(y, x) atol = 0.04
+      end
+    end
+    ys = collect(-5s:0.02:5s)
+    @test sum(transition_density(g, 0.0, ys; hx = 0.25, hy = 0.15)) * 0.02 ≈ 1 atol = 1e-2
   end
 
   @testset "consistency / rate" begin
