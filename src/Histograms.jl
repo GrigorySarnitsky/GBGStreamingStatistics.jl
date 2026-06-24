@@ -19,8 +19,9 @@ export Histogram1D, Histogram2D, bin_index, observe_pairs!
 
 A **finely binned empirical measure** of a conditioning variable ``X`` — the canonical summary
 ``T(\\hat\\mu_n)`` (`docs/ARCHITECTURE.md` §3). `nbins` equal-width (WARPing) bins tile ``[lo, hi)``;
-choosing the range to cover the data (e.g. ``\\pm 5\\sigma``) with ``\\gtrsim 10^3`` bins makes the
-bin width ``b \\approx \\sigma/100 \\ll h`` so the summary is *approximately sufficient*.
+choosing the range to cover the data (e.g. ``\\pm 5\\sigma`` for the data's standard deviation
+``\\sigma``) with ``\\gtrsim 10^3`` bins makes the bin width ``b \\approx \\sigma/100`` far below any
+post-hoc smoothing bandwidth ``h`` (``b \\ll h``), so the summary is *approximately sufficient*.
 
 Each bin carries its **count** and the **power-sums** ``S_p = \\sum_{i \\in \\text{bin}}(X_i - c_j)^p``
 about the fixed bin center ``c_j``, for ``p = 1 \\dots`` `order`. Because ``X_i - c_j`` is small within
