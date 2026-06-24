@@ -56,8 +56,8 @@ const H = Histograms
     Random.seed!(3)
     h = Histogram1D(-8.0, 8.0, 1000; order = 4)
     observe!(h, randn(Float32, 300_000))
-    @test eltype(h.means) === Float64
-    @test eltype(h.moments) === Float64
+    @test eltype(h.powersums) === Float64
+    @test eltype(h.counts) === UInt64
     @test H._sample_variance(h) ≈ 1 rtol = 3e-2
   end
 end

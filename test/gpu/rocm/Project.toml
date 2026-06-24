@@ -1,0 +1,11 @@
+[deps]
+AMDGPU = "21141c5a-9bdb-4563-92ae-f87d6854732e"
+GBGStreamingStatistics = "f7630e6d-3fe9-47a8-b85f-33b009215466"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[sources]
+GBGStreamingStatistics = {path = "../../.."}
+
+[compat]
+AMDGPU = "2"

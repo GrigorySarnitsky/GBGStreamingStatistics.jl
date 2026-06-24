@@ -16,11 +16,13 @@ analytic round-trips: estimators are checked against distributions with closed f
 - **Mergeability tests.** For every carrier, *accumulate-then-merge `=` accumulate-together* (to
   round-off), and `merge!` is associative — the monoid laws of invariant 3.
 - **Allocation audit.** `test/allocations.jl` asserts via `@allocated` (on the CPU, where a
-  materialized array's bytes are visible) that `observe!` / `observe_pairs!` allocate nothing on a
-  preallocated summary — the GPU-hot-loop contract of invariant 4.
-- **GPU-vs-CPU parity.** Once a device path exists, the public surface is exercised on device arrays
-  under `allowscalar(false)` and compared against the CPU result; the vendor stacks (CUDA/AMDGPU)
-  stay test-only dependencies.
+  materialized array's bytes are visible) that `observe!` / `observe_pairs!` / `merge!` allocate only a
+  **bounded** amount on a preallocated summary — the KernelAbstractions launch, never an ``O(n)`` or
+  ``O(\text{bins})`` temporary — the GPU-hot-loop contract of invariant 4.
+- **GPU-vs-CPU parity.** The gated suite (`test/gpu/`, run on a machine with a device) exercises
+  `observe!` / `merge!` / `observe_pairs!` on device arrays under `allowscalar(false)` and compares
+  against the CPU result — counts exactly, power-sums to round-off, including heavy atomic contention.
+  Verified on the AMD RX 6700 XT (ROCm); the vendor stacks (CUDA/AMDGPU) stay test-only dependencies.
 - **Package-quality checks.** `test/aqua.jl` (`Aqua.test_all`: ambiguities, piracy, stale deps,
   compat bounds, undefined exports) and `test/jet.jl` (JET static analysis) run against the loaded
   package.
@@ -38,7 +40,8 @@ constants do not collide. The cross-cutting files are `test/oracles.jl` (the Gau
 the rate tests), `test/mergeability.jl`, and `test/allocations.jl`.
 
 !!! note "Status"
-    The `Histogram1D` foundation, `density`, and `bandwidth` suites are real — the Gaussian moment
-    oracle, the Gaussian density oracle, mergeability (accumulate-then-merge == together), and the
-    `@allocated == 0` audit; `Aqua.test_all` and JET run for real throughout. The OU / conditional and
-    the ``n^{-2/5}`` rate tests remain placeholders until those estimators land.
+    The carrier suites (`Histogram1D`, `Histogram2D`), `density`, and `bandwidth` are real — the
+    Gaussian moment and density oracles, the 2D independent-Gaussian oracle, mergeability, the bounded
+    `@allocated` audit, and **CPU-vs-AMD-GPU parity** (`test/gpu/`, ROCm); `Aqua.test_all` and JET run
+    for real throughout. The OU / conditional and the ``n^{-2/5}`` rate tests remain placeholders until
+    those estimators land.

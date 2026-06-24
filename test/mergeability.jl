@@ -23,7 +23,7 @@ const H = Histograms
   end
 
   @test merged.counts == full.counts                  # counts add — exact
-  @test merged.means ≈ full.means rtol = 1e-9 atol = 1e-12
+  @test merged.powersums ≈ full.powersums rtol = 1e-9 atol = 1e-12
   for p in 2:5                                          # central moments — to round-off
     @test H._sample_central_moment(merged, p) ≈ H._sample_central_moment(full, p) rtol = 1e-8 atol = 1e-10
   end

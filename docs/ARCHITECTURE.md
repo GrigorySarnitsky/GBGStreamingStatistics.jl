@@ -193,24 +193,33 @@ transfer verbatim to every consumer.
 
 - **`Histogram1D`** — a binned empirical measure of a conditioning variable ``X``: linear (WARPing)
   bins over a fixed range (default ``\pm 5\sigma``, ``\gtrsim 10^3`` bins), each bin carrying its
-  **count** and **per-bin standardized central moments to order ``p \approx 12``**. The high order is
-  required by the heavy-tailed channels: the turbulence Q-criterion needs ``M_6``, whose *sampling
-  variance* involves up to the 12th moment, so the carrier must survive it. Moments are accumulated
-  by the **Pébay (2008) central-moment recursion** with **Kahan–Neumaier compensated summation**,
-  per bin, so the stream is single-pass and numerically stable.
+  **count** and **per-bin power-sums about the bin center** ``S_p = \sum_{i\in\text{bin}}(X_i -
+  c_j)^p`` for ``p = 1 \dots P`` (default ``P = 4``; raise ``P`` for the heavy-tailed channels — the
+  turbulence Q-criterion needs ``M_6``, whose *sampling variance* reaches the 12th moment). Because the
+  offset ``X_i - c_j`` is small within a bin (``\lesssim b/2 \approx \sigma/200``), the local
+  power-sums are **well-conditioned**: they are accumulated by a plain atomic scatter-add — single-pass
+  and numerically stable, with **no compensated summation needed**. The global central moments are
+  recovered post hoc by the **shift formula** (the binscatter / WARPing local-moment construction;
+  Scott 2015; Cattaneo et al. 2024), *exactly* (the power-sums use the actual ``X_i``, not the center)
+  and stably for the even high-order moments the consumers need.
 - **`Histogram2D`** — a joint binned measure of ``(X, Y)``, one per lag ``\tau``, for conditional and
-  transition densities. Same per-bin carriers.
+  transition densities; per-cell counts and bivariate power-sums ``S_{rs}`` about the cell center.
 - **`HistogramND` [OPEN]** — the ``n``-D generalization, deferred until a consumer needs conditioning
   on more than one variable (the PF rule against speculative structure).
-- **per-bin power-sums** — for regression, each bin stores ``S_{rs} = \sum_{i \in \text{bin}} Y_i^{r}\,(X_i - c)^{s}`` (about the bin center ``c``), the local sufficient statistic for local-polynomial
-  fitting (the binscatter / local-moment construction; Cattaneo et al. 2024; Hjort & Jones in
-  Jones et al. 2010). All bandwidths and kernels are recovered from these post hoc.
-- **the mergeable-monoid interface** — `merge!` on every carrier; unnormalized counts and
-  power-sums add. Tested: accumulate-then-merge ``=`` accumulate-together.
-- **the backend-agnostic scatter-add primitive** — one KernelAbstractions + Atomix kernel that
-  scatters a batch of samples into bins with atomic accumulation, the direct analog of PF's
-  `_bin_by_shell` shell-binning. Allocation-free on preallocated carriers; runs on CPU and any GPU
-  backend (§5).
+- **per-bin power-sums are the *one* carrier scheme** above, in a univariate form (``S_p`` of ``X``,
+  for the marginal moments and density) and a bivariate form (``S_{rs} = \sum_{i\in\text{bin}}(X_i -
+  c^x)^{s}(Y_i - c^y)^{r}`` about the cell center, the local sufficient statistic for local-polynomial
+  regression; Cattaneo et al. 2024). All bandwidths, kernels, and moments are recovered from them
+  post hoc.
+- **the mergeable-monoid interface** — `merge!` on every carrier is **elementwise addition** (same
+  binning ⇒ same bin centers ⇒ counts and power-sums add). Tested: accumulate-then-merge ``=``
+  accumulate-together.
+- **the backend-agnostic scatter-add primitive** *is* `observe!` / `observe_pairs!` — one
+  KernelAbstractions + Atomix kernel (one work-item per sample) that atomically scatters the count and
+  the power-sums into the preallocated carrier, the direct analog of PF's `_bin_by_shell` /
+  `anterpolate!`. Allocation-free up to the kernel launch; verified identical on CPU and the AMD GPU
+  under `allowscalar(false)` (§5). Storing power-sums *about the bin center* is precisely what keeps
+  this a plain atomic add — no privatization, no workspace.
 
 **Numeric precision — accumulate wider than the data.** Samples often arrive in **Float32** (the
 GPU-first, low-memory consumers), but the carriers do **not** accumulate in Float32:
@@ -219,16 +228,16 @@ GPU-first, low-memory consumers), but the carriers do **not** accumulate in Floa
   ``2^{24} = 16{,}777{,}216`` — beyond which adding one sample is silently lost — yet a single ``256^3``
   snapshot is *exactly* ``2^{24}`` points, and a run accumulates ``10^{10}``+ into the peak (modal) bins.
   Float32 counting is disqualified outright.
-- **Moment accumulators are Float64.** The order-``\sim 12`` central moments span an enormous dynamic
-  range and are formed by cancellation-sensitive sums; Float32 would discard the ~7 digits the
-  Float32 *input* genuinely carries, through the reduction over ``n``. The Pébay recursion runs in
-  Float64 regardless of input type.
+- **Power-sum accumulators are Float64.** The local sums are well-conditioned, but the *global* moment
+  recovery (the shift formula combines them with large bin-center offsets) and the high-order channels
+  still want full precision; Float32 would discard the ~7 digits the Float32 *input* carries, through
+  the reduction over ``n``. The power-sums accumulate in Float64 regardless of input type.
 
 Accumulator precision is a **type parameter** (PF-style element-type genericity) but its **default is
 Float64**, counts integer — *accumulate-wider-than-the-data*, the deliberate opposite of PF's
 preserve-the-field's-eltype (a **reduction** should out-precision its inputs; a **transform** should
-not). It costs almost nothing: the histogram is **small** (a few ``\times10^3`` bins ``\times`` a dozen
-Float64 moments — kilobytes per channel, versus a gigabyte field), and on the GPU the Float64
+not). It costs almost nothing: the histogram is **small** (a few ``\times10^3`` bins ``\times`` a few
+Float64 power-sums — kilobytes per channel, versus a gigabyte field), and on the GPU the Float64
 arithmetic is hidden behind the memory- and atomic-bound accumulation (§5), not FP64 throughput.
 
 **Two-time samples / lag handling — settled: the package bins pairs; the consumer produces them.**
@@ -362,19 +371,23 @@ Inherited wholesale from PF (its invariants 6 and 13):
 
 - **Storage is generic `AbstractArray`**; no scalar indexing of device arrays in package methods;
   allocate via `similar`.
-- **Accumulation is allocation-free.** `observe!(summary, batch)` allocates nothing on a
-  preallocated summary — required for GPU hot loops, where a per-call device temporary escapes the
-  host GC and wedges the run. Enforced by an `@allocated` audit **on the CPU** (where a materialized
-  array's bytes are visible), the direct analog of PF's `test/allocations.jl`.
+- **Accumulation is allocation-free.** `observe!(summary, batch)` allocates only a **bounded** amount
+  (the kernel launch) on a preallocated summary — never an ``O(n)`` or ``O(\text{bins})`` temporary,
+  which on a GPU hot loop would escape the host GC and wedge the run. Enforced by an `@allocated` audit
+  **on the CPU** (where a materialized array's bytes are visible), the direct analog of PF's
+  `test/allocations.jl`.
 - **One portable kernel** (KernelAbstractions + Atomix) does the atomic scatter-add binning, on CPU
   and any GPU backend; the vendor stacks (CUDA/AMDGPU) stay test-only dependencies.
-- **Mergeable across devices** — `merge!` is the multi-device / multi-chunk reduction (§2). The
-  monoid laws are the spec; tested for associativity and accumulate-then-merge equality.
+- **Mergeable across devices** — `merge!` is the multi-device / multi-chunk reduction (§2), here just
+  elementwise addition. The monoid laws are the spec; tested for associativity and accumulate-then-
+  merge equality.
 - **Contention, not FP64, is the hot-loop enemy.** The conditioning variable is peaked
-  (Gaussian-ish), so the modal bins are atomic hot spots. The performant pattern is
-  **privatization** — per-block local histograms in fast (shared) memory, accumulated then `merge!`d
-  hierarchically — which the mergeable-monoid design (§2) already provides; it also sidesteps global
-  Float64 atomics, so the wider-than-data precision (§3) is free. This per-sample accumulation over
+  (Gaussian-ish), so the modal bins are atomic hot spots. The power-sums-about-the-bin-center choice
+  (§3) makes each update a *plain* atomic add — integer-exact for counts, round-off for the Float64
+  power-sums — so global atomics handle even heavy contention directly (the proven PF `anterpolate!`
+  pattern, verified on the AMD GPU). **Privatization** (per-block local histograms in fast memory,
+  merged hierarchically via the monoid) stays available as a future optimization should a channel's
+  modal-bin contention dominate, but is not needed for correctness. This per-sample accumulation over
   ``N^3\times``steps is the package's true performance-critical path; the post-hoc smoothing (§4.5) is
   second-order.
 
@@ -442,9 +455,9 @@ GBGStreamingStatistics/
   README.md  Project.toml
   src/
     GBGStreamingStatistics.jl    # umbrella
-    Accumulators.jl              # foundation: AbstractAccumulator, merge! monoid,
-                                 #   Pébay+Kahan recursions, the KA/Atomix scatter primitive, observe!
-    Histograms.jl                # Histogram1D / Histogram2D, linear (WARP) binning, per-bin power-sums
+    Accumulators.jl              # foundation: AbstractAccumulator, observe!/merge! monoid interface
+    Histograms.jl                # Histogram1D / Histogram2D, WARP binning, power-sums about the bin
+                                 #   center, the KA/Atomix scatter kernel, shift-formula recovery
     DensityEstimation.jl         # §4.1   f_X
     Regression.jl                # §4.2   m(x), σ²(x)  [estimand-first reference module]
     ConditionalDensity.jl        # §4.3   f_{Y|X}, transition p_τ
@@ -522,6 +535,19 @@ intentional — do not dedupe it).
 - **Lag handling — the package bins pre-formed pairs** (`observe_pairs!`) and exposes `bin_index`;
   the snapshot buffer and all lag / sampling / cadence policy stay consumer-side (§3).
 
+- **Carrier storage — power-sums about the bin center, not Pébay-about-the-running-mean** (§3).
+  *Changed during the GPU pass.* The original design accumulated per-bin central moments by the Pébay
+  (2008) running-mean recursion with Kahan compensation. A Pébay update is **not atomic**, so the GPU
+  hot loop would have needed per-block *privatization* (private histograms merged hierarchically) — a
+  pattern the sibling PF uses nowhere. Switching to **power-sums ``S_p = \sum (X_i - c_j)^p`` about the
+  fixed bin center** makes `observe!` a plain atomic scatter-add (PF's proven `anterpolate!` pattern):
+  allocation-free, one portable kernel identical on CPU and the AMD GPU, `merge!` reduced to
+  elementwise addition, and the marginal moments unified with the regression power-sums. The offset
+  ``X_i - c_j`` is tiny, so the local sums are well-conditioned (Kahan no longer needed); global central
+  moments are recovered post hoc by the shift formula — exact, and stable for the even high-order
+  moments (``M_4``, ``M_6``) the Q-criterion needs (odd moments keep weaker relative precision, an
+  accepted trade). Verified by the ROCm GPU parity suite.
+
 Open decisions still flagged **[OPEN]** in §10 (the projection road, `HistogramND`, vector-valued
 conditioning, prior-art mirroring) graduate to entries here when they are settled.
 
@@ -532,7 +558,8 @@ conditioning, prior-art mirroring) graduate to entries here when they are settle
 The load-bearing works the package implements or pins to:
 
 - P. Pébay (2008), *Formulas for robust, one-pass parallel computation of covariances and
-  arbitrary-order statistical moments*, Sandia SAND2008-6212. (Streaming per-bin moments.)
+  arbitrary-order statistical moments*, Sandia SAND2008-6212. (Parallel streaming central moments —
+  weighed, then superseded by local power-sums about the bin center; §11.)
 - D. W. Scott (2015), *Multivariate Density Estimation*, 2nd ed., Wiley; P. Hall & M. P. Wand
   (1996), *On the accuracy of binned kernel density estimators*, J. Multivariate Anal. 56. (WARPing
   / binned-KDE sufficiency.)

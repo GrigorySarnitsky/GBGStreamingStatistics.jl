@@ -19,16 +19,18 @@ The package has a single performance-critical path: the **per-sample accumulatio
 ## Hot-loop best practices
 
 - **Contention, not FP64, is the enemy.** The conditioning variable is peaked (Gaussian-ish), so the
-  modal bins are atomic hot spots. The performant pattern is **privatization** — per-block local
-  histograms in fast (shared) memory, accumulated then `merge!`d hierarchically — which the
-  mergeable-monoid design (invariant 3) already provides, and which sidesteps global `Float64`
-  atomics.
+  modal bins are atomic hot spots. Storing power-sums *about the bin center* makes each update a plain
+  atomic add (counts integer-exact, power-sums `Float64` to round-off), so global atomics handle even
+  heavy contention directly — the proven PF `anterpolate!` pattern, verified on the AMD GPU.
+  **Privatization** (per-block local histograms merged via the monoid) stays available as a future
+  optimization if a channel's modal-bin contention dominates.
 - **Wider-than-data precision is free.** The histogram is small (kilobytes per channel, versus a
   gigabyte field), so `Float64` moment accumulators cost almost nothing, and on the GPU the `Float64`
   arithmetic is hidden behind the memory- and atomic-bound accumulation, not FP64 throughput
   (invariant 6).
-- **Allocation-free.** `observe!` allocates nothing on a preallocated summary (invariant 4); a
-  per-call device temporary escapes the host GC and wedges a long GPU run.
+- **Allocation-free.** `observe!` allocates only a bounded amount (the KernelAbstractions launch) on a
+  preallocated summary (invariant 4) — never an ``O(n)`` temporary that would escape the host GC and
+  wedge a long GPU run.
 
 ## Benchmark coverage contract
 

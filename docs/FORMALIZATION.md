@@ -15,20 +15,28 @@ number of samples, ``f_X`` the marginal density of the conditioning variable.
 
 The implemented entries are test-linked; the conditional entry is the format for what lands next.
 
-## Per-bin central moments — the Pébay recursion (`Accumulators`, `Histogram1D`)
+## Per-bin power-sums about the bin center (`Histograms`, the carriers)
 
-- **Object.** per bin, the count, mean, and unnormalized central moments ``M_p = \sum_{i \in
-  \text{bin}}(X_i - \bar X)^p`` for ``p = 2 \dots`` `order` (intrinsically finite-sample — no
-  population estimand).
-- **Recursion.** the single-sample update (`_observe_moment!`) and the parallel merge
-  (`_merge_moment!`) are the Pébay (2008) formulas, accumulated in `Float64`; the single-sample update
-  is the ``n_B = 1`` case of the merge, so streaming accumulation and `merge!` are the *same*
-  arithmetic.
-- **Correctness.** the recursion is *exact* — it computes the same ``M_p`` as a direct two-pass sum,
-  to round-off — and the merge gives accumulate-then-merge ``=`` accumulate-together.
+- **Object.** per bin, the count and the **power-sums about the fixed bin center** ``S_p =
+  \sum_{i\in\text{bin}}(X_i - c_j)^p`` for ``p = 1 \dots`` `order` (and order-2 bivariate ``S_{rs}``
+  per cell for `Histogram2D`). Intrinsically finite-sample — no population estimand.
+- **Accumulation.** an atomic scatter-add (`observe!` / `observe_pairs!`): one work-item per sample
+  adds ``(X_i - c_j)^p`` to its bin's ``S_p``, in `Float64`. `merge!` is elementwise addition (same
+  binning ``\Rightarrow`` same centers). The local offsets are well-conditioned, so no compensated
+  summation is used.
+- **Recovery.** the global central moments are the **shift formula**
+
+  ```math
+  \sum_i (X_i - \bar X)^p = \sum_j \sum_{k=0}^{p} \binom{p}{k}\,(c_j - \bar X)^{p-k}\, S_k^{(j)},
+  \qquad S_0^{(j)} = n_j, \quad \bar X = \tfrac1n \sum_j \bigl(c_j n_j + S_1^{(j)}\bigr),
+  ```
+
+  which is **exact** (the ``S_p`` use the actual ``X_i``, not the center) and numerically stable for
+  the even ``p`` the consumers need.
 - **Test.** `test/histograms.jl` (recovered ``M_2 \dots M_6`` match the direct sum to ``10^{-8}`` and
-  the true Gaussian moments to sampling error); `test/mergeability.jl` (merge ``=`` together);
-  `test/allocations.jl` (`observe!`/`merge!` allocate 0 bytes).
+  the true Gaussian moments to sampling error); `test/histograms2d.jl` (2D marginals + covariance);
+  `test/mergeability.jl` (merge ``=`` together); `test/allocations.jl` (bounded `observe!` / `merge!`);
+  `test/gpu/suite.jl` (CPU-vs-AMD-GPU parity).
 
 ## Marginal density (§4.1) — `density`
 

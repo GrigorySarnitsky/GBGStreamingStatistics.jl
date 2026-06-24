@@ -11,9 +11,10 @@ using Random
 
   h = Histogram1D(-8.0, 8.0, 1000; order = 6)
   observe!(h, batch)                                   # warm up (compile)
-  @test (@allocated observe!(h, batch)) == 0
+  # batch observe! is the KA scatter kernel: a bounded launch cost, no O(n)/O(nbins) temporary.
+  @test (@allocated observe!(h, batch)) < 4096
 
-  observe!(h, 0.3)                                      # warm up the scalar method
+  observe!(h, 0.3)                                      # warm up the scalar (direct host) method
   @test (@allocated observe!(h, 0.4)) == 0
 
   a = Histogram1D(-8.0, 8.0, 1000; order = 6); observe!(a, batch)

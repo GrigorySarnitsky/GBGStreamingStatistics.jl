@@ -26,12 +26,13 @@ deliberate absences of the invariants). The conceptual model and the writing/doc
 are recorded once — in `docs/ARCHITECTURE.md` and this file; the umbrella module
 `src/GBGStreamingStatistics.jl` only points there.
 
-> **Status: foundation + first estimator implemented.** The `Histogram1D` carrier (`Accumulators`
-> Pébay add/merge + linear binning), the marginal density `density` (§4.1), and global `bandwidth`
-> selection are implemented and tested (Gaussian oracle, mergeability, allocation-free
-> `observe!`/`merge!`). `Histogram2D`/`observe_pairs!`, the conditional/Markov/regression estimators,
-> the response-aware local bandwidth, the GPU-resident KernelAbstractions+Atomix kernel, and
-> Kahan–Neumaier compensation are declared and forthcoming. See *Current state and roadmap*.
+> **Status: lower half complete (CPU + GPU); estimators next.** The carriers `Histogram1D` and
+> `Histogram2D` (`observe!` / `observe_pairs!` as one KernelAbstractions + Atomix scatter-add of counts
+> and power-sums about the bin center, `merge!` by addition, allocation-free), the marginal density
+> `density` (§4.1), and global `bandwidth` selection are implemented and tested — Gaussian moment and
+> density oracles, mergeability, allocation, and **GPU-vs-CPU parity verified on the AMD RX 6700 XT**
+> (ROCm). The conditional / Markov / regression estimators and the response-aware local bandwidth are
+> declared and forthcoming. See *Current state and roadmap*.
 
 ## Modules and wiring
 
@@ -39,16 +40,16 @@ Two halves (`docs/ARCHITECTURE.md` §3, §4, §8). The **universal lower half** 
 stream and transfers verbatim to every consumer; the **estimator upper half** is the exportable
 estimands.
 
-- `src/Accumulators.jl` — the foundation (lower half): the `AbstractAccumulator` supertype, the
-  `merge!` mergeable-monoid interface, the **Pébay (2008) central-moment recursion with
-  Kahan–Neumaier compensated summation** (per bin), the backend-agnostic **KernelAbstractions +
-  Atomix scatter-add primitive**, and `observe!` (fold a sample batch in). Allocation-free on
-  preallocated carriers; runs on CPU and any GPU backend. Owns `KernelAbstractions`, `Atomix`.
+- `src/Accumulators.jl` — the foundation (lower half): the `AbstractAccumulator` supertype and the
+  `observe!` / `merge!` mergeable-monoid interface only. The concrete carriers and the portable
+  KernelAbstractions + Atomix scatter kernels live in `Histograms`.
 - `src/Histograms.jl` — the carriers (lower half): `Histogram1D` / `Histogram2D` — linear (WARPing)
-  binned empirical measures over a fixed range, each bin carrying its **count**, **per-bin
-  standardized central moments to order ≈ 12**, and **per-bin power-sums** ``S_{rs}`` (the local
-  sufficient statistic for local-polynomial fitting). `bin_index` (the binning map, exposed for
-  pre-quantization), `observe_pairs!` (bin pre-formed lag-labelled pairs), `merge!`.
+  binned empirical measures over a fixed range, each bin/cell carrying its **count** and **power-sums
+  about the bin center** ``S_p`` / ``S_{rs}`` (the local sufficient statistic for moments and
+  local-polynomial fitting). Accumulated by one **KernelAbstractions + Atomix atomic scatter-add**
+  (`observe!` / `observe_pairs!`, one work-item per sample, CPU and GPU alike); `merge!` is elementwise
+  addition; `bin_index` is the binning map (exposed for pre-quantization); global central moments are
+  recovered post hoc by the **shift formula**. Owns `KernelAbstractions`, `Atomix`.
 - `src/DensityEstimation.jl` — §4.1 `density` ``\equiv f_X`` (binned KDE / WARPing).
 - `src/Regression.jl` — §4.2 `conditional_mean` ``\equiv m(x)``, `conditional_variance`
   ``\equiv \sigma^2(x)`` (local-linear, Fan & Gijbels; Nadaraya–Watson kept for reference). The
@@ -82,11 +83,12 @@ The PF discipline: a missing capability encodes a decision (`docs/ARCHITECTURE.m
 3. **Everything is a mergeable monoid.** Every carrier supports `merge!`; the unnormalized summary
    is additive over the stream. No non-mergeable accumulator is admitted. Tested: accumulate-then-
    merge `=` accumulate-together.
-4. **The hot path is allocation-free and backend-agnostic.** `observe!(summary, batch)` allocates
-   nothing on a preallocated summary (enforced by an `@allocated` audit on the CPU). Storage is
-   generic `AbstractArray`; no scalar indexing of device arrays; one portable KernelAbstractions +
-   Atomix kernel does the atomic scatter-add binning on CPU and any GPU backend. The hot-loop enemy
-   is **contention, not FP64** — privatize (per-block local histograms, merged hierarchically).
+4. **The hot path is allocation-free and backend-agnostic.** `observe!(summary, batch)` allocates only
+   a bounded amount (the kernel launch), never an ``O(n)``/``O(bins)`` temporary (enforced by an
+   `@allocated` audit on the CPU). Storage is generic `AbstractArray`; no scalar indexing of device
+   arrays; one portable KernelAbstractions + Atomix kernel does the atomic scatter-add binning on CPU
+   and any GPU backend. Power-sums about the bin center make each update a plain atomic add, so global
+   atomics handle modal-bin **contention** directly (privatization stays a future option).
 5. **The summary is rich enough to recover every target post hoc.** A target that would need a finer
    or different summary is a *recorded coverage gap*, not silently approximated.
 6. **Accumulate wider than the data.** Counts are integer (`UInt64` merged); moment accumulators
@@ -105,9 +107,9 @@ are a 2×2/3×3 solve). Operators and extended Base/`Statistics` functions are i
 extended (`import Base: merge!`); no type piracy.
 
 **Docstrings vs comments.** Prefer docstrings; reserve plain comments for non-intuitive *why*
-(the Pébay update, the Kahan compensation, the privatization choice, "wider-than-data because this
-is a reduction"). One docstring per operation, on the bare binding: `function f end` for
-package-owned generics, the bare imported name for Base/`Statistics` functions.
+(the atomic scatter-add, the shift-formula recovery, the power-sums-about-the-bin-center choice,
+"wider-than-data because this is a reduction"). One docstring per operation, on the bare binding:
+`function f end` for package-owned generics, the bare imported name for Base/`Statistics` functions.
 
 ## Documentation policy — estimand first, estimator second
 
@@ -185,37 +187,36 @@ Mechanical bar:
 
 ## Current state and roadmap
 
-**Done (implemented + tested).**
+**Done (implemented + tested, CPU and GPU).**
 
-1. **`Accumulators`** — the Pébay single-sample update (`_observe_moment!`) and parallel merge
-   (`_merge_moment!`), both written high-order → low-order; the single-sample update is the ``n_B=1``
-   case of the merge, so `observe!` and `merge!` agree by construction. `Float64` accumulation
-   (accumulate wider than the data); allocation-free; hand-verified and oracle-tested.
-2. **`Histograms.Histogram1D`** — linear (WARP) binning over ``[lo, hi)`` (out-of-range skipped),
-   per-bin counts + central moments to a configurable `order`; `observe!` (batch + scalar),
-   `merge!`, `bin_index`, and the internal global-moment reduction (`_sample_mean`/`_variance`/`_std`/
-   `_central_moment`). Tested: Gaussian moment recovery (exact vs direct, and vs the true moments),
-   mergeability (accumulate-then-merge == accumulate-together), `@allocated == 0` for
-   `observe!`/`merge!`, Float32→Float64.
-3. **`DensityEstimation.density`** (§4.1) — binned KDE (Gaussian kernel), the first estimand-first
-   reference; recovers the Gaussian pdf to ``< 10^{-3}`` and integrates to 1.
-4. **`Bandwidth.bandwidth`** (§4.5) — global Silverman/Scott plug-in from the recovered ``\\hat\\sigma``.
+1. **`Histograms.Histogram1D` + `Accumulators`** — linear (WARP) binning over ``[lo, hi)`` (out-of-range
+   skipped); per-bin counts + **power-sums about the bin center** ``S_p`` to a configurable `order`.
+   `observe!` (batch + scalar) and `merge!` (elementwise addition); `bin_index`; global central moments
+   recovered by the **shift formula** (`_sample_mean`/`_variance`/`_std`/`_central_moment`). Tested:
+   Gaussian moment recovery (exact vs direct, and vs the true moments), mergeability, bounded
+   allocation, Float32→Float64.
+2. **`Histograms.Histogram2D` + `observe_pairs!`** — the joint two-time carrier: `nx×ny` cells, per-cell
+   counts + order-2 bivariate power-sums ``S_{rs}`` about the cell center (the regression sufficient
+   statistic). Tested: independent-Gaussian oracle (marginals + covariance), mergeability, allocation.
+3. **The portable scatter kernel** — `observe!` / `observe_pairs!` are one KernelAbstractions + Atomix
+   atomic scatter-add (one work-item per sample), allocation-free up to the launch, **verified identical
+   on CPU and the AMD RX 6700 XT** (the gated ROCm suite, `test/gpu/`, under `allowscalar(false)`,
+   including heavy atomic contention).
+4. **`DensityEstimation.density`** (§4.1) — binned KDE (Gaussian kernel), the estimand-first reference;
+   recovers the Gaussian pdf to ``< 10^{-3}`` and integrates to 1.
+5. **`Bandwidth.bandwidth`** (§4.5) — global Silverman/Scott plug-in from the recovered ``\\hat\\sigma``.
 
 **Next, in dependency order:**
 
-1. **GPU + numerics hardening** for the lower half — the one portable KernelAbstractions + Atomix
-   scatter-add kernel with per-block privatization (merged via the monoid), GPU-vs-CPU parity under
-   `allowscalar(false)`, and **Kahan–Neumaier compensation** for the very-large-``n`` regime.
-2. **`Histogram2D` + `observe_pairs!`** — the two-time joint carrier, and the per-bin power-sums
-   ``S_{rs}`` for regression.
-3. **`Regression`** (§4.2), **`ConditionalDensity`** (§4.3), **`MarkovInference`** (§4.4), and the
+1. **`Regression`** (§4.2), **`ConditionalDensity`** (§4.3), **`MarkovInference`** (§4.4), and the
    **response-aware local bandwidth** ``h^\\star(x)`` (§4.5) — each estimand-first, OU-oracle-tested,
-   with its `FORMALIZATION.md` entry. Plus the FFT-amortized smoothing (§4.5).
+   with its `FORMALIZATION.md` entry, recovering the local-polynomial fits from the carriers'
+   power-sums. Plus the FFT-amortized smoothing (§4.5).
 
 Deferred (recorded, not built): the ECF carrier (`docs/ARCHITECTURE.md` §2 — likely never); the
 projection / SFI–ULI road (§4.6); `HistogramND` (§3, wait for a multi-conditioning consumer);
-vector-valued conditioning (lean scalar-channel — let the consumer loop components). Prior art worth
-mirroring for the GPU moment-merge: `OnlineStats.jl`'s mergeable streaming-moment design.
+vector-valued conditioning (lean scalar-channel — let the consumer loop components); raising
+`Histogram2D` beyond its order-2 per-cell power-sums if a higher-order joint channel needs it.
 
 ## Working agreements
 
