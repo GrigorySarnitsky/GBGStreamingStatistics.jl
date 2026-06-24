@@ -6,15 +6,27 @@ densities, and standard functionals of these (Kramers–Moyal coefficients, drif
 Pawula diagnostic), from a **stream of samples that is never stored** — each sample is observed once,
 folded into a fixed-size summary, and discarded.
 
-The summary (a fine histogram with per-bin moments) is accumulated online and is *response-agnostic*;
-every reported quantity is a post-hoc smoothing functional of that one summary — so there is no
-storage of the underlying state and no recompute-from-raw reruns. The library is **domain-neutral and
-model-neutral**: it consumes a stream of values (optionally lagged pairs) and returns estimators, with
-no concept of velocity, droplet, trajectory, or turbulence, and no assumption that the data is
-stationary, Markov, diffusive, or parametric — such structure is only ever *tested*. The
-implementation targets both CPU and GPU array backends, on a single shared-memory node.
+The summary (a fine histogram with per-bin moments) is accumulated online and is *response-agnostic*:
+every reported quantity is a post-hoc smoothing functional of that one summary, so there is no storage
+of the underlying state and no recompute-from-raw reruns. It is a **mergeable monoid** (combine across
+threads, devices, or time-chunks by addition) and targets both **CPU and GPU** array backends on a
+single shared-memory node. The library is **domain-neutral and model-neutral**: it consumes a stream
+of values (optionally lagged pairs) and returns estimators.
 
-This package is the statistics sibling of [`GBGPeriodicFields.jl`](https://github.com/GrigorySarnitsky/GBGPeriodicFields.jl): that package is all mathematics and no physics; this one is all statistics and no physics.
+**When it fits.** It is built for settings where the data is a stream and storing or re-reading it is
+the bottleneck:
+
+- **inside a time-marching solver** — fold each step's samples into the summary and discard, with no
+  trajectory storage and no second pass;
+- **one pass, many views** — every bandwidth, channel, conditioning value, or lag is computed post hoc
+  from the one summary, so exploring them never re-reads the raw stream;
+- **parallel and chunked** — mergeable summaries combine across threads, GPUs, and time windows;
+- **memory-tight or GPU-resident** — the summary is fixed-size and the accumulation hot path is
+  allocation-free and runs on the GPU.
+
+It is used, for example, in turbulence (conditional and Lagrangian statistics, transition densities,
+drift and diffusion) and molecular dynamics (the van Hove and intermediate scattering functions are
+two-time conditional densities) — but nothing in the library is specific to a domain.
 
 !!! note "Status"
     The summaries `Histogram1D` and `Histogram2D` (power-sums about the bin center, `observe!` /
@@ -86,17 +98,6 @@ verbatim by every consumer) and an **estimator upper half** (the estimands):
 
 ## Documentation structure
 
-### Design & internals
-
-- [Architecture](architecture.md): why the package is built as it is — the empirical-measure spine,
-  response-agnostic accumulation with post-hoc smoothing, the invariants, and the roadmap.
-- [Formalization](formalization.md): the typed statements behind the prose — each estimator's
-  estimand, estimator, and consistency claim, linked to the tests.
-- [Testing](testing.md): the analytic oracles (Gaussian, Ornstein–Uhlenbeck) and the per-operation
-  coverage contract.
-- [Performance](performance.md): the performance model — the accumulation hot loop as the single
-  critical path.
-
 ### API reference
 
 ```@contents
@@ -112,3 +113,14 @@ Pages = [
   "api/Bandwidth.md",
 ]
 ```
+
+### Design & internals
+
+- [Architecture](architecture.md): why the package is built as it is — the empirical-measure spine,
+  response-agnostic accumulation with post-hoc smoothing, the invariants, and the roadmap.
+- [Formalization](formalization.md): the typed statements behind the prose — each estimator's
+  estimand, estimator, and consistency claim, linked to the tests.
+- [Testing](testing.md): the analytic oracles (Gaussian, Ornstein–Uhlenbeck) and the per-operation
+  coverage contract.
+- [Performance](performance.md): the performance model — the accumulation hot loop as the single
+  critical path.
