@@ -41,7 +41,10 @@ reading is not a check.
    name to its math symbol. Flag any docstring/page that leads with the estimator.
 4. **Formatted (bidirectional)** — math is LaTeX (`` ``…`` `` inline, ```math``` display), never backticks
    (incl. ASCII-math that carries no glyph); every code identifier / type / module name is backticked,
-   never bare; check BOTH directions. Markdown tables top-level, never indented in a list.
+   never bare; check BOTH directions. Markdown tables top-level, never indented in a list. Inline
+   ``math`` stays on ONE source line — a wrapped continuation beginning with a list/blockquote leader
+   (`- `/`* `/`> `/`1.`) is parsed as a list item and silently drops the span out of math mode
+   (`docs/make.jl` lints for this; Documenter renders the broken page without complaint).
 5. **Current & complete** — every claim matches the code's present state; no stale *future / deferred /
    none-exist* claims about what is now implemented; and a docstring or summary that names only a *subset*
    of what the code now provides is stale even if literally true. Check each module/operation/summary
@@ -64,7 +67,8 @@ definitions; this command runs all of them.
   bare-module-name scan; a glyph-vs-backtick scan.
 - Triage (drop false positives — universally standard math; kwarg names correctly backticked), then fix
   EVERY genuine finding in one pass. A flagged instance is a sample of a class — fix the class, not the line.
-- Rebuild: `julia --project=docs docs/make.jl` (doctests + cross-references + render) — must be clean.
+- Rebuild: `julia --project=docs docs/make.jl` (the inline-math lint + doctests + cross-references +
+  render) — must be clean.
 - Commit + push (no `[skip ci]`; the docs site must redeploy).
 
 ## Report

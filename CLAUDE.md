@@ -148,7 +148,10 @@ its estimand, run as a *positive* per-formula verification, not a read-through; 
 — every symbol *bound* to its meaning in plain language at first use (enumerate symbols, cite the
 binding clause); **(3) Notation** — one symbol per concept and one concept per symbol; standard
 notation; **(4) Formatted (bidirectional)** — math is LaTeX never backticks, every code identifier
-backticked never bare; **(5) Current & complete** — no stale *deferred/none-exist* claims, and a
+backticked never bare, and inline ``math`` stays on **one source line** (a wrapped continuation that
+begins with a list/blockquote leader — `- `/`* `/`> `/`1.` — is parsed as a list item and silently
+drops the span out of math mode; `docs/make.jl` lints for this and fails the build, since Documenter
+renders the broken page without complaint); **(5) Current & complete** — no stale *deferred/none-exist* claims, and a
 summary that names only a subset of what the code now provides is stale. "Check the docs" means this
 **complete battery across every surface** (the four rationale docs, every `src/` docstring, every
 `docs/src/` page) — the `.claude/commands/check-docs.md` command (`/check-docs`) encodes it. A

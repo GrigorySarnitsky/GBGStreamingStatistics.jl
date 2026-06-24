@@ -3,6 +3,54 @@ Pkg.activate(@__DIR__)
 using Documenter
 using GBGStreamingStatistics
 
+
+# Doc lint: an inline-math span ``…`` must not be split across a source line by a CommonMark
+# list/blockquote leader. A wrapped continuation beginning with "- "/"* "/"+ "/"> "/"1." is parsed as a
+# new list item, dropping the math out of math mode — and Documenter's build does NOT catch this (the
+# page renders, just wrongly). This guard does; keep inline math on one source line.
+function lint_inline_math()
+  leader = r"^\s*([-*+>]|\d+[.)])\s"
+  twobacktick = r"(?<!`)``(?!`)"
+  sources = String[]
+  for f in readdir(joinpath(@__DIR__, "..", "src"); join = true)
+    endswith(f, ".jl") && push!(sources, f)
+  end
+  for name in ("ARCHITECTURE.md", "FORMALIZATION.md", "TESTING.md", "PERFORMANCE.md")
+    push!(sources, joinpath(@__DIR__, name))
+  end
+  generated = Set(["architecture.md", "formalization.md", "testing.md", "performance.md"])
+  for (root, _, files) in walkdir(joinpath(@__DIR__, "src")), f in files
+    endswith(f, ".md") && !(f in generated) && push!(sources, joinpath(root, f))
+  end
+  problems = String[]
+  for file in sources
+    isjl = endswith(file, ".jl")
+    indoc = !isjl                 # .md renders entirely; .jl renders only inside """ … """ docstrings
+    infence = false
+    inspan = false                # inside an unclosed ``…`` inline-math span
+    for (n, line) in enumerate(eachline(file))
+      if isjl && isodd(count("\"\"\"", line))
+        indoc = !indoc; inspan = false; continue
+      end
+      indoc || continue
+      if startswith(strip(line), "```")
+        infence = !infence; inspan = false; continue
+      end
+      infence && continue
+      if inspan && occursin(leader, line)
+        push!(problems, string(relpath(file, joinpath(@__DIR__, "..")), ":", n,
+                               "  inline ``math`` broken across a line by a list/blockquote leader"))
+      end
+      isodd(count(twobacktick, line)) && (inspan = !inspan)
+    end
+  end
+  isempty(problems) || error("doc lint failed — keep inline math on one line:\n  " * join(problems, "\n  "))
+  @info "doc lint: inline math OK across $(length(sources)) source files"
+end
+
+lint_inline_math()
+
+
 # Render the design-rationale docs into the site without moving them: ARCHITECTURE.md,
 # FORMALIZATION.md, TESTING.md, and PERFORMANCE.md stay the single sources (referenced by CLAUDE.md),
 # copied into src/ at build time. The copies (src/architecture.md, …) are gitignored.

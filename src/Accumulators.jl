@@ -36,9 +36,10 @@ is **response-agnostic**: it knows nothing of bandwidth, kernel, or which estima
 asked for — the architectural invariant that delivers *no reruns*.
 
 The binning is an **atomic scatter-add**: one KernelAbstractions + Atomix kernel — one work-item per
-sample — accumulates, per bin, the **count** and the **power-sums** ``S_p = \\sum_{i\\in\\text{bin}}(X_i
-- c_j)^p`` about the bin center ``c_j``, directly into the preallocated carrier (no scratch). It runs
-identically on a CPU `Array` and any GPU backend, and is allocation-free up to the kernel launch.
+sample — accumulates, per bin, the **count** and the **power-sums**
+``S_p = \\sum_{i\\in\\text{bin}}(X_i - c_j)^p`` about the bin center ``c_j``, directly into the
+preallocated carrier (no scratch). It runs identically on a CPU `Array` and any GPU backend, and is
+allocation-free up to the kernel launch.
 Because ``X_i - c_j`` is small within a bin, the local power-sums are well-conditioned (no compensated
 summation needed); global central moments are recovered post hoc by the shift formula
 (`docs/ARCHITECTURE.md` §3). Accumulated in `Float64` regardless of input element type — *accumulate
