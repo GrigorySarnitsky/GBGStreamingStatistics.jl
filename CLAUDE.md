@@ -102,7 +102,9 @@ The PF discipline: a missing capability encodes a decision (`docs/ARCHITECTURE.m
 ## Style
 
 Two-space indentation; two blank lines between top-level definitions; section banner comments;
-descriptive names without abbreviations; moderately long lines are fine. When unsure about
+descriptive names — no cryptic or domain abbreviations (spell out range bounds as `lower`/`upper`, not
+`lo`/`hi`), though universal idioms are fine (`n`-prefixed counts like `nbins`/`nx`, standard
+single-letter math symbols); moderately long lines are fine. When unsure about
 Base/stdlib/package behavior, check official docs — don't guess. For a linear solve use
 `\`/factorizations/`ldiv!`, never an explicit matrix inverse (the local-polynomial normal equations
 are a 2×2/3×3 solve). Operators and extended Base/`Statistics` functions are imported before being
@@ -112,6 +114,11 @@ extended (`import Base: merge!`); no type piracy.
 (the atomic scatter-add, the shift-formula recovery, the power-sums-about-the-bin-center choice,
 "wider-than-data because this is a reduction"). One docstring per operation, on the bare binding:
 `function f end` for package-owned generics, the bare imported name for Base/`Statistics` functions.
+
+**Docstrings (and docs) are a code-agreement guard.** Every claim must be true of the *present* code —
+a reader (or `/check-docs`) checks the code against the docstring as a bounded consistency pass. A
+capability that is merely *enabled* or *planned* must be marked (forthcoming / future / a recorded
+gap), never stated as present; that is what keeps the guard sound.
 
 ## Documentation policy — estimand first, estimator second
 
@@ -133,7 +140,10 @@ the estimand whenever a clean population definition exists; for an intrinsically
   `diffusion` ``\equiv D^{(2)}``.
 - **Math is rendered LaTeX in standard notation** — Documenter KaTeX: inline `` ``…`` `` (backslashes
   escaped `\\` inside a `"""` docstring), display ` ```math `; never Unicode-glyph approximations,
-  never math in backticks (backticks are for code identifiers only). Plain `#` comments stay Unicode.
+  never math in backticks (backticks are for code identifiers only). **And the converse — a code
+  identifier never goes inside a math span**: it renders as a product of italic single letters
+  (`xlo` → x·l·o); backtick it, or wrap it in `\texttt{}` if it must appear inside a formula. Plain
+  `#` comments stay Unicode.
 - **Correctness is its own check, distinct from formatting.** Verify the estimator is **consistent
   for the stated estimand** under the stated assumptions, and that **every normalization is exact**:
   the ``1/n``, ``1/(nh)``, ``\int K = 1``, kernel moments ``\mu_2(K) = \int u^2 K``, roughness

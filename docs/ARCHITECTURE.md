@@ -203,6 +203,13 @@ transfer verbatim to every consumer.
   recovered post hoc by the **shift formula** (the binscatter / WARPing local-moment construction;
   Scott 2015; Cattaneo et al. 2024), *exactly* (the power-sums use the actual ``X_i``, not the center)
   and stably for the even high-order moments the consumers need.
+- **Bins are exactly uniform — by design.** The binning map is a single multiply-and-floor,
+  `i = floor((x − lower)·scale) + 1` with one `scale = nbins/(upper − lower)` — `O(1)`, branch-free, and
+  allocation-free, the GPU atomic-scatter hot path (§5). This *requires* equal-width bins; arbitrary
+  edges would force a per-sample search (`O(log nbins)`) and break the kernel. So the constructor takes
+  the explicit `(lower, upper, nbins)`, which *states* the uniform contract, rather than a vector or
+  range of edges (which would merely *happen* to be uniform — and floating-point rounding need not even
+  guarantee that). Non-uniform binning is out of scope.
 - **`Histogram2D`** — a joint binned measure of ``(X, Y)``, one per lag ``\tau``, for conditional and
   transition densities; per-cell counts and bivariate power-sums ``S_{rs}`` about the cell center.
 - **`HistogramND` [OPEN]** — the ``n``-D generalization, deferred until a consumer needs conditioning

@@ -33,7 +33,11 @@ reading is not a check.
    (the chain is *prose ↔ formalization ↔ test*), and flag any nontrivial statement with **no entry**, or
    an entry with **no test link**, as a coverage gap.
 2. **Self-contained** — enumerate every symbol, sub/superscript, operator name, and bold/blackboard
-   letter; cite the clause that binds each; flag any unbound. (Universally standard math — `∫`, `ℝ`, `π`,
+   letter; cite the clause that binds each; flag any unbound. **Emit the enumeration as a `symbol |
+   binding clause (or UNBOUND)` table** — never report "Self-contained: clean" without it (an unbound
+   symbol that reads as obvious — a bandwidth `h`, a stray `\sigma` — is exactly what a hand-waved pass
+   misses). A symbol that is really a code identifier is a *Formatted* defect (it should be backticked or
+   `\texttt`-wrapped), not a binding. (Universally standard math — `∫`, `ℝ`, `π`,
    `𝔼`, the imaginary unit `i`, plain summation indices — needs no binding; the estimand symbols
    `f_X`, `m(x)`, `p_τ`, `D⁽ⁿ⁾`, `σ²(x)` are bound on first use.)
 3. **Estimand first** — every estimator surface states the **population quantity, in standard probability
@@ -41,7 +45,9 @@ reading is not a check.
    name to its math symbol. Flag any docstring/page that leads with the estimator.
 4. **Formatted (bidirectional)** — math is LaTeX (`` ``…`` `` inline, ```math``` display), never backticks
    (incl. ASCII-math that carries no glyph); every code identifier / type / module name is backticked,
-   never bare; check BOTH directions. Markdown tables top-level, never indented in a list. Inline
+   never bare; check BOTH directions. **Code identifiers never sit inside a `` ``…`` `` math span** —
+   they render as a product of italic single letters (`xlo` → x·l·o); backtick them, or wrap in
+   `\texttt{}` if a name must appear inside a formula. Markdown tables top-level, never indented in a list. Inline
    ``math`` stays on ONE source line — a wrapped continuation beginning with a list/blockquote leader
    (`- `/`* `/`> `/`1.`) is parsed as a list item and silently drops the span out of math mode
    (`docs/make.jl` lints for this; Documenter renders the broken page without complaint).
@@ -64,7 +70,10 @@ definitions; this command runs all of them.
   proposed fix.
 - Run the deterministic grep guards too: the table guard `grep -rnE '^[[:space:]]+\|[-:| ]+\|' docs` (must
   be empty); a stray-`$` scan over `docs/` (math must be `` `` ``/```math```, not TeX `$…$`); a
-  bare-module-name scan; a glyph-vs-backtick scan.
+  bare-module-name scan; a glyph-vs-backtick scan; a **code-in-math scan** — enumerate the `` ``…`` ``
+  math spans and flag any containing a 2+-letter lowercase run that is not a `\command` nor
+  `\texttt`/`\mathrm`/`\text`-wrapped (those render as letter-products, e.g. `[lo, hi)`, `scale`);
+  triage the legitimate LaTeX command bodies.
 - Triage (drop false positives — universally standard math; kwarg names correctly backticked), then fix
   EVERY genuine finding in one pass. A flagged instance is a sample of a class — fix the class, not the line.
 - Rebuild: `julia --project=docs docs/make.jl` (the inline-math lint + doctests + cross-references +
