@@ -77,12 +77,12 @@ verbatim by every consumer) and an **estimator upper half** (the estimands):
 - [`Accumulators`](api/Accumulators.md): the foundation — `AbstractAccumulator`, the interface of every
   mergeable online **summary** of the [empirical measure](https://en.wikipedia.org/wiki/Empirical_measure)
   ``\hat\mu_n = \frac1n\sum_i \delta_{X_i}`` (you `observe!` samples into it and `merge!` two together).
-  The concrete summaries and their scatter kernels live in `Histograms`.
+  The concrete summaries live in `Histograms`.
 - [`Histograms`](api/Histograms.md): the summaries — `Histogram1D` and `Histogram2D`, both
   `<: AbstractAccumulator`. Each is a finely **binned empirical measure** — the *fine-grained measure*
   that post-hoc smoothing later coarse-grains — holding per-bin counts and power-sums about the bin
-  center, accumulated by one KernelAbstractions + Atomix atomic scatter-add (`merge!` by addition);
-  with `bin_index` and `observe_pairs!` for two-time statistics.
+  center; accumulation runs on **CPU or GPU**, and summaries combine with `merge!`. With `bin_index`
+  and `observe_pairs!` for two-time statistics.
 - [`DensityEstimation`](api/DensityEstimation.md): the marginal density `density` ``\equiv f_X``
   (binned KDE / WARPing).
 - [`Regression`](api/Regression.md): the conditional mean `conditional_mean` ``\equiv m(x)`` and
