@@ -249,7 +249,9 @@ Deferred (recorded, not built): the ECF summary (`docs/ARCHITECTURE.md` §2 — 
 projection / SFI–ULI road (§4.6); `HistogramND` (§3, wait for a multi-conditioning consumer);
 vector-valued conditioning (lean scalar-channel — let the consumer loop components); raising
 `Histogram2D` beyond its order-2 per-cell power-sums (the Pawula ``M_4``/``M_6`` of *Next* 2 will be
-its first consumer).
+its first consumer); the **weighted merge** for ensemble / hyperstatistical pooling with
+parameter-dependent weights (a Float-count summary variant — equal-weight `merge!` is the built
+special case; `docs/ARCHITECTURE.md` §10).
 
 ## Working agreements
 

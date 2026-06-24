@@ -518,6 +518,19 @@ mergeable streaming-moment design is, however, worth mirroring — §10).
   algebra, or stay scalar-channel and let the consumer loop components? (Lean scalar-channel: the
   estimators are per-component, and a fiber dependency would re-import structure the package doesn't
   otherwise need.)
+- **[OPEN] Weighted merge — ensembles and hyperstatistics.** `merge!` is equal-weight addition (the
+  monoid), which already makes **ensemble pooling free**: each run / device / time-chunk accumulates
+  its own summary and they add (§2). The unnormalised summary is also **scalable** — multiply every
+  count and power-sum by a nonnegative weight and it is the valid summary of a reweighted measure — so
+  it lives in a *cone* (closed under nonnegative linear combinations), not merely an additive monoid.
+  That extra freedom is exactly **hyperstatistics** (superstatistics; Beck & Cohen 2003): a
+  parameter-weighted superposition ``P(x) = \sum_k w_k f_k(x)`` equals ``\sum_k (w_k / N_k)\, T_k`` over
+  per-parameter summaries ``T_k``. Planned as a weighted `merge!(into, from; weight)` over a
+  **Float-count summary variant** (a weighted count ``w\,n`` is not an integer); the conditional /
+  transition estimators then carry the correct local mixing weight ``w_k f_k(x)`` automatically, being
+  ratios of linear functionals of the summary. Recorded, not built — and it fits the post-hoc rule:
+  keep one summary per ``\beta`` and choose ``f(\beta)`` after the runs, re-weighting without
+  re-accumulating, just as bandwidth is a post-hoc knob.
 
 ---
 
