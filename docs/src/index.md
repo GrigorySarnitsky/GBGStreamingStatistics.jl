@@ -91,8 +91,8 @@ verbatim by every consumer) and an **estimator upper half** (the estimands):
   ``\equiv f_{Y\mid X}`` and two-time transition density `transition_density`
   ``\equiv p_\tau(y\mid x)`` (double-kernel).
 - [`MarkovInference`](api/MarkovInference.md): conditional increment moments and their functionals —
-  `kramers_moyal` ``\equiv D^{(n)}``, `drift` ``\equiv D^{(1)}``, `diffusion` ``\equiv D^{(2)}``, the
-  `pawula_quotient`, and the `markov_test`.
+  `increment_moment` ``\equiv M_n(x,\tau)``, `kramers_moyal` ``\equiv D^{(n)}``, `drift` ``\equiv D^{(1)}``,
+  and `diffusion` ``\equiv D^{(2)}`` (with the `pawula_quotient` and `markov_test` diagnostics forthcoming).
 - [`Bandwidth`](api/Bandwidth.md): bandwidth selection — global rules and the response-aware local
   plug-in ``h^\star(x)``.
 

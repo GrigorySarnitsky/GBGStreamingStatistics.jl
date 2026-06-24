@@ -13,7 +13,7 @@ export density
 
 
 """
-    density(summary::Histogram1D, x; h, kernel = gaussian)   # ≡ f_X
+    density(summary::Histogram1D, x; h, kernel = _gaussian_kernel)   # ≡ f_X
 
 **Estimand.** the marginal (Lebesgue) density ``f_X = \\mathrm{d}\\mu_X/\\mathrm{d}\\lambda`` of the
 conditioning variable ``X``, defined by ``P(X \\in A) = \\int_A f_X\\,\\mathrm{d}\\lambda``.

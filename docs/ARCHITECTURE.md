@@ -209,7 +209,7 @@ transfer verbatim to every consumer.
   on more than one variable (the PF rule against speculative structure).
 - **per-bin power-sums are the *one* summary scheme** above, in a univariate form (``S_p`` of ``X``,
   for the marginal moments and density) and a bivariate form (``S_{rs} = \sum_{i\in\text{bin}}(X_i -
-  c^x)^{s}(Y_i - c^y)^{r}`` about the cell center, the local sufficient statistic for local-polynomial
+  c^x)^{r}(Y_i - c^y)^{s}`` about the cell center, the local sufficient statistic for local-polynomial
   regression; Cattaneo et al. 2024). All bandwidths, kernels, and moments are recovered from them
   post hoc.
 - **the mergeable-monoid interface** — `merge!` on every summary is **elementwise addition** (same
@@ -287,13 +287,13 @@ the binned approximation to ``\frac{1}{nh}\sum_i K(\frac{x-X_i}{h})``. Bandwidth
 
 **Estimand.** ``m(x) = \mathbb{E}[Y\mid X=x]`` (the ``L^2(\sigma(X))`` projection; §2 reference) and
 ``\sigma^2(x) = \mathrm{Var}(Y\mid X=x) = \mathbb{E}[Y^2\mid X=x] - m(x)^2``.
-**Estimator** (local-linear; Fan & Gijbels): from the per-bin power-sums form the kernel-weighted
-sums ``T_\ell(x) = \sum_i K_h(X_i-x)(X_i-x)^\ell`` and ``P_\ell(x) = \sum_i K_h(X_i-x)(X_i-x)^\ell Y_i``,
-then
+**Estimator** (local-linear; Fan & Gijbels), with ``K_h(u) = h^{-1}K(u/h)`` the bandwidth-scaled
+kernel: from the per-bin power-sums form the kernel-weighted sums ``T_\ell(x) = \sum_i K_h(X_i-x)(X_i-x)^\ell``
+and ``P_\ell(x) = \sum_i K_h(X_i-x)(X_i-x)^\ell Y_i``, then
 ```math
 \hat m_h(x) \;=\; \frac{T_2 P_0 - T_1 P_1}{T_0 T_2 - T_1^{2}}.
 ```
-Nadaraya–Watson is the ``T_1 = T_2 = 0`` reduction ``\hat m_h = P_0/T_0`` (kept for reference, but
+Nadaraya–Watson is the local-constant (degree-0) fit ``\hat m_h = P_0/T_0`` (kept for reference, but
 local-linear is the default — it removes the design-density bias term ``2 m'(x) f'(x)/f(x)``).
 Conditional variance by the same fit applied to ``Y^2`` (Fan & Yao 1998). For heavy-tailed channels
 (e.g. ``(\Delta X)^6``) a **one-step robust local M-estimator** (Fan & Jiang 2000) replaces the
@@ -303,7 +303,7 @@ least-squares fit.
 
 **Estimand.** ``f_{Y\mid X}(y\mid x) = f_{X,Y}(x,y)/f_X(x)``; the **two-time transition density**
 ``p_\tau(y\mid x) = f_{X_{t+\tau}\mid X_t}(y\mid x)`` (nonstationary: ``p_{t,\tau}``).
-**Estimator** (double-kernel; Rosenblatt 1969; Hyndman et al. 1996): from the joint histogram,
+**Estimator** (double-kernel; Rosenblatt 1969; Hyndman, Bashtannyk & Grunwald 1996): from the joint histogram,
 ```math
 \hat f(y\mid x) \;=\; \frac{\sum_i K_{h_1}(X_i-x)\,K_{h_2}(Y_i-y)}{\sum_i K_{h_1}(X_i-x)}.
 ```
@@ -572,9 +572,9 @@ intentional — do not dedupe it).
   limit stay forthcoming / consumer-side. ``n \ge 3`` — the Pawula ``M_4, M_6`` and `pawula_quotient`
   — is a **recorded coverage gap** (it needs the joint summary raised to order-``n`` per-cell ``Y``
   power-sums, deferred per invariant 5); `markov_test` waits on the §4.3 transition density.
-  OU-oracle-tested: drift ``= -\theta x`` exactly (the OU conditional mean is linear, no smoothing
-  bias), diffusion ``\to \sigma^2/2`` carrying the local-linear bias of the curved
-  ``\mathbb{E}[Y^2\mid x]``.
+  OU-oracle-tested: drift recovers the finite-``\tau`` value ``x(e^{-\theta\tau}-1)/\tau`` exactly (no
+  smoothing bias — the OU conditional mean is linear — ``\to -\theta x`` as ``\tau \to 0``), diffusion
+  ``\to \sigma^2/2`` carrying the local-linear bias of the curved ``\mathbb{E}[Y^2\mid x]``.
 
 - **Conditional / transition density §4.3 — binned double-kernel from the joint counts** (§4.3). The
   Rosenblatt double-kernel estimator (§4.3) is evaluated from the `Histogram2D` **cell counts** (no
@@ -602,6 +602,9 @@ The load-bearing works the package implements or pins to:
 - D. W. Scott (2015), *Multivariate Density Estimation*, 2nd ed., Wiley; P. Hall & M. P. Wand
   (1996), *On the accuracy of binned kernel density estimators*, J. Multivariate Anal. 56. (WARPing
   / binned-KDE sufficiency.)
+- M. P. Wand (1994), *Fast computation of multivariate kernel estimators*, J. Comput. Graph. Statist.
+  3(4); J. Fan & J. S. Marron (1994), *Fast implementations of nonparametric curve estimators*, J.
+  Comput. Graph. Statist. 3(1). (FFT-amortized binned smoothing — §4.5.)
 - M. D. Cattaneo, R. K. Crump, M. H. Farrell & Y. Feng (2024), *On binscatter*, Amer. Econ. Rev.
   114(5). (Per-bin local-polynomial / binscatter.)
 - J. Fan & I. Gijbels (1996), *Local Polynomial Modelling and Its Applications*, Chapman & Hall.
@@ -614,7 +617,9 @@ The load-bearing works the package implements or pins to:
   *Multivariate Analysis II*; R. J. Hyndman, D. M. Bashtannyk & G. K. Grunwald (1996), *Estimating
   and visualizing conditional densities*, J. Comput. Graph. Statist. 5(4). (Double-kernel
   conditional density.)
-- M. C. Jones, et al. — local-moment density estimation from pre-binned data (in the survey).
+- B. W. Silverman (1986), *Density Estimation for Statistics and Data Analysis*, Chapman & Hall;
+  B. W. Silverman (1982), *Algorithm AS 176: kernel density estimation using the fast Fourier
+  transform*, J. R. Statist. Soc. C 31(1). (The Silverman global rule of thumb; FFT-binned KDE.)
 - S. P. Sheather & M. C. Jones (1991), *A reliable data-based bandwidth selection method for kernel
   density estimation*, J. R. Statist. Soc. B 53(3). (Plug-in bandwidth.)
 - A. Rydin Gorjão, et al. (2021), *Kramers–Moyal coefficients … finite-time corrections* — the
@@ -624,6 +629,8 @@ The load-bearing works the package implements or pins to:
   Phys. Rev. Lett. 125. (Projection road; ULI on ``(X,\dot X)``.)
 - L. van Hove (1954), *Correlations in space and time …*, Phys. Rev. 95. (The MD two-time
   conditional density — the cross-domain anchor.)
+- C. Beck & E. G. D. Cohen (2003), *Superstatistics*, Physica A 322. (Hyperstatistics /
+  superstatistics — the parameter-mixture pooling of §10.)
 
 > Every reference above is a published, reader-accessible source — per PF's policy, *never cite an
 > inaccessible source*. The private design notes and literature survey behind this architecture are

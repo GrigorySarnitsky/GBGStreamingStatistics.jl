@@ -13,7 +13,8 @@ Throughout, ``K`` is the smoothing kernel with ``\int K = 1``, ``\mu_2(K) = \int
 du`` its second moment, and ``R(K) = \int K^2`` its roughness; ``h`` is the bandwidth, ``n`` the
 number of samples, ``f_X`` the marginal density of the conditioning variable.
 
-The implemented entries are test-linked; the conditional entry is the format for what lands next.
+The implemented entries are test-linked; a forthcoming operation gets its entry in the same shape
+(estimand / estimator / consistency / test) before it lands.
 
 ## Per-bin power-sums about the bin center (`Histograms`, the summaries)
 
@@ -74,7 +75,7 @@ The implemented entries are test-linked; the conditional entry is the format for
   the curved ``E[Y^2\mid x]``; the Fan–Yao residual refinement is forthcoming). The ``n^{-2/5}`` rate
   test is forthcoming.
 
-## Conditional increment moments, drift & diffusion (§4.4) — `increment_moment`, `drift`, `diffusion`
+## Conditional increment moments, drift & diffusion (§4.4) — `increment_moment`, `kramers_moyal`, `drift`, `diffusion`
 
 - **Estimand.** the conditional increment moment and the Kramers–Moyal coefficient
 
@@ -83,7 +84,7 @@ The implemented entries are test-linked; the conditional entry is the format for
   D^{(n)}(x) = \frac{1}{n!}\lim_{\tau\to0} \frac{M_n(x,\tau)}{\tau},
   ```
 
-  with `drift` ``\equiv D^{(1)}`` and `diffusion` ``\equiv D^{(2)}``. Model-neutral — a conditional
+  with `kramers_moyal` ``\equiv D^{(n)}``, `drift` ``\equiv D^{(1)}``, and `diffusion` ``\equiv D^{(2)}``. Model-neutral — a conditional
   expectation of an increment power, no diffusion premise.
 - **Estimator.** conditioning on ``X_t = x`` (so the increment is ``\Delta X = Y - x`` with
   ``Y = X_{t+\tau}``), the order-2 joint summary resolves

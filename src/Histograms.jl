@@ -190,7 +190,7 @@ _sample_std(h::Histogram1D) = sqrt(_sample_variance(h))
 
 A **joint binned empirical measure** of ``(X, Y)`` — one per lag ``\\tau`` — for conditional and
 two-time transition densities (`docs/ARCHITECTURE.md` §3, §4.3). `nx × ny` equal-width cells tile
-``[xlo, xhi) × [ylo, yhi)``; each cell `(i_x, i_y)` (flattened `i_x + (i_y-1)·nx`) carries its
+``[xlo, xhi) \\times [ylo, yhi)``; each cell `(i_x, i_y)` (flattened `i_x + (i_y-1)·nx`) carries its
 **count** and the order-2 bivariate **power-sums** ``S_{rs} = \\sum_{(X,Y)\\in\\text{cell}} (X -
 c^x)^r (Y - c^y)^s`` about the cell center ``(c^x, c^y)`` — ``S_{10}, S_{01}, S_{20}, S_{11},
 S_{02}`` — the local sufficient statistic for the joint density and for local-linear conditioning.
