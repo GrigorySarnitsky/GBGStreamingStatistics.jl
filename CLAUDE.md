@@ -26,13 +26,15 @@ deliberate absences of the invariants). The conceptual model and the writing/doc
 are recorded once — in `docs/ARCHITECTURE.md` and this file; the umbrella module
 `src/GBGStreamingStatistics.jl` only points there.
 
-> **Status: lower half complete (CPU + GPU); estimators next.** The summaries `Histogram1D` and
+> **Status: lower half complete (CPU + GPU); estimators landing.** The summaries `Histogram1D` and
 > `Histogram2D` (`observe!` / `observe_pairs!` as one KernelAbstractions + Atomix scatter-add of counts
 > and power-sums about the bin center, `merge!` by addition, allocation-free), the marginal density
-> `density` (§4.1), and global `bandwidth` selection are implemented and tested — Gaussian moment and
-> density oracles, mergeability, allocation, and **GPU-vs-CPU parity verified on the AMD RX 6700 XT**
-> (ROCm). The conditional / Markov / regression estimators and the response-aware local bandwidth are
-> declared and forthcoming. See *Current state and roadmap*.
+> `density` (§4.1), local-linear `conditional_mean` / `conditional_variance` (§4.2), the Kramers–Moyal
+> `drift` / `diffusion` (§4.4), and global `bandwidth` selection (§4.5) are implemented and tested —
+> Gaussian, bivariate-Gaussian, and **Ornstein–Uhlenbeck** oracles, mergeability, allocation, and
+> **GPU-vs-CPU parity verified on the AMD RX 6700 XT** (ROCm). The §4.3 conditional / transition
+> density, the response-aware local bandwidth, and the Pawula / Markov diagnostics are declared and
+> forthcoming. See *Current state and roadmap*.
 
 ## Modules and wiring
 
@@ -214,18 +216,32 @@ Mechanical bar:
    Gaussian oracle (``m`` recovers ``\rho x`` to ``\lesssim 2\%``; ``\sigma^2`` recovers ``1-\rho^2``
    to a few percent — the simple ``\hat{\mathbb E}[Y^2\mid x]-\hat m^2`` estimator carries the
    local-linear smoothing bias, Fan–Yao refinement forthcoming).
+7. **`MarkovInference`** (§4.4 — drift & diffusion) — `increment_moment` ``\equiv M_n(x,\tau)``,
+   `kramers_moyal` ``\equiv D^{(n)}``, `drift` ``\equiv D^{(1)}``, `diffusion` ``\equiv D^{(2)}`` for
+   ``n \in \{1,2\}`` from the order-2 `Histogram2D` (``M_1 = \hat m_h(x) - x``,
+   ``M_2 = \hat{\mathbb E}[Y^2\mid x] - 2x\hat m_h + x^2``), reusing the §4.2 local-linear primitives;
+   reported as the finite-``\tau`` ratio ``M_n/(n!\tau)``. Tested against the **Ornstein–Uhlenbeck**
+   oracle (exact stationary lagged pairs): `drift` recovers ``x(e^{-\theta\tau}-1)/\tau`` exactly
+   (linear OU mean ⇒ no smoothing bias); `diffusion` recovers the closed-form ``D^{(2)}`` to ``8\%``
+   (the curved-``\mathbb E[Y^2\mid x]`` local-linear bias); plus the variance decomposition, the
+   ``1/(n!\tau)`` scaling, coverage-gap errors (``n\ge3``, static lag), and mergeability.
 
 **Next, in dependency order:**
 
-1. **`ConditionalDensity`** (§4.3), **`MarkovInference`** (§4.4), and the **response-aware local
-   bandwidth** ``h^\\star(x)`` (§4.5) — each estimand-first, OU-oracle-tested, with its
-   `FORMALIZATION.md` entry, from the `Histogram2D` joint summary. Plus the Fan–Yao conditional-
-   variance refinement, the ``n^{-2/5}`` rate tests, and the FFT-amortized smoothing (§4.5).
+1. **`ConditionalDensity`** (§4.3) and the **response-aware local bandwidth** ``h^\\star(x)`` (§4.5) —
+   each estimand-first, OU-oracle-tested, with its `FORMALIZATION.md` entry, from the `Histogram2D`
+   joint summary. Plus the Fan–Yao conditional-variance refinement, the ``n^{-2/5}`` rate tests, and
+   the FFT-amortized smoothing (§4.5).
+2. **The rest of `MarkovInference` §4.4** — `kramers_moyal` for ``n \ge 3``, the **Pawula `Q`**
+   diagnostic (``M_4``, ``M_6``) and the all-orders Bell-polynomial finite-time correction, and
+   `markov_test`. The higher moments need the `Histogram2D` order-raise (Deferred, below); `markov_test`
+   composes the §4.3 transition density.
 
 Deferred (recorded, not built): the ECF summary (`docs/ARCHITECTURE.md` §2 — likely never); the
 projection / SFI–ULI road (§4.6); `HistogramND` (§3, wait for a multi-conditioning consumer);
 vector-valued conditioning (lean scalar-channel — let the consumer loop components); raising
-`Histogram2D` beyond its order-2 per-cell power-sums if a higher-order joint channel needs it.
+`Histogram2D` beyond its order-2 per-cell power-sums (the Pawula ``M_4``/``M_6`` of *Next* 2 will be
+its first consumer).
 
 ## Working agreements
 

@@ -40,8 +40,10 @@ constants do not collide. The cross-cutting files are `test/oracles.jl` (the Gau
 the rate tests), `test/mergeability.jl`, and `test/allocations.jl`.
 
 !!! note "Status"
-    The summary suites (`Histogram1D`, `Histogram2D`), `density`, and `bandwidth` are real — the
-    Gaussian moment and density oracles, the 2D independent-Gaussian oracle, mergeability, the bounded
+    The summary suites (`Histogram1D`, `Histogram2D`), `density`, `bandwidth`, the §4.2 regression
+    (`conditional_mean`, `conditional_variance`), and the §4.4 `drift` / `diffusion` /
+    `increment_moment` are real — the Gaussian moment and density oracles, the bivariate-Gaussian and
+    **Ornstein–Uhlenbeck** oracles (exact stationary lagged pairs), mergeability, the bounded
     `@allocated` audit, and **CPU-vs-AMD-GPU parity** (`test/gpu/`, ROCm); `Aqua.test_all` and JET run
-    for real throughout. The OU / conditional and the ``n^{-2/5}`` rate tests remain placeholders until
-    those estimators land.
+    for real throughout. The §4.3 conditional / transition density and the ``n^{-2/5}`` rate tests
+    remain placeholders until those estimators land.

@@ -73,3 +73,39 @@ The implemented entries are test-linked; the conditional entry is the format for
   simple ``\hat{\mathbb E}[Y^2\mid x]-\hat m^2`` estimator carries the local-linear smoothing bias of
   the curved ``E[Y^2\mid x]``; the Fan–Yao residual refinement is forthcoming). The ``n^{-2/5}`` rate
   test is forthcoming.
+
+## Conditional increment moments, drift & diffusion (§4.4) — `increment_moment`, `drift`, `diffusion`
+
+- **Estimand.** the conditional increment moment and the Kramers–Moyal coefficient
+
+  ```math
+  M_n(x, \tau) = \mathbb{E}\!\left[(X_{t+\tau} - X_t)^n \mid X_t = x\right], \qquad
+  D^{(n)}(x) = \frac{1}{n!}\lim_{\tau\to0} \frac{M_n(x,\tau)}{\tau},
+  ```
+
+  with `drift` ``\equiv D^{(1)}`` and `diffusion` ``\equiv D^{(2)}``. Model-neutral — a conditional
+  expectation of an increment power, no diffusion premise.
+- **Estimator.** conditioning on ``X_t = x`` (so the increment is ``\Delta X = Y - x`` with
+  ``Y = X_{t+\tau}``), the order-2 joint summary resolves
+
+  ```math
+  M_1(x) = \hat m_h(x) - x, \quad
+  M_2(x) = \widehat{\mathbb{E}}[Y^2\mid x] - 2x\,\hat m_h(x) + x^2, \quad
+  \widehat D^{(1)} = \frac{M_1}{\tau}, \quad \widehat D^{(2)} = \frac{M_2}{2\tau},
+  ```
+
+  where ``\hat m_h`` and ``\widehat{\mathbb{E}}[Y^2\mid x]`` are the local-linear §4.2 fits (exact from
+  the per-cell power-sums). ``n \ge 3`` is a recorded coverage gap — it needs order-``n`` per-cell
+  ``Y`` power-sums.
+- **Consistency claim.** ``\widehat D^{(1)}`` is consistent for the finite-``\tau`` drift at the
+  `conditional_mean` rate, with no smoothing bias where ``m(x)`` is linear in ``x``; ``\widehat D^{(2)}``
+  carries the local-linear bias from the curvature of ``\mathbb{E}[Y^2\mid x]`` (the Fan–Yao residual
+  refinement removes it). The finite-``\tau`` coefficients approach ``D^{(n)}(x)`` as ``\tau\to0`` up to
+  the ``O(\tau)`` finite-time bias (the Bell-polynomial correction, forthcoming).
+- **Test.** `test/oracles.jl` — the Ornstein–Uhlenbeck oracle (exact stationary lagged pairs from
+  ``\mathrm dX = -\theta X\,\mathrm dt + \sigma\,\mathrm dW``): `drift` recovers
+  ``x(e^{-\theta\tau}-1)/\tau`` to ``\le 2\times10^{-2}`` and `diffusion` recovers the closed-form
+  ``[s^2(1-e^{-2\theta\tau}) + x^2(e^{-\theta\tau}-1)^2]/(2\tau)`` (``s^2 = \sigma^2/2\theta``) to
+  ``8\%``. `test/markovinference.jl` — the variance decomposition
+  ``M_2 = \operatorname{Var}(Y\mid x) + M_1^2``, the ``1/(n!\,\tau)`` scaling, the ``n\ge3`` and
+  static-lag coverage-gap errors, and mergeability. The ``n^{-2/5}`` rate test is forthcoming.

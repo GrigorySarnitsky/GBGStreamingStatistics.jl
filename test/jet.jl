@@ -1,14 +1,14 @@
 using Test
 using JET
 using GBGStreamingStatistics
-using GBGStreamingStatistics: Histograms, DensityEstimation, Bandwidth, Regression
+using GBGStreamingStatistics: Histograms, DensityEstimation, Bandwidth, Regression, MarkovInference
 
 @testset "JET" begin
   # Static analysis of the public operations on concrete CPU summaries, with reports filtered to the
   # package's own code. Concrete summaries ⇒ `get_backend` is concretely `CPU()`, so the GPU branch of
   # the scatter kernel (only reachable with a GPU backend loaded — exercised in test/gpu/) is not part
   # of the analyzed call; the KernelAbstractions/Atomix internals are excluded by `target_modules`.
-  mods = (GBGStreamingStatistics, Histograms, DensityEstimation, Bandwidth, Regression)
+  mods = (GBGStreamingStatistics, Histograms, DensityEstimation, Bandwidth, Regression, MarkovInference)
   h = Histogram1D(-5.0, 5.0, 100; order = 4)
   h2 = Histogram1D(-5.0, 5.0, 100; order = 4)
   samples = randn(1000)
@@ -26,4 +26,10 @@ using GBGStreamingStatistics: Histograms, DensityEstimation, Bandwidth, Regressi
   @test_call target_modules = mods merge!(g, g2)
   @test_call target_modules = mods conditional_mean(g, 0.0; h = 0.5)
   @test_call target_modules = mods conditional_variance(g, 0.0; h = 0.5)
+
+  glag = Histogram2D(-5.0, 5.0, 50, -5.0, 5.0, 50; lag = 1)
+  observe_pairs!(glag, xs, ys)
+  @test_call target_modules = mods increment_moment(glag, 0.0, 1; h = 0.5)
+  @test_call target_modules = mods drift(glag, 0.0; h = 0.5)
+  @test_call target_modules = mods diffusion(glag, 0.0; h = 0.5)
 end

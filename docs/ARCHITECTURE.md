@@ -549,6 +549,20 @@ intentional — do not dedupe it).
   moments (``M_4``, ``M_6``) the Q-criterion needs (odd moments keep weaker relative precision, an
   accepted trade). Verified by the ROCm GPU parity suite.
 
+- **Kramers–Moyal §4.4 — drift and diffusion first, as conditional increment moments** (§4.4). The
+  first slice implements the increment moments and the finite-``\tau`` Kramers–Moyal coefficients
+  drift ``D^{(1)} = M_1/\tau`` and diffusion ``D^{(2)} = M_2/(2\tau)`` directly from the **order-2
+  `Histogram2D`**, via ``M_1(x) = \hat m_h(x) - x`` and
+  ``M_2(x) = \widehat{\mathbb{E}}[Y^2\mid x] - 2x\,\hat m_h(x) + x^2`` — reusing the §4.2 local-linear
+  primitives (no new accumulator), reported as the plain finite-``\tau`` ratio ``M_n/(n!\,\tau)``. The
+  all-orders Bell-polynomial finite-time correction (Rydin Gorjão et al. 2021) and the ``\tau\to0``
+  limit stay forthcoming / consumer-side. ``n \ge 3`` — the Pawula ``M_4, M_6`` and `pawula_quotient`
+  — is a **recorded coverage gap** (it needs the joint summary raised to order-``n`` per-cell ``Y``
+  power-sums, deferred per invariant 5); `markov_test` waits on the §4.3 transition density.
+  OU-oracle-tested: drift ``= -\theta x`` exactly (the OU conditional mean is linear, no smoothing
+  bias), diffusion ``\to \sigma^2/2`` carrying the local-linear bias of the curved
+  ``\mathbb{E}[Y^2\mid x]``.
+
 Open decisions still flagged **[OPEN]** in §10 (the projection road, `HistogramND`, vector-valued
 conditioning, prior-art mirroring) graduate to entries here when they are settled.
 
