@@ -57,12 +57,13 @@ statistics out* workflow.
 The package splits into a **universal lower half** (the carriers and accumulation, shared verbatim by
 every consumer) and an **estimator upper half** (the estimands):
 
-- [`Accumulators`](api/Accumulators.md): the foundation — the `AbstractAccumulator` supertype, the
-  `merge!` mergeable-monoid interface, the Pébay + Kahan per-bin moment recursion, the
-  KernelAbstractions + Atomix scatter-add primitive, and `observe!`.
+- [`Accumulators`](api/Accumulators.md): the foundation — the `AbstractAccumulator` supertype and the
+  `observe!` / `merge!` mergeable-monoid interface (the carriers and their scatter kernels live in
+  `Histograms`).
 - [`Histograms`](api/Histograms.md): the carriers — `Histogram1D` and `Histogram2D` (linear/WARP
-  binning, per-bin counts, standardized central moments, and power-sums), with `bin_index` and
-  `observe_pairs!` for two-time statistics.
+  binning; per-bin counts and power-sums about the bin center, accumulated by one KernelAbstractions +
+  Atomix atomic scatter-add, with `merge!` by addition), plus `bin_index` and `observe_pairs!` for
+  two-time statistics.
 - [`DensityEstimation`](api/DensityEstimation.md): the marginal density `density` ``\equiv f_X``
   (binned KDE / WARPing).
 - [`Regression`](api/Regression.md): the conditional mean `conditional_mean` ``\equiv m(x)`` and
