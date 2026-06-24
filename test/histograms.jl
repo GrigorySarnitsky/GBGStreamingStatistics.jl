@@ -60,4 +60,19 @@ const H = Histograms
     @test eltype(h.counts) === UInt64
     @test H._sample_variance(h) ≈ 1 rtol = 3e-2
   end
+
+  @testset "public moment accessors (mean/var/std/central_moment)" begin
+    Random.seed!(11)
+    h = Histogram1D(-8.0, 8.0, 1600; order = 6)
+    observe!(h, randn(1_000_000))
+    @test mean(h) == H._sample_mean(h)                    # public == internal
+    @test var(h) == H._sample_variance(h)
+    @test std(h) == H._sample_std(h)
+    @test central_moment(h, 4) == H._sample_central_moment(h, 4)
+    @test mean(h) ≈ 0 atol = 5e-3                         # Gaussian oracle
+    @test var(h) ≈ 1 rtol = 2e-2
+    @test std(h) ≈ 1 rtol = 2e-2
+    @test central_moment(h, 4) ≈ 3 rtol = 3e-2
+    @test_throws ArgumentError central_moment(h, 7)       # p > order
+  end
 end

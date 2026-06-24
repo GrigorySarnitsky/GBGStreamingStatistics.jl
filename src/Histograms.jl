@@ -9,8 +9,9 @@ import Base: merge!
 using ..Accumulators: AbstractAccumulator
 using KernelAbstractions: @kernel, @index, @Const, get_backend, synchronize
 import Atomix
+import Statistics: mean, var, std
 
-export Histogram1D, Histogram2D, bin_index, observe_pairs!
+export Histogram1D, Histogram2D, bin_index, observe_pairs!, mean, var, std, central_moment
 
 
 """
@@ -33,6 +34,17 @@ Counts are `UInt64`; power-sums are accumulated in `accumulator` (`Float64` by d
 the input element type — *accumulate wider than the data*.
 
 Samples outside `[lower, upper)` are **skipped** (not counted) — set the range to cover the data.
+
+# Fields
+
+The summary's whole state — for serialization, inspection, or building one by hand:
+- `counts` — per-bin counts, length `nbins` (`UInt64`).
+- `powersums` — per-bin power-sums, `order × nbins` (row ``p`` is ``S_p``).
+- `lower`, `upper` — the range edges (`nbins == length(counts)`, `order == size(powersums, 1)`).
+
+`scale == nbins / (upper - lower)` is a derived convenience. `merge!` adds `counts` and `powersums`
+elementwise, so summaries on the same binning combine by saving and adding these two arrays. The
+recovered moments are read out with `mean`, `var`, `std`, and `central_moment`.
 """
 struct Histogram1D{T<:AbstractFloat,C<:AbstractVector,M<:AbstractMatrix} <: AbstractAccumulator
   lower::T          # lower edge of the binned range
@@ -186,6 +198,45 @@ _sample_std(h::Histogram1D) = sqrt(_sample_variance(h))
 
 
 """
+    mean(summary::Histogram1D)
+
+The **recovered sample mean** ``\\bar X = \\frac1n \\sum_i X_i`` of the accumulated data — exact (not a
+smoothed estimate): recovered host-side from the per-bin counts and first power-sums by the shift
+formula (the power-sums use the actual ``X_i``, not the bin center). Extends `Statistics.mean`; an
+empty summary gives `NaN`.
+"""
+mean(summary::Histogram1D) = _sample_mean(summary)
+
+
+"""
+    var(summary::Histogram1D)
+
+The **recovered sample variance** ``s^2 = \\frac1n \\sum_i (X_i - \\bar X)^2`` — the order-2 central
+moment (`central_moment` at ``p = 2``), exact via the shift formula. Extends `Statistics.var`.
+"""
+var(summary::Histogram1D) = _sample_variance(summary)
+
+
+"""
+    std(summary::Histogram1D)
+
+The **recovered sample standard deviation** ``\\sqrt{s^2}`` of the accumulated data. Extends
+`Statistics.std`.
+"""
+std(summary::Histogram1D) = _sample_std(summary)
+
+
+"""
+    central_moment(summary::Histogram1D, p)
+
+The **recovered ``p``-th central moment** ``\\frac1n \\sum_i (X_i - \\bar X)^p`` of the accumulated data,
+for ``2 \\le p \\le`` `order` — exact via the shift formula. ``p = 2`` is the variance; the even
+high-order moments ``M_4``, ``M_6`` feed the Pawula ``Q``-criterion.
+"""
+central_moment(summary::Histogram1D, p::Integer) = _sample_central_moment(summary, p)
+
+
+"""
     Histogram2D <: AbstractAccumulator
     Histogram2D(xlower, xupper, nx, ylower, yupper, ny; lag = 0, accumulator = Float64)
 
@@ -199,6 +250,16 @@ For a two-time quantity ``X(t)`` and the response ``Y(t+\\tau)`` are paired *per
 ``\\tau`` is an explicit label on the summary. Pairs outside the box are skipped. Same atomic-scatter
 accumulation, `merge!`-by-addition, and `Float64` accumulation as
 [`Histogram1D`](@ref GBGStreamingStatistics.Histograms.Histogram1D).
+
+# Fields
+
+The summary's whole state:
+- `counts` — per-cell counts, length `nx*ny` (cell `(ix, iy)` at `ix + (iy-1)*nx`, `UInt64`).
+- `powersums` — `5 × (nx*ny)`: rows ``S_{10}, S_{01}, S_{20}, S_{11}, S_{02}`` about the cell center.
+- `xlower`, `xupper`, `ylower`, `yupper`, `nx`, `ny` — the box and cell counts; `lag` is the lag ``\\tau``.
+
+`xscale`, `yscale` are derived. `merge!` adds `counts` and `powersums` (requires matching box, cell
+counts, and `lag`).
 """
 struct Histogram2D{T<:AbstractFloat,C<:AbstractVector,M<:AbstractMatrix} <: AbstractAccumulator
   xlower::T; xupper::T; xscale::T     # X range and nx/(xupper−xlower)

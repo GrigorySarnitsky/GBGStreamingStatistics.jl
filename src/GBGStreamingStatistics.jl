@@ -21,7 +21,8 @@ the diagnostics that *test* a model (the Pawula ratio, a Markov / Chapman–Kolm
 model itself.
 
 The package provides the mergeable accumulators and histogram summaries (`observe!`, `observe_pairs!`,
-`merge!`, `bin_index`, `Histogram1D`, `Histogram2D`), the marginal density (`density`), conditional moments
+`merge!`, `bin_index`, `Histogram1D`, `Histogram2D`) with their recovered marginal moments (`mean`,
+`var`, `std`, `central_moment`), the marginal density (`density`), conditional moments
 (`conditional_mean`, `conditional_variance`), conditional and transition densities
 (`conditional_density`, `transition_density`), the Kramers–Moyal functionals (`increment_moment`,
 `kramers_moyal`, `drift`, `diffusion`, `pawula_quotient`, `markov_test`), and bandwidth selection
@@ -51,7 +52,11 @@ using .Histograms:
   Histogram1D,
   Histogram2D,
   bin_index,
-  observe_pairs!
+  observe_pairs!,
+  mean,
+  var,
+  std,
+  central_moment
 
 
 using .DensityEstimation:
@@ -88,6 +93,10 @@ export AbstractAccumulator,
        observe_pairs!,
        merge!,
        bin_index,
+       mean,
+       var,
+       std,
+       central_moment,
        density,
        conditional_mean,
        conditional_variance,

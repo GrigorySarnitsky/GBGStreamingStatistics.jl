@@ -197,7 +197,8 @@ Mechanical bar:
 1. **`Histograms.Histogram1D` + `Accumulators`** — linear (WARP) binning over `[lower, upper)` (out-of-range
    skipped); per-bin counts + **power-sums about the bin center** ``S_p`` to a configurable `order`.
    `observe!` (batch + scalar) and `merge!` (elementwise addition); `bin_index`; global central moments
-   recovered by the **shift formula** (`_sample_mean`/`_variance`/`_std`/`_central_moment`). Tested:
+   recovered by the **shift formula** and exposed publicly as `mean`/`var`/`std`/`central_moment`
+   (extending `Statistics`). Tested:
    Gaussian moment recovery (exact vs direct, and vs the true moments), mergeability, bounded
    allocation, Float32→Float64.
 2. **`Histograms.Histogram2D` + `observe_pairs!`** — the joint two-time summary: `nx×ny` cells, per-cell
