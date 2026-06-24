@@ -22,9 +22,9 @@ const H = Histograms
 
 # Device twins: move the backing arrays of a host summary onto the device (default constructor).
 on_device(h::Histogram1D) =
-  Histogram1D(h.lo, h.hi, h.scale, to_device(h.counts), to_device(h.powersums))
+  Histogram1D(h.lower, h.upper, h.scale, to_device(h.counts), to_device(h.powersums))
 on_device(h::Histogram2D) =
-  Histogram2D(h.xlo, h.xhi, h.xscale, h.ylo, h.yhi, h.yscale, h.nx, h.ny, h.lag,
+  Histogram2D(h.xlower, h.xupper, h.xscale, h.ylower, h.yupper, h.yscale, h.nx, h.ny, h.lag,
               to_device(h.counts), to_device(h.powersums))
 
 function run_gpu_suite(::Type{T}) where {T<:AbstractFloat}

@@ -15,10 +15,10 @@ export Histogram1D, Histogram2D, bin_index, observe_pairs!
 
 """
     Histogram1D <: AbstractAccumulator
-    Histogram1D(lo, hi, nbins; order = 4, accumulator = Float64)
+    Histogram1D(lower, upper, nbins; order = 4, accumulator = Float64)
 
 A **finely binned empirical measure** of a conditioning variable ``X`` — the canonical summary
-``T(\\hat\\mu_n)`` (`docs/ARCHITECTURE.md` §3). `nbins` equal-width (WARPing) bins tile the half-open range `[lo, hi)`;
+``T(\\hat\\mu_n)`` (`docs/ARCHITECTURE.md` §3). `nbins` equal-width (WARPing) bins tile the half-open range `[lower, upper)`;
 choosing the range to cover the data (e.g. ``\\pm 5\\sigma`` for the data's standard deviation
 ``\\sigma``) with ``\\gtrsim 10^3`` bins makes the bin width ``b \\approx \\sigma/100`` far below any
 post-hoc smoothing bandwidth ``h`` (``b \\ll h``), so the summary is *approximately sufficient*.
@@ -32,33 +32,33 @@ exact; they are stable for the even high-order moments (the Pawula ``Q``-criteri
 Counts are `UInt64`; power-sums are accumulated in `accumulator` (`Float64` by default) regardless of
 the input element type — *accumulate wider than the data*.
 
-Samples outside `[lo, hi)` are **skipped** (not counted) — set the range to cover the data.
+Samples outside `[lower, upper)` are **skipped** (not counted) — set the range to cover the data.
 """
 struct Histogram1D{T<:AbstractFloat,C<:AbstractVector,M<:AbstractMatrix} <: AbstractAccumulator
-  lo::T          # lower edge of the binned range
-  hi::T          # upper edge of the binned range
-  scale::T       # nbins / (hi − lo); bin of x is floor((x − lo)·scale) + 1
+  lower::T          # lower edge of the binned range
+  upper::T          # upper edge of the binned range
+  scale::T       # nbins / (upper − lower); bin of x is floor((x − lower)·scale) + 1
   counts::C      # length nbins, per-bin integer counts (UInt64)
   powersums::M   # order × nbins, per-bin power-sums S_1 … S_order about the bin center
 end
 
 
-function Histogram1D(lo::Real, hi::Real, nbins::Integer;
+function Histogram1D(lower::Real, upper::Real, nbins::Integer;
                      order::Integer = 4, accumulator::Type{<:AbstractFloat} = Float64)
-  hi > lo || throw(ArgumentError("Histogram1D requires hi > lo (got lo = $lo, hi = $hi)"))
+  upper > lower || throw(ArgumentError("Histogram1D requires upper > lower (got lower = $lower, upper = $upper)"))
   nbins ≥ 1 || throw(ArgumentError("Histogram1D requires nbins ≥ 1 (got $nbins)"))
   order ≥ 2 || throw(ArgumentError("Histogram1D requires order ≥ 2 (got $order)"))
-  loT, hiT = promote(float(lo), float(hi))
-  scale = oftype(loT, nbins) / (hiT - loT)
+  lowerT, upperT = promote(float(lower), float(upper))
+  scale = oftype(lowerT, nbins) / (upperT - lowerT)
   counts = zeros(UInt64, nbins)
   powersums = zeros(accumulator, order, nbins)
-  return Histogram1D(loT, hiT, scale, counts, powersums)
+  return Histogram1D(lowerT, upperT, scale, counts, powersums)
 end
 
 
 _nbins(h::Histogram1D) = length(h.counts)
 _order(h::Histogram1D) = size(h.powersums, 1)
-_bincenter(h::Histogram1D, i::Integer) = h.lo + (oftype(h.lo, i) - oftype(h.lo, 0.5)) / h.scale
+_bincenter(h::Histogram1D, i::Integer) = h.lower + (oftype(h.lower, i) - oftype(h.lower, 0.5)) / h.scale
 _total(h::Histogram1D) = sum(h.counts)
 
 
@@ -66,27 +66,27 @@ _total(h::Histogram1D) = sum(h.counts)
     bin_index(summary, x) -> i
 
 The **binning map**: the index ``i`` of the bin containing `x`. For a
-[`Histogram1D`](@ref GBGStreamingStatistics.Histograms.Histogram1D) over `[lo, hi)` with `nbins`
-bins, ``i = \\lfloor (x - \\texttt{lo})\\,\\texttt{scale} \\rfloor + 1``; a valid bin satisfies
+[`Histogram1D`](@ref GBGStreamingStatistics.Histograms.Histogram1D) over `[lower, upper)` with `nbins`
+bins, ``i = \\lfloor (x - \\texttt{lower})\\,\\texttt{scale} \\rfloor + 1``; a valid bin satisfies
 ``1 \\le i \\le`` `nbins`, and `x` outside the range yields ``i < 1`` or ``i >`` `nbins`. Exposed so a
 consumer can pre-quantize a snapshot buffer (e.g. store compact `UInt16` bin indices) before forming
 lagged pairs for [`observe_pairs!`](@ref GBGStreamingStatistics.Histograms.observe_pairs!).
 """
-@inline bin_index(h::Histogram1D, x) = floor(Int, (x - h.lo) * h.scale) + 1
+@inline bin_index(h::Histogram1D, x) = floor(Int, (x - h.lower) * h.scale) + 1
 
 
 # The portable scatter-add: one work-item per sample atomically accumulates the count and the
 # per-bin power-sums about the bin center, directly into the preallocated summary. Runs on CPU and
 # any GPU backend (KernelAbstractions + Atomix). Out-of-range samples are skipped.
-@kernel function _scatter1d!(counts, powersums, @Const(samples), lo, scale, nbins, order)
+@kernel function _scatter1d!(counts, powersums, @Const(samples), lower, scale, nbins, order)
   s = @index(Global, Linear)
   if s ≤ length(samples)
     @inbounds begin
       x = samples[s]
-      i = floor(Int, (x - lo) * scale) + 1
+      i = floor(Int, (x - lower) * scale) + 1
       if 1 ≤ i ≤ nbins
         Atomix.@atomic counts[i] += one(eltype(counts))
-        center = lo + (oftype(lo, i) - oftype(lo, 0.5)) / scale
+        center = lower + (oftype(lower, i) - oftype(lower, 0.5)) / scale
         dx = x - center
         base = (i - 1) * order
         dxp = dx
@@ -102,7 +102,7 @@ end
 
 function observe!(h::Histogram1D, samples)
   backend = get_backend(h.counts)
-  _scatter1d!(backend)(h.counts, h.powersums, samples, h.lo, h.scale, _nbins(h), _order(h);
+  _scatter1d!(backend)(h.counts, h.powersums, samples, h.lower, h.scale, _nbins(h), _order(h);
                        ndrange = length(samples))
   synchronize(backend)
   return h
@@ -111,7 +111,7 @@ end
 
 # Scalar fold — a direct host update (scalar-indexes the summary, so host arrays only; batch on GPU).
 function observe!(h::Histogram1D, x::Real)
-  i = floor(Int, (x - h.lo) * h.scale) + 1
+  i = floor(Int, (x - h.lower) * h.scale) + 1
   (1 ≤ i ≤ _nbins(h)) || return h
   @inbounds h.counts[i] += one(eltype(h.counts))
   dx = x - _bincenter(h, i)
@@ -125,12 +125,12 @@ end
 
 
 _compatible(a::Histogram1D, b::Histogram1D) =
-  a.lo == b.lo && a.hi == b.hi && _nbins(a) == _nbins(b) && _order(a) == _order(b)
+  a.lower == b.lower && a.upper == b.upper && _nbins(a) == _nbins(b) && _order(a) == _order(b)
 
 
 function merge!(into::Histogram1D, from::Histogram1D)
   _compatible(into, from) ||
-    throw(ArgumentError("merge!: histograms must share lo, hi, bin count, and order"))
+    throw(ArgumentError("merge!: histograms must share lower, upper, bin count, and order"))
   into.counts .+= from.counts          # counts and power-sums add (same binning ⇒ same centers)
   into.powersums .+= from.powersums
   return into
@@ -187,11 +187,11 @@ _sample_std(h::Histogram1D) = sqrt(_sample_variance(h))
 
 """
     Histogram2D <: AbstractAccumulator
-    Histogram2D(xlo, xhi, nx, ylo, yhi, ny; lag = 0, accumulator = Float64)
+    Histogram2D(xlower, xupper, nx, ylower, yupper, ny; lag = 0, accumulator = Float64)
 
 A **joint binned empirical measure** of ``(X, Y)`` — one per lag ``\\tau`` — for conditional and
 two-time transition densities (`docs/ARCHITECTURE.md` §3, §4.3). `nx × ny` equal-width cells tile
-`[xlo, xhi) × [ylo, yhi)`; each cell `(i_x, i_y)` (flattened `i_x + (i_y-1)·nx`) carries its
+`[xlower, xupper) × [ylower, yupper)`; each cell `(i_x, i_y)` (flattened `i_x + (i_y-1)·nx`) carries its
 **count** and the order-2 bivariate **power-sums** ``S_{rs} = \\sum_{(X,Y)\\in\\text{cell}} (X -
 c^x)^r (Y - c^y)^s`` about the cell center ``(c^x, c^y)`` — ``S_{10}, S_{01}, S_{20}, S_{11},
 S_{02}`` — the local sufficient statistic for the joint density and for local-linear conditioning.
@@ -201,8 +201,8 @@ accumulation, `merge!`-by-addition, and `Float64` accumulation as
 [`Histogram1D`](@ref GBGStreamingStatistics.Histograms.Histogram1D).
 """
 struct Histogram2D{T<:AbstractFloat,C<:AbstractVector,M<:AbstractMatrix} <: AbstractAccumulator
-  xlo::T; xhi::T; xscale::T     # X range and nx/(xhi−xlo)
-  ylo::T; yhi::T; yscale::T     # Y range and ny/(yhi−ylo)
+  xlower::T; xupper::T; xscale::T     # X range and nx/(xupper−xlower)
+  ylower::T; yupper::T; yscale::T     # Y range and ny/(yupper−ylower)
   nx::Int
   ny::Int
   lag::Int                       # the lag τ this joint summary is accumulated at (0 for the static joint)
@@ -211,43 +211,43 @@ struct Histogram2D{T<:AbstractFloat,C<:AbstractVector,M<:AbstractMatrix} <: Abst
 end
 
 
-function Histogram2D(xlo::Real, xhi::Real, nx::Integer, ylo::Real, yhi::Real, ny::Integer;
+function Histogram2D(xlower::Real, xupper::Real, nx::Integer, ylower::Real, yupper::Real, ny::Integer;
                      lag::Integer = 0, accumulator::Type{<:AbstractFloat} = Float64)
-  (xhi > xlo && yhi > ylo) ||
-    throw(ArgumentError("Histogram2D requires xhi > xlo and yhi > ylo"))
+  (xupper > xlower && yupper > ylower) ||
+    throw(ArgumentError("Histogram2D requires xupper > xlower and yupper > ylower"))
   (nx ≥ 1 && ny ≥ 1) || throw(ArgumentError("Histogram2D requires nx ≥ 1 and ny ≥ 1"))
-  xloT, xhiT, yloT, yhiT = promote(float(xlo), float(xhi), float(ylo), float(yhi))
-  T = typeof(xloT)
-  xscale = T(nx) / (xhiT - xloT)
-  yscale = T(ny) / (yhiT - yloT)
+  xlowerT, xupperT, ylowerT, yupperT = promote(float(xlower), float(xupper), float(ylower), float(yupper))
+  T = typeof(xlowerT)
+  xscale = T(nx) / (xupperT - xlowerT)
+  yscale = T(ny) / (yupperT - ylowerT)
   counts = zeros(UInt64, nx * ny)
   powersums = zeros(accumulator, 5, nx * ny)
-  return Histogram2D(xloT, xhiT, xscale, yloT, yhiT, yscale, Int(nx), Int(ny), Int(lag), counts, powersums)
+  return Histogram2D(xlowerT, xupperT, xscale, ylowerT, yupperT, yscale, Int(nx), Int(ny), Int(lag), counts, powersums)
 end
 
 
 _ncells(h::Histogram2D) = length(h.counts)
 _total(h::Histogram2D) = sum(h.counts)
-_xbincenter(h::Histogram2D, ix::Integer) = h.xlo + (oftype(h.xlo, ix) - oftype(h.xlo, 0.5)) / h.xscale
-_ybincenter(h::Histogram2D, iy::Integer) = h.ylo + (oftype(h.ylo, iy) - oftype(h.ylo, 0.5)) / h.yscale
+_xbincenter(h::Histogram2D, ix::Integer) = h.xlower + (oftype(h.xlower, ix) - oftype(h.xlower, 0.5)) / h.xscale
+_ybincenter(h::Histogram2D, iy::Integer) = h.ylower + (oftype(h.ylower, iy) - oftype(h.ylower, 0.5)) / h.yscale
 
 
 # The 2D scatter-add: one work-item per pair atomically accumulates the per-cell count and the five
 # order-2 bivariate power-sums about the cell center. Out-of-box pairs are skipped.
 @kernel function _scatter2d!(counts, powersums, @Const(xs), @Const(ys),
-                             xlo, xscale, nx, ylo, yscale, ny)
+                             xlower, xscale, nx, ylower, yscale, ny)
   s = @index(Global, Linear)
   if s ≤ length(xs)
     @inbounds begin
       x = xs[s]
       y = ys[s]
-      ix = floor(Int, (x - xlo) * xscale) + 1
-      iy = floor(Int, (y - ylo) * yscale) + 1
+      ix = floor(Int, (x - xlower) * xscale) + 1
+      iy = floor(Int, (y - ylower) * yscale) + 1
       if 1 ≤ ix ≤ nx && 1 ≤ iy ≤ ny
         cell = ix + (iy - 1) * nx
         Atomix.@atomic counts[cell] += one(eltype(counts))
-        dx = x - (xlo + (oftype(xlo, ix) - oftype(xlo, 0.5)) / xscale)
-        dy = y - (ylo + (oftype(ylo, iy) - oftype(ylo, 0.5)) / yscale)
+        dx = x - (xlower + (oftype(xlower, ix) - oftype(xlower, 0.5)) / xscale)
+        dy = y - (ylower + (oftype(ylower, iy) - oftype(ylower, 0.5)) / yscale)
         base = (cell - 1) * 5
         Atomix.@atomic powersums[base + 1] += dx
         Atomix.@atomic powersums[base + 2] += dy
@@ -275,14 +275,14 @@ function observe_pairs!(h::Histogram2D, x_past, y_now)
     throw(ArgumentError("observe_pairs!: x_past and y_now must have equal length"))
   backend = get_backend(h.counts)
   _scatter2d!(backend)(h.counts, h.powersums, x_past, y_now,
-                       h.xlo, h.xscale, h.nx, h.ylo, h.yscale, h.ny; ndrange = length(x_past))
+                       h.xlower, h.xscale, h.nx, h.ylower, h.yscale, h.ny; ndrange = length(x_past))
   synchronize(backend)
   return h
 end
 
 
 _compatible(a::Histogram2D, b::Histogram2D) =
-  a.xlo == b.xlo && a.xhi == b.xhi && a.ylo == b.ylo && a.yhi == b.yhi &&
+  a.xlower == b.xlower && a.xupper == b.xupper && a.ylower == b.ylower && a.yupper == b.yupper &&
   a.nx == b.nx && a.ny == b.ny && a.lag == b.lag
 
 function merge!(into::Histogram2D, from::Histogram2D)

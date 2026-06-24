@@ -194,7 +194,7 @@ Mechanical bar:
 
 **Done (implemented + tested, CPU and GPU).**
 
-1. **`Histograms.Histogram1D` + `Accumulators`** — linear (WARP) binning over ``[lo, hi)`` (out-of-range
+1. **`Histograms.Histogram1D` + `Accumulators`** — linear (WARP) binning over `[lower, upper)` (out-of-range
    skipped); per-bin counts + **power-sums about the bin center** ``S_p`` to a configurable `order`.
    `observe!` (batch + scalar) and `merge!` (elementwise addition); `bin_index`; global central moments
    recovered by the **shift formula** (`_sample_mean`/`_variance`/`_std`/`_central_moment`). Tested:
