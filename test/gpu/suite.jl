@@ -20,7 +20,7 @@ using GBGStreamingStatistics: Histograms
 using Random
 const H = Histograms
 
-# Device twins: move the backing arrays of a host carrier onto the device (default constructor).
+# Device twins: move the backing arrays of a host summary onto the device (default constructor).
 on_device(h::Histogram1D) =
   Histogram1D(h.lo, h.hi, h.scale, to_device(h.counts), to_device(h.powersums))
 on_device(h::Histogram2D) =

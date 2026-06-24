@@ -13,7 +13,7 @@ analytic round-trips: estimators are checked against distributions with closed f
 - **Consistency / rate tests.** The estimation error falls at its theoretical rate as ``n`` grows
   (``n^{-2/5}`` for a density or conditional mean; the slower ``n^{-2/3}`` for a conditional
   density), checked over a sequence of growing ``n``.
-- **Mergeability tests.** For every carrier, *accumulate-then-merge `=` accumulate-together* (to
+- **Mergeability tests.** For every summary, *accumulate-then-merge `=` accumulate-together* (to
   round-off), and `merge!` is associative — the monoid laws of invariant 3.
 - **Allocation audit.** `test/allocations.jl` asserts via `@allocated` (on the CPU, where a
   materialized array's bytes are visible) that `observe!` / `observe_pairs!` / `merge!` allocate only a
@@ -40,7 +40,7 @@ constants do not collide. The cross-cutting files are `test/oracles.jl` (the Gau
 the rate tests), `test/mergeability.jl`, and `test/allocations.jl`.
 
 !!! note "Status"
-    The carrier suites (`Histogram1D`, `Histogram2D`), `density`, and `bandwidth` are real — the
+    The summary suites (`Histogram1D`, `Histogram2D`), `density`, and `bandwidth` are real — the
     Gaussian moment and density oracles, the 2D independent-Gaussian oracle, mergeability, the bounded
     `@allocated` audit, and **CPU-vs-AMD-GPU parity** (`test/gpu/`, ROCm); `Aqua.test_all` and JET run
     for real throughout. The OU / conditional and the ``n^{-2/5}`` rate tests remain placeholders until

@@ -1,4 +1,4 @@
-# Histograms — the carriers (universal lower half): the finely binned empirical measures that are the
+# Histograms — the summaries (universal lower half): the finely binned empirical measures that are the
 # canonical summary `T`. Linear (WARPing) binning; per-bin counts + power-sums about the bin center,
 # accumulated by one portable KernelAbstractions + Atomix scatter kernel. Rationale: `docs/ARCHITECTURE.md` §3.
 
@@ -75,7 +75,7 @@ lagged pairs for [`observe_pairs!`](@ref GBGStreamingStatistics.Histograms.obser
 
 
 # The portable scatter-add: one work-item per sample atomically accumulates the count and the
-# per-bin power-sums about the bin center, directly into the preallocated carrier. Runs on CPU and
+# per-bin power-sums about the bin center, directly into the preallocated summary. Runs on CPU and
 # any GPU backend (KernelAbstractions + Atomix). Out-of-range samples are skipped.
 @kernel function _scatter1d!(counts, powersums, @Const(samples), lo, scale, nbins, order)
   s = @index(Global, Linear)
@@ -108,7 +108,7 @@ function observe!(h::Histogram1D, samples)
 end
 
 
-# Scalar fold — a direct host update (scalar-indexes the carrier, so host arrays only; batch on GPU).
+# Scalar fold — a direct host update (scalar-indexes the summary, so host arrays only; batch on GPU).
 function observe!(h::Histogram1D, x::Real)
   i = floor(Int, (x - h.lo) * h.scale) + 1
   (1 ≤ i ≤ _nbins(h)) || return h
@@ -138,7 +138,7 @@ end
 
 # Global (over all bins) central moments, recovered host-side from the per-bin power-sums by the
 # shift formula. Returns (n, mean, M) with `M[p-1] = Σ_i (x_i − x̄)^p` for p = 2 … order. Reads the
-# carriers to the host first (a no-op for CPU arrays). Internal — used by bandwidth and the oracles.
+# summaries to the host first (a no-op for CPU arrays). Internal — used by bandwidth and the oracles.
 function _global_moments(h::Histogram1D)
   P = _order(h)
   counts = Array(h.counts)
@@ -195,7 +195,7 @@ two-time transition densities (`docs/ARCHITECTURE.md` §3, §4.3). `nx × ny` eq
 c^x)^r (Y - c^y)^s`` about the cell center ``(c^x, c^y)`` — ``S_{10}, S_{01}, S_{20}, S_{11},
 S_{02}`` — the local sufficient statistic for the joint density and for local-linear conditioning.
 For a two-time quantity ``X(t)`` and the response ``Y(t+\\tau)`` are paired *per source*; the lag
-``\\tau`` is an explicit label on the carrier. Pairs outside the box are skipped. Same atomic-scatter
+``\\tau`` is an explicit label on the summary. Pairs outside the box are skipped. Same atomic-scatter
 accumulation, `merge!`-by-addition, and `Float64` accumulation as
 [`Histogram1D`](@ref GBGStreamingStatistics.Histograms.Histogram1D).
 """
@@ -204,7 +204,7 @@ struct Histogram2D{T<:AbstractFloat,C<:AbstractVector,M<:AbstractMatrix} <: Abst
   ylo::T; yhi::T; yscale::T     # Y range and ny/(yhi−ylo)
   nx::Int
   ny::Int
-  lag::Int                       # the lag τ this joint carrier is accumulated at (0 for the static joint)
+  lag::Int                       # the lag τ this joint summary is accumulated at (0 for the static joint)
   counts::C                      # length nx·ny, per-cell integer counts (UInt64)
   powersums::M                   # 5 × (nx·ny): rows S_10, S_01, S_20, S_11, S_02 about the cell center
 end
@@ -262,12 +262,12 @@ end
 """
     observe_pairs!(summary::Histogram2D, x_past, y_now) -> summary
 
-Fold a batch of **pre-formed pairs** ``\\bigl(X(t),\\, Y(t+\\tau)\\bigr)`` into the per-lag carrier in
+Fold a batch of **pre-formed pairs** ``\\bigl(X(t),\\, Y(t+\\tau)\\bigr)`` into the per-lag summary in
 place (`x_past` ``= X(t)``, `y_now` ``= Y(t+\\tau)``, equal length) — the memoryless surface for
 two-time statistics (`docs/ARCHITECTURE.md` §3, §4.3–4.4). The pairs are binned by an atomic
 scatter-add (one work-item per pair, CPU and GPU alike); everything that *produces* the pairs — the
 snapshot buffer of past ``X(t)``, which sources to sample, which lags to form, the origin cadence — is
-the **consumer's** responsibility, formed at the carrier's lag ``\\tau``.
+the **consumer's** responsibility, formed at the summary's lag ``\\tau``.
 """
 function observe_pairs!(h::Histogram2D, x_past, y_now)
   length(x_past) == length(y_now) ||

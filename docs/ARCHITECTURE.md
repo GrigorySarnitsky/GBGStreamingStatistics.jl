@@ -92,8 +92,9 @@ secondary smoothing). The load-bearing decision:
 
 ### Why a fine histogram is the canonical ``T`` (and the honest caveat)
 
-The canonical summary is a **finely binned empirical measure** — a histogram — optionally carrying
-**per-bin moments** (below). For nonparametric estimation there is, strictly, *no* finite
+The canonical summary is a **finely binned empirical measure** — a histogram, the *fine-grained
+measure* that post-hoc smoothing (a choice of bandwidth ``h``) later coarse-grains into each reported
+estimate — optionally carrying **per-bin moments** (below). For nonparametric estimation there is, strictly, *no* finite
 sufficient statistic; the histogram is **lossy**. The justification is quantitative and sets the
 bin count: with bin width ``b`` and smoothing bandwidth ``h``, the binning error is ``O(b^2)`` while the
 irreducible smoothing bias is ``O(h^2)``, so choosing ``b \ll h`` (in practice ``\gtrsim 10^3`` bins over
@@ -121,11 +122,11 @@ detailed in §4:
 - **[OPEN]** a streaming **projection road** (basis projection à la Stochastic Force Inference /
   ULI) as an alternative accumulator.
 
-### The histogram is the carrier; the ECF is deferred (likely never needed)
+### The histogram is the summary; the ECF is deferred (likely never needed)
 
 The empirical measure could also be carried in a **Fourier** representation — the **empirical
 characteristic function** ``\hat\varphi_n(s) = \frac1n\sum_i e^{\mathrm{i} s X_i}`` — but the histogram
-is the **sole** carrier. Tail estimation (the heavy-tailed acceleration / ``(\Delta X)^6`` channels) is
+is the **sole** summary. Tail estimation (the heavy-tailed acceleration / ``(\Delta X)^6`` channels) is
 robust only in the histogram, where the ECF inverse rings; the ECF would earn its place only for a
 strictly near-Gaussian marginal, which the consumers do not require. It is therefore **deferred and,
 per the user, most likely never built.**
@@ -136,7 +137,7 @@ histogram* (a **post-hoc computation** choice). The former is dropped; the latte
 performance lever (§4.5): smoothing a binned density or regression is a convolution of the bin counts
 with the kernel, which the FFT does in ``O(B\log B)`` for ``B`` bins and — decisively — **amortizes over
 bandwidth** (transform the counts once; each bandwidth ``h`` is then a multiply by the kernel's
-transform). So FFT-*smoothing* is recommended; the ECF *carrier* is not.
+transform). So FFT-*smoothing* is recommended; the ECF *summary* is not.
 
 ### Naming conventions
 
@@ -186,7 +187,7 @@ PF's stray ``1/N`` or Parseval factor.
 
 ---
 
-## 3. The accumulated summary (carriers — the universal lower half)
+## 3. The accumulated summary — the universal lower half
 
 These types are the load-bearing, domain-agnostic core; they are pure numerics over a stream and
 transfer verbatim to every consumer.
@@ -206,23 +207,23 @@ transfer verbatim to every consumer.
   transition densities; per-cell counts and bivariate power-sums ``S_{rs}`` about the cell center.
 - **`HistogramND` [OPEN]** — the ``n``-D generalization, deferred until a consumer needs conditioning
   on more than one variable (the PF rule against speculative structure).
-- **per-bin power-sums are the *one* carrier scheme** above, in a univariate form (``S_p`` of ``X``,
+- **per-bin power-sums are the *one* summary scheme** above, in a univariate form (``S_p`` of ``X``,
   for the marginal moments and density) and a bivariate form (``S_{rs} = \sum_{i\in\text{bin}}(X_i -
   c^x)^{s}(Y_i - c^y)^{r}`` about the cell center, the local sufficient statistic for local-polynomial
   regression; Cattaneo et al. 2024). All bandwidths, kernels, and moments are recovered from them
   post hoc.
-- **the mergeable-monoid interface** — `merge!` on every carrier is **elementwise addition** (same
+- **the mergeable-monoid interface** — `merge!` on every summary is **elementwise addition** (same
   binning ⇒ same bin centers ⇒ counts and power-sums add). Tested: accumulate-then-merge ``=``
   accumulate-together.
 - **the backend-agnostic scatter-add primitive** *is* `observe!` / `observe_pairs!` — one
   KernelAbstractions + Atomix kernel (one work-item per sample) that atomically scatters the count and
-  the power-sums into the preallocated carrier, the direct analog of PF's `_bin_by_shell` /
+  the power-sums into the preallocated summary, the direct analog of PF's `_bin_by_shell` /
   `anterpolate!`. Allocation-free up to the kernel launch; verified identical on CPU and the AMD GPU
   under `allowscalar(false)` (§5). Storing power-sums *about the bin center* is precisely what keeps
   this a plain atomic add — no privatization, no workspace.
 
 **Numeric precision — accumulate wider than the data.** Samples often arrive in **Float32** (the
-GPU-first, low-memory consumers), but the carriers do **not** accumulate in Float32:
+GPU-first, low-memory consumers), but the summaries do **not** accumulate in Float32:
 
 - **Counts are integers** (`UInt64` merged). Float32 represents integers exactly only up to
   ``2^{24} = 16{,}777{,}216`` — beyond which adding one sample is silently lost — yet a single ``256^3``
@@ -248,7 +249,7 @@ Gaussian; the entire ``\tau``-dependence lives in the pair). The one histogram e
 response step, into the bin of ``X(t)``. The package surface for this is just:
 
 - the **memoryless** `observe_pairs!(stat, x_past, y_now; lag)` — bins a batch of pre-formed,
-  lag-labelled pairs into the per-lag carrier (§4.2 / §4.3); and
+  lag-labelled pairs into the per-lag summary (§4.2 / §4.3); and
 - the **binning map** `bin_index(stat, x)` — exposed so a caller can pre-quantize.
 
 Everything that *produces* the pairs is the **consumer's**, being sample-source policy a
@@ -262,9 +263,9 @@ budget). Pairing is by source identity — for a stably-ordered set just element
 What the package *keeps* is the per-lag **histograms** — the accumulated power-sums, the small
 *output* (``L \times`` bins ``\times`` moments, a few MB), never the ``O(ML)`` snapshot buffer (the
 expensive object, consumer-side). For the **nonstationary** case the running origin ``t`` and lag
-``\tau`` are explicit labels on the carrier set (``p_{t,\tau}``), never assumed away. (If the
+``\tau`` are explicit labels on the summary set (``p_{t,\tau}``), never assumed away. (If the
 ring-and-pair boilerplate proves worth sharing, it can be a **non-domain-aware utility offered
-alongside** the carrier — never something the package's vocabulary depends on.)
+alongside** the summary — never something the package's vocabulary depends on.)
 
 ---
 
@@ -352,7 +353,7 @@ sweep is large; a recursive Gaussian (Deriche) is the ``O(B)``-per-channel alter
 fixed-bandwidth Gaussian. **Priority:** this smoothing is post-hoc on a small grid and is dwarfed —
 by ``\sim10^3`` in total work — by the per-sample accumulation over ``N^3\times``steps (§5), so the
 dominant performance lever is the accumulation hot loop, *not* the smoother. This is the FFT use the
-deferred ECF carrier (§2) does **not** preclude.
+deferred ECF summary (§2) does **not** preclude.
 
 ### 4.6 Projection road [OPEN, alternative]
 
@@ -401,14 +402,14 @@ survives contact with three different execution models.
 
 The PF discipline: a missing capability encodes a decision. The candidate invariants:
 
-1. **Accumulation is response-agnostic; smoothing is post hoc.** No carrier stores a bandwidth,
+1. **Accumulation is response-agnostic; smoothing is post hoc.** No summary stores a bandwidth,
    kernel, or channel choice. An API that bakes a bandwidth into accumulation is the banned analog
    of PF's spectral product-as-`*`. *(This is the invariant that makes "no reruns" true.)*
 2. **Samples in, statistics out — no domain, no model.** Domain-neutral vocabulary
    (sample / variate / response / lag / conditioning value), never particle / tracer / droplet /
    velocity. No stationarity, Markov, diffusion, or parametric assumption is a *premise*; such
    structure is only ever *tested*. (The analog of PF's "no time, no particles.")
-3. **Everything is a mergeable monoid.** Every carrier supports `merge!`; the unnormalized summary
+3. **Everything is a mergeable monoid.** Every summary supports `merge!`; the unnormalized summary
    is additive over the stream. No non-mergeable accumulator is admitted.
 4. **The hot path is allocation-free and backend-agnostic** (§5).
 5. **The summary is rich enough to recover every target post hoc.** A target that would need a
@@ -463,7 +464,7 @@ GBGStreamingStatistics/
     ConditionalDensity.jl        # §4.3   f_{Y|X}, transition p_τ
     MarkovInference.jl           # §4.4   increment moments, KM/drift/diffusion, Pawula/Q, Markov test
     Bandwidth.jl                 # §4.5   global + response-aware local plug-in
-    # CharacteristicFunctions.jl # [OPEN, secondary] ECF carrier
+    # CharacteristicFunctions.jl # [OPEN, secondary] ECF summary
     # ProjectionInference.jl     # [OPEN] SFI / ULI road
   docs/   ARCHITECTURE.md  FORMALIZATION.md  TESTING.md  PERFORMANCE.md  src/…  make.jl
   test/   runtests.jl  per-module  oracles.jl(OU/Gaussian)  mergeability.jl  allocations.jl  aqua.jl  jet.jl  gpu/
@@ -504,7 +505,7 @@ mergeable streaming-moment design is, however, worth mirroring — §10).
 - **Name — settled:** `GBGStreamingStatistics` (§9).
 - **Numeric precision — settled:** integer counts, Float64 moment accumulators by default
   (type-parameterized), Float32 input promoted at accumulation (§3, invariant 6).
-- **ECF carrier — settled: deferred, likely never built** (§2). FFT-*smoothing* of the histogram is
+- **ECF summary — settled: deferred, likely never built** (§2). FFT-*smoothing* of the histogram is
   kept regardless (§4.5) — a separate, post-hoc computation, not a stored representation.
 - **Lag handling — settled:** the package bins pre-formed pairs (`observe_pairs!`) and exposes the
   `bin_index` map; the snapshot buffer and all lag / sampling / cadence policy are consumer-side (§3).
@@ -530,12 +531,12 @@ intentional — do not dedupe it).
   confusion. Alternatives `GBGEmpiricalMeasures` / `GBGSufficientStatistics` weighed and declined.
 - **Numeric precision — integer counts, `Float64` moment accumulators by default** (§3, invariant 6),
   type-parameterized; `Float32` input promoted at accumulation.
-- **ECF carrier — deferred, likely never built** (§2). FFT-*smoothing* of the histogram is kept
+- **ECF summary — deferred, likely never built** (§2). FFT-*smoothing* of the histogram is kept
   (§4.5) — a post-hoc computation, not a stored representation.
 - **Lag handling — the package bins pre-formed pairs** (`observe_pairs!`) and exposes `bin_index`;
   the snapshot buffer and all lag / sampling / cadence policy stay consumer-side (§3).
 
-- **Carrier storage — power-sums about the bin center, not Pébay-about-the-running-mean** (§3).
+- **Summary storage — power-sums about the bin center, not Pébay-about-the-running-mean** (§3).
   *Changed during the GPU pass.* The original design accumulated per-bin central moments by the Pébay
   (2008) running-mean recursion with Kahan compensation. A Pébay update is **not atomic**, so the GPU
   hot loop would have needed per-block *privatization* (private histograms merged hierarchically) — a

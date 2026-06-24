@@ -7,13 +7,13 @@ This tour shows the intended **samples in, statistics out** workflow. The archit
 and the API follows it directly.
 
 !!! note "Status"
-    The carrier and the marginal density below are implemented and runnable today; the two-time
+    The summary and the marginal density below are implemented and runnable today; the two-time
     (conditional / transition) path at the end is forthcoming. See the
     [Architecture](architecture.md) for the design and roadmap.
 
 ## The workflow
 
-**1. Allocate a carrier.** A [`Histogram1D`](@ref GBGStreamingStatistics.Histograms.Histogram1D) is a finely binned empirical measure of a
+**1. Allocate a summary.** A [`Histogram1D`](@ref GBGStreamingStatistics.Histograms.Histogram1D) is a finely binned empirical measure of a
 conditioning variable ``X`` — the canonical summary. It is fixed-size and lives for the whole run.
 
 ```julia

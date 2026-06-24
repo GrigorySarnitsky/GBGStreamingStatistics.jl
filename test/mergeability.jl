@@ -35,7 +35,7 @@ const H = Histograms
   @test full.counts == before
   @test H._sample_variance(full) ≈ before_var
 
-  # incompatible carriers are rejected
+  # incompatible summaries are rejected
   @test_throws ArgumentError merge!(Histogram1D(-8.0, 8.0, 800), Histogram1D(-7.0, 8.0, 800))
   @test_throws ArgumentError merge!(Histogram1D(-8.0, 8.0, 800), Histogram1D(-8.0, 8.0, 400))
 end

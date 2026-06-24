@@ -26,7 +26,7 @@ deliberate absences of the invariants). The conceptual model and the writing/doc
 are recorded once — in `docs/ARCHITECTURE.md` and this file; the umbrella module
 `src/GBGStreamingStatistics.jl` only points there.
 
-> **Status: lower half complete (CPU + GPU); estimators next.** The carriers `Histogram1D` and
+> **Status: lower half complete (CPU + GPU); estimators next.** The summaries `Histogram1D` and
 > `Histogram2D` (`observe!` / `observe_pairs!` as one KernelAbstractions + Atomix scatter-add of counts
 > and power-sums about the bin center, `merge!` by addition, allocation-free), the marginal density
 > `density` (§4.1), and global `bandwidth` selection are implemented and tested — Gaussian moment and
@@ -41,9 +41,9 @@ stream and transfers verbatim to every consumer; the **estimator upper half** is
 estimands.
 
 - `src/Accumulators.jl` — the foundation (lower half): the `AbstractAccumulator` supertype and the
-  `observe!` / `merge!` mergeable-monoid interface only. The concrete carriers and the portable
+  `observe!` / `merge!` mergeable-monoid interface only. The concrete summaries and the portable
   KernelAbstractions + Atomix scatter kernels live in `Histograms`.
-- `src/Histograms.jl` — the carriers (lower half): `Histogram1D` / `Histogram2D` — linear (WARPing)
+- `src/Histograms.jl` — the summaries (lower half): `Histogram1D` / `Histogram2D` — linear (WARPing)
   binned empirical measures over a fixed range, each bin/cell carrying its **count** and **power-sums
   about the bin center** ``S_p`` / ``S_{rs}`` (the local sufficient statistic for moments and
   local-polynomial fitting). Accumulated by one **KernelAbstractions + Atomix atomic scatter-add**
@@ -66,21 +66,21 @@ estimands.
   MarkovInference → Bandwidth`. Cross-module access only through explicit `using ..Module: name, …`
   — never a bare `using`.
 - Deferred, recorded as commented-out includes (the rule against speculative structure):
-  `# CharacteristicFunctions.jl` (the ECF carrier — `docs/ARCHITECTURE.md` §2, likely never built),
+  `# CharacteristicFunctions.jl` (the ECF summary — `docs/ARCHITECTURE.md` §2, likely never built),
   `# ProjectionInference.jl` (the SFI / ULI projection road — §4.6).
 
 ## Core invariants — do not violate
 
 The PF discipline: a missing capability encodes a decision (`docs/ARCHITECTURE.md` §6).
 
-1. **Accumulation is response-agnostic; smoothing is post hoc.** No carrier stores a bandwidth,
+1. **Accumulation is response-agnostic; smoothing is post hoc.** No summary stores a bandwidth,
    kernel, or channel choice. An API that bakes a bandwidth into accumulation is banned. *(This is
    the invariant that makes "no reruns" true.)*
 2. **Samples in, statistics out — no domain, no model.** Domain-neutral vocabulary (sample /
    variate / response / lag / conditioning value), never particle / tracer / droplet / velocity. No
    stationarity, Markov, diffusion, or parametric assumption is a *premise*; such structure is only
    ever *tested* (the Pawula ratio, the Markov / Chapman–Kolmogorov test).
-3. **Everything is a mergeable monoid.** Every carrier supports `merge!`; the unnormalized summary
+3. **Everything is a mergeable monoid.** Every summary supports `merge!`; the unnormalized summary
    is additive over the stream. No non-mergeable accumulator is admitted. Tested: accumulate-then-
    merge `=` accumulate-together.
 4. **The hot path is allocation-free and backend-agnostic.** `observe!(summary, batch)` allocates only
@@ -198,7 +198,7 @@ Mechanical bar:
    recovered by the **shift formula** (`_sample_mean`/`_variance`/`_std`/`_central_moment`). Tested:
    Gaussian moment recovery (exact vs direct, and vs the true moments), mergeability, bounded
    allocation, Float32→Float64.
-2. **`Histograms.Histogram2D` + `observe_pairs!`** — the joint two-time carrier: `nx×ny` cells, per-cell
+2. **`Histograms.Histogram2D` + `observe_pairs!`** — the joint two-time summary: `nx×ny` cells, per-cell
    counts + order-2 bivariate power-sums ``S_{rs}`` about the cell center (the regression sufficient
    statistic). Tested: independent-Gaussian oracle (marginals + covariance), mergeability, allocation.
 3. **The portable scatter kernel** — `observe!` / `observe_pairs!` are one KernelAbstractions + Atomix
@@ -219,10 +219,10 @@ Mechanical bar:
 
 1. **`ConditionalDensity`** (§4.3), **`MarkovInference`** (§4.4), and the **response-aware local
    bandwidth** ``h^\\star(x)`` (§4.5) — each estimand-first, OU-oracle-tested, with its
-   `FORMALIZATION.md` entry, from the `Histogram2D` joint carrier. Plus the Fan–Yao conditional-
+   `FORMALIZATION.md` entry, from the `Histogram2D` joint summary. Plus the Fan–Yao conditional-
    variance refinement, the ``n^{-2/5}`` rate tests, and the FFT-amortized smoothing (§4.5).
 
-Deferred (recorded, not built): the ECF carrier (`docs/ARCHITECTURE.md` §2 — likely never); the
+Deferred (recorded, not built): the ECF summary (`docs/ARCHITECTURE.md` §2 — likely never); the
 projection / SFI–ULI road (§4.6); `HistogramND` (§3, wait for a multi-conditioning consumer);
 vector-valued conditioning (lean scalar-channel — let the consumer loop components); raising
 `Histogram2D` beyond its order-2 per-cell power-sums if a higher-order joint channel needs it.

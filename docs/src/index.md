@@ -17,7 +17,7 @@ implementation targets both CPU and GPU array backends, on a single shared-memor
 This package is the statistics sibling of [`GBGPeriodicFields.jl`](https://github.com/GrigorySarnitsky/GBGPeriodicFields.jl): that package is all mathematics and no physics; this one is all statistics and no physics.
 
 !!! note "Status"
-    The carriers `Histogram1D` and `Histogram2D` (power-sums about the bin center, `observe!` /
+    The summaries `Histogram1D` and `Histogram2D` (power-sums about the bin center, `observe!` /
     `observe_pairs!` / `merge!` / `bin_index`), the marginal
     [`density`](@ref GBGStreamingStatistics.DensityEstimation.density) (§4.1), global
     [`bandwidth`](@ref GBGStreamingStatistics.Bandwidth.bandwidth) selection, and the conditional mean
@@ -54,16 +54,18 @@ statistics out* workflow.
 
 ## Main components
 
-The package splits into a **universal lower half** (the carriers and accumulation, shared verbatim by
-every consumer) and an **estimator upper half** (the estimands):
+The package splits into a **universal lower half** (the summaries and how they accumulate, shared
+verbatim by every consumer) and an **estimator upper half** (the estimands):
 
-- [`Accumulators`](api/Accumulators.md): the foundation — the `AbstractAccumulator` supertype and the
-  `observe!` / `merge!` mergeable-monoid interface (the carriers and their scatter kernels live in
-  `Histograms`).
-- [`Histograms`](api/Histograms.md): the carriers — `Histogram1D` and `Histogram2D` (linear/WARP
-  binning; per-bin counts and power-sums about the bin center, accumulated by one KernelAbstractions +
-  Atomix atomic scatter-add, with `merge!` by addition), plus `bin_index` and `observe_pairs!` for
-  two-time statistics.
+- [`Accumulators`](api/Accumulators.md): the foundation — `AbstractAccumulator`, the interface of every
+  mergeable online **summary** of the [empirical measure](https://en.wikipedia.org/wiki/Empirical_measure)
+  ``\hat\mu_n = \frac1n\sum_i \delta_{X_i}`` (you `observe!` samples into it and `merge!` two together).
+  The concrete summaries and their scatter kernels live in `Histograms`.
+- [`Histograms`](api/Histograms.md): the summaries — `Histogram1D` and `Histogram2D`, both
+  `<: AbstractAccumulator`. Each is a finely **binned empirical measure** — the *fine-grained measure*
+  that post-hoc smoothing later coarse-grains — holding per-bin counts and power-sums about the bin
+  center, accumulated by one KernelAbstractions + Atomix atomic scatter-add (`merge!` by addition);
+  with `bin_index` and `observe_pairs!` for two-time statistics.
 - [`DensityEstimation`](api/DensityEstimation.md): the marginal density `density` ``\equiv f_X``
   (binned KDE / WARPing).
 - [`Regression`](api/Regression.md): the conditional mean `conditional_mean` ``\equiv m(x)`` and

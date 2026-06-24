@@ -15,7 +15,7 @@ number of samples, ``f_X`` the marginal density of the conditioning variable.
 
 The implemented entries are test-linked; the conditional entry is the format for what lands next.
 
-## Per-bin power-sums about the bin center (`Histograms`, the carriers)
+## Per-bin power-sums about the bin center (`Histograms`, the summaries)
 
 - **Object.** per bin, the count and the **power-sums about the fixed bin center** ``S_p =
   \sum_{i\in\text{bin}}(X_i - c_j)^p`` for ``p = 1 \dots`` `order` (and order-2 bivariate ``S_{rs}``

@@ -1,5 +1,5 @@
 # Accumulators — the foundation (universal lower half): the mergeable-monoid accumulator interface.
-# The concrete carriers and their KernelAbstractions + Atomix scatter kernels live in `Histograms`.
+# The concrete summaries and their KernelAbstractions + Atomix scatter kernels live in `Histograms`.
 # Conceptual model and conventions: `docs/ARCHITECTURE.md` (rationale), `CLAUDE.md` (operational rules).
 
 module Accumulators
@@ -12,7 +12,7 @@ export AbstractAccumulator, observe!, merge!
 """
     AbstractAccumulator
 
-Supertype of every **mergeable summary** ``T(\\hat\\mu_n)`` of the empirical measure
+Supertype of every **mergeable summary** ``T(\\hat\\mu_n)`` of the [empirical measure](https://en.wikipedia.org/wiki/Empirical_measure)
 ``\\hat\\mu_n = \\frac1n \\sum_{i=1}^{n} \\delta_{X_i}`` of an observed stream ``X_1, X_2, \\dots``
 (``\\delta_x`` the unit point mass at ``x``, ``n`` the number of samples seen).
 
@@ -20,7 +20,7 @@ A summary is **finite-dimensional** — the ``n`` point masses are never stored 
 additive monoid over the stream; see [`merge!`](@ref Base.merge!)), and **rich enough** that every
 reported estimator is recoverable from it post hoc, with no second pass over the data. The summary is
 accumulated online and is *response-agnostic*; all smoothing (kernel, bandwidth, channel) is applied
-post hoc. Concrete carriers ([`Histogram1D`](@ref GBGStreamingStatistics.Histograms.Histogram1D),
+post hoc. Concrete summaries ([`Histogram1D`](@ref GBGStreamingStatistics.Histograms.Histogram1D),
 [`Histogram2D`](@ref GBGStreamingStatistics.Histograms.Histogram2D)) subtype this.
 """
 abstract type AbstractAccumulator end
@@ -38,7 +38,7 @@ asked for — the architectural invariant that delivers *no reruns*.
 The binning is an **atomic scatter-add**: one KernelAbstractions + Atomix kernel — one work-item per
 sample — accumulates, per bin, the **count** and the **power-sums**
 ``S_p = \\sum_{i\\in\\text{bin}}(X_i - c_j)^p`` about the bin center ``c_j``, directly into the
-preallocated carrier (no scratch). It runs identically on a CPU `Array` and any GPU backend, and is
+preallocated summary (no scratch). It runs identically on a CPU `Array` and any GPU backend, and is
 allocation-free up to the kernel launch.
 Because ``X_i - c_j`` is small within a bin, the local power-sums are well-conditioned (no compensated
 summation needed); global central moments are recovered post hoc by the shift formula
@@ -56,7 +56,7 @@ function observe! end
 
 Combine two summaries into `into`, forming the summary of the concatenated stream — the monoid
 operation that makes accumulation additive: ``T(\\hat\\mu_{A \\cup B}) = T(\\hat\\mu_A) \\oplus
-T(\\hat\\mu_B)``. Because compatible carriers share the same binning (hence the same bin centers),
+T(\\hat\\mu_B)``. Because compatible summaries share the same binning (hence the same bin centers),
 their **counts and power-sums simply add elementwise**, so `merge!` is exact and trivially parallel —
 this is what makes multi-device reduction and time-chunk stitching free, and lets the hot loop
 privatize (per-block local histograms, merged hierarchically).

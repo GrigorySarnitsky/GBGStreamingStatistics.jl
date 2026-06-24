@@ -20,7 +20,7 @@ recompute-from-raw reruns. The library is domain-neutral and model-neutral: it r
 the diagnostics that *test* a model (the Pawula ratio, a Markov / Chapman–Kolmogorov test), never the
 model itself.
 
-The package provides the mergeable accumulators and histogram carriers (`observe!`, `observe_pairs!`,
+The package provides the mergeable accumulators and histogram summaries (`observe!`, `observe_pairs!`,
 `merge!`, `Histogram1D`, `Histogram2D`), the marginal density (`density`), conditional moments
 (`conditional_mean`, `conditional_variance`), conditional and transition densities
 (`conditional_density`, `transition_density`), the Kramers–Moyal functionals (`increment_moment`,
@@ -37,7 +37,7 @@ include("Regression.jl")
 include("ConditionalDensity.jl")
 include("MarkovInference.jl")
 include("Bandwidth.jl")
-# include("CharacteristicFunctions.jl")  # [deferred] the empirical-characteristic-function carrier
+# include("CharacteristicFunctions.jl")  # [deferred] the empirical-characteristic-function summary
 # include("ProjectionInference.jl")      # [deferred] the SFI / ULI projection road
 
 

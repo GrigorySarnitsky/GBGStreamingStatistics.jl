@@ -19,7 +19,7 @@ export conditional_mean, conditional_variance
 # Per-X-column reductions over a Histogram2D: for each X-bin, the count ``N``, the response total
 # ``\sum Y`` and ``\sum Y^2`` — recovered *exactly* from the per-cell counts and power-sums (``S_{01}
 # = \sum (Y-c^y)`` and ``S_{02}`` use the actual ``Y``, not the cell center). Host-side; a no-op
-# `Array` for CPU carriers.
+# `Array` for CPU summaries.
 function _column_sums(summary::Histogram2D)
   counts = Array(summary.counts)
   S = Array(summary.powersums)

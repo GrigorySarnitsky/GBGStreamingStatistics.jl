@@ -4,8 +4,8 @@ using GBGStreamingStatistics
 using GBGStreamingStatistics: Histograms, DensityEstimation, Bandwidth, Regression
 
 @testset "JET" begin
-  # Static analysis of the public operations on concrete CPU carriers, with reports filtered to the
-  # package's own code. Concrete carriers ⇒ `get_backend` is concretely `CPU()`, so the GPU branch of
+  # Static analysis of the public operations on concrete CPU summaries, with reports filtered to the
+  # package's own code. Concrete summaries ⇒ `get_backend` is concretely `CPU()`, so the GPU branch of
   # the scatter kernel (only reachable with a GPU backend loaded — exercised in test/gpu/) is not part
   # of the analyzed call; the KernelAbstractions/Atomix internals are excluded by `target_modules`.
   mods = (GBGStreamingStatistics, Histograms, DensityEstimation, Bandwidth, Regression)
