@@ -17,11 +17,14 @@ implementation targets both CPU and GPU array backends, on a single shared-memor
 This package is the statistics sibling of [`GBGPeriodicFields.jl`](https://github.com/GrigorySarnitsky/GBGPeriodicFields.jl): that package is all mathematics and no physics; this one is all statistics and no physics.
 
 !!! note "Status"
-    The `Histogram1D` carrier (Pébay per-bin moments, linear binning, `observe!`/`merge!`/`bin_index`),
-    the marginal [`density`](@ref GBGStreamingStatistics.DensityEstimation.density) (§4.1), and global
-    [`bandwidth`](@ref GBGStreamingStatistics.Bandwidth.bandwidth) selection are implemented and tested
-    (Gaussian oracle, mergeability, allocation-free hot path). The two-time carrier and the
-    conditional / Kramers–Moyal estimators are declared and forthcoming; see the
+    The carriers `Histogram1D` and `Histogram2D` (power-sums about the bin center, `observe!` /
+    `observe_pairs!` / `merge!` / `bin_index`), the marginal
+    [`density`](@ref GBGStreamingStatistics.DensityEstimation.density) (§4.1), global
+    [`bandwidth`](@ref GBGStreamingStatistics.Bandwidth.bandwidth) selection, and the conditional mean
+    and variance ([`conditional_mean`](@ref GBGStreamingStatistics.Regression.conditional_mean),
+    `conditional_variance`, §4.2) are implemented and tested on **CPU and GPU** (Gaussian / bivariate
+    oracles, mergeability, allocation, AMD-ROCm parity). The conditional and transition densities (§4.3)
+    and the Kramers–Moyal functionals (§4.4) are forthcoming; see the
     [Architecture](architecture.md) for the design and roadmap.
 
 ## Installation

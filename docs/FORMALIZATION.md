@@ -56,7 +56,8 @@ The implemented entries are test-linked; the conditional entry is the format for
   the ``L^2(\sigma(X))`` projection of the response onto the conditioning variable.
 - **Estimator.** the local-linear fit ``\hat m_h(x) = (T_2 P_0 - T_1 P_1)/(T_0 T_2 - T_1^2)`` from
   the kernel-weighted power-sums ``T_\ell = \sum_i K_h(X_i-x)(X_i-x)^\ell`` and
-  ``P_\ell = \sum_i K_h(X_i-x)(X_i-x)^\ell Y_i``, read from the per-bin power-sums of the summary.
+  ``P_\ell = \sum_i K_h(X_i-x)(X_i-x)^\ell Y_i`` — recovered from the joint `Histogram2D`'s per-X-column
+  counts and response totals ``\sum Y`` (exact from the per-cell power-sums).
 - **Consistency claim** (interior ``x``, ``h \to 0``, ``nh \to \infty``):
 
   ```math
@@ -66,5 +67,9 @@ The implemented entries are test-linked; the conditional entry is the format for
   ```
 
   giving the optimal rate ``\hat m_{h^\star}(x) - m(x) = O_p(n^{-2/5})`` at ``h^\star \sim n^{-1/5}``.
-- **Test.** *(forthcoming with the estimator: an OU oracle, and a rate test that the error falls as
-  ``n^{-2/5}``.)*
+- **Test.** `test/regression.jl` — the bivariate-Gaussian oracle ``Y = \rho X + \sqrt{1-\rho^2}\,
+  \varepsilon`` (so ``\mathbb{E}[Y\mid X=x] = \rho x``): `conditional_mean` recovers the slope to
+  ``\lesssim 2\times10^{-2}``; `conditional_variance` recovers ``1-\rho^2`` to a few percent (the
+  simple ``\hat{\mathbb E}[Y^2\mid x]-\hat m^2`` estimator carries the local-linear smoothing bias of
+  the curved ``E[Y^2\mid x]``; the Fan–Yao residual refinement is forthcoming). The ``n^{-2/5}`` rate
+  test is forthcoming.

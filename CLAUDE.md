@@ -205,13 +205,19 @@ Mechanical bar:
 4. **`DensityEstimation.density`** (§4.1) — binned KDE (Gaussian kernel), the estimand-first reference;
    recovers the Gaussian pdf to ``< 10^{-3}`` and integrates to 1.
 5. **`Bandwidth.bandwidth`** (§4.5) — global Silverman/Scott plug-in from the recovered ``\\hat\\sigma``.
+6. **`Regression`** (§4.2) — `conditional_mean` ``\equiv m(x)`` and `conditional_variance``
+   ``\equiv \sigma^2(x)`` by local-linear regression from `Histogram2D` (the ``T_\ell``/``P_\ell``
+   recovered exactly from per-X-column counts and response totals). Tested against the bivariate-
+   Gaussian oracle (``m`` recovers ``\rho x`` to ``\lesssim 2\%``; ``\sigma^2`` recovers ``1-\rho^2``
+   to a few percent — the simple ``\hat{\mathbb E}[Y^2\mid x]-\hat m^2`` estimator carries the
+   local-linear smoothing bias, Fan–Yao refinement forthcoming).
 
 **Next, in dependency order:**
 
-1. **`Regression`** (§4.2), **`ConditionalDensity`** (§4.3), **`MarkovInference`** (§4.4), and the
-   **response-aware local bandwidth** ``h^\\star(x)`` (§4.5) — each estimand-first, OU-oracle-tested,
-   with its `FORMALIZATION.md` entry, recovering the local-polynomial fits from the carriers'
-   power-sums. Plus the FFT-amortized smoothing (§4.5).
+1. **`ConditionalDensity`** (§4.3), **`MarkovInference`** (§4.4), and the **response-aware local
+   bandwidth** ``h^\\star(x)`` (§4.5) — each estimand-first, OU-oracle-tested, with its
+   `FORMALIZATION.md` entry, from the `Histogram2D` joint carrier. Plus the Fan–Yao conditional-
+   variance refinement, the ``n^{-2/5}`` rate tests, and the FFT-amortized smoothing (§4.5).
 
 Deferred (recorded, not built): the ECF carrier (`docs/ARCHITECTURE.md` §2 — likely never); the
 projection / SFI–ULI road (§4.6); `HistogramND` (§3, wait for a multi-conditioning consumer);
