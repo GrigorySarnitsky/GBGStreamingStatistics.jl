@@ -83,7 +83,7 @@ Every reported quantity is then an **estimator** — a functional
 of that summary, where ``S_h`` is a **smoothing** operator (a choice of kernel, bandwidth ``h``, and any
 secondary smoothing). The load-bearing decision:
 
-> **The summary ``T`` is accumulated online and is response-agnostic; the smoothing ``S_h`` is applied
+> **The summary ``T`` is accumulated online and is estimand-agnostic; the smoothing ``S_h`` is applied
 > entirely post hoc.** Accumulation knows nothing of bandwidth, kernel, or which response channel
 > will be asked for. This separation is the architectural invariant of the package — the analog of
 > PF's representation/operator split — and it is exactly what delivers the user's requirement:
@@ -344,7 +344,7 @@ h^\star(x) \;=\; \left[\frac{R(K)\,\sigma^2(x)}{\mu_2(K)^2\,m''(x)^2\,f_X(x)\,n}
 It depends on the **response's** conditional variance ``\sigma^2(x)`` **and** regression curvature
 ``m''(x)``, so **each response channel (``\Delta X, \dots, (\Delta X)^6``, the acceleration ``A``) gets
 its own ``h^\star``** — a single shared bandwidth is provably suboptimal. This is why accumulation
-must be response-agnostic and rich (per-bin moments to high order): ``\sigma^2(x)``, ``m''(x)``, and
+must be estimand-agnostic and rich (per-bin moments to high order): ``\sigma^2(x)``, ``m''(x)``, and
 ``f_X(x)`` are all read back from the *one* stored summary, per channel, post hoc.
 
 **Fast smoothing (FFT). [performance]** Because the data is binned on a regular grid, every smoother
@@ -409,7 +409,7 @@ survives contact with three different execution models.
 
 The PF discipline: a missing capability encodes a decision. The candidate invariants:
 
-1. **Accumulation is response-agnostic; smoothing is post hoc.** No summary stores a bandwidth,
+1. **Accumulation is estimand-agnostic; smoothing is post hoc.** No summary stores a bandwidth,
    kernel, or channel choice. An API that bakes a bandwidth into accumulation is the banned analog
    of PF's spectral product-as-`*`. *(This is the invariant that makes "no reruns" true.)*
 2. **Samples in, statistics out — no domain, no model.** Domain-neutral vocabulary

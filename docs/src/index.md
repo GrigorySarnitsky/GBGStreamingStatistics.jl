@@ -6,11 +6,12 @@ densities, and standard functionals of these (Kramers–Moyal coefficients, drif
 Pawula diagnostic), from a **stream of samples that is never stored** — each sample is observed once,
 folded into a fixed-size summary, and discarded.
 
-The summary (a fine histogram with per-bin moments) is accumulated online and is *response-agnostic*:
+The summary (a fine histogram with per-bin moments) is accumulated online and is *estimand-agnostic*:
 every reported quantity is a post-hoc smoothing functional of that one summary, so there is no storage
 of the underlying state and no recompute-from-raw reruns. It is a **mergeable monoid** (combine across
 threads, devices, or time-chunks by addition) and targets both **CPU and GPU** array backends on a
-single shared-memory node. The library is **domain-neutral and model-neutral**: it consumes a stream
+single shared-memory node. The library is **domain-neutral and model-neutral** — it assumes no
+statistical model (no stationarity, Markov, diffusion, or parametric premise): it consumes a stream
 of values (optionally lagged pairs) and returns estimators.
 
 **When it fits.** It is built for settings where the data is a stream and storing or re-reading it is
@@ -18,7 +19,7 @@ the bottleneck:
 
 - **inside a time-marching solver** — fold each step's samples into the summary and discard, with no
   trajectory storage and no second pass;
-- **one pass, many views** — every bandwidth, channel, conditioning value, or lag is computed post hoc
+- **one pass, many views** — every bandwidth, channel, and conditioning value is computed post hoc
   from the one summary, so exploring them never re-reads the raw stream;
 - **parallel and chunked** — mergeable summaries combine across threads, GPUs, and time windows;
 - **memory-tight or GPU-resident** — the summary is fixed-size and the accumulation hot path is
@@ -117,7 +118,7 @@ Pages = [
 ### Design & internals
 
 - [Architecture](architecture.md): why the package is built as it is — the empirical-measure spine,
-  response-agnostic accumulation with post-hoc smoothing, the invariants, and the roadmap.
+  estimand-agnostic accumulation with post-hoc smoothing, the invariants, and the roadmap.
 - [Formalization](formalization.md): the typed statements behind the prose — each estimator's
   estimand, estimator, and consistency claim, linked to the tests.
 - [Testing](testing.md): the analytic oracles (Gaussian, Ornstein–Uhlenbeck) and the per-operation

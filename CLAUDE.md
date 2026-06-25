@@ -9,7 +9,7 @@ single GPU; distributed/multi-GPU out of scope). Development is **GPU-first** bu
 **backend-agnostic** (CPU `Array`, CUDA, ROCm) through KernelAbstractions.
 
 The architectural spine is **empirical measure → mergeable summary → post-hoc-smoothed estimator**:
-a fine histogram with per-bin moments is accumulated online and is *response-agnostic*; every
+a fine histogram with per-bin moments is accumulated online and is *estimand-agnostic*; every
 reported quantity is a post-hoc smoothing functional of that one summary. This is what delivers the
 driving requirement — *no storage of the underlying state, and no recompute-from-raw reruns*.
 
@@ -75,7 +75,7 @@ estimands.
 
 The PF discipline: a missing capability encodes a decision (`docs/ARCHITECTURE.md` §6).
 
-1. **Accumulation is response-agnostic; smoothing is post hoc.** No summary stores a bandwidth,
+1. **Accumulation is estimand-agnostic; smoothing is post hoc.** No summary stores a bandwidth,
    kernel, or channel choice. An API that bakes a bandwidth into accumulation is banned. *(This is
    the invariant that makes "no reruns" true.)*
 2. **Samples in, statistics out — no domain, no model.** Domain-neutral vocabulary (sample /

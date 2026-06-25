@@ -19,7 +19,7 @@ Supertype of every **mergeable summary** ``T(\\hat\\mu_n)`` of the [empirical me
 A summary is **finite-dimensional** — the ``n`` point masses are never stored — **mergeable** (an
 additive monoid over the stream; see [`merge!`](@ref Base.merge!)), and **rich enough** that every
 reported estimator is recoverable from it post hoc, with no second pass over the data. The summary is
-accumulated online and is *response-agnostic*; all smoothing (kernel, bandwidth, channel) is applied
+accumulated online and is *estimand-agnostic*; all smoothing (kernel, bandwidth) is applied
 post hoc. Concrete summaries ([`Histogram1D`](@ref GBGStreamingStatistics.Histograms.Histogram1D),
 [`Histogram2D`](@ref GBGStreamingStatistics.Histograms.Histogram2D)) subtype this.
 """
@@ -32,8 +32,8 @@ abstract type AbstractAccumulator end
 Fold a `batch` of samples into `summary` in place, advancing the accumulated summary
 ``T(\\hat\\mu_n)`` of the empirical measure (see
 [`AbstractAccumulator`](@ref GBGStreamingStatistics.Accumulators.AbstractAccumulator)). Accumulation
-is **response-agnostic**: it knows nothing of bandwidth, kernel, or which estimator will later be
-asked for — the architectural invariant that delivers *no reruns*.
+is **estimand-agnostic**: it knows nothing of which estimator will later be asked for, nor of the
+bandwidth or kernel — the architectural invariant that delivers *no reruns*.
 
 The binning is an **atomic scatter-add**: one KernelAbstractions + Atomix kernel — one work-item per
 sample — accumulates, per bin, the **count** and the **power-sums**
@@ -55,8 +55,11 @@ function observe! end
     merge!(into::AbstractAccumulator, from::AbstractAccumulator) -> into
 
 Combine two summaries into `into`, forming the summary of the concatenated stream — the monoid
-operation that makes accumulation additive: ``T(\\hat\\mu_{A \\cup B}) = T(\\hat\\mu_A) \\oplus
-T(\\hat\\mu_B)``. Because compatible summaries share the same binning (hence the same bin centers),
+operation that makes accumulation additive. For disjoint sample blocks ``A`` and ``B``,
+``T(A \\uplus B) = T(A) \\oplus T(B)``: accumulation ``T`` is a **monoid homomorphism** from sample
+blocks (under disjoint union ``\\uplus``) to summaries (under `merge!`), on the **unnormalized** counts
+and power-sums — the normalized ``\\hat\\mu`` would reweight, not add. Because compatible summaries
+share the same binning (hence the same bin centers),
 their **counts and power-sums simply add elementwise**, so `merge!` is exact and trivially parallel —
 this is what makes multi-device reduction and time-chunk stitching free (combine per-device or
 per-time-chunk summaries by addition).

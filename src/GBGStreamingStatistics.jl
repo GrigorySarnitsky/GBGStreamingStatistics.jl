@@ -1,7 +1,7 @@
 # GBGStreamingStatistics — umbrella module: it sets the include order and assembles the public API.
 #
 # The conceptual model (empirical measure → mergeable summary → post-hoc-smoothed estimator; samples
-# in, statistics out; response-agnostic accumulation, post-hoc smoothing), the invariants, and the
+# in, statistics out; estimand-agnostic accumulation, post-hoc smoothing), the invariants, and the
 # estimand-first writing/docstring conventions are not duplicated here — they live in
 # `docs/ARCHITECTURE.md` (the rationale) and `CLAUDE.md` (the operational rules).
 
@@ -14,7 +14,7 @@ conditional expectations, conditional and two-time transition densities, and sta
 these, from a stream of samples that is never stored. Each sample is observed once, folded into a
 fixed-size summary, and discarded.
 
-The summary is accumulated online and is response-agnostic; every reported quantity is a post-hoc
+The summary is accumulated online and is estimand-agnostic; every reported quantity is a post-hoc
 smoothing functional of that one summary — so there is no storage of the underlying state and no
 recompute-from-raw reruns. The library is domain-neutral and model-neutral: it returns estimators and
 the diagnostics that *test* a model (the Pawula ratio, a Markov / Chapman–Kolmogorov test), never the

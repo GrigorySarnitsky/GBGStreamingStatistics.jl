@@ -25,6 +25,30 @@ The implemented entries are test-linked; a forthcoming operation gets its entry 
   adds ``(X_i - c_j)^p`` to its bin's ``S_p``, in the accumulator type (`Float64` by default). `merge!` is elementwise addition (same
   binning ``\Rightarrow`` same centers). The local offsets are well-conditioned, so no compensated
   summation is used.
+- **Mergeability (a monoid morphism).** Write ``(\mathcal{M}, \uplus, \varnothing)`` — finite sample
+  collections (multisets over the sample space) under disjoint union, ``\varnothing`` the empty
+  collection — and ``(\mathcal{S}, \oplus, 0)`` — summaries under `merge!` (elementwise addition of
+  counts and power-sums), ``0`` the all-zero summary. Both are **commutative** monoids. Accumulation
+  ``T : \mathcal{M} \to \mathcal{S}`` is the unique homomorphism extending the single-sample scatter
+  ``t`` (one sample adds ``1`` to its bin's count and ``(X_i - c_j)^p`` to that bin's ``S_p``), so
+  ``T(A) = \bigoplus_{x \in A} t(x)`` and the square
+
+  ```math
+  \begin{CD}
+  \mathcal{M} \times \mathcal{M}  @>{\uplus}>>  \mathcal{M} \\
+  @V{T \times T}VV                              @VV{T}V \\
+  \mathcal{S} \times \mathcal{S}  @>{\oplus}>>  \mathcal{S}
+  \end{CD}
+  ```
+
+  commutes: ``T(A \uplus B) = T(A) \oplus T(B)``, which **is** *accumulate-then-merge* ``=``
+  *accumulate-together*. Commutativity and associativity of ``\oplus`` then make any reduction order
+  or tree (multi-thread, multi-device, time-chunk) yield the same summary. The morphism is the
+  **unnormalized** summary only: the normalize-and-smooth readout ``E_h`` (the ``1/n``, the shift
+  formula, the kernel) that turns a summary into estimates is **not** a homomorphism — which is exactly
+  why `merge!` has no population estimand (pool summaries first, estimate once, never the reverse).
+  Exact for the integer counts; the `Float64` power-sums merge up to round-off (non-associative
+  floating-point addition), so the test asserts ``=`` on counts and ``\approx`` on the ``S_p``.
 - **Recovery.** the global central moments are the **shift formula**
 
   ```math

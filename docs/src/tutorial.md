@@ -23,8 +23,8 @@ summary = Histogram1D(-5.0, 5.0, 1000)   # fixed range and bin count; never grow
 ```
 
 **2. Observe the stream.** Each batch is folded in once with [`observe!`](@ref GBGStreamingStatistics.Accumulators.observe!) and then discarded —
-the samples are never stored. Accumulation is *response-agnostic*: it commits to no bandwidth, kernel,
-or channel.
+the samples are never stored. Accumulation is *estimand-agnostic*: it commits to no channel, bandwidth,
+or kernel.
 
 ```julia
 for batch in stream          # the consumer produces the batches; the package never holds the stream
@@ -66,6 +66,6 @@ pτ = transition_density(joint, 0.0, 0.0; hx = 0.3, hy = 0.2)   # transition den
 
 ## Where to go next
 
-- The [Architecture](architecture.md) explains *why* this split (response-agnostic accumulation,
+- The [Architecture](architecture.md) explains *why* this split (estimand-agnostic accumulation,
   post-hoc smoothing) is the load-bearing decision.
 - The [API reference](api.md) documents every estimand — the population quantity before the estimator.
