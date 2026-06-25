@@ -22,7 +22,7 @@ model itself.
 
 The package provides the mergeable accumulators and histogram summaries (`observe!`, `observe_pairs!`,
 `merge!`, `bin_index`, `Histogram1D`, `Histogram2D`) with their recovered marginal moments (`mean`,
-`var`, `std`, `central_moment`), the marginal density (`density`), conditional moments
+`var`, `std`, `central_moment`), the marginal density (`density`, with `gaussian_kernel` / `epanechnikov_kernel`), conditional moments
 (`conditional_mean`, `conditional_variance`), conditional and transition densities
 (`conditional_density`, `transition_density`), the Kramers–Moyal functionals (`increment_moment`,
 `kramers_moyal`, `drift`, `diffusion`, `pawula_quotient`, `markov_test`), and bandwidth selection
@@ -60,7 +60,9 @@ using .Histograms:
 
 
 using .DensityEstimation:
-  density
+  density,
+  gaussian_kernel,
+  epanechnikov_kernel
 
 
 using .Regression:
@@ -98,6 +100,8 @@ export AbstractAccumulator,
        std,
        central_moment,
        density,
+       gaussian_kernel,
+       epanechnikov_kernel,
        conditional_mean,
        conditional_variance,
        conditional_density,
