@@ -142,8 +142,12 @@ the estimand whenever a clean population definition exists; for an intrinsically
   escaped `\\` inside a `"""` docstring), display ` ```math `; never Unicode-glyph approximations,
   never math in backticks (backticks are for code identifiers only). **And the converse — a code
   identifier never goes inside a math span**: it renders as a product of italic single letters
-  (`xlo` → x·l·o); backtick it, or wrap it in `\texttt{}` if it must appear inside a formula. Plain
-  `#` comments stay Unicode.
+  (`xlo` → x·l·o); backtick it, or wrap it in `\texttt{}` if it must appear inside a formula. **A
+  formula is a single LaTeX span — never ``math`` split onto an adjacent `code` span**: ``1 \le i \le``
+  `nbins` is wrong, write ``1 \le i \le \texttt{nbins}``; the same name is backticked standalone in
+  prose but `\texttt{}`-wrapped inside a formula. **And backticks hold only well-formed Julia** — a
+  name, type, call, or valid expression — never math notation (an interval, a product ``a \times b``,
+  an inequality, a `·`/`−`/`≤` glyph), which is LaTeX. Plain `#` comments stay Unicode.
 - **Correctness is its own check, distinct from formatting.** Verify the estimator is **consistent
   for the stated estimand** under the stated assumptions, and that **every normalization is exact**:
   the ``1/n``, ``1/(nh)``, ``\int K = 1``, kernel moments ``\mu_2(K) = \int u^2 K``, roughness
@@ -163,7 +167,10 @@ notation; **(4) Formatted (bidirectional)** — math is LaTeX never backticks, e
 backticked never bare, and inline ``math`` stays on **one source line** (a wrapped continuation that
 begins with a list/blockquote leader — `- `/`* `/`> `/`1.` — is parsed as a list item and silently
 drops the span out of math mode; `docs/make.jl` lints for this and fails the build, since Documenter
-renders the broken page without complaint); **(5) Current & complete** — no stale *deferred/none-exist* claims, and a
+renders the broken page without complaint); a **formula is a single LaTeX span**, never ``math`` split
+onto an adjacent `code` continuation (a code name inside a formula is `\texttt{}`-wrapped), and
+**backticks hold only well-formed Julia** (a name/type/call/expression), never math notation —
+intervals, products, inequalities, `·`/`−`/`≤` glyphs; **(5) Current & complete** — no stale *deferred/none-exist* claims, and a
 summary that names only a subset of what the code now provides is stale. "Check the docs" means this
 **complete battery across every surface** (the four rationale docs, every `src/` docstring, every
 `docs/src/` page) — the `.claude/commands/check-docs.md` command (`/check-docs`) encodes it. A
@@ -218,8 +225,9 @@ Mechanical bar:
    atomic scatter-add (one work-item per sample), allocation-free up to the launch, **verified identical
    on CPU and the AMD RX 6700 XT** (the gated ROCm suite, `test/gpu/`, under `allowscalar(false)`,
    including heavy atomic contention).
-4. **`DensityEstimation.density`** (§4.1) — binned KDE (Gaussian kernel), the estimand-first reference;
-   recovers the Gaussian pdf to ``< 10^{-3}`` and integrates to 1.
+4. **`DensityEstimation.density`** (§4.1) — binned KDE with a **pluggable kernel** (`gaussian_kernel`
+   default, `epanechnikov_kernel` shipped), the estimand-first reference; recovers the Gaussian pdf to
+   ``< 10^{-3}`` and integrates to 1.
 5. **`Bandwidth.bandwidth`** (§4.5) — global Silverman/Scott plug-in from the recovered ``\\hat\\sigma``.
 6. **`Regression`** (§4.2) — `conditional_mean` ``\equiv m(x)`` and `conditional_variance``
    ``\equiv \sigma^2(x)`` by local-linear regression from `Histogram2D` (the ``T_\ell``/``P_\ell``
@@ -258,7 +266,10 @@ Mechanical bar:
 
 Deferred (recorded, not built): the ECF summary (`docs/ARCHITECTURE.md` §2 — likely never); the
 projection / SFI–ULI road (§4.6); `HistogramND` (§3, wait for a multi-conditioning consumer);
-vector-valued conditioning (lean scalar-channel — let the consumer loop components); raising
+vector-valued conditioning (lean scalar-channel — let the consumer loop components); **tail-aware
+density** (adaptive/variable-bandwidth, Abramson; and local-log-polynomial density) for heavy /
+intermittent tails (`docs/ARCHITECTURE.md` §4.1); the **bulk scalar time-correlation function**
+(consumer-side — a `Histogram2D` per lag is the wrong cost for one cross-moment; §6); raising
 `Histogram2D` beyond its order-2 per-cell power-sums (the Pawula ``M_4``/``M_6`` of *Next* 2 will be
 its first consumer); the **weighted merge** for ensemble / hyperstatistical pooling with
 parameter-dependent weights (a Float-count summary variant — equal-weight `merge!` is the built

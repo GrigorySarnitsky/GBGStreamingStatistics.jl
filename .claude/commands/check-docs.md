@@ -50,7 +50,12 @@ reading is not a check.
    `\texttt{}` if a name must appear inside a formula. Markdown tables top-level, never indented in a list. Inline
    ``math`` stays on ONE source line — a wrapped continuation beginning with a list/blockquote leader
    (`- `/`* `/`> `/`1.`) is parsed as a list item and silently drops the span out of math mode
-   (`docs/make.jl` lints for this; Documenter renders the broken page without complaint).
+   (`docs/make.jl` lints for this; Documenter renders the broken page without complaint). **A formula
+   is a single LaTeX span** — flag any ``math`` span split onto an adjacent `code` span that continues
+   it (e.g. ``1 \le i \le`` `nbins`, which should be ``1 \le i \le \texttt{nbins}``); code names inside a
+   formula are `\texttt{}`-wrapped. **Backticks hold only well-formed Julia** — a name, type, call, or
+   expression; flag math notation in backticks (a half-open interval like `[lo, hi)`, a product `a × b`,
+   an inequality, or a `·`/`−`/`≤` glyph), which belongs in LaTeX.
 5. **Current & complete** — every claim matches the code's present state; no stale *future / deferred /
    none-exist* claims about what is now implemented; and a docstring or summary that names only a *subset*
    of what the code now provides is stale even if literally true. Check each module/operation/summary
@@ -73,7 +78,11 @@ definitions; this command runs all of them.
   bare-module-name scan; a glyph-vs-backtick scan; a **code-in-math scan** — enumerate the `` ``…`` ``
   math spans and flag any containing a 2+-letter lowercase run that is not a `\command` nor
   `\texttt`/`\mathrm`/`\text`-wrapped (those render as letter-products, e.g. `[lo, hi)`, `scale`);
-  triage the legitimate LaTeX command bodies.
+  a **backticked-non-Julia scan** — flag backtick spans holding math not code: a single-backtick
+  half-open interval (``grep -rnE '`\[[^`]*\)`' docs``) and the glyphs `×`/`·`/`−`/`≤`/`≥`/`…` inside a
+  backtick span (drop `#`-comment hits and valid array/tuple literals); a **split-formula scan** — a
+  math span ending in `\le`/`\ge`/`<`/`>`/`\dots` immediately followed by a backticked `code` span,
+  which must instead be one `\texttt{}`-using LaTeX span; triage the legitimate LaTeX command bodies.
 - Triage (drop false positives — universally standard math; kwarg names correctly backticked), then fix
   EVERY genuine finding in one pass. A flagged instance is a sample of a class — fix the class, not the line.
 - Rebuild: `julia --project=docs docs/make.jl` (the inline-math lint + doctests + cross-references +

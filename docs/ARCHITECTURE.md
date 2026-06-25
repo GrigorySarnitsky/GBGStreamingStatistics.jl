@@ -290,6 +290,20 @@ Each entry is written **estimand first** (per §2), demonstrating the convention
 ```
 the binned approximation to ``\frac{1}{nh}\sum_i K(\frac{x-X_i}{h})``. Bandwidth from §4.5.
 
+**Kernels.** ``K`` is pluggable (any ``\int K = 1``); two ship — `gaussian_kernel` (default) and
+`epanechnikov_kernel` (the MSE-optimal ``\tfrac34(1-u^2)`` on ``|u| \le 1``). `bandwidth` (§4.5) is
+Gaussian-tuned, so a non-Gaussian kernel wants a matched ``h`` (Epanechnikov's AMISE-optimal ``h`` is
+``\approx 2.21\times`` the Gaussian's).
+
+**Tail-aware density [OPEN].** Fixed-``h`` KDE is poor in sparse tails. Two variants reuse this
+summary: an **adaptive (variable-bandwidth) density** (Abramson's ``h_i \propto \hat f(x_i)^{-1/2}``,
+widening the kernel where data is thin) and a **local-log-polynomial density** (a local-linear fit to
+``\log f``) that captures the exponential / stretched-exponential decay a flat KDE smears — the
+intermittency regime. Two consumer caveats: the fixed range ``[\texttt{lower}, \texttt{upper})`` drops
+events beyond it (set it wide, ``\approx \pm 10\text{–}15\sigma``, to keep the tail), and uniform bins
+under-resolve power-law tails (bin a transform such as ``\log|X|`` and change variables back; the
+``O(1)`` GPU scatter does not log-bin).
+
 ### 4.2 Conditional expectation ``m(x)`` and variance ``\sigma^2(x)``
 
 **Estimand.** ``m(x) = \mathbb{E}[Y\mid X=x]`` (the ``L^2(\sigma(X))`` projection; §2 reference) and
@@ -426,6 +440,14 @@ The PF discipline: a missing capability encodes a decision. The candidate invari
    even on Float32 input (§3). A Float32 count saturates (``2^{24}``); a Float32 high-order moment
    loses the data's own precision through the reduction. (The deliberate opposite of PF's
    preserve-the-eltype, for the opposite reason: this is a reduction, not a transform.)
+
+**Deliberate absences (consumer-side, by scope).** Bulk **scalar time-correlation functions**
+``C(\tau) = \langle X(t)\,X(t+\tau)\rangle`` are not provided: a `Histogram2D` per lag would store the
+whole joint density to extract one cross-moment (``O(T\,n_x n_y)`` state for ``O(T)`` scalars), and a
+scalar correlation is cheaply streamed by a dedicated lagged product-sum or FFT. The
+`Histogram2D`-per-lag path is for the *conditional / two-time density* objects — ``p_\tau(y \mid x)``,
+``D^{(n)}(x)``, the van Hove ``G(r,t)`` — that genuinely need the joint, over a typically *sparse* set
+of lags; the consumer owns the scalar-correlation fast path.
 
 ---
 
