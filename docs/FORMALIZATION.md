@@ -19,7 +19,7 @@ The implemented entries are test-linked; a forthcoming operation gets its entry 
 ## Per-bin power-sums about the bin center (`Histograms`, the summaries)
 
 - **Object.** per bin, the count and the **power-sums about the fixed bin center** ``S_p =
-  \sum_{i\in\text{bin}}(X_i - c_j)^p`` for ``p = 1 \dots`` `order` (and order-2 bivariate ``S_{rs}``
+  \sum_{i\in\text{bin}}(X_i - c_j)^p`` for ``p = 1 \dots \texttt{order}`` (and order-2 bivariate ``S_{rs}``
   per cell for `Histogram2D`). Intrinsically finite-sample — no population estimand.
 - **Accumulation.** an atomic scatter-add (`observe!` / `observe_pairs!`): one work-item per sample
   adds ``(X_i - c_j)^p`` to its bin's ``S_p``, in the accumulator type (`Float64` by default). `merge!` is elementwise addition (same

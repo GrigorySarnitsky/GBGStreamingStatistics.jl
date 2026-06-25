@@ -19,13 +19,13 @@ export Histogram1D, Histogram2D, bin_index, observe_pairs!, mean, var, std, cent
     Histogram1D(lower, upper, nbins; order = 4, accumulator = Float64)
 
 A **finely binned empirical measure** of a conditioning variable ``X`` — the canonical summary
-``T(\\hat\\mu_n)``. `nbins` equal-width (WARPing) bins tile the half-open range `[lower, upper)`;
+``T(\\hat\\mu_n)``. `nbins` equal-width (WARPing) bins tile the half-open range ``[\\texttt{lower}, \\texttt{upper})``;
 choosing the range to cover the data (e.g. ``\\pm 5\\sigma`` for the data's standard deviation
 ``\\sigma``) with ``\\gtrsim 10^3`` bins makes the bin width ``b \\approx \\sigma/100`` far below any
 post-hoc smoothing bandwidth ``h`` (``b \\ll h``), so the summary is *approximately sufficient*.
 
 Each bin carries its **count** and the **power-sums** ``S_p = \\sum_{i \\in \\text{bin}}(X_i - c_j)^p``
-about the fixed bin center ``c_j``, for ``p = 1 \\dots`` `order`. Because ``X_i - c_j`` is small within
+about the fixed bin center ``c_j``, for ``p = 1 \\dots \\texttt{order}``. Because ``X_i - c_j`` is small within
 a bin these are well-conditioned, so accumulation is a plain atomic scatter-add (`observe!`) that runs
 identically on CPU and GPU, and `merge!` is elementwise addition. The power-sums use the *actual*
 ``X_i`` (not the center), so the global central moments recovered post hoc (by the shift formula) are
@@ -33,7 +33,7 @@ exact; they are stable for the even high-order moments (the Pawula ``Q``-criteri
 Counts are `UInt64`; power-sums are accumulated in `accumulator` (`Float64` by default) regardless of
 the input element type — *accumulate wider than the data*.
 
-Samples outside `[lower, upper)` are **skipped** (not counted) — set the range to cover the data.
+Samples outside ``[\\texttt{lower}, \\texttt{upper})`` are **skipped** (not counted) — set the range to cover the data.
 
 # Fields
 
@@ -43,7 +43,7 @@ The summary's whole state, each reachable by dot — `summary.lower`, `summary.s
 - `scale` — the precomputed binning factor `nbins / (upper - lower)`, stored (not recomputed) so that
   `bin_index` is a single multiply.
 - `counts` — per-bin counts, length `nbins` (`UInt64`; `nbins == length(counts)`).
-- `powersums` — per-bin power-sums, `order × nbins` (row ``p`` is ``S_p``; `order == size(powersums, 1)`).
+- `powersums` — per-bin power-sums, ``\\texttt{order} \\times \\texttt{nbins}`` (row ``p`` is ``S_p``; `order == size(powersums, 1)`).
 
 A freshly constructed summary is **empty**: `counts` and `powersums` are all zeros (the `merge!`
 identity), and you `observe!` data into it. `merge!` adds `counts` and `powersums` elementwise, so
@@ -82,9 +82,9 @@ _total(h::Histogram1D) = sum(h.counts)
     bin_index(summary, x) -> i
 
 The **binning map**: the index ``i`` of the bin containing `x`. For a
-[`Histogram1D`](@ref GBGStreamingStatistics.Histograms.Histogram1D) over `[lower, upper)` with `nbins`
+[`Histogram1D`](@ref GBGStreamingStatistics.Histograms.Histogram1D) over ``[\\texttt{lower}, \\texttt{upper})`` with `nbins`
 bins, ``i = \\lfloor (x - \\texttt{lower})\\,\\texttt{scale} \\rfloor + 1``; a valid bin satisfies
-``1 \\le i \\le`` `nbins`, and `x` outside the range yields ``i < 1`` or ``i >`` `nbins`. Exposed so a
+``1 \\le i \\le \\texttt{nbins}``, and `x` outside the range yields ``i < 1`` or ``i > \\texttt{nbins}``. Exposed so a
 consumer can pre-quantize a snapshot buffer (e.g. store compact `UInt16` bin indices) before forming
 lagged pairs for [`observe_pairs!`](@ref GBGStreamingStatistics.Histograms.observe_pairs!).
 """
@@ -243,7 +243,7 @@ std(summary::Histogram1D; corrected::Bool = true) = sqrt(var(summary; corrected 
     central_moment(summary::Histogram1D, p)
 
 The **recovered ``p``-th central moment** ``\\frac1n \\sum_i (X_i - \\bar X)^p`` of the accumulated data
-(``\\bar X`` the recovered mean), for ``2 \\le p \\le`` `order` — exact via the shift formula. ``p = 2``
+(``\\bar X`` the recovered mean), for ``2 \\le p \\le \\texttt{order}`` — exact via the shift formula. ``p = 2``
 is the population variance (`var` with `corrected = false`); the even high-order moments ``M_4``,
 ``M_6`` feed the Pawula ``Q``-criterion.
 """
@@ -255,8 +255,8 @@ central_moment(summary::Histogram1D, p::Integer) = _sample_central_moment(summar
     Histogram2D(xlower, xupper, nx, ylower, yupper, ny; lag = 0, accumulator = Float64)
 
 A **joint binned empirical measure** of ``(X, Y)`` — one per lag ``\\tau`` — for conditional and
-two-time transition densities. `nx × ny` equal-width cells tile
-`[xlower, xupper) × [ylower, yupper)`; each cell `(i_x, i_y)` (flattened `i_x + (i_y-1)·nx`) carries its
+two-time transition densities. ``\\texttt{nx} \\times \\texttt{ny}`` equal-width cells tile
+``[\\texttt{xlower}, \\texttt{xupper}) \\times [\\texttt{ylower}, \\texttt{yupper})``; each cell `(ix, iy)` (flattened `ix + (iy-1)*nx`) carries its
 **count** and the order-2 bivariate **power-sums** ``S_{rs} = \\sum_{(X,Y)\\in\\text{cell}} (X -
 c^x)^r (Y - c^y)^s`` about the cell center ``(c^x, c^y)`` — ``S_{10}, S_{01}, S_{20}, S_{11},
 S_{02}`` — the local sufficient statistic for the joint density and for local-linear conditioning.
@@ -272,7 +272,7 @@ The summary's whole state, each reachable by dot (`summary.xlower`, `summary.xsc
 - `xscale`, `yscale` — the precomputed binning factors `nx/(xupper-xlower)`, `ny/(yupper-ylower)`, stored.
 - `lag` — the lag ``\\tau`` this joint summary is accumulated at (`0` for the static joint).
 - `counts` — per-cell counts, length `nx*ny` (cell `(ix, iy)` at `ix + (iy-1)*nx`, `UInt64`).
-- `powersums` — `5 × (nx*ny)`: rows ``S_{10}, S_{01}, S_{20}, S_{11}, S_{02}`` about the cell center.
+- `powersums` — ``5 \\times (\\texttt{nx} \\cdot \\texttt{ny})``: rows ``S_{10}, S_{01}, S_{20}, S_{11}, S_{02}`` about the cell center.
 
 A freshly constructed summary is **empty** (`counts`, `powersums` all zeros). `merge!` adds `counts`
 and `powersums` (requires matching box, cell counts, and `lag`).
@@ -341,7 +341,7 @@ end
     observe_pairs!(summary::Histogram2D, x_past, y_now) -> summary
 
 Fold a batch of **pre-formed pairs** ``\\bigl(X(t),\\, Y(t+\\tau)\\bigr)`` into the per-lag summary in
-place (`x_past` ``= X(t)``, `y_now` ``= Y(t+\\tau)``, equal length) — the memoryless surface for
+place (`x_past` holds ``X(t)``, `y_now` holds ``Y(t+\\tau)``, equal length) — the memoryless surface for
 two-time statistics. The pairs are binned by an atomic
 scatter-add (one work-item per pair, CPU and GPU alike); everything that *produces* the pairs — the
 snapshot buffer of past ``X(t)``, which sources to sample, which lags to form, the origin cadence — is

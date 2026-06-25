@@ -204,7 +204,7 @@ transfer verbatim to every consumer.
   Scott 2015; Cattaneo et al. 2024), *exactly* (the power-sums use the actual ``X_i``, not the center)
   and stably for the even high-order moments the consumers need.
 - **Bins are exactly uniform — by design.** The binning map is a single multiply-and-floor,
-  `i = floor((x − lower)·scale) + 1` with one `scale = nbins/(upper − lower)` — `O(1)`, branch-free, and
+  `i = floor((x - lower) * scale) + 1` with one `scale = nbins / (upper - lower)` — `O(1)`, branch-free, and
   allocation-free, the GPU atomic-scatter hot path (§5). This *requires* equal-width bins; arbitrary
   edges would force a per-sample search (`O(log nbins)`) and break the kernel. So the constructor takes
   the explicit `(lower, upper, nbins)`, which *states* the uniform contract, rather than a vector or
@@ -482,7 +482,7 @@ GBGStreamingStatistics/
 
 Internal split, made explicit: **`Accumulators` + `Histograms` are the universal lower half**
 (every domain shares them verbatim, and they hold the hard, write-once numerics — GPU atomic
-high-order moment recursions); **`DensityEstimation … Bandwidth` are the estimator upper half**
+high-order moment recursions); **`DensityEstimation` through `Bandwidth` are the estimator upper half**
 (turbulence-leaning but genuinely cross-domain — MD's van Hove function is `ConditionalDensity` with
 a different sampler). Keeping the halves separable lets a consumer that only wants marginal PDFs
 avoid the SDE machinery.
