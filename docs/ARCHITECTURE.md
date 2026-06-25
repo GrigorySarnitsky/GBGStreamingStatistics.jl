@@ -295,14 +295,14 @@ the binned approximation to ``\frac{1}{nh}\sum_i K(\frac{x-X_i}{h})``. Bandwidth
 Gaussian-tuned, so a non-Gaussian kernel wants a matched ``h`` (Epanechnikov's AMISE-optimal ``h`` is
 ``\approx 2.21\times`` the Gaussian's).
 
-**Tail-aware density [OPEN].** Fixed-``h`` KDE is poor in sparse tails. Two variants reuse this
-summary: an **adaptive (variable-bandwidth) density** (Abramson's ``h_i \propto \hat f(x_i)^{-1/2}``,
-widening the kernel where data is thin) and a **local-log-polynomial density** (a local-linear fit to
-``\log f``) that captures the exponential / stretched-exponential decay a flat KDE smears — the
-intermittency regime. Two consumer caveats: the fixed range ``[\texttt{lower}, \texttt{upper})`` drops
-events beyond it (set it wide, ``\approx \pm 10\text{–}15\sigma``, to keep the tail), and uniform bins
-under-resolve power-law tails (bin a transform such as ``\log|X|`` and change variables back; the
-``O(1)`` GPU scatter does not log-bin).
+**Tail-aware density.** Fixed-``h`` KDE is poor in sparse tails. The **adaptive (variable-bandwidth)
+density** `adaptive_density` (Abramson's ``h_i \propto \hat f(x_i)^{-1/2}``, widening the kernel where
+data is thin, ``O(h^4)`` bias) is implemented; a **local-log-polynomial density** (a local-linear fit
+to ``\log f``, capturing the exponential / stretched-exponential decay a flat KDE smears — the
+intermittency regime) is **[OPEN]**. Two consumer caveats: the fixed range
+``[\texttt{lower}, \texttt{upper})`` drops events beyond it (set it wide, ``\approx \pm 10\text{–}15\sigma``,
+to keep the tail), and uniform bins under-resolve power-law tails (bin a transform such as ``\log|X|``
+and change variables back; the ``O(1)`` GPU scatter does not log-bin).
 
 ### 4.2 Conditional expectation ``m(x)`` and variance ``\sigma^2(x)``
 
@@ -662,6 +662,9 @@ The load-bearing works the package implements or pins to:
 - S. P. Sheather & M. C. Jones (1991), [*A reliable data-based bandwidth selection method for kernel
   density estimation*](https://doi.org/10.1111/j.2517-6161.1991.tb01857.x), J. R. Statist. Soc. B
   53(3). (Plug-in bandwidth.)
+- I. S. Abramson (1982), [*On bandwidth variation in kernel estimates—a square root
+  law*](https://doi.org/10.1214/aos/1176345986), Ann. Statist. 10(4). (Adaptive / variable-bandwidth
+  KDE — the sparse-tail estimator.)
 - A. Rydin Gorjão et al. (2021), [*Arbitrary-Order Finite-Time Corrections for the Kramers–Moyal
   Operator*](https://doi.org/10.3390/e23050517), Entropy 23(5) — the all-orders Bell-polynomial
   ``\tau``-correction; the [`kramersmoyal`](https://doi.org/10.21105/joss.01693) software lineage.

@@ -85,7 +85,7 @@ verbatim by every consumer) and an **estimator upper half** (the estimands):
   center; accumulation runs on **CPU or GPU**, and summaries combine with `merge!`. With `bin_index`
   and `observe_pairs!` for two-time statistics.
 - [`DensityEstimation`](api/DensityEstimation.md): the marginal density `density` ``\equiv f_X``
-  (binned KDE / WARPing).
+  (binned KDE / WARPing) and the adaptive `adaptive_density` (Abramson variable bandwidth, for tails).
 - [`Regression`](api/Regression.md): the conditional mean `conditional_mean` ``\equiv m(x)`` and
   variance `conditional_variance` ``\equiv \sigma^2(x)`` (local-linear).
 - [`ConditionalDensity`](api/ConditionalDensity.md): the conditional density `conditional_density`

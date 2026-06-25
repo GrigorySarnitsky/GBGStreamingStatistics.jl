@@ -77,6 +77,19 @@ The implemented entries are test-linked; a forthcoming operation gets its entry 
 - **Test.** `test/oracles.jl` (recovers the ``N(0,1)`` pdf to ``< 3\times10^{-3}`` over ``[-3,3]``,
   integrates to 1; the Silverman/Scott bandwidths match their formulas).
 
+## Adaptive (Abramson) marginal density (§4.1) — `adaptive_density`
+
+- **Estimand.** ``f_X``, the same Lebesgue density as `density`.
+- **Estimator** (Abramson variable-bandwidth / sample-point KDE). A fixed-bandwidth pilot ``\tilde f``
+  at ``h_0`` (default: Silverman) sets per-bin bandwidths ``h_j = h_0\,(\tilde f(c_j)/g)^{-1/2}`` with
+  ``g`` the geometric mean of ``\tilde f`` over the sample, then
+  ``\hat f(x) = \frac1n \sum_j (n_j/h_j)\, K\!\left((x-c_j)/h_j\right)``.
+- **Consistency claim.** Abramson's square-root law cancels the leading bias, giving
+  ``\operatorname{bias} = O(h^4)`` (against ``O(h^2)`` for `density`) at interior ``x`` where ``f_X`` is
+  smooth and positive — so the **tails** are recovered with far less variance than a fixed bandwidth.
+- **Test.** `test/densityestimation.jl` (recovers the ``N(0,1)`` pdf into the tail and integrates to 1,
+  and beats the fixed-bandwidth `density` at ``x = 3``).
+
 ## Local-linear conditional mean (§4.2) — `conditional_mean`
 
 - **Estimand.** ``m(x) = \mathbb{E}[Y \mid X = x] = \int y\, f_{Y\mid X}(y \mid x)\,\mathrm{d}y``,

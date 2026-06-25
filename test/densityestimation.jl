@@ -49,3 +49,25 @@ end
     @test sum(density(hg, x; h = 0.3, kernel = kern) for x in xs) * dx ≈ 1 atol = 2e-2
   end
 end
+
+@testset "adaptive (Abramson) density (§4.1)" begin
+  Random.seed!(13)
+  ha = Histogram1D(-8.0, 8.0, 1600); observe!(ha, randn(500_000))
+  phi(x) = exp(-x^2 / 2) / sqrt(2π)
+  # recovers the Gaussian pdf, interior and into the tail
+  @test adaptive_density(ha, 0.0) ≈ phi(0.0) rtol = 5e-2
+  @test adaptive_density(ha, 1.0) ≈ phi(1.0) rtol = 5e-2
+  @test adaptive_density(ha, 3.0) ≈ phi(3.0) rtol = 1e-1
+  # integrates to ≈ 1
+  xs = range(-8.0, 8.0; length = 3201); dx = step(xs)
+  @test sum(adaptive_density(ha, xs)) * dx ≈ 1 atol = 2e-2
+  # in the tail the variable bandwidth beats the fixed one (which oversmooths the tail upward)
+  bw = bandwidth(ha)
+  @test abs(adaptive_density(ha, 3.0) - phi(3.0)) < abs(density(ha, 3.0; h = bw) - phi(3.0))
+  # supplied pilot, vector form (+ Epanechnikov), empty summary, bad pilot
+  @test adaptive_density(ha, 0.0; h0 = 0.3) > 0
+  ys = adaptive_density(ha, [0.0, 1.0]; h0 = 0.3, kernel = epanechnikov_kernel)
+  @test ys isa AbstractVector && length(ys) == 2 && all(>(0), ys)
+  @test adaptive_density(Histogram1D(-1.0, 1.0, 4), 0.0) == 0.0
+  @test_throws ArgumentError adaptive_density(ha, 0.0; h0 = -1.0)
+end
