@@ -50,24 +50,42 @@ end
   end
 end
 
-@testset "adaptive (Abramson) density (§4.1)" begin
+@testset "density knobs: degree × fixed/variable bandwidth (§4.1)" begin
   Random.seed!(13)
   ha = Histogram1D(-8.0, 8.0, 1600); observe!(ha, randn(500_000))
   phi(x) = exp(-x^2 / 2) / sqrt(2π)
-  # recovers the Gaussian pdf, interior and into the tail
-  @test adaptive_density(ha, 0.0) ≈ phi(0.0) rtol = 5e-2
-  @test adaptive_density(ha, 1.0) ≈ phi(1.0) rtol = 5e-2
-  @test adaptive_density(ha, 3.0) ≈ phi(3.0) rtol = 1e-1
-  # integrates to ≈ 1
-  xs = range(-8.0, 8.0; length = 3201); dx = step(xs)
-  @test sum(adaptive_density(ha, xs)) * dx ≈ 1 atol = 2e-2
-  # in the tail the variable bandwidth beats the fixed one (which oversmooths the tail upward)
+
+  # every corner of the grid recovers the Gaussian pdf, interior and into the tail
+  for kw in ((;), (; adaptive = true), (; degree = 1), (; degree = 2), (; degree = 1, adaptive = true))
+    @test density(ha, 0.0; kw...) ≈ phi(0.0) rtol = 5e-2
+    @test density(ha, 3.0; kw...) ≈ phi(3.0) rtol = 1.5e-1
+  end
+  # degree-2 (log-quadratic) is exact for a Gaussian → tighter than the plain KDE
+  @test density(ha, 1.0; degree = 2) ≈ phi(1.0) rtol = 2e-2
+
+  # each variant integrates to ≈ 1 (local-likelihood need not be exactly 1)
+  xs = range(-8.0, 8.0; length = 801); dx = step(xs)
+  @test sum(density(ha, xs)) * dx ≈ 1 atol = 2e-2
+  @test sum(density(ha, xs; adaptive = true)) * dx ≈ 1 atol = 2e-2
+  @test sum(density(ha, xs; degree = 2)) * dx ≈ 1 atol = 2e-2
+  @test sum(density(ha, xs; degree = 1)) * dx ≈ 1 atol = 3e-2
+
+  # the variable bandwidth beats the fixed one in the tail (the KDE oversmooths it upward)
   bw = bandwidth(ha)
-  @test abs(adaptive_density(ha, 3.0) - phi(3.0)) < abs(density(ha, 3.0; h = bw) - phi(3.0))
-  # supplied pilot, vector form (+ Epanechnikov), empty summary, bad pilot
-  @test adaptive_density(ha, 0.0; h0 = 0.3) > 0
-  ys = adaptive_density(ha, [0.0, 1.0]; h0 = 0.3, kernel = epanechnikov_kernel)
+  @test abs(density(ha, 3.0; adaptive = true) - phi(3.0)) < abs(density(ha, 3.0; h = bw) - phi(3.0))
+
+  # local-log-linear is exact for an exponential → it beats the KDE in a Laplace tail
+  Random.seed!(2)
+  hl = Histogram1D(-12.0, 12.0, 2400)
+  observe!(hl, (-log.(rand(400_000))) .* rand((-1.0, 1.0), 400_000))   # Laplace(0, 1)
+  flap(x) = 0.5 * exp(-abs(x))
+  @test abs(density(hl, 5.0; degree = 1) - flap(5.0)) < abs(density(hl, 5.0) - flap(5.0))
+
+  # h defaults to Silverman; vector form; empty; bad inputs
+  @test density(ha, 0.0) ≈ density(ha, 0.0; h = bandwidth(ha))               # default h == Silverman
+  ys = density(ha, [0.0, 1.0]; degree = 1, adaptive = true, kernel = epanechnikov_kernel)
   @test ys isa AbstractVector && length(ys) == 2 && all(>(0), ys)
-  @test adaptive_density(Histogram1D(-1.0, 1.0, 4), 0.0) == 0.0
-  @test_throws ArgumentError adaptive_density(ha, 0.0; h0 = -1.0)
+  @test density(Histogram1D(-1.0, 1.0, 4), 0.0) == 0.0                       # empty → 0
+  @test_throws ArgumentError density(ha, 0.0; h = -1.0)                      # bad bandwidth
+  @test_throws ArgumentError density(ha, 0.0; degree = -1)                   # bad degree
 end

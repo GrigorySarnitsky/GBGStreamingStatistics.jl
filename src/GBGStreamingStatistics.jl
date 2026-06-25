@@ -61,7 +61,6 @@ using .Histograms:
 
 using .DensityEstimation:
   density,
-  adaptive_density,
   gaussian_kernel,
   epanechnikov_kernel
 
@@ -101,7 +100,6 @@ export AbstractAccumulator,
        std,
        central_moment,
        density,
-       adaptive_density,
        gaussian_kernel,
        epanechnikov_kernel,
        conditional_mean,

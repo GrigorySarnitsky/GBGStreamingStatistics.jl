@@ -52,8 +52,9 @@ estimands.
   (`observe!` / `observe_pairs!`, one work-item per sample, CPU and GPU alike); `merge!` is elementwise
   addition; `bin_index` is the binning map (exposed for pre-quantization); global central moments are
   recovered post hoc by the **shift formula**. Owns `KernelAbstractions`, `Atomix`.
-- `src/DensityEstimation.jl` — §4.1 `density` ``\equiv f_X`` (binned KDE / WARPing), the adaptive
-  `adaptive_density` (Abramson variable bandwidth), and the `gaussian_kernel` / `epanechnikov_kernel`.
+- `src/DensityEstimation.jl` — §4.1 `density` ``\equiv f_X`` — one call over the binned KDE, the
+  local-log-polynomial (`degree`), and the Abramson variable bandwidth (`adaptive`) — plus
+  `gaussian_kernel` / `epanechnikov_kernel`.
 - `src/Regression.jl` — §4.2 `conditional_mean` ``\equiv m(x)``, `conditional_variance`
   ``\equiv \sigma^2(x)`` (local-linear, Fan & Gijbels; Nadaraya–Watson kept for reference). The
   **estimand-first reference module** — write its docstrings to the documentation policy below.
@@ -226,11 +227,12 @@ Mechanical bar:
    atomic scatter-add (one work-item per sample), allocation-free up to the launch, **verified identical
    on CPU and the AMD RX 6700 XT** (the gated ROCm suite, `test/gpu/`, under `allowscalar(false)`,
    including heavy atomic contention).
-4. **`DensityEstimation`** (§4.1) — `density`, the binned KDE with a **pluggable kernel**
-   (`gaussian_kernel` default, `epanechnikov_kernel` shipped), the estimand-first reference (recovers the
-   Gaussian pdf to ``< 10^{-3}``, integrates to 1); and the **adaptive (Abramson) `adaptive_density`** —
-   variable per-bin bandwidth for the sparse tails (recovers the Gaussian pdf into the tail, beats
-   fixed-``h`` there).
+4. **`DensityEstimation.density`** (§4.1) — one call over the grid of **local-log-polynomial `degree`**
+   (0 = KDE; ≥1 = binned local-Poisson, Loader 1996 — degree 1 exact for exponential tails, 2 for
+   Gaussians) × **fixed / Abramson-variable bandwidth** (`adaptive`), with a **pluggable kernel**
+   (`gaussian_kernel` default, `epanechnikov_kernel`). The estimand-first reference; tested across the
+   grid (recovers the Gaussian pdf into the tail, beats fixed-``h`` there; degree-1 beats the KDE in a
+   Laplace tail).
 5. **`Bandwidth.bandwidth`** (§4.5) — global Silverman/Scott plug-in from the recovered ``\\hat\\sigma``.
 6. **`Regression`** (§4.2) — `conditional_mean` ``\equiv m(x)`` and `conditional_variance``
    ``\equiv \sigma^2(x)`` by local-linear regression from `Histogram2D` (the ``T_\ell``/``P_\ell``
@@ -269,8 +271,7 @@ Mechanical bar:
 
 Deferred (recorded, not built): the ECF summary (`docs/ARCHITECTURE.md` §2 — likely never); the
 projection / SFI–ULI road (§4.6); `HistogramND` (§3, wait for a multi-conditioning consumer);
-vector-valued conditioning (lean scalar-channel — let the consumer loop components); the **local-log-polynomial density** for heavy / intermittent tail *shape* (the
-adaptive/variable-bandwidth `adaptive_density` is now Done; `docs/ARCHITECTURE.md` §4.1); the **bulk scalar time-correlation function**
+vector-valued conditioning (lean scalar-channel — let the consumer loop components); the **bulk scalar time-correlation function**
 (consumer-side — a `Histogram2D` per lag is the wrong cost for one cross-moment; §6); raising
 `Histogram2D` beyond its order-2 per-cell power-sums (the Pawula ``M_4``/``M_6`` of *Next* 2 will be
 its first consumer); the **weighted merge** for ensemble / hyperstatistical pooling with

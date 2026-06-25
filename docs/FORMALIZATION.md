@@ -77,18 +77,22 @@ The implemented entries are test-linked; a forthcoming operation gets its entry 
 - **Test.** `test/oracles.jl` (recovers the ``N(0,1)`` pdf to ``< 3\times10^{-3}`` over ``[-3,3]``,
   integrates to 1; the Silverman/Scott bandwidths match their formulas).
 
-## Adaptive (Abramson) marginal density (§4.1) — `adaptive_density`
+## Local-log-polynomial & adaptive density (§4.1) — `density`'s `degree` / `adaptive`
 
-- **Estimand.** ``f_X``, the same Lebesgue density as `density`.
-- **Estimator** (Abramson variable-bandwidth / sample-point KDE). A fixed-bandwidth pilot ``\tilde f``
-  at ``h_0`` (default: Silverman) sets per-bin bandwidths ``h_j = h_0\,(\tilde f(c_j)/g)^{-1/2}`` with
-  ``g`` the geometric mean of ``\tilde f`` over the sample, then
-  ``\hat f(x) = \frac1n \sum_j (n_j/h_j)\, K\!\left((x-c_j)/h_j\right)``.
-- **Consistency claim.** Abramson's square-root law cancels the leading bias, giving
-  ``\operatorname{bias} = O(h^4)`` (against ``O(h^2)`` for `density`) at interior ``x`` where ``f_X`` is
-  smooth and positive — so the **tails** are recovered with far less variance than a fixed bandwidth.
-- **Test.** `test/densityestimation.jl` (recovers the ``N(0,1)`` pdf into the tail and integrates to 1,
-  and beats the fixed-bandwidth `density` at ``x = 3``).
+- **Estimand.** ``f_X``, exactly as for the degree-0 `density` above; the knobs change the *estimator*,
+  not the target.
+- **`adaptive` (Abramson variable bandwidth).** A fixed-bandwidth pilot ``\tilde f`` at ``h`` sets
+  per-bin bandwidths ``h_j = h\,(\tilde f(c_j)/g)^{-1/2}`` (``g`` the geometric mean of ``\tilde f`` over
+  the sample), widening the kernel in the sparse tails: ``\operatorname{bias} = O(h^4)`` at interior
+  smooth ``x`` (Abramson 1982), with far less tail variance than a fixed ``h``.
+- **`degree ≥ 1` (local-log-polynomial).** Fit ``\log f`` by a degree-``d`` polynomial through a binned
+  **local Poisson** likelihood — ``\log \mathbb{E}[n_j] = \log(nb) + \sum_{l \le d} \beta_l (c_j-x)^l``,
+  weights ``K((c_j-x)/h_j)``, by Newton/IRLS — and report ``\hat f(x) = e^{\hat\beta_0}`` (Loader 1996).
+  Degree 1 is exact for an exponential density (tracks exponential tails), degree 2 for a Gaussian. The
+  two knobs compose.
+- **Test.** `test/densityestimation.jl` (every grid corner recovers the ``N(0,1)`` pdf into the tail and
+  integrates to ``\approx 1``; the variable bandwidth beats the fixed one at ``x = 3``; degree-1 beats
+  the KDE in a Laplace tail).
 
 ## Local-linear conditional mean (§4.2) — `conditional_mean`
 
