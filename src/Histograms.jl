@@ -213,29 +213,39 @@ mean(summary::Histogram1D) = _sample_mean(summary)
 
 
 """
-    var(summary::Histogram1D)
+    var(summary::Histogram1D; corrected = true)
 
-The **recovered sample variance** ``s^2 = \\frac1n \\sum_i (X_i - \\bar X)^2`` — the order-2 central
-moment (`central_moment` at ``p = 2``), exact via the shift formula. Extends `Statistics.var`.
+The **recovered sample variance** of the accumulated data, with ``\\bar X`` the recovered mean. With
+`corrected = true` (the default, matching `Statistics.var`) this is the **unbiased** estimator
+``\\frac{1}{n-1} \\sum_i (X_i - \\bar X)^2`` (Bessel's correction; `NaN` for ``n \\le 1``);
+`corrected = false` gives ``\\frac1n \\sum_i (X_i - \\bar X)^2``, the order-2 central moment
+(`central_moment` at ``p = 2``). Exact via the shift formula. Extends `Statistics.var`.
 """
-var(summary::Histogram1D) = _sample_variance(summary)
+function var(summary::Histogram1D; corrected::Bool = true)
+  m2 = _sample_variance(summary)
+  corrected || return m2
+  n = _total(summary)
+  return n > 1 ? m2 * n / (n - 1) : oftype(m2, NaN)
+end
 
 
 """
-    std(summary::Histogram1D)
+    std(summary::Histogram1D; corrected = true)
 
-The **recovered sample standard deviation** ``\\sqrt{s^2}`` of the accumulated data. Extends
-`Statistics.std`.
+The **recovered sample standard deviation** ``\\sqrt{s^2}`` of the accumulated data, where ``s^2`` is the
+recovered variance (`var`); the `corrected` keyword has the same meaning (the default `true` divides by
+``n - 1``). Extends `Statistics.std`.
 """
-std(summary::Histogram1D) = _sample_std(summary)
+std(summary::Histogram1D; corrected::Bool = true) = sqrt(var(summary; corrected = corrected))
 
 
 """
     central_moment(summary::Histogram1D, p)
 
-The **recovered ``p``-th central moment** ``\\frac1n \\sum_i (X_i - \\bar X)^p`` of the accumulated data,
-for ``2 \\le p \\le`` `order` — exact via the shift formula. ``p = 2`` is the variance; the even
-high-order moments ``M_4``, ``M_6`` feed the Pawula ``Q``-criterion.
+The **recovered ``p``-th central moment** ``\\frac1n \\sum_i (X_i - \\bar X)^p`` of the accumulated data
+(``\\bar X`` the recovered mean), for ``2 \\le p \\le`` `order` — exact via the shift formula. ``p = 2``
+is the population variance (`var` with `corrected = false`); the even high-order moments ``M_4``,
+``M_6`` feed the Pawula ``Q``-criterion.
 """
 central_moment(summary::Histogram1D, p::Integer) = _sample_central_moment(summary, p)
 

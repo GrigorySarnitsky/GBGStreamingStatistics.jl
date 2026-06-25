@@ -63,16 +63,23 @@ const H = Histograms
 
   @testset "public moment accessors (mean/var/std/central_moment)" begin
     Random.seed!(11)
+    data = randn(1_000_000)
     h = Histogram1D(-8.0, 8.0, 1600; order = 6)
-    observe!(h, randn(1_000_000))
-    @test mean(h) == H._sample_mean(h)                    # public == internal
-    @test var(h) == H._sample_variance(h)
-    @test std(h) == H._sample_std(h)
+    observe!(h, data)
+    @test H._total(h) == length(data)                           # all samples in range
+    @test mean(h) == H._sample_mean(h)                          # public == internal
     @test central_moment(h, 4) == H._sample_central_moment(h, 4)
-    @test mean(h) ≈ 0 atol = 5e-3                         # Gaussian oracle
+    # var/std default to Bessel's (n-1) correction, matching Statistics on the same data
+    @test var(h) ≈ var(data) rtol = 1e-6                        # corrected == Statistics.var
+    @test std(h) ≈ std(data) rtol = 1e-6                        # corrected == Statistics.std
+    @test var(h; corrected = false) == H._sample_variance(h)    # 1/n == internal helper ...
+    @test var(h; corrected = false) == central_moment(h, 2)     # ... == the order-2 central moment
+    @test std(h; corrected = false) == H._sample_std(h)
+    @test var(h) > var(h; corrected = false)                    # n/(n-1) > 1
+    @test mean(h) ≈ 0 atol = 5e-3                               # Gaussian oracle
     @test var(h) ≈ 1 rtol = 2e-2
     @test std(h) ≈ 1 rtol = 2e-2
     @test central_moment(h, 4) ≈ 3 rtol = 3e-2
-    @test_throws ArgumentError central_moment(h, 7)       # p > order
+    @test_throws ArgumentError central_moment(h, 7)             # p > order
   end
 end

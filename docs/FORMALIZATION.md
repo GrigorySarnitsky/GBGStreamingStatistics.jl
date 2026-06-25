@@ -58,7 +58,8 @@ The implemented entries are test-linked; a forthcoming operation gets its entry 
 
   which is **exact** (the ``S_p`` use the actual ``X_i``, not the center) and numerically stable for
   the even ``p`` the consumers need; the recovered moments are exposed publicly as `mean`, `var`,
-  `std`, and `central_moment`.
+  `std`, and `central_moment` — `var` and `std` apply Bessel's ``n-1`` correction by default (matching
+  `Statistics`), `corrected = false` the ``1/n`` form.
 - **Test.** `test/histograms.jl` (recovered ``M_2 \dots M_6`` match the direct sum to ``10^{-8}`` and
   the true Gaussian moments to sampling error); `test/histograms2d.jl` (2D marginals + covariance);
   `test/mergeability.jl` (merge ``=`` together); `test/allocations.jl` (bounded `observe!` / `merge!`);
