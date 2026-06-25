@@ -90,7 +90,7 @@ local plug-in ``h^\\star(x)`` is forthcoming, §4.5); a vector of query points r
 Consistency (`docs/FORMALIZATION.md`): ``\\operatorname{bias}\\hat m_h(x) \\approx \\tfrac12 h^2
 \\mu_2(K)\\, m''(x)``, ``\\operatorname{Var}\\hat m_h(x) \\approx R(K)\\,\\sigma^2(x)/(n\\,h\\,f_X(x))``.
 
-Reference: J. Fan & I. Gijbels (1996), *Local Polynomial Modelling and Its Applications*,
+Reference: J. Fan & I. Gijbels (1996), [*Local Polynomial Modelling and Its Applications*](https://doi.org/10.1201/9780203748725),
 Chapman & Hall.
 """
 function conditional_mean(summary::Histogram2D, x::Real; h::Real)
@@ -120,8 +120,8 @@ end
 ``(\\Delta X)^6``) a one-step robust local M-estimator (Fan & Jiang 2000) replaces the least-squares
 fit (forthcoming).
 
-Reference: J. Fan & Q. Yao (1998), *Efficient estimation of conditional variance functions in
-stochastic regression*, Biometrika 85(3).
+Reference: J. Fan & Q. Yao (1998), [*Efficient estimation of conditional variance functions in
+stochastic regression*](https://doi.org/10.1093/biomet/85.3.645), Biometrika 85(3).
 """
 function conditional_variance(summary::Histogram2D, x::Real; h::Real)
   h > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))

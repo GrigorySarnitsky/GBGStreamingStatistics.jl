@@ -101,7 +101,9 @@ julia> round(conditional_density(g, 0.5, 0.5; hx = 0.5, hy = 0.2); digits = 4)
 ```
 
 Reference: M. Rosenblatt (1969), *Conditional probability density and regression estimators*, in
-*Multivariate Analysis II*.
+[*Multivariate Analysis II*](https://openlibrary.org/works/OL7299345W); R. J. Hyndman, D. M. Bashtannyk
+& G. K. Grunwald (1996), [*Estimating and visualizing conditional densities*](https://doi.org/10.1080/10618600.1996.10474715),
+J. Comput. Graph. Statist. 5(4).
 """
 function conditional_density(summary::Histogram2D, x::Real, y::Real; hx::Real, hy::Real)
   _check_bandwidths(hx, hy)

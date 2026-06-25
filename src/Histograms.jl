@@ -19,7 +19,7 @@ export Histogram1D, Histogram2D, bin_index, observe_pairs!, mean, var, std, cent
     Histogram1D(lower, upper, nbins; order = 4, accumulator = Float64)
 
 A **finely binned empirical measure** of a conditioning variable ``X`` — the canonical summary
-``T(\\hat\\mu_n)`` (`docs/ARCHITECTURE.md` §3). `nbins` equal-width (WARPing) bins tile the half-open range `[lower, upper)`;
+``T(\\hat\\mu_n)``. `nbins` equal-width (WARPing) bins tile the half-open range `[lower, upper)`;
 choosing the range to cover the data (e.g. ``\\pm 5\\sigma`` for the data's standard deviation
 ``\\sigma``) with ``\\gtrsim 10^3`` bins makes the bin width ``b \\approx \\sigma/100`` far below any
 post-hoc smoothing bandwidth ``h`` (``b \\ll h``), so the summary is *approximately sufficient*.
@@ -37,14 +37,18 @@ Samples outside `[lower, upper)` are **skipped** (not counted) — set the range
 
 # Fields
 
-The summary's whole state — for serialization, inspection, or building one by hand:
-- `counts` — per-bin counts, length `nbins` (`UInt64`).
-- `powersums` — per-bin power-sums, `order × nbins` (row ``p`` is ``S_p``).
-- `lower`, `upper` — the range edges (`nbins == length(counts)`, `order == size(powersums, 1)`).
+The summary's whole state, each reachable by dot — `summary.lower`, `summary.scale`,
+`summary.counts`, … — for serialization, inspection, or building one by hand:
+- `lower`, `upper` — the range edges (`upper > lower`).
+- `scale` — the precomputed binning factor `nbins / (upper - lower)`, stored (not recomputed) so that
+  `bin_index` is a single multiply.
+- `counts` — per-bin counts, length `nbins` (`UInt64`; `nbins == length(counts)`).
+- `powersums` — per-bin power-sums, `order × nbins` (row ``p`` is ``S_p``; `order == size(powersums, 1)`).
 
-`scale == nbins / (upper - lower)` is a derived convenience. `merge!` adds `counts` and `powersums`
-elementwise, so summaries on the same binning combine by saving and adding these two arrays. The
-recovered moments are read out with `mean`, `var`, `std`, and `central_moment`.
+A freshly constructed summary is **empty**: `counts` and `powersums` are all zeros (the `merge!`
+identity), and you `observe!` data into it. `merge!` adds `counts` and `powersums` elementwise, so
+summaries on the same binning combine by saving and adding these two arrays. The recovered moments are
+read out with `mean`, `var`, `std`, and `central_moment`.
 """
 struct Histogram1D{T<:AbstractFloat,C<:AbstractVector,M<:AbstractMatrix} <: AbstractAccumulator
   lower::T          # lower edge of the binned range
@@ -241,7 +245,7 @@ central_moment(summary::Histogram1D, p::Integer) = _sample_central_moment(summar
     Histogram2D(xlower, xupper, nx, ylower, yupper, ny; lag = 0, accumulator = Float64)
 
 A **joint binned empirical measure** of ``(X, Y)`` — one per lag ``\\tau`` — for conditional and
-two-time transition densities (`docs/ARCHITECTURE.md` §3, §4.3). `nx × ny` equal-width cells tile
+two-time transition densities. `nx × ny` equal-width cells tile
 `[xlower, xupper) × [ylower, yupper)`; each cell `(i_x, i_y)` (flattened `i_x + (i_y-1)·nx`) carries its
 **count** and the order-2 bivariate **power-sums** ``S_{rs} = \\sum_{(X,Y)\\in\\text{cell}} (X -
 c^x)^r (Y - c^y)^s`` about the cell center ``(c^x, c^y)`` — ``S_{10}, S_{01}, S_{20}, S_{11},
@@ -253,13 +257,15 @@ accumulation, `merge!`-by-addition, and `Float64` accumulation as
 
 # Fields
 
-The summary's whole state:
+The summary's whole state, each reachable by dot (`summary.xlower`, `summary.xscale`, `summary.lag`, …):
+- `xlower`, `xupper`, `ylower`, `yupper`, `nx`, `ny` — the box and cell counts.
+- `xscale`, `yscale` — the precomputed binning factors `nx/(xupper-xlower)`, `ny/(yupper-ylower)`, stored.
+- `lag` — the lag ``\\tau`` this joint summary is accumulated at (`0` for the static joint).
 - `counts` — per-cell counts, length `nx*ny` (cell `(ix, iy)` at `ix + (iy-1)*nx`, `UInt64`).
 - `powersums` — `5 × (nx*ny)`: rows ``S_{10}, S_{01}, S_{20}, S_{11}, S_{02}`` about the cell center.
-- `xlower`, `xupper`, `ylower`, `yupper`, `nx`, `ny` — the box and cell counts; `lag` is the lag ``\\tau``.
 
-`xscale`, `yscale` are derived. `merge!` adds `counts` and `powersums` (requires matching box, cell
-counts, and `lag`).
+A freshly constructed summary is **empty** (`counts`, `powersums` all zeros). `merge!` adds `counts`
+and `powersums` (requires matching box, cell counts, and `lag`).
 """
 struct Histogram2D{T<:AbstractFloat,C<:AbstractVector,M<:AbstractMatrix} <: AbstractAccumulator
   xlower::T; xupper::T; xscale::T     # X range and nx/(xupper−xlower)
@@ -326,7 +332,7 @@ end
 
 Fold a batch of **pre-formed pairs** ``\\bigl(X(t),\\, Y(t+\\tau)\\bigr)`` into the per-lag summary in
 place (`x_past` ``= X(t)``, `y_now` ``= Y(t+\\tau)``, equal length) — the memoryless surface for
-two-time statistics (`docs/ARCHITECTURE.md` §3, §4.3–4.4). The pairs are binned by an atomic
+two-time statistics. The pairs are binned by an atomic
 scatter-add (one work-item per pair, CPU and GPU alike); everything that *produces* the pairs — the
 snapshot buffer of past ``X(t)``, which sources to sample, which lags to form, the origin cadence — is
 the **consumer's** responsibility, formed at the summary's lag ``\\tau``.

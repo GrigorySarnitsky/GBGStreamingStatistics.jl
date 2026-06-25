@@ -603,41 +603,56 @@ conditioning, prior-art mirroring) graduate to entries here when they are settle
 
 The load-bearing works the package implements or pins to:
 
-- P. Pébay (2008), *Formulas for robust, one-pass parallel computation of covariances and
-  arbitrary-order statistical moments*, Sandia SAND2008-6212. (Parallel streaming central moments —
-  weighed, then superseded by local power-sums about the bin center; §11.)
-- D. W. Scott (2015), *Multivariate Density Estimation*, 2nd ed., Wiley; P. Hall & M. P. Wand
-  (1996), *On the accuracy of binned kernel density estimators*, J. Multivariate Anal. 56. (WARPing
-  / binned-KDE sufficiency.)
-- M. P. Wand (1994), *Fast computation of multivariate kernel estimators*, J. Comput. Graph. Statist.
-  3(4); J. Fan & J. S. Marron (1994), *Fast implementations of nonparametric curve estimators*, J.
-  Comput. Graph. Statist. 3(1). (FFT-amortized binned smoothing — §4.5.)
-- M. D. Cattaneo, R. K. Crump, M. H. Farrell & Y. Feng (2024), *On binscatter*, Amer. Econ. Rev.
-  114(5). (Per-bin local-polynomial / binscatter.)
-- J. Fan & I. Gijbels (1996), *Local Polynomial Modelling and Its Applications*, Chapman & Hall.
-  (Local-linear regression; the response-aware local bandwidth.)
-- J. Fan & Q. Yao (1998), *Efficient estimation of conditional variance functions in stochastic
-  regression*, Biometrika 85(3). (Conditional variance.)
-- J. Fan & J. Jiang (2000), *Variable bandwidth and one-step local M-estimator*, Sci. China Ser. A
-  43. (Robust heavy-tailed channels.)
+- P. Pébay (2008), [*Formulas for robust, one-pass parallel computation of covariances and
+  arbitrary-order statistical moments*](https://doi.org/10.2172/1028931), Sandia SAND2008-6212.
+  (Parallel streaming central moments — weighed, then superseded by local power-sums about the bin
+  center; §11.)
+- D. W. Scott (2015), [*Multivariate Density Estimation*](https://doi.org/10.1002/9781118575574), 2nd
+  ed., Wiley; P. Hall & M. P. Wand (1996), [*On the accuracy of binned kernel density
+  estimators*](https://doi.org/10.1006/jmva.1996.0009), J. Multivariate Anal. 56. (WARPing /
+  binned-KDE sufficiency.)
+- M. P. Wand (1994), [*Fast computation of multivariate kernel
+  estimators*](https://doi.org/10.1080/10618600.1994.10474656), J. Comput. Graph. Statist. 3(4); J.
+  Fan & J. S. Marron (1994), [*Fast implementations of nonparametric curve
+  estimators*](https://doi.org/10.1080/10618600.1994.10474629), J. Comput. Graph. Statist. 3(1).
+  (FFT-amortized binned smoothing — §4.5.)
+- M. D. Cattaneo, R. K. Crump, M. H. Farrell & Y. Feng (2024),
+  [*On binscatter*](https://doi.org/10.1257/aer.20221576), Amer. Econ. Rev. 114(5). (Per-bin
+  local-polynomial / binscatter.)
+- J. Fan & I. Gijbels (1996), [*Local Polynomial Modelling and Its
+  Applications*](https://doi.org/10.1201/9780203748725), Chapman & Hall. (Local-linear regression;
+  the response-aware local bandwidth.)
+- J. Fan & Q. Yao (1998), [*Efficient estimation of conditional variance functions in stochastic
+  regression*](https://doi.org/10.1093/biomet/85.3.645), Biometrika 85(3). (Conditional variance.)
+- J. Fan & J. Jiang (2000), [*Variable bandwidth and one-step local
+  M-estimator*](https://doi.org/10.1007/BF02903849), Sci. China Ser. A 43. (Robust heavy-tailed
+  channels.)
 - M. Rosenblatt (1969), *Conditional probability density and regression estimators*, in
-  *Multivariate Analysis II*; R. J. Hyndman, D. M. Bashtannyk & G. K. Grunwald (1996), *Estimating
-  and visualizing conditional densities*, J. Comput. Graph. Statist. 5(4). (Double-kernel
-  conditional density.)
-- B. W. Silverman (1986), *Density Estimation for Statistics and Data Analysis*, Chapman & Hall;
-  B. W. Silverman (1982), *Algorithm AS 176: kernel density estimation using the fast Fourier
-  transform*, J. R. Statist. Soc. C 31(1). (The Silverman global rule of thumb; FFT-binned KDE.)
-- S. P. Sheather & M. C. Jones (1991), *A reliable data-based bandwidth selection method for kernel
-  density estimation*, J. R. Statist. Soc. B 53(3). (Plug-in bandwidth.)
-- A. Rydin Gorjão, et al. (2021), *Kramers–Moyal coefficients … finite-time corrections* — the
-  all-orders Bell-polynomial ``\tau``-correction (the `kramersmoyal` lineage).
-- A. Frishman & P. Ronceray (2020), *Learning force fields from stochastic trajectories*, Phys. Rev.
-  X 10; D. B. Brückner, et al. (2020), *Inferring the dynamics of underdamped stochastic systems*,
-  Phys. Rev. Lett. 125. (Projection road; ULI on ``(X,\dot X)``.)
-- L. van Hove (1954), *Correlations in space and time …*, Phys. Rev. 95. (The MD two-time
-  conditional density — the cross-domain anchor.)
-- C. Beck & E. G. D. Cohen (2003), *Superstatistics*, Physica A 322. (Hyperstatistics /
-  superstatistics — the parameter-mixture pooling of §10.)
+  [*Multivariate Analysis II*](https://openlibrary.org/works/OL7299345W); R. J. Hyndman, D. M.
+  Bashtannyk & G. K. Grunwald (1996), [*Estimating and visualizing conditional
+  densities*](https://doi.org/10.1080/10618600.1996.10474715), J. Comput. Graph. Statist. 5(4).
+  (Double-kernel conditional density.)
+- B. W. Silverman (1986), [*Density Estimation for Statistics and Data
+  Analysis*](https://doi.org/10.1201/9781315140919), Chapman & Hall; B. W. Silverman (1982),
+  [*Algorithm AS 176: kernel density estimation using the fast Fourier
+  transform*](https://doi.org/10.2307/2347084), J. R. Statist. Soc. C 31(1). (The Silverman global
+  rule of thumb; FFT-binned KDE.)
+- S. P. Sheather & M. C. Jones (1991), [*A reliable data-based bandwidth selection method for kernel
+  density estimation*](https://doi.org/10.1111/j.2517-6161.1991.tb01857.x), J. R. Statist. Soc. B
+  53(3). (Plug-in bandwidth.)
+- A. Rydin Gorjão et al. (2021), [*Arbitrary-Order Finite-Time Corrections for the Kramers–Moyal
+  Operator*](https://doi.org/10.3390/e23050517), Entropy 23(5) — the all-orders Bell-polynomial
+  ``\tau``-correction; the [`kramersmoyal`](https://doi.org/10.21105/joss.01693) software lineage.
+- A. Frishman & P. Ronceray (2020), [*Learning force fields from stochastic
+  trajectories*](https://doi.org/10.1103/PhysRevX.10.021009), Phys. Rev. X 10; D. B. Brückner et al.
+  (2020), [*Inferring the dynamics of underdamped stochastic
+  systems*](https://doi.org/10.1103/PhysRevLett.125.058103), Phys. Rev. Lett. 125. (Projection road;
+  ULI on ``(X,\dot X)``.)
+- L. van Hove (1954), [*Correlations in space and time …*](https://doi.org/10.1103/PhysRev.95.249),
+  Phys. Rev. 95. (The MD two-time conditional density — the cross-domain anchor.)
+- C. Beck & E. G. D. Cohen (2003),
+  [*Superstatistics*](https://doi.org/10.1016/S0378-4371%2803%2900019-0), Physica A 322.
+  (Hyperstatistics / superstatistics — the parameter-mixture pooling of §10.)
 
 > Every reference above is a published, reader-accessible source — per PF's policy, *never cite an
 > inaccessible source*. The private design notes and literature survey behind this architecture are

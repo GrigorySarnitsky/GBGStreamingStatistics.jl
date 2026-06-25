@@ -26,8 +26,8 @@ kernel ``K`` with ``\\int K = 1`` and bandwidth ``h``,
 \\hat f_h(x) = \\frac{1}{n\\,h} \\sum_{j} n_j\\, K\\!\\left(\\frac{x - c_j}{h}\\right),
 ```
 
-the binned approximation to ``\\frac{1}{nh}\\sum_i K\\!\\left(\\frac{x - X_i}{h}\\right)`` (Hall &
-Wand 1996). The bandwidth ``h`` comes from
+the binned approximation to ``\\frac{1}{nh}\\sum_i K\\!\\left(\\frac{x - X_i}{h}\\right)`` ([Hall &
+Wand 1996](https://doi.org/10.1006/jmva.1996.0009)). The bandwidth ``h`` comes from
 [`bandwidth`](@ref GBGStreamingStatistics.Bandwidth.bandwidth) (or is supplied directly); `kernel`
 defaults to the standard Gaussian. Here the convolution is a direct sum over occupied bins; the
 FFT amortization of the sum over a whole bandwidth grid is forthcoming (`CLAUDE.md` roadmap). A

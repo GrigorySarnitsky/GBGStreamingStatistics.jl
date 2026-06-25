@@ -103,7 +103,7 @@ to ``O(\\tau)``; the all-orders finite-time (Bell-polynomial) correction that in
 > hypothesis (see [`pawula_quotient`](@ref GBGStreamingStatistics.MarkovInference.pawula_quotient),
 > [`markov_test`](@ref GBGStreamingStatistics.MarkovInference.markov_test)).
 
-Reference: A. Rydin Gorjão et al. (2021), *Kramers–Moyal coefficients with finite-time corrections*.
+Reference: A. Rydin Gorjão et al. (2021), [*Arbitrary-Order Finite-Time Corrections for the Kramers–Moyal Operator*](https://doi.org/10.3390/e23050517), Entropy 23(5).
 """
 function kramers_moyal(summary::Histogram2D, x, n::Integer; h::Real, τ::Real = summary.lag)
   τ > 0 || throw(ArgumentError(
@@ -161,8 +161,7 @@ supports a diffusion reading; a large one refutes it.
 !!! note "Forthcoming — needs the order raise"
     Declared; not yet implemented. ``M_4`` and ``M_6`` require the joint summary raised to per-cell
     ``Y`` power-sums of order 4–6, beyond the current order-2
-    [`Histogram2D`](@ref GBGStreamingStatistics.Histograms.Histogram2D) — a recorded coverage gap
-    (`docs/ARCHITECTURE.md` §4.4).
+    [`Histogram2D`](@ref GBGStreamingStatistics.Histograms.Histogram2D) — a recorded coverage gap.
 """
 function pawula_quotient end
 

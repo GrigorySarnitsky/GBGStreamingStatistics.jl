@@ -35,18 +35,18 @@ Fold a `batch` of samples into `summary` in place, advancing the accumulated sum
 is **estimand-agnostic**: it knows nothing of which estimator will later be asked for, nor of the
 bandwidth or kernel — the architectural invariant that delivers *no reruns*.
 
-The binning is an **atomic scatter-add**: one KernelAbstractions + Atomix kernel — one work-item per
+The binning is an **atomic scatter-add**: one [KernelAbstractions](https://github.com/JuliaGPU/KernelAbstractions.jl) + [Atomix](https://github.com/JuliaConcurrent/Atomix.jl) kernel — one work-item per
 sample — accumulates, per bin, the **count** and the **power-sums**
 ``S_p = \\sum_{i\\in\\text{bin}}(X_i - c_j)^p`` about the bin center ``c_j``, directly into the
 preallocated summary (no scratch). It runs identically on a CPU `Array` and any GPU backend, and is
 allocation-free up to the kernel launch.
 Because ``X_i - c_j`` is small within a bin, the local power-sums are well-conditioned (no compensated
-summation needed); global central moments are recovered post hoc by the shift formula
-(`docs/ARCHITECTURE.md` §3). Accumulated in the summary's accumulator type (`Float64` by default),
+summation needed); global central moments are recovered post hoc by the shift formula.
+Accumulated in the summary's accumulator type (`Float64` by default),
 never narrowed to the input element type — *accumulate wider than the data*.
 
-Reference: D. W. Scott (2015), *Multivariate Density Estimation*, 2nd ed.; M. D. Cattaneo et al.
-(2024), *On binscatter* (the local-moment / WARPing construction).
+Reference: D. W. Scott (2015), [*Multivariate Density Estimation*](https://doi.org/10.1002/9781118575574), 2nd ed.; M. D. Cattaneo et al.
+(2024), [*On binscatter*](https://doi.org/10.1257/aer.20221576) (the local-moment / WARPing construction).
 """
 function observe! end
 

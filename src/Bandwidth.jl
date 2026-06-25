@@ -37,7 +37,7 @@ conditional variance ``\\sigma^2(x)`` and regression curvature ``m''(x)`` — is
 conditional estimators (`CLAUDE.md` roadmap); here ``R(K) = \\int K^2`` and
 ``\\mu_2(K) = \\int u^2 K(u)\\,\\mathrm{d}u``.
 
-Reference: B. W. Silverman (1986), *Density Estimation for Statistics and Data Analysis*, Chapman &
+Reference: B. W. Silverman (1986), [*Density Estimation for Statistics and Data Analysis*](https://doi.org/10.1201/9781315140919), Chapman &
 Hall.
 """
 function bandwidth(summary::Histogram1D; rule::Symbol = :silverman)
