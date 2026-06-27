@@ -354,7 +354,7 @@ correction** (Rydin Gorjão et al. 2021) that inverts the ``\tau``-expansion rat
 
 **Estimand.** the MSE-optimal (AMISE) bandwidth for the requested channel — the ``h`` minimising ``\int \mathbb{E}[(\hat f_h - f_X)^2]`` for a kernel ``K`` and local-polynomial degree ``d``.
 
-For marginals, `bandwidth` (§4.1) defaults to the **kernel- and degree-aware normal-reference rule** ``h = C(K,d)\,\hat\sigma\,n^{-1/(2p+1)}``: the bias order is ``p = 2`` at degree 0/1 (rate ``n^{-1/5}``) and ``p = 4`` at degree 2/3 (a higher-order ``O(h^4)`` fit, so the wider rate ``n^{-1/9}``), and the kernel enters only through the canonical factor ``C(K,d) = (8\sqrt{\pi}/3)^{1/5}[R(K)/\mu_2(K)^2]^{1/5}`` at degree 0/1 (the fourth-order equivalent-kernel analog at degree 2/3; Loader 1996) — reducing to Silverman ``(4/3)^{1/5}\hat\sigma\,n^{-1/5}`` for the Gaussian at degree 0 and ``\approx 2.34\,\hat\sigma\,n^{-1/5}`` for the Epanechnikov. All kernel and degree dependence is thus one post-hoc factor (locfit's `Wikk` discipline), with ``R(K)`` and ``\mu_2(K)`` computed by quadrature so any kernel works. The data-driven **Sheather–Jones** plug-in (`rule = :sj`, degree 0/1) adds the solve-the-equation bandwidth — the curvature ``\psi_4 = R(f'')`` and its ``\psi_6`` pilot estimated as Hermite-weighted, **mergeable** reductions of the bin counts (Sheather & Jones 1991), the eval kernel a clean ``\delta(K)`` rescale — so it adapts to the true shape (much tighter than the normal reference on a bimodal sample). The fit-based **likelihood-CV / AIC** selectors (Loader's preferred route, degree- and kernel-aware by construction, also computable from the binned summary) are forthcoming. The load-bearing one for conditional moments is the **response-aware *local* plug-in** that answered the user's original question:
+For marginals, `bandwidth` (§4.1) defaults to the **kernel- and degree-aware normal-reference rule** ``h = C(K,d)\,\hat\sigma\,n^{-1/(2p+1)}``: the bias order is ``p = 2`` at degree 0/1 (rate ``n^{-1/5}``) and ``p = 4`` at degree 2/3 (a higher-order ``O(h^4)`` fit, so the wider rate ``n^{-1/9}``), and the kernel enters only through the canonical factor ``C(K,d) = (8\sqrt{\pi}/3)^{1/5}[R(K)/\mu_2(K)^2]^{1/5}`` at degree 0/1 (the fourth-order equivalent-kernel analog at degree 2/3; Loader 1996) — reducing to Silverman ``(4/3)^{1/5}\hat\sigma\,n^{-1/5}`` for the Gaussian at degree 0 and ``\approx 2.34\,\hat\sigma\,n^{-1/5}`` for the Epanechnikov. All kernel and degree dependence is thus one post-hoc factor (locfit's `Wikk` discipline), with ``R(K)`` and ``\mu_2(K)`` computed by quadrature so any kernel works. The data-driven **Sheather–Jones** plug-in (`rule = :sj`, degree 0/1) adds the solve-the-equation bandwidth — the curvature ``\psi_4 = R(f'')`` and its ``\psi_6`` pilot estimated as Hermite-weighted, **mergeable** reductions of the bin counts (Sheather & Jones 1991), the eval kernel a clean ``\delta(K)`` rescale — so it adapts to the true shape (much tighter than the normal reference on a bimodal sample). The fit-based **AIC** (`rule = :aic`) adds an information criterion of the binned KDE minimised over an ``h``-grid — a mergeable functional of the counts, the eval kernel a ``\delta(K)`` rescale, with a stable interior optimum (Loader's preferred route is fit-based selection). Its leave-one-out **cross-validation** cousins (likelihood-CV, least-squares LSCV) are a deliberate coverage gap: a binned summary's ties drive their objective to ``h \to 0``. The load-bearing one for conditional moments is the **response-aware *local* plug-in** that answered the user's original question:
 ```math
 h^\star(x) \;=\; \left[\frac{R(K)\,\sigma^2(x)}{\mu_2(K)^2\,m''(x)^2\,f_X(x)\,n}\right]^{1/5}.
 ```
@@ -633,8 +633,20 @@ intentional — do not dedupe it).
   0/1) is now added — the ``\psi_4``/``\psi_6`` curvature functionals as **mergeable** Hermite-weighted
   reductions of the bin counts, the solve-the-equation root-find (base-R `bw.SJ` ste), the eval kernel a
   clean ``\delta(K)`` rescale (the pilot stays Gaussian, kernel-independent) — much tighter than the
-  normal reference on a bimodal sample. The fit-based likelihood-CV / AIC selectors (Loader's preferred
-  route) are the next slice.
+  normal reference on a bimodal sample. The fit-based AIC follows (next entry).
+
+- **Bandwidth §4.5 — fit-based AIC added; leave-one-out CV is a deliberate absence** (§4.5). The survey
+  flagged Loader's *preferred* route as fit-based selection over an ``h``-grid. Implemented as
+  `rule = :aic`: minimise the binned-KDE AIC ``-2\sum_j n_j\log\hat f_h(c_j) + 2\,\mathrm{df}(h)`` over
+  the grid — a mergeable functional of the counts, the eval kernel a ``\delta(K)`` rescale. But the
+  **cross-validation** selectors (likelihood-CV and least-squares LSCV) are **not** built: they are
+  leave-one-out, and a *binned* summary has heavy ties (≈10²–10³ samples per bin) whose same-bin term
+  drives the CV objective to ``h \to 0`` (verified — LSCV's ``(1/2 + S/n)/(nh\sqrt\pi)`` numerator goes
+  negative, so it diverges to ``-\infty`` as ``h \to 0``). base-R `bw.ucv` survives only via coarse
+  bins, a constrained search range, and a boundary warning. AIC needs no leave-one-out — both its
+  log-likelihood and df-penalty diverge as ``h \to 0`` — so its optimum is a stable interior point. CV
+  recorded as a coverage gap (a within-bin-spread correction from the power-sums could rescue it);
+  `:sj` and `:aic` are the data-driven selectors.
 
 Open decisions still flagged **[OPEN]** in §10 (the projection road, `HistogramND`, vector-valued
 conditioning, prior-art mirroring) graduate to entries here when they are settled.

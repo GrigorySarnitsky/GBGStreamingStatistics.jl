@@ -1,6 +1,6 @@
-# Bandwidth — §4.5: bandwidth selection (the kernel/degree normal-reference and Sheather–Jones rules
-# now; the fit-based LCV/AIC selectors, the response-aware local plug-in, and the FFT-amortized
-# smoothing are forthcoming). The smoothing is a convolution of the binned summary with the kernel; the
+# Bandwidth — §4.5: bandwidth selection (the kernel/degree normal-reference, Sheather–Jones, and
+# fit-based AIC rules now; the response-aware local plug-in and the FFT-amortized smoothing are
+# forthcoming). The smoothing is a convolution of the binned summary with the kernel; the
 # FFT computes it in O(B log B) and amortizes over bandwidth (`docs/ARCHITECTURE.md` §4.5) — hence the
 # FFTW dependency, used once that lands.
 
@@ -74,6 +74,13 @@ function _binned_quantile(summary::Histogram1D, p)
 end
 
 
+# canonical bandwidth rescale δ(K)/δ(φ) = [2√π·R(K)/μ₂(K)²]^(1/5) (= 1 for the Gaussian): the factor by
+# which any eval kernel's AMISE-optimal bandwidth differs from the Gaussian's. Shared by the data-driven
+# selectors, which estimate the data's curvature with a Gaussian and apply the kernel as this rescale.
+_canonical_ratio(kernel) =
+  (2 * sqrt(π) * _quad(v -> kernel(v)^2) / _quad(v -> v^2 * kernel(v))^2)^(1 / 5)
+
+
 function _sheather_jones(summary::Histogram1D, kernel)
   counts = Float64.(Array(summary.counts))
   n = float(_total(summary))
@@ -119,9 +126,64 @@ function _sheather_jones(summary::Histogram1D, kernel)
     end
   end
   hG = 0.5 * (lo + hi)
-  # the eval kernel enters as a clean canonical rescale δ(K)/δ(φ) = [2√π·R(K)/μ₂(K)²]^(1/5) (= 1 for the
-  # Gaussian) — the curvature ψ₄ is a property of the data, estimated once by the Gaussian-pilot ste.
-  return hG * (2 * sqrt(π) * _quad(v -> kernel(v)^2) / _quad(v -> v^2 * kernel(v))^2)^(1 / 5)
+  return hG * _canonical_ratio(kernel)   # the eval kernel enters as a clean canonical δ(K) rescale
+end
+
+
+# --- fit-based selector over an h-grid (rule = :aic), from the binned summary (degree 0/1) ---
+# Minimise the AIC of the Gaussian KDE over a log-spaced h-grid around the normal reference, read off the
+# bin counts; the eval kernel then enters as the canonical δ(K) rescale. The criterion is a deterministic
+# functional of the counts, hence mergeable. The cross-validation selectors (likelihood LCV and
+# least-squares LSCV) are **deliberately absent**: both are leave-one-out, and binning ties (many samples
+# share a bin) make the same-bin term drive the CV optimum to h → 0 — a recorded coverage gap (a within-
+# bin-spread correction from the power-sums could rescue them later). AIC needs no leave-one-out — both
+# its log-likelihood and df-penalty diverge as h → 0 — so it has a stable interior optimum; `:sj` is the
+# other reliable data-driven selector.
+
+_gauss(u) = exp(-u^2 / 2) / sqrt(2π)
+
+
+# AIC of the Gaussian KDE: −2 Σ_j n_j log f̂(c_j) + 2·df, df = (φ(0)/h) Σ_j n_j/(n f̂(c_j)) (the KDE
+# self-influence trace). Both terms diverge as h → 0, so the minimiser is a stable interior optimum. The
+# KDE convolution is summed only over bins within the kernel reach (±5h), so it is O(occupied · h⁻¹).
+function _aic_gauss(counts, occ, n, h, binwidth)
+  invh = inv(h)
+  reach = ceil(Int, 5 * h / binwidth)
+  nb = length(counts)
+  ll = 0.0
+  df = 0.0
+  @inbounds for j in occ
+    fj = 0.0
+    for k in max(1, j - reach):min(nb, j + reach)
+      ck = counts[k]
+      ck == 0 && continue
+      fj += ck * _gauss((j - k) * binwidth * invh)
+    end
+    fj *= invh / n
+    fj > 0 || continue
+    ll += counts[j] * log(fj)
+    df += counts[j] / (n * fj)
+  end
+  return -2 * ll + 2 * _gauss(0.0) * invh * df
+end
+
+
+function _aic_select(summary::Histogram1D, kernel)
+  counts = Float64.(Array(summary.counts))
+  n = float(_total(summary))
+  binwidth = inv(summary.scale)
+  bw0 = _normal_reference_h(summary, gaussian_kernel, 0)   # the Gaussian normal reference centres the grid
+  occ = findall(>(0), counts)
+  best_h = bw0
+  best_val = Inf
+  for h in bw0 .* exp.(range(log(0.2), log(3.0); length = 50))
+    val = _aic_gauss(counts, occ, n, h, binwidth)
+    if val < best_val
+      best_val = val
+      best_h = h
+    end
+  end
+  return best_h * _canonical_ratio(kernel)
 end
 
 
@@ -166,10 +228,13 @@ where the normal reference oversmooths from an inflated ``\\hat\\sigma``, it pic
 Both functionals are reductions of the bin counts, so they are mergeable; a `degree` ``\\ge 2`` request
 is a recorded coverage gap (use `rule = :normal`).
 
-The fit-based **likelihood-CV / AIC** selectors (`rule = :lcv`, `:aic`) are forthcoming (`CLAUDE.md`
-roadmap), as is the response-aware *local* plug-in ``h^\\star(x) = \\bigl[R(K)\\,\\sigma^2(x) /
+**Estimator** (`rule = :aic`, the fit-based information criterion; `degree` 0/1). Over a log-spaced
+``h``-grid around the normal reference, minimise ``\\mathrm{AIC}(h) = -2\\sum_j n_j \\log \\hat f_h(c_j) + 2\\,\\mathrm{df}(h)`` of the binned KDE, with ``\\mathrm{df}(h) = (K(0)/h)\\sum_j n_j/(n\\hat f_h(c_j))`` the kernel self-influence trace. Both terms diverge as ``h \\to 0``, so the optimum is a stable interior point; like `:sj` it is a deterministic functional of the counts (mergeable), and the kernel enters as the canonical ``\\delta(K)`` rescale. The leave-one-out **cross-validation** selectors (likelihood-CV and least-squares LSCV) are a deliberate coverage gap — binning ties drive their optimum to ``h \\to 0`` (use `:sj` for a data-driven alternative).
+
+The response-aware *local* plug-in ``h^\\star(x) = \\bigl[R(K)\\,\\sigma^2(x) /
 (\\mu_2(K)^2\\, m''(x)^2\\, f_X(x)\\, n)\\bigr]^{1/5}`` — each response channel its own bandwidth from
-the conditional variance ``\\sigma^2(x)`` and regression curvature ``m''(x)``.
+the conditional variance ``\\sigma^2(x)`` and regression curvature ``m''(x)`` — is forthcoming
+(`CLAUDE.md` roadmap).
 
 References: B. W. Silverman (1986), [*Density Estimation for Statistics and Data
 Analysis*](https://doi.org/10.1201/9781315140919), Chapman & Hall (the normal-reference rule and the
@@ -191,8 +256,13 @@ function bandwidth(summary::Histogram1D; rule::Symbol = :normal,
       throw(ArgumentError("Sheather–Jones (rule = :sj) is a second-order selector (degree ≤ 1); " *
                           "for degree ≥ 2 use rule = :normal (got degree = $degree)"))
     return _sheather_jones(summary, kernel)
+  elseif rule === :aic
+    (degree == 0 || degree == 1) ||
+      throw(ArgumentError("the fit-based selector rule = :aic is a degree-0/1 (KDE) selector; " *
+                          "for degree ≥ 2 use rule = :normal (got degree = $degree)"))
+    return _aic_select(summary, kernel)
   end
-  throw(ArgumentError("unknown bandwidth rule :$rule (expected :normal or :sj)"))
+  throw(ArgumentError("unknown bandwidth rule :$rule (expected :normal, :sj, or :aic)"))
 end
 
 end # module Bandwidth

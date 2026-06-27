@@ -60,3 +60,33 @@ end
   # Sheather–Jones is a second-order selector: degree ≥ 2 is a recorded coverage gap
   @test_throws ArgumentError bandwidth(hg; rule = :sj, degree = 2)
 end
+
+@testset "AIC fit-based selector (rule = :aic, §4.5)" begin
+  # the AIC of the binned KDE has a stable interior optimum — mildly tighter than the normal reference
+  # on Gaussian data (it adapts to the density rather than the worst-case reference)
+  Random.seed!(201)
+  hg = Histogram1D(-8.0, 8.0, 1600); observe!(hg, randn(250_000))
+  @test 0.5 * bandwidth(hg) < bandwidth(hg; rule = :aic) < bandwidth(hg)
+
+  # the kernel enters as the same exact canonical δ(K) rescale
+  @test bandwidth(hg; rule = :aic, kernel = epanechnikov_kernel) / bandwidth(hg; rule = :aic) ≈ 2.2138  rtol = 1e-2
+
+  # on a bimodal mixture AIC adapts to the within-mode curvature ⇒ far below the oversmoothing normal ref
+  Random.seed!(202)
+  hm = Histogram1D(-10.0, 10.0, 2000); observe!(hm, vcat(randn(125_000) .- 3, randn(125_000) .+ 3))
+  @test bandwidth(hm; rule = :aic) < 0.5 * bandwidth(hm)
+
+  # mergeable: AIC is a deterministic functional of the bin counts ⇒ accumulate-then-merge = together
+  Random.seed!(203); d1 = randn(100_000); d2 = randn(100_000)
+  a = Histogram1D(-8.0, 8.0, 1600); observe!(a, d1)
+  b = Histogram1D(-8.0, 8.0, 1600); observe!(b, d2)
+  both = Histogram1D(-8.0, 8.0, 1600); observe!(both, vcat(d1, d2))
+  merge!(a, b)
+  @test bandwidth(a; rule = :aic) ≈ bandwidth(both; rule = :aic)
+
+  # degree-0/1 (KDE) selector: degree ≥ 2 is a coverage gap; the leave-one-out CV rules are not
+  # provided at all (the binned-ties pathology) — they error as unknown rules
+  @test_throws ArgumentError bandwidth(hg; rule = :aic, degree = 2)
+  @test_throws ArgumentError bandwidth(hg; rule = :lscv)
+  @test_throws ArgumentError bandwidth(hg; rule = :lcv)
+end

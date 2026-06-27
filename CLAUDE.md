@@ -65,7 +65,7 @@ estimands.
   ``\equiv Q(x)``, `markov_test`. Model-neutral functionals; the SDE *reading* stays consumer-side.
 - `src/Bandwidth.jl` — §4.5 `bandwidth`: the **kernel- and degree-aware normal-reference rule** (the
   default, Silverman the Gaussian/degree-0 case; ``h = C(K,d)\,\hat\sigma\,n^{-1/(2p+1)}``), the
-  data-driven **Sheather–Jones** plug-in (`rule = :sj`) and the fit-based likelihood-CV / AIC selectors (forthcoming), and the
+  data-driven **Sheather–Jones** plug-in (`rule = :sj`) and the fit-based **AIC** (`rule = :aic`; leave-one-out CV a recorded binned-ties gap), and the
   **response-aware local plug-in** ``h^\star(x)``; the post-hoc FFT smoothing helpers (the major
   performance lever, amortized over bandwidth). Owns `FFTW`, `AbstractFFTs`.
 - Include order: `Accumulators → Histograms → DensityEstimation → Regression → ConditionalDensity →
@@ -246,7 +246,10 @@ Mechanical bar:
    reductions of the bin counts (Sheather & Jones 1991), the solve-the-equation root-find, the eval
    kernel a clean ``\\delta(K)`` rescale; it adapts to shape (much tighter than the normal reference on
    a bimodal sample). Tested: SJ ``\\approx`` normal on Gaussian, the exact ``\\delta(K)`` ratio,
-   mergeability, the degree ``\\ge 2`` gap.
+   mergeability, the degree ``\\ge 2`` gap. The fit-based **AIC** (`rule = :aic`, degree 0/1) over an
+   ``h``-grid is also available — a mergeable information criterion of the binned KDE with a stable
+   interior optimum; the leave-one-out CV selectors (LCV, LSCV) are a recorded coverage gap (binned ties
+   drive them to zero bandwidth).
 6. **`Regression`** (§4.2) — `conditional_mean` ``\equiv m(x)`` and `conditional_variance``
    ``\equiv \sigma^2(x)`` by local-linear regression from `Histogram2D` (the ``T_\ell``/``P_\ell``
    recovered exactly from per-X-column counts and response totals). Tested against the bivariate-
@@ -273,16 +276,11 @@ Mechanical bar:
 
 **Next, in dependency order:**
 
-1. **Fit-based marginal bandwidth selectors** (§4.5) — the **likelihood-CV / AIC** selectors (Loader's
-   preferred route, degree- and kernel-aware by construction: minimise the binned local-likelihood
-   criterion over an `h`-grid), exposed as `bandwidth` rules `:lcv` / `:aic`; estimand-first,
-   oracle-tested, with a `FORMALIZATION.md` entry. (The kernel/degree normal-reference default and the
-   data-driven **Sheather–Jones** plug-in `:sj` are **done** — Done 5.)
-2. **The response-aware local bandwidth** ``h^\\star(x)`` (§4.5) — estimand-first, OU-oracle-tested,
+1. **The response-aware local bandwidth** ``h^\\star(x)`` (§4.5) — estimand-first, OU-oracle-tested,
    with its `FORMALIZATION.md` entry, from the `Histogram2D` joint summary. Plus the Fan–Yao
    conditional-variance refinement, the ``n^{-2/5}`` / ``n^{-2/3}`` rate tests, and the FFT-amortized
    smoothing (§4.5).
-3. **The rest of `MarkovInference` §4.4** — `kramers_moyal` for ``n \ge 3``, the **Pawula `Q`**
+2. **The rest of `MarkovInference` §4.4** — `kramers_moyal` for ``n \ge 3``, the **Pawula `Q`**
    diagnostic (``M_4``, ``M_6``) and the all-orders Bell-polynomial finite-time correction, and
    `markov_test` (now unblocked — it composes the §4.3 transition density). The higher moments need the
    `Histogram2D` order-raise (Deferred, below).
@@ -294,7 +292,10 @@ vector-valued conditioning (lean scalar-channel — let the consumer loop compon
 `Histogram2D` beyond its order-2 per-cell power-sums (the Pawula ``M_4``/``M_6`` of *Next* 2 will be
 its first consumer); the **weighted merge** for ensemble / hyperstatistical pooling with
 parameter-dependent weights (a Float-count summary variant — equal-weight `merge!` is the built
-special case; `docs/ARCHITECTURE.md` §10).
+special case; `docs/ARCHITECTURE.md` §10); the **leave-one-out cross-validation** bandwidth selectors
+(likelihood-CV, least-squares LSCV — a binned summary's ties drive their objective to zero bandwidth; the
+built `:aic` / `:sj` are the data-driven selectors instead, and a within-bin-spread correction from the
+power-sums could rescue CV later).
 
 ## Working agreements
 
