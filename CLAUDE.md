@@ -65,7 +65,7 @@ estimands.
   ``\equiv Q(x)``, `markov_test`. Model-neutral functionals; the SDE *reading* stays consumer-side.
 - `src/Bandwidth.jl` — §4.5 `bandwidth`: the **kernel- and degree-aware normal-reference rule** (the
   default, Silverman the Gaussian/degree-0 case; ``h = C(K,d)\,\hat\sigma\,n^{-1/(2p+1)}``), the
-  data-driven **Sheather–Jones** plug-in (`rule = :sj`) and the fit-based **AIC** (`rule = :aic`; leave-one-out CV a recorded binned-ties gap), and the
+  data-driven **Sheather–Jones** plug-ins (`rule = :sj` classic, `:isj` improved-via-DCT) and the fit-based **AIC** (`rule = :aic`; leave-one-out CV a recorded binned-ties gap), and the
   **response-aware local plug-in** ``h^\star(x)``; the post-hoc FFT smoothing helpers (the major
   performance lever, amortized over bandwidth). Owns `FFTW`, `AbstractFFTs`.
 - Include order: `Accumulators → Histograms → DensityEstimation → Regression → ConditionalDensity →
@@ -248,7 +248,8 @@ Mechanical bar:
    (`rule = :sj`, degree 0/1) is also available — ``\\psi_4``/``\\psi_6`` as mergeable Hermite-weighted
    reductions of the bin counts (Sheather & Jones 1991), the solve-the-equation root-find, the eval
    kernel a clean ``\\delta(K)`` rescale; it adapts to shape (much tighter than the normal reference on
-   a bimodal sample). Tested: SJ ``\\approx`` normal on Gaussian, the exact ``\\delta(K)`` ratio,
+   a bimodal sample); its DCT-based **improved** variant (`rule = :isj`, Botev 2010) reads the curvature
+   off the bin counts, robust on strongly multimodal data. Tested (both): ``\\approx`` normal on Gaussian, the exact ``\\delta(K)`` ratio,
    mergeability, the degree ``\\ge 2`` gap. The fit-based **AIC** (`rule = :aic`, degree 0/1) over an
    ``h``-grid is also available — a mergeable information criterion of the binned KDE with a stable
    interior optimum; the leave-one-out CV selectors (LCV, LSCV) are a recorded coverage gap (binned ties

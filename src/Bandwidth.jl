@@ -1,5 +1,5 @@
-# Bandwidth — §4.5: bandwidth selection (the kernel/degree normal-reference, Sheather–Jones, and
-# fit-based AIC rules now; the response-aware local plug-in and the FFT-amortized smoothing are
+# Bandwidth — §4.5: bandwidth selection (the kernel/degree normal-reference, Sheather–Jones — classic
+# and improved (DCT) — and fit-based AIC rules now; the response-aware local plug-in and the FFT-amortized smoothing are
 # forthcoming). The smoothing is a convolution of the binned summary with the kernel; the
 # FFT computes it in O(B log B) and amortizes over bandwidth (`docs/ARCHITECTURE.md` §4.5) — hence the
 # FFTW dependency, used once that lands.
@@ -187,6 +187,54 @@ function _aic_select(summary::Histogram1D, kernel)
 end
 
 
+# --- Improved Sheather–Jones (Botev 2010), `rule = :isj`, from the binned summary (degree 0/1) ---
+# The solve-the-equation bandwidth read off the DCT of the bin counts: the curvature norms ‖f^(s)‖² are
+# evaluated from the cosine coefficients (Plancherel) and the AMISE fixed point t = ξ·γ⁵(t) is solved by
+# root-finding; h = √t·(upper−lower). Unlike the normal-reference pilot of `:sj`, the curvature is
+# estimated nonparametrically, so ISJ stays robust on strongly multimodal data (Botev et al. 2010). A
+# deterministic functional of the counts (mergeable); the eval kernel enters as the δ(K) rescale. The
+# I²^ℓ·exp(−I²π²t) terms are formed in log-space, since I²^7 overflows Float64 at fine grids.
+function _isj_fixed_point(t, N, Isq, logIsq, a2)
+  ell = 7                                                # 5 plug-in stages (Botev's recommendation)
+  f = 0.5 * π^(2ell) * sum(@. exp(ell * logIsq - Isq * π^2 * t) * a2)
+  f ≤ 0 && return -one(f)
+  for s in (ell-1):-1:2
+    K0 = prod(1:2:(2s-1)) / sqrt(2π)                     # (2s−1)!! / √(2π) — the Gaussian-derivative norm
+    c = (1 + (0.5)^(s + 0.5)) / 3
+    time = (2 * c * K0 / (N * f))^(2 / (3 + 2s))
+    f = 0.5 * π^(2s) * sum(@. exp(s * logIsq - Isq * π^2 * time) * a2)
+  end
+  return t - (2 * N * sqrt(π) * f)^(-2 / 5)
+end
+
+
+function _isj(summary::Histogram1D, kernel)
+  counts = Float64.(Array(summary.counts))
+  nbins = length(counts)
+  N = float(_total(summary))
+  a = FFTW.r2r(counts ./ N, FFTW.REDFT10)               # type-2 DCT of the binned density (sums to 1)
+  a2 = a[2:end] .^ 2                                     # squared coefficients, DC term dropped
+  Isq = Float64[k^2 for k in 1:nbins-1]
+  logIsq = log.(Isq)
+  fp(t) = _isj_fixed_point(t, N, Isq, logIsq, a2)
+  tol = 1e-11 + 0.01 * (clamp(N, 50.0, 1050.0) - 50) / 1000
+  lo, hi = 0.0, tol
+  flo, fhi = fp(lo), fp(hi)
+  itry = 0
+  while flo * fhi > 0 && itry < 60                       # expand the bracket until it straddles the root
+    hi *= 2; fhi = fp(hi); itry += 1
+  end
+  flo * fhi ≤ 0 ||
+    throw(ArgumentError("Improved Sheather–Jones did not bracket a root (too sparse); use rule = :sj"))
+  for _ in 1:100
+    mid = 0.5 * (lo + hi)
+    fm = fp(mid)
+    flo * fm ≤ 0 ? (hi = mid; fhi = fm) : (lo = mid; flo = fm)
+  end
+  return sqrt(0.5 * (lo + hi)) * (summary.upper - summary.lower) * _canonical_ratio(kernel)
+end
+
+
 """
     bandwidth(summary::Histogram1D; rule = :normal, kernel = gaussian_kernel, degree = 0) -> h
 
@@ -228,6 +276,12 @@ where the normal reference oversmooths from an inflated ``\\hat\\sigma``, it pic
 Both functionals are reductions of the bin counts, so they are mergeable; a `degree` ``\\ge 2`` request
 is a recorded coverage gap (use `rule = :normal`).
 
+**Estimator** (`rule = :isj`, the **Improved Sheather–Jones** plug-in; Botev, Grotowski & Kroese 2010;
+`degree` 0/1). The same solve-the-equation idea, but the curvature norms ``\\|f^{(s)}\\|^2`` are read off
+the **DCT** of the bin counts (Plancherel) rather than from a normal-reference pilot — so it stays
+reliable on strongly multimodal data, where the pilot scale of `:sj` can mislead. Mergeable (a functional
+of the counts' cosine transform); the eval kernel again enters as the ``\\delta(K)`` rescale.
+
 **Estimator** (`rule = :aic`, the fit-based information criterion; `degree` 0/1). Over a log-spaced
 ``h``-grid around the normal reference, minimise ``\\mathrm{AIC}(h) = -2\\sum_j n_j \\log \\hat f_h(c_j) + 2\\,\\mathrm{df}(h)`` of the binned KDE, with ``\\mathrm{df}(h) = (K(0)/h)\\sum_j n_j/(n\\hat f_h(c_j))`` the kernel self-influence trace. Both terms diverge as ``h \\to 0``, so the optimum is a stable interior point; like `:sj` it is a deterministic functional of the counts (mergeable), and the kernel enters as the canonical ``\\delta(K)`` rescale. The leave-one-out **cross-validation** selectors (likelihood-CV and least-squares LSCV) are a deliberate coverage gap — binning ties drive their optimum to ``h \\to 0`` (use `:sj` for a data-driven alternative).
 
@@ -240,7 +294,9 @@ References: B. W. Silverman (1986), [*Density Estimation for Statistics and Data
 Analysis*](https://doi.org/10.1201/9781315140919), Chapman & Hall (the normal-reference rule and the
 canonical bandwidth); S. P. Sheather & M. C. Jones (1991), [*A reliable data-based bandwidth selection
 method for kernel density estimation*](https://doi.org/10.1111/j.2517-6161.1991.tb01857.x), J. R.
-Statist. Soc. B 53(3) (the solve-the-equation plug-in); C. R. Loader (1996), [*Local likelihood density
+Statist. Soc. B 53(3) (the solve-the-equation plug-in); Z. I. Botev, J. F. Grotowski & D. P. Kroese
+(2010), [*Kernel density estimation via diffusion*](https://doi.org/10.1214/10-AOS799), Ann. Statist.
+38(5) (the DCT solve-the-equation, `:isj`); C. R. Loader (1996), [*Local likelihood density
 estimation*](https://doi.org/10.1214/aos/1032298287), Ann. Statist. 24(4) (the degree / equivalent-
 kernel factor).
 """
@@ -256,13 +312,18 @@ function bandwidth(summary::Histogram1D; rule::Symbol = :normal,
       throw(ArgumentError("Sheather–Jones (rule = :sj) is a second-order selector (degree ≤ 1); " *
                           "for degree ≥ 2 use rule = :normal (got degree = $degree)"))
     return _sheather_jones(summary, kernel)
+  elseif rule === :isj
+    (degree == 0 || degree == 1) ||
+      throw(ArgumentError("Improved Sheather–Jones (rule = :isj) is a degree-0/1 selector; " *
+                          "for degree ≥ 2 use rule = :normal (got degree = $degree)"))
+    return _isj(summary, kernel)
   elseif rule === :aic
     (degree == 0 || degree == 1) ||
       throw(ArgumentError("the fit-based selector rule = :aic is a degree-0/1 (KDE) selector; " *
                           "for degree ≥ 2 use rule = :normal (got degree = $degree)"))
     return _aic_select(summary, kernel)
   end
-  throw(ArgumentError("unknown bandwidth rule :$rule (expected :normal, :sj, or :aic)"))
+  throw(ArgumentError("unknown bandwidth rule :$rule (expected :normal, :sj, :isj, or :aic)"))
 end
 
 end # module Bandwidth

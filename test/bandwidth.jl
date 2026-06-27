@@ -90,3 +90,29 @@ end
   @test_throws ArgumentError bandwidth(hg; rule = :lscv)
   @test_throws ArgumentError bandwidth(hg; rule = :lcv)
 end
+
+@testset "Improved Sheather–Jones (rule = :isj, §4.5)" begin
+  # on Gaussian data ISJ ≈ the normal reference (and ≈ classic SJ)
+  Random.seed!(301)
+  hg = Histogram1D(-8.0, 8.0, 2048); observe!(hg, randn(250_000))
+  @test bandwidth(hg; rule = :isj) ≈ bandwidth(hg)  rtol = 5e-2
+  # the eval kernel enters as the same exact canonical δ(K) rescale
+  @test bandwidth(hg; rule = :isj, kernel = epanechnikov_kernel) / bandwidth(hg; rule = :isj) ≈ 2.2138  rtol = 1e-2
+
+  # on a strongly multimodal mixture ISJ estimates the curvature nonparametrically (from the DCT) and
+  # picks a much smaller h than the oversmoothing normal reference
+  Random.seed!(302)
+  hm = Histogram1D(-10.0, 10.0, 2048); observe!(hm, vcat(randn(125_000) .- 3, randn(125_000) .+ 3))
+  @test bandwidth(hm; rule = :isj) < 0.5 * bandwidth(hm)
+
+  # mergeable: ISJ is a deterministic functional of the bin counts (via their DCT)
+  Random.seed!(303); d1 = randn(100_000); d2 = randn(100_000)
+  a = Histogram1D(-8.0, 8.0, 2048); observe!(a, d1)
+  b = Histogram1D(-8.0, 8.0, 2048); observe!(b, d2)
+  both = Histogram1D(-8.0, 8.0, 2048); observe!(both, vcat(d1, d2))
+  merge!(a, b)
+  @test bandwidth(a; rule = :isj) ≈ bandwidth(both; rule = :isj)
+
+  # degree ≥ 2 is a coverage gap
+  @test_throws ArgumentError bandwidth(hg; rule = :isj, degree = 2)
+end
