@@ -1,5 +1,6 @@
 using Test
 using GBGStreamingStatistics
+using Random
 const H = GBGStreamingStatistics.Histograms
 
 @testset "Bandwidth (bandwidth selection)" begin
@@ -31,4 +32,31 @@ const H = GBGStreamingStatistics.Histograms
   @test_throws ArgumentError bandwidth(Histogram1D(0.0, 1.0, 10))      # n = 0 < 2
   h1 = Histogram1D(0.0, 1.0, 10); observe!(h1, 0.5)
   @test_throws ArgumentError bandwidth(h1)                             # n = 1 < 2
+end
+
+@testset "Sheather–Jones plug-in (rule = :sj, §4.5)" begin
+  # on Gaussian data the data-driven curvature ψ₄ ≈ the normal reference ⇒ SJ ≈ normal-reference
+  Random.seed!(101)
+  hg = Histogram1D(-8.0, 8.0, 1600); observe!(hg, randn(300_000))
+  @test bandwidth(hg; rule = :sj) ≈ bandwidth(hg)  rtol = 5e-2
+
+  # the eval kernel enters as the same canonical δ(K) rescale, exact (decoupled from the Gaussian pilot)
+  @test bandwidth(hg; rule = :sj, kernel = epanechnikov_kernel) / bandwidth(hg; rule = :sj) ≈ 2.2138  rtol = 1e-2
+
+  # on a bimodal mixture the normal reference oversmooths badly (σ̂ inflated by the inter-mode gap);
+  # SJ sees the within-mode curvature and picks a much smaller h
+  Random.seed!(102)
+  hm = Histogram1D(-10.0, 10.0, 2000); observe!(hm, vcat(randn(150_000) .- 3, randn(150_000) .+ 3))
+  @test bandwidth(hm; rule = :sj) < 0.5 * bandwidth(hm)
+
+  # mergeable: SJ is a deterministic functional of the bin counts ⇒ accumulate-then-merge = together
+  Random.seed!(103); d1 = randn(120_000); d2 = randn(120_000)
+  a = Histogram1D(-8.0, 8.0, 1600); observe!(a, d1)
+  b = Histogram1D(-8.0, 8.0, 1600); observe!(b, d2)
+  both = Histogram1D(-8.0, 8.0, 1600); observe!(both, vcat(d1, d2))
+  merge!(a, b)
+  @test bandwidth(a; rule = :sj) ≈ bandwidth(both; rule = :sj)
+
+  # Sheather–Jones is a second-order selector: degree ≥ 2 is a recorded coverage gap
+  @test_throws ArgumentError bandwidth(hg; rule = :sj, degree = 2)
 end

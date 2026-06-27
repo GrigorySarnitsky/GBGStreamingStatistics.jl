@@ -65,7 +65,7 @@ estimands.
   ``\equiv Q(x)``, `markov_test`. Model-neutral functionals; the SDE *reading* stays consumer-side.
 - `src/Bandwidth.jl` — §4.5 `bandwidth`: the **kernel- and degree-aware normal-reference rule** (the
   default, Silverman the Gaussian/degree-0 case; ``h = C(K,d)\,\hat\sigma\,n^{-1/(2p+1)}``), the
-  data-driven Sheather–Jones plug-in and fit-based likelihood-CV / AIC selectors (forthcoming), and the
+  data-driven **Sheather–Jones** plug-in (`rule = :sj`) and the fit-based likelihood-CV / AIC selectors (forthcoming), and the
   **response-aware local plug-in** ``h^\star(x)``; the post-hoc FFT smoothing helpers (the major
   performance lever, amortized over bandwidth). Owns `FFTW`, `AbstractFFTs`.
 - Include order: `Accumulators → Histograms → DensityEstimation → Regression → ConditionalDensity →
@@ -241,7 +241,12 @@ Mechanical bar:
    bias order ``p`` (``n^{-1/5}`` at degree 0/1, ``n^{-1/9}`` at degree 2); reduces to Silverman
    ``(4/3)^{1/5}`` (Gaussian, degree 0), ``\\approx 2.34`` (Epanechnikov). It is also `density`'s
    default `h`. Tested (`test/bandwidth.jl`): Silverman reproduction, the Epanechnikov ``2.214\\times``
-   ratio, the degree-2 ``n^{-1/9}`` closed form.
+   ratio, the degree-2 ``n^{-1/9}`` closed form. The data-driven **Sheather–Jones** plug-in
+   (`rule = :sj`, degree 0/1) is also available — ``\\psi_4``/``\\psi_6`` as mergeable Hermite-weighted
+   reductions of the bin counts (Sheather & Jones 1991), the solve-the-equation root-find, the eval
+   kernel a clean ``\\delta(K)`` rescale; it adapts to shape (much tighter than the normal reference on
+   a bimodal sample). Tested: SJ ``\\approx`` normal on Gaussian, the exact ``\\delta(K)`` ratio,
+   mergeability, the degree ``\\ge 2`` gap.
 6. **`Regression`** (§4.2) — `conditional_mean` ``\equiv m(x)`` and `conditional_variance``
    ``\equiv \sigma^2(x)`` by local-linear regression from `Histogram2D` (the ``T_\ell``/``P_\ell``
    recovered exactly from per-X-column counts and response totals). Tested against the bivariate-
@@ -268,11 +273,11 @@ Mechanical bar:
 
 **Next, in dependency order:**
 
-1. **Data-driven marginal bandwidth selectors** (§4.5) — the **Sheather–Jones** plug-in (``\\psi_4``,
-   ``\\psi_6`` as Hermite-weighted, mergeable reductions of the bin counts) and the fit-based
-   **likelihood-CV / AIC** selectors (Loader's preferred route, degree/kernel-aware by construction),
-   exposed as `bandwidth` rules `:sj` / `:lcv` / `:aic`; estimand-first, oracle-tested, each with a
-   `FORMALIZATION.md` entry. (The kernel- and degree-aware normal-reference default is **done** — Done 5.)
+1. **Fit-based marginal bandwidth selectors** (§4.5) — the **likelihood-CV / AIC** selectors (Loader's
+   preferred route, degree- and kernel-aware by construction: minimise the binned local-likelihood
+   criterion over an `h`-grid), exposed as `bandwidth` rules `:lcv` / `:aic`; estimand-first,
+   oracle-tested, with a `FORMALIZATION.md` entry. (The kernel/degree normal-reference default and the
+   data-driven **Sheather–Jones** plug-in `:sj` are **done** — Done 5.)
 2. **The response-aware local bandwidth** ``h^\\star(x)`` (§4.5) — estimand-first, OU-oracle-tested,
    with its `FORMALIZATION.md` entry, from the `Histogram2D` joint summary. Plus the Fan–Yao
    conditional-variance refinement, the ``n^{-2/5}`` / ``n^{-2/3}`` rate tests, and the FFT-amortized

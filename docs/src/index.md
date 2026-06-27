@@ -96,8 +96,8 @@ verbatim by every consumer) and an **estimator upper half** (the estimands):
   `increment_moment` ``\equiv M_n(x,\tau)``, `kramers_moyal` ``\equiv D^{(n)}``, `drift` ``\equiv D^{(1)}``,
   and `diffusion` ``\equiv D^{(2)}`` (with the `pawula_quotient` and `markov_test` diagnostics forthcoming).
 - [`Bandwidth`](api/Bandwidth.md): bandwidth selection — the kernel- and degree-aware normal-reference
-  rule (Silverman the Gaussian/degree-0 case; data-driven Sheather–Jones and fit-based selectors
-  forthcoming) and the response-aware local plug-in ``h^\star(x)``.
+  rule (Silverman the Gaussian/degree-0 case), the data-driven Sheather–Jones plug-in (`rule = :sj`;
+  fit-based selectors forthcoming) and the response-aware local plug-in ``h^\star(x)``.
 
 ## Documentation structure
 
