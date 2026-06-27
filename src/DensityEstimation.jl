@@ -192,8 +192,24 @@ end
 @inline _balloon(h, g, f0, adaptive) = (adaptive && f0 > 0) ? h * min(sqrt(g / f0), 5.0) : float(h)
 
 
+# --- boundary renormalization (Jones 1993): divide the degree-0 KDE by the kernel mass that lands inside
+# the support, so a density on a half-line / interval is not biased down at the edge (e.g. droplet radii
+# on [0, ∞), whose KDE otherwise drops to ≈ half the true value at the boundary). ---
+# The kernel's CDF (mass to the left of t), by quadrature of K — reuses the fixed grid of `_quad`.
+_kernel_cdf(kernel, t) = _quad(s -> s ≤ t ? kernel(s) : 0.0)
+
+
+# The fraction of a kernel centred at x (bandwidth h) inside the support [a, b]: M(x) = ∫_a^b K_h(x−u)du =
+# CDF_K((x−a)/h) − CDF_K((x−b)/h)  (a = −∞ ⇒ the first term is 1; b = +∞ ⇒ the second is 0).
+function _kernel_mass(kernel, x, h, a, b)
+  upper = isfinite(a) ? _kernel_cdf(kernel, (x - a) / h) : 1.0
+  lower = isfinite(b) ? _kernel_cdf(kernel, (x - b) / h) : 0.0
+  return upper - lower
+end
+
+
 """
-    density(summary::Histogram1D, x; degree = 0, h = nothing, adaptive = false, kernel = gaussian_kernel)   # ≡ f_X
+    density(summary::Histogram1D, x; degree = 0, h = nothing, adaptive = false, kernel = gaussian_kernel, bounds = nothing)   # ≡ f_X
 
 **Estimand.** the marginal (Lebesgue) density ``f_X = \\mathrm{d}\\mu_X/\\mathrm{d}\\lambda`` of the
 conditioning variable ``X``, defined by ``P(X \\in A) = \\int_A f_X\\,\\mathrm{d}\\lambda``.
@@ -217,6 +233,11 @@ knobs:
   ``(4/3)^{1/5}\\hat\\sigma\\,n^{-1/5}`` for the Gaussian kernel at degree 0/1, wider at the
   ``n^{-1/9}`` rate for degree 2). (The KDE uses the sample-point ``h_j`` per bin; the local-log fit
   uses one balloon ``h(x)`` at the query.)
+- **`bounds`** — the support of the density, passed as the tuple `(lower, upper)` (e.g. `(0.0, Inf)` for
+  a positive quantity such as a droplet radius), or `nothing` (default, unbounded). When given, the
+  degree-0 KDE is **renormalized** by the kernel mass inside the support: ``\\hat f(x) \\big/ \\int_a^b K_h(x-u)\\,\\mathrm{d}u`` (Jones 1993). This corrects the boundary bias that otherwise drops the estimate
+  to ``\\approx`` half the true value at the edge. (Degree ``\\ge 1`` is already boundary-adaptive, so
+  `bounds` is a degree-0 option.)
 
 The four corners (fixed/variable ``\\times`` KDE/local-log) and everything between are one call. `kernel`
 is any ``K`` with ``\\int K = 1`` ([`gaussian_kernel`](@ref GBGStreamingStatistics.DensityEstimation.gaussian_kernel)
@@ -236,11 +257,16 @@ julia> round(density(h, 0.5; h = 0.2); digits = 4)
 References: I. S. Abramson (1982), [*On bandwidth variation in kernel estimates—a square root
 law*](https://doi.org/10.1214/aos/1176345986), Ann. Statist. 10(4) (variable bandwidth);
 C. R. Loader (1996), [*Local likelihood density estimation*](https://doi.org/10.1214/aos/1032298287),
-Ann. Statist. 24(4) (the local-log-polynomial estimator).
+Ann. Statist. 24(4) (the local-log-polynomial estimator); M. C. Jones (1993), [*Simple boundary
+correction for kernel density estimation*](https://doi.org/10.1007/BF00147776), Statist. Comput. 3(3)
+(the `bounds` renormalization).
 """
 function density(summary::Histogram1D, x::Real; degree::Integer = 0, h = nothing,
-                 adaptive::Bool = false, kernel = gaussian_kernel)
+                 adaptive::Bool = false, kernel = gaussian_kernel, bounds = nothing)
   degree ≥ 0 || throw(ArgumentError("degree must be ≥ 0 (got $degree)"))
+  (bounds === nothing || degree == 0) ||
+    throw(ArgumentError("`bounds` (boundary renormalization) applies to the degree-0 KDE; " *
+                        "degree ≥ 1 (local-log) is already boundary-adaptive (got degree = $degree)"))
   n = _total(summary)
   iszero(n) && return 0.0
   hh = h === nothing ? _normal_reference_h(summary, kernel, degree) : float(h)
@@ -248,10 +274,12 @@ function density(summary::Histogram1D, x::Real; degree::Integer = 0, h = nothing
   counts = Array(summary.counts)
   centers = [_bincenter(summary, j) for j in 1:length(counts)]
   if degree == 0 && !adaptive
-    return _kde_h(counts, centers, n, x, hh, kernel)
+    fx = _kde_h(counts, centers, n, x, hh, kernel)
+    return bounds === nothing ? fx : fx / _kernel_mass(kernel, x, hh, bounds[1], bounds[2])
   elseif degree == 0
     hj, _ = _abramson(counts, centers, n, hh, kernel)
-    return _kde_adaptive(counts, centers, hj, n, x, kernel)
+    fx = _kde_adaptive(counts, centers, hj, n, x, kernel)
+    return bounds === nothing ? fx : fx / _kernel_mass(kernel, x, hh, bounds[1], bounds[2])
   end
   g = adaptive ? _abramson(counts, centers, n, hh, kernel)[2] : 1.0
   f0 = _kde_h(counts, centers, n, x, hh, kernel)
@@ -260,8 +288,11 @@ function density(summary::Histogram1D, x::Real; degree::Integer = 0, h = nothing
 end
 
 function density(summary::Histogram1D, xs::AbstractVector; degree::Integer = 0, h = nothing,
-                 adaptive::Bool = false, kernel = gaussian_kernel)
+                 adaptive::Bool = false, kernel = gaussian_kernel, bounds = nothing)
   degree ≥ 0 || throw(ArgumentError("degree must be ≥ 0 (got $degree)"))
+  (bounds === nothing || degree == 0) ||
+    throw(ArgumentError("`bounds` (boundary renormalization) applies to the degree-0 KDE; " *
+                        "degree ≥ 1 (local-log) is already boundary-adaptive (got degree = $degree)"))
   n = _total(summary)
   iszero(n) && return zeros(Float64, length(xs))
   hh = h === nothing ? _normal_reference_h(summary, kernel, degree) : float(h)
@@ -269,10 +300,12 @@ function density(summary::Histogram1D, xs::AbstractVector; degree::Integer = 0, 
   counts = Array(summary.counts)
   centers = [_bincenter(summary, j) for j in 1:length(counts)]
   if degree == 0 && !adaptive
-    return [_kde_h(counts, centers, n, x, hh, kernel) for x in xs]
+    fxs = [_kde_h(counts, centers, n, x, hh, kernel) for x in xs]
+    return bounds === nothing ? fxs : [f / _kernel_mass(kernel, x, hh, bounds[1], bounds[2]) for (f, x) in zip(fxs, xs)]
   elseif degree == 0
     hj, _ = _abramson(counts, centers, n, hh, kernel)
-    return [_kde_adaptive(counts, centers, hj, n, x, kernel) for x in xs]
+    fxs = [_kde_adaptive(counts, centers, hj, n, x, kernel) for x in xs]
+    return bounds === nothing ? fxs : [f / _kernel_mass(kernel, x, hh, bounds[1], bounds[2]) for (f, x) in zip(fxs, xs)]
   end
   b = inv(summary.scale)
   g = adaptive ? _abramson(counts, centers, n, hh, kernel)[2] : 1.0

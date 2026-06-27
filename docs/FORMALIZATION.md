@@ -94,7 +94,9 @@ The implemented entries are test-linked; a forthcoming operation gets its entry 
   **local Poisson** likelihood — ``\log \mathbb{E}[n_j] = \log(nb) + \sum_{l \le d} \beta_l (c_j-x)^l``,
   weights ``K((c_j-x)/h_j)``, by Newton/IRLS — and report ``\hat f(x) = e^{\hat\beta_0}`` (Loader 1996).
   Degree 1 is exact for an exponential density (tracks exponential tails), degree 2 for a Gaussian. The
-  two knobs compose.
+  two knobs compose. On a **bounded support** the degree-0 KDE accepts `bounds = (a, b)`, renormalizing
+  by the kernel mass ``\int_a^b K_h(x-u)\,\mathrm{d}u`` inside the support (Jones 1993) to remove the
+  ``O(1)`` boundary bias that otherwise halves the estimate at the edge.
 - **Test.** `test/densityestimation.jl` (every grid corner recovers the ``N(0,1)`` pdf into the tail and
   integrates to ``\approx 1``; the variable bandwidth resolves the sharp Laplace cusp the fixed KDE
   oversmooths; degree-1 beats the KDE in a Laplace tail).

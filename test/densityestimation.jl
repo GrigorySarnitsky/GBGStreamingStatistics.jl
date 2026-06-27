@@ -118,3 +118,27 @@ end
   @test_throws ArgumentError density_se(hg, 0.0; h = -1.0)
   @test_throws ArgumentError density_se(hg, 0.0; degree = 2)
 end
+
+@testset "boundary correction (bounds, §4.1)" begin
+  # exponential on [0, ∞) (like droplet radii): the uncorrected KDE drops to ≈ half the true value at the
+  # edge; the renormalized estimate (bounds = (0, Inf)) recovers it (Jones 1993)
+  Random.seed!(41)
+  h = Histogram1D(0.0, 12.0, 1200); observe!(h, -log.(rand(400_000)))
+  expf(x) = exp(-x)
+  @test abs(density(h, 0.02; bounds = (0.0, Inf)) - expf(0.02)) < abs(density(h, 0.02) - expf(0.02))
+  @test density(h, 0.02; bounds = (0.0, Inf)) ≈ expf(0.02)  atol = 7e-2     # corrected ≈ true at the edge
+  @test density(h, 0.02) < 0.7                                              # uncorrected ≈ half (true 0.98)
+
+  # interior is unchanged (the kernel mass is ≈ 1 far from the edge)
+  @test density(h, 2.0; bounds = (0.0, Inf)) ≈ density(h, 2.0)  rtol = 1e-6
+  # the correction preserves normalization (integrates to ≈ 1 over the support)
+  xs = range(0.0, 12.0; length = 2001)
+  @test sum(density(h, collect(xs); bounds = (0.0, Inf))) * step(xs) ≈ 1  atol = 2e-2
+  # kernel-general: Epanechnikov also lifts the boundary estimate
+  @test density(h, 0.05; bounds = (0.0, Inf), kernel = epanechnikov_kernel) >
+        density(h, 0.05; kernel = epanechnikov_kernel)
+
+  # vector form; degree ≥ 1 + bounds is rejected (the local-log is already boundary-adaptive)
+  @test density(h, [0.05, 2.0]; bounds = (0.0, Inf)) isa AbstractVector
+  @test_throws ArgumentError density(h, 0.1; degree = 1, bounds = (0.0, Inf))
+end
