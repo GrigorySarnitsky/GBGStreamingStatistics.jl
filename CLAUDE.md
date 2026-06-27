@@ -54,7 +54,8 @@ estimands.
   recovered post hoc by the **shift formula**. Owns `KernelAbstractions`, `Atomix`.
 - `src/DensityEstimation.jl` — §4.1 `density` ``\equiv f_X`` — one call over the binned KDE, the
   local-log-polynomial (`degree`), and the Abramson variable bandwidth (`adaptive`) — plus
-  `gaussian_kernel` / `epanechnikov_kernel`.
+  `gaussian_kernel` / `epanechnikov_kernel` and `density_se` (the pointwise variability band
+  ``\mathrm{SE}(x) = \sqrt{R(K)\hat f_h(x)/(nh)}``).
 - `src/Regression.jl` — §4.2 `conditional_mean` ``\equiv m(x)``, `conditional_variance`
   ``\equiv \sigma^2(x)`` (local-linear, Fan & Gijbels; Nadaraya–Watson kept for reference). The
   **estimand-first reference module** — write its docstrings to the documentation policy below.

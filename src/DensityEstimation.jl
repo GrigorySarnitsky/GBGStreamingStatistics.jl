@@ -10,7 +10,7 @@ using LinearAlgebra
 
 using ..Histograms: Histogram1D, _nbins, _bincenter, _total, _sample_std
 
-export density, gaussian_kernel, epanechnikov_kernel
+export density, density_se, gaussian_kernel, epanechnikov_kernel
 
 
 """
@@ -280,6 +280,59 @@ function density(summary::Histogram1D, xs::AbstractVector; degree::Integer = 0, 
             f0 = _kde_h(counts, centers, n, x, hh, kernel)
             _local_log(counts, centers, _balloon(hh, g, f0, adaptive), n, b, x, degree, kernel, f0)
           end for x in xs]
+end
+
+
+"""
+    density_se(summary::Histogram1D, x; h = nothing, kernel = gaussian_kernel, degree = 0)   # ≡ SE[f̂(x)]
+
+**Estimand.** the pointwise standard error of the density estimator
+[`density`](@ref GBGStreamingStatistics.DensityEstimation.density) at ``x`` — ``\\mathrm{SE}(x) =
+\\sqrt{\\operatorname{Var}\\hat f_h(x)}`` with the kernel-density asymptotic variance
+
+```math
+\\operatorname{Var}\\hat f_h(x) \\approx \\frac{R(K)\\,f_X(x)}{n h}, \\qquad R(K) = \\int K^2.
+```
+
+**Estimator.** ``\\sqrt{R(K)\\,\\hat f_h(x)/(n h)}`` from the recovered ``\\hat f_h(x)``, the count
+``n``, the bandwidth ``h`` (default the §4.5 normal reference), and ``R(K)`` by quadrature. The
+pointwise **variability band** is ``\\hat f_h(x) \\pm z\\,\\mathrm{SE}(x)`` (``z = 1.96`` for 95\\%) — a
+band about ``\\mathbb{E}\\hat f_h``, so it covers ``f_X`` where the ``O(h^2)`` smoothing bias is small
+and narrows that coverage at a sharp mode or in a tail. Degree 0/1 (the KDE variance; degree ``\\ge 2``
+and the variable bandwidth are a coverage gap); a vector of query points returns a vector.
+
+```jldoctest
+julia> h = Histogram1D(-6.0, 6.0, 600);
+
+julia> observe!(h, [-0.4, 0.1, 0.2, 0.9, 1.3]);
+
+julia> density_se(h, 0.5) > 0
+true
+```
+"""
+function density_se(summary::Histogram1D, x::Real; h = nothing,
+                    kernel = gaussian_kernel, degree::Integer = 0)
+  (degree == 0 || degree == 1) ||
+    throw(ArgumentError("density_se is a degree-0/1 (KDE) variability band; degree ≥ 2 is a coverage gap (got degree = $degree)"))
+  n = _total(summary)
+  iszero(n) && return 0.0
+  hh = h === nothing ? _normal_reference_h(summary, kernel, degree) : float(h)
+  hh > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
+  fx = density(summary, x; h = hh, kernel = kernel, degree = degree)
+  return sqrt(_quad(u -> kernel(u)^2) * max(fx, 0.0) / (n * hh))
+end
+
+function density_se(summary::Histogram1D, xs::AbstractVector; h = nothing,
+                    kernel = gaussian_kernel, degree::Integer = 0)
+  (degree == 0 || degree == 1) ||
+    throw(ArgumentError("density_se is a degree-0/1 (KDE) variability band; degree ≥ 2 is a coverage gap (got degree = $degree)"))
+  n = _total(summary)
+  iszero(n) && return zeros(Float64, length(xs))
+  hh = h === nothing ? _normal_reference_h(summary, kernel, degree) : float(h)
+  hh > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
+  RK = _quad(u -> kernel(u)^2)
+  fxs = density(summary, xs; h = hh, kernel = kernel, degree = degree)
+  return [sqrt(RK * max(f, 0.0) / (n * hh)) for f in fxs]
 end
 
 end # module DensityEstimation

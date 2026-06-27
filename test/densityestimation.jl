@@ -89,3 +89,32 @@ end
   @test_throws ArgumentError density(ha, 0.0; h = -1.0)                      # bad bandwidth
   @test_throws ArgumentError density(ha, 0.0; degree = -1)                   # bad degree
 end
+
+@testset "density_se (pointwise variability band, §4.1)" begin
+  Random.seed!(31)
+  hg = Histogram1D(-8.0, 8.0, 1600); observe!(hg, randn(400_000))
+  n = 400_000; phi(x) = exp(-x^2 / 2) / sqrt(2π)
+  RK = 1 / (2 * sqrt(π))                                  # R(K) for the Gaussian
+
+  # the SE is exactly sqrt(R(K)·f̂/(n h))
+  bw = bandwidth(hg)
+  for x in (0.0, 1.0, 2.0)
+    @test density_se(hg, x; h = bw) ≈ sqrt(RK * density(hg, x; h = bw) / (n * bw))  rtol = 1e-6
+  end
+
+  # the 95% band f̂ ± 1.96·SE covers the truth across the interior (aggregate; bias dips it at mode/tail)
+  xs = -2.5:0.25:2.5
+  covered = count(x -> abs(density(hg, x; h = bw) - phi(x)) ≤ 1.96 * density_se(hg, x; h = bw), xs)
+  @test covered / length(xs) ≥ 0.75
+
+  # more data ⇒ smaller SE
+  Random.seed!(32); hs = Histogram1D(-8.0, 8.0, 1600); observe!(hs, randn(40_000))
+  @test density_se(hg, 0.0) < density_se(hs, 0.0)
+
+  # vector form; empty; bad inputs
+  ses = density_se(hg, [0.0, 1.0, 2.0])
+  @test ses isa AbstractVector && length(ses) == 3 && all(>(0), ses)
+  @test density_se(Histogram1D(-1.0, 1.0, 4), 0.0) == 0.0
+  @test_throws ArgumentError density_se(hg, 0.0; h = -1.0)
+  @test_throws ArgumentError density_se(hg, 0.0; degree = 2)
+end

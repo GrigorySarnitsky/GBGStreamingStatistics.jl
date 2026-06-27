@@ -96,8 +96,14 @@ The implemented entries are test-linked; a forthcoming operation gets its entry 
   Degree 1 is exact for an exponential density (tracks exponential tails), degree 2 for a Gaussian. The
   two knobs compose.
 - **Test.** `test/densityestimation.jl` (every grid corner recovers the ``N(0,1)`` pdf into the tail and
-  integrates to ``\approx 1``; the variable bandwidth beats the fixed one at ``x = 3``; degree-1 beats
-  the KDE in a Laplace tail).
+  integrates to ``\approx 1``; the variable bandwidth resolves the sharp Laplace cusp the fixed KDE
+  oversmooths; degree-1 beats the KDE in a Laplace tail).
+
+## Pointwise standard error (§4.1) — `density_se`
+
+- **Estimand.** the standard error of the density estimator, ``\mathrm{SE}(x) = \sqrt{\operatorname{Var}\hat f_h(x)}`` with the KDE asymptotic variance ``\operatorname{Var}\hat f_h(x) \approx R(K)\,f_X(x)/(nh)``.
+- **Estimator.** ``\sqrt{R(K)\,\hat f_h(x)/(nh)}`` from the recovered ``\hat f_h``, ``n``, ``h``, and ``R(K) = \int K^2`` (by quadrature). The ``z``-band ``\hat f_h(x) \pm z\,\mathrm{SE}(x)`` is a variability band about ``\mathbb{E}\hat f_h``, covering ``f_X`` where the ``O(h^2)`` smoothing bias is small. Degree 0/1 (the variable bandwidth and degree ``\ge 2`` are a coverage gap).
+- **Test.** `test/densityestimation.jl` (the SE equals ``\sqrt{R(K)\hat f/(nh)}`` exactly; the 95\% band covers the ``N(0,1)`` truth over ``\ge 75\%`` of the interior; the SE shrinks with ``n``; vector / empty / error forms).
 
 ## Bandwidth selection (§4.5) — `bandwidth`
 

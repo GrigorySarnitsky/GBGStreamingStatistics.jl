@@ -86,7 +86,7 @@ verbatim by every consumer) and an **estimator upper half** (the estimands):
   and `observe_pairs!` for two-time statistics.
 - [`DensityEstimation`](api/DensityEstimation.md): the marginal density `density` ``\equiv f_X`` — one
   call over the binned KDE, the local-log-polynomial (`degree`), and the Abramson variable bandwidth
-  (`adaptive`, for tails).
+  (`adaptive`, for tails) — plus `density_se`, the pointwise variability band.
 - [`Regression`](api/Regression.md): the conditional mean `conditional_mean` ``\equiv m(x)`` and
   variance `conditional_variance` ``\equiv \sigma^2(x)`` (local-linear).
 - [`ConditionalDensity`](api/ConditionalDensity.md): the conditional density `conditional_density`
