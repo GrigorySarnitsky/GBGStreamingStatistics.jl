@@ -93,7 +93,9 @@ using Random, Statistics
     # steeper than degree 0 — the higher-order rate the degree-aware bandwidth delivers
     @test s2 ≈ -0.89  atol = 0.10
     @test s2 < s0
-    # the Abramson variable bandwidth shares the degree-0 order (it lowers the constant, not the rate)
+    # the Abramson variable bandwidth shares the degree-0 order (it trades bias for variance pointwise,
+    # not the asymptotic rate; whether the constant improves is density-dependent — it does not for this
+    # smooth Gaussian, but does for peaked / heavy-tailed densities, per the ISE split commentary)
     @test sa ≈ -0.80  atol = 0.15
   end
 end

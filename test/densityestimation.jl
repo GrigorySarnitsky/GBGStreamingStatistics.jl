@@ -70,16 +70,16 @@ end
   @test sum(density(ha, xs; degree = 2)) * dx ≈ 1 atol = 2e-2
   @test sum(density(ha, xs; degree = 1)) * dx ≈ 1 atol = 3e-2
 
-  # the variable bandwidth beats the fixed one in the tail (the KDE oversmooths it upward)
-  bw = bandwidth(ha)
-  @test abs(density(ha, 3.0; adaptive = true) - phi(3.0)) < abs(density(ha, 3.0; h = bw) - phi(3.0))
-
-  # local-log-linear is exact for an exponential → it beats the KDE in a Laplace tail
+  # local-log-linear is exact for an exponential → it beats the KDE in a Laplace tail; and the variable
+  # bandwidth, narrowing at the sharp Laplace cusp, resolves the peak the fixed KDE oversmooths. (The
+  # adaptive payoff is for peaked / heavy-tailed densities — on a smooth Gaussian the wide tail kernel
+  # instead oversmears the light tail and loses overall; see the ISE split in test/density_convergence.jl.)
   Random.seed!(2)
   hl = Histogram1D(-12.0, 12.0, 2400)
   observe!(hl, (-log.(rand(400_000))) .* rand((-1.0, 1.0), 400_000))   # Laplace(0, 1)
   flap(x) = 0.5 * exp(-abs(x))
   @test abs(density(hl, 5.0; degree = 1) - flap(5.0)) < abs(density(hl, 5.0) - flap(5.0))
+  @test abs(density(hl, 0.0; adaptive = true) - flap(0.0)) < abs(density(hl, 0.0) - flap(0.0))   # cusp
 
   # h defaults to Silverman; vector form; empty; bad inputs
   @test density(ha, 0.0) ≈ density(ha, 0.0; h = bandwidth(ha))               # default h == Silverman
