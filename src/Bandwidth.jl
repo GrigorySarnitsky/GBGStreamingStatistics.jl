@@ -8,45 +8,65 @@ module Bandwidth
 using AbstractFFTs
 using FFTW
 
-using ..Histograms: Histogram1D, _total, _sample_std
+using ..Histograms: Histogram1D, _total
+using ..DensityEstimation: gaussian_kernel, _normal_reference_h
 
 export bandwidth
 
 
 """
-    bandwidth(summary::Histogram1D; rule = :silverman) -> h
+    bandwidth(summary::Histogram1D; rule = :normal, kernel = gaussian_kernel, degree = 0) -> h
 
-**Estimand.** the MSE-optimal smoothing bandwidth for the marginal density of `summary`.
+**Estimand.** the AMISE-optimal smoothing bandwidth for the marginal density
+[`density`](@ref GBGStreamingStatistics.DensityEstimation.density) of `summary` — the ``h`` minimising
+``\\mathrm{MISE}(\\hat f_h) = \\int \\mathbb{E}\\bigl[(\\hat f_h(x) - f_X(x))^2\\bigr]\\,\\mathrm{d}x``
+for the smoothing `kernel` ``K`` and local-polynomial `degree` ``d``.
 
-**Estimator** (global plug-in rule of thumb). From the recovered standard deviation ``\\hat\\sigma``
-of the binned variable and the sample size ``n``,
+**Estimator** (`rule = :normal`, the kernel- and degree-aware normal-reference plug-in). From the
+recovered ``\\hat\\sigma`` and the sample size ``n``,
 
 ```math
-h = c_{\\text{rule}}\\,\\hat\\sigma\\,n^{-1/5},
-\\qquad
-c_{\\texttt{silverman}} = (4/3)^{1/5} \\approx 1.0592,\\quad c_{\\texttt{scott}} = 1,
+h = C(K, d)\\,\\hat\\sigma\\,n^{-1/(2p+1)},
 ```
 
-the AMISE-optimal bandwidth for a Gaussian kernel under a Gaussian reference (`rule = :silverman`,
-the default; `:scott` drops the constant). Both read ``\\hat\\sigma`` and ``n`` back from the *one*
-stored summary, post hoc.
+where ``p`` is the estimator's leading **bias order** — ``p = 2`` for `degree` 0 or 1 (the rate
+``n^{-1/5}``), ``p = 4`` for `degree` 2 or 3 (a higher-order, ``O(h^4)``, fit, hence the wider, more
+slowly shrinking rate ``n^{-1/9}``). At `degree` 0/1 the constant is the **canonical bandwidth**
 
-The **response-aware local plug-in** ``h^\\star(x) = \\bigl[R(K)\\,\\sigma^2(x) / (\\mu_2(K)^2\\,
-m''(x)^2\\, f_X(x)\\, n)\\bigr]^{1/5}`` — which gives each response channel its own bandwidth from the
-conditional variance ``\\sigma^2(x)`` and regression curvature ``m''(x)`` — is forthcoming with the
-conditional estimators (`CLAUDE.md` roadmap); here ``R(K) = \\int K^2`` and
-``\\mu_2(K) = \\int u^2 K(u)\\,\\mathrm{d}u``.
+```math
+C(K, d) = (8\\sqrt{\\pi}/3)^{1/5}\\,\\delta(K),
+\\qquad
+\\delta(K) = \\bigl[R(K)/\\mu_2(K)^2\\bigr]^{1/5},
+\\quad R(K) = \\int K^2,\\ \\mu_2(K) = \\int u^2 K(u)\\,\\mathrm{d}u,
+```
 
-Reference: B. W. Silverman (1986), [*Density Estimation for Statistics and Data Analysis*](https://doi.org/10.1201/9781315140919), Chapman &
-Hall.
+and at `degree` 2/3 the analogous fourth-order **equivalent-kernel** constant (Loader 1996). ``R(K)``
+and ``\\mu_2(K)`` are computed by quadrature, so any ``K`` is supported. For the Gaussian kernel at
+`degree` 0 this is **Silverman's rule** ``(4/3)^{1/5}\\hat\\sigma\\,n^{-1/5}``; for the Epanechnikov
+kernel it is ``\\approx 2.34\\,\\hat\\sigma\\,n^{-1/5}`` (``2.21\\times`` the Gaussian ``h``). Every
+input is read back from the *one* stored summary, post hoc.
+
+The data-driven **Sheather–Jones** plug-in (`rule = :sj`) and the fit-based **likelihood-CV / AIC**
+selectors (`rule = :lcv`, `:aic`) are forthcoming (`CLAUDE.md` roadmap), as is the response-aware
+*local* plug-in ``h^\\star(x) = \\bigl[R(K)\\,\\sigma^2(x) / (\\mu_2(K)^2\\, m''(x)^2\\, f_X(x)\\,
+n)\\bigr]^{1/5}`` — each response channel its own bandwidth from the conditional variance
+``\\sigma^2(x)`` and regression curvature ``m''(x)``.
+
+References: B. W. Silverman (1986), [*Density Estimation for Statistics and Data
+Analysis*](https://doi.org/10.1201/9781315140919), Chapman & Hall (the normal-reference rule and the
+canonical bandwidth); C. R. Loader (1996), [*Local likelihood density
+estimation*](https://doi.org/10.1214/aos/1032298287), Ann. Statist. 24(4) (the degree / equivalent-
+kernel factor).
 """
-function bandwidth(summary::Histogram1D; rule::Symbol = :silverman)
+function bandwidth(summary::Histogram1D; rule::Symbol = :normal,
+                   kernel = gaussian_kernel, degree::Integer = 0)
   n = _total(summary)
   n ≥ 2 || throw(ArgumentError("bandwidth needs at least 2 samples (got n = $(Int(n)))"))
-  c = rule === :silverman ? (4 / 3)^(1 / 5) :
-      rule === :scott     ? 1.0 :
-      throw(ArgumentError("unknown bandwidth rule :$rule (expected :silverman or :scott)"))
-  return c * _sample_std(summary) * float(n)^(-1 / 5)
+  degree ≥ 0 || throw(ArgumentError("degree must be ≥ 0 (got $degree)"))
+  if rule === :normal
+    return _normal_reference_h(summary, kernel, degree)
+  end
+  throw(ArgumentError("unknown bandwidth rule :$rule (expected :normal)"))
 end
 
 end # module Bandwidth

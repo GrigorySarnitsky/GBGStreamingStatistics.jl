@@ -14,7 +14,7 @@ const H = Histograms
     bw = bandwidth(h)
     @test bw > 0
     @test bw ≈ (4 / 3)^(1 / 5) * H._sample_std(h) * float(H._total(h))^(-1 / 5)
-    @test bandwidth(h; rule = :scott) ≈ bw / (4 / 3)^(1 / 5)
+    @test bandwidth(h; kernel = epanechnikov_kernel) ≈ 2.2138 * bw  rtol = 2e-3   # kernel-aware: δ(Epan)/δ(Gauss)
 
     truepdf(x) = exp(-x^2 / 2) / sqrt(2π)
     for x in -3.0:0.5:3.0

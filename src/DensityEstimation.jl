@@ -29,16 +29,58 @@ The standard Gaussian smoothing kernel ``K(u) = e^{-u^2/2}/\\sqrt{2\\pi}`` (``\\
 The **Epanechnikov** kernel ``K(u) = \\tfrac{3}{4}(1 - u^2)`` for ``|u| \\le 1`` (zero outside) — the
 MSE-optimal second-order kernel (``\\int K = 1``, ``\\mu_2(K) = 1/5``, roughness ``R(K) = 3/5``). Pass
 it as `kernel = epanechnikov_kernel`; its compact support touches only the bins within ``h`` of the
-query point. Note [`bandwidth`](@ref GBGStreamingStatistics.Bandwidth.bandwidth) returns a
-**Gaussian**-tuned ``h`` — the AMISE-optimal Epanechnikov bandwidth is ``\\approx 2.21\\times`` larger,
-so scale it (or supply ``h`` directly).
+query point. [`bandwidth`](@ref GBGStreamingStatistics.Bandwidth.bandwidth) is **kernel-aware**, so it
+returns the matched Epanechnikov ``h \\approx 2.34\\,\\hat\\sigma\\,n^{-1/5}`` (``2.21\\times`` the
+Gaussian ``h``) automatically — no manual rescaling.
 """
 @inline epanechnikov_kernel(u) = abs(u) < 1 ? 0.75 * (1 - u^2) : 0.0
 
 
-# Silverman pilot/bandwidth from the recovered marginal ``\hat\sigma`` — the default `h`.
-_silverman(summary::Histogram1D) =
-  (4 / 3)^(1 / 5) * _sample_std(summary) * float(_total(summary))^(-1 / 5)
+# --- default bandwidth: the kernel- and degree-aware normal-reference rule (§4.5) ---
+# Kernel constants come from numerical quadrature of K, so any user-supplied `kernel` works: integrate
+# g over [−L, L] by the trapezoidal rule on a fixed fine grid. The shipped kernels sit well inside it
+# (Gaussian ≈ ±8, Epanechnikov ±1); this runs once per `density`/`bandwidth` call, off the hot path.
+function _quad(g, L::Float64 = 16.0, npts::Int = 32_769)
+  Δ = 2L / (npts - 1)
+  acc = 0.5 * (g(-L) + g(L))
+  @inbounds for i in 1:npts-2
+    acc += g(-L + i * Δ)
+  end
+  return acc * Δ
+end
+
+
+_doublefactorial(k::Integer) = k ≤ 1 ? 1.0 : k * _doublefactorial(k - 2)
+
+
+# The canonical kernel×degree factor Wikk(K, deg) and the leading bias order p — the same grouping as
+# locfit's `Wikk` (Loader 1996). Degree 0,1 share the second-order kernel: Wikk = R(K)/μ₂(K)², p = 2.
+# Degree 2,3 use the fourth-order *equivalent* kernel K⋆ = K·(n₄ − v²n₂)/(n₀n₄ − n₂²): Wikk =
+# (4!²/8)·R(K⋆)/μ₄(K⋆)², p = 4 — with kernel moments nₖ = ∫vᵏK. Higher degree is a recorded coverage gap.
+function _wikk(kernel, degree::Integer)
+  n0 = _quad(kernel)
+  n2 = _quad(v -> v^2 * kernel(v))
+  if degree == 0 || degree == 1
+    return _quad(v -> kernel(v)^2) / n2^2, 2
+  elseif degree == 2 || degree == 3
+    n4 = _quad(v -> v^4 * kernel(v))
+    determinant = n0 * n4 - n2^2
+    Kstar = v -> kernel(v) * (n4 - v^2 * n2) / determinant
+    return (factorial(4)^2 / 8) * _quad(v -> Kstar(v)^2) / _quad(v -> v^4 * Kstar(v))^2, 4
+  end
+  throw(ArgumentError("normal-reference bandwidth implemented for degree ≤ 3 (got degree = $degree)"))
+end
+
+
+# The kernel- and degree-aware normal-reference (Gaussian-reference) bandwidth — the default `h`:
+#   h = C(K, deg)·σ̂·n^(−1/(2p+1)),   C = [Wikk(K, deg)·2^(p+1)·√π / (2p−1)!!]^(1/(2p+1)),
+# recovered from σ̂ and n. Reduces to Silverman (4/3)^(1/5)·σ̂·n^(−1/5) for the Gaussian kernel at
+# degree 0/1; degree 2 is a higher-order (O(h⁴)) fit, so it widens to the n^(−1/9) rate. See `bandwidth`.
+function _normal_reference_h(summary::Histogram1D, kernel, degree::Integer)
+  wikk, p = _wikk(kernel, degree)
+  C = (wikk * 2.0^(p + 1) * sqrt(π) / _doublefactorial(2p - 1))^(1 / (2p + 1))
+  return C * _sample_std(summary) * float(_total(summary))^(-1 / (2p + 1))
+end
 
 
 # Fixed-bandwidth binned KDE at x (single h) — the degree-0 fixed estimator and the adaptive pilot.
@@ -170,8 +212,11 @@ knobs:
 - **`adaptive`** — the bandwidth. `false` (default) uses the fixed `h`; `true` uses the **Abramson**
   variable bandwidth — the kernel width scales by ``(\\tilde f/g)^{-1/2}`` (a pilot ``\\tilde f`` at `h`,
   ``g`` its geometric mean), widening in the sparse tails: far less tail variance (Abramson 1982). `h`
-  is the fixed bandwidth or the pilot; it **defaults to the global Silverman rule**. (The KDE uses the
-  sample-point ``h_j`` per bin; the local-log fit uses one balloon ``h(x)`` at the query.)
+  is the fixed bandwidth or the pilot; it **defaults to the kernel- and degree-aware normal-reference
+  rule** ([`bandwidth`](@ref GBGStreamingStatistics.Bandwidth.bandwidth), §4.5 — Silverman's
+  ``(4/3)^{1/5}\\hat\\sigma\\,n^{-1/5}`` for the Gaussian kernel at degree 0/1, wider at the
+  ``n^{-1/9}`` rate for degree 2). (The KDE uses the sample-point ``h_j`` per bin; the local-log fit
+  uses one balloon ``h(x)`` at the query.)
 
 The four corners (fixed/variable ``\\times`` KDE/local-log) and everything between are one call. `kernel`
 is any ``K`` with ``\\int K = 1`` ([`gaussian_kernel`](@ref GBGStreamingStatistics.DensityEstimation.gaussian_kernel)
@@ -198,7 +243,7 @@ function density(summary::Histogram1D, x::Real; degree::Integer = 0, h = nothing
   degree ≥ 0 || throw(ArgumentError("degree must be ≥ 0 (got $degree)"))
   n = _total(summary)
   iszero(n) && return 0.0
-  hh = h === nothing ? _silverman(summary) : float(h)
+  hh = h === nothing ? _normal_reference_h(summary, kernel, degree) : float(h)
   hh > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
   counts = Array(summary.counts)
   centers = [_bincenter(summary, j) for j in 1:length(counts)]
@@ -219,7 +264,7 @@ function density(summary::Histogram1D, xs::AbstractVector; degree::Integer = 0, 
   degree ≥ 0 || throw(ArgumentError("degree must be ≥ 0 (got $degree)"))
   n = _total(summary)
   iszero(n) && return zeros(Float64, length(xs))
-  hh = h === nothing ? _silverman(summary) : float(h)
+  hh = h === nothing ? _normal_reference_h(summary, kernel, degree) : float(h)
   hh > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
   counts = Array(summary.counts)
   centers = [_bincenter(summary, j) for j in 1:length(counts)]

@@ -94,6 +94,13 @@ The implemented entries are test-linked; a forthcoming operation gets its entry 
   integrates to ``\approx 1``; the variable bandwidth beats the fixed one at ``x = 3``; degree-1 beats
   the KDE in a Laplace tail).
 
+## Bandwidth selection (§4.5) — `bandwidth`
+
+- **Estimand.** the AMISE-optimal bandwidth ``h^\star = \arg\min_h \int \mathbb{E}[(\hat f_h(x) - f_X(x))^2]\,\mathrm{d}x`` for a kernel ``K`` and local-polynomial degree ``d`` — the asymptotically optimal smoothing scale, itself ``O(n^{-1/(2p+1)})`` (a finite-sample selector, not a fixed population constant).
+- **Estimator** (`rule = :normal`, the kernel- and degree-aware normal-reference). ``h = C(K,d)\,\hat\sigma\,n^{-1/(2p+1)}`` with bias order ``p = 2`` (degree 0/1) or ``p = 4`` (degree 2/3), and constant ``C(K,d) = [W_{ikk}(K,d)\,2^{p+1}\sqrt{\pi}/(2p-1)!!]^{1/(2p+1)}``. The canonical factor is ``W_{ikk}(K,d) = R(K)/\mu_2(K)^2`` at degree 0/1, and the fourth-order equivalent-kernel analog ``W_{ikk} = (4!^2/8)\,R(K^\star)/\mu_4(K^\star)^2`` with ``K^\star = K\,(n_4 - v^2 n_2)/(n_0 n_4 - n_2^2)`` at degree 2/3 (Loader 1996); here ``R(K) = \int K^2``, ``\mu_2(K) = \int u^2 K`` (by quadrature) and ``n_k = \int v^k K``. ``\hat\sigma`` and ``n`` are read from the one summary.
+- **Consistency claim.** with ``\hat\sigma \to \sigma`` and the Gaussian reference ``R(f^{(p)}) = (2p-1)!!/(2^{p+1}\sqrt{\pi}\,\sigma^{2p+1})``, ``C(K,d)`` is the exact AMISE-optimal constant: degree 0/1 gives ``h \sim n^{-1/5}`` (MISE ``\sim n^{-4/5}``), degree 2 the higher-order ``h \sim n^{-1/9}`` (MISE ``\sim n^{-8/9}``); the Gaussian/degree-0 case is Silverman ``(4/3)^{1/5}``, the Epanechnikov ``\approx 2.34``.
+- **Test.** `test/bandwidth.jl` (Gaussian degree 0 reproduces Silverman, degree 1 equals degree 0, the Epanechnikov ``h`` is ``2.214\times`` the Gaussian, degree 2 matches the closed-form ``n^{-1/9}`` rule and exceeds degree 0; coverage-gap and sample-size errors) and `test/oracles.jl` (the kernel-aware ratio on the ``N(0,1)`` oracle).
+
 ## Local-linear conditional mean (§4.2) — `conditional_mean`
 
 - **Estimand.** ``m(x) = \mathbb{E}[Y \mid X = x] = \int y\, f_{Y\mid X}(y \mid x)\,\mathrm{d}y``,

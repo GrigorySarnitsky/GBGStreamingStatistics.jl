@@ -352,9 +352,9 @@ correction** (Rydin Gorjão et al. 2021) that inverts the ``\tau``-expansion rat
 
 ### 4.5 Bandwidth selection (cross-cutting)
 
-**Estimand.** the MSE-optimal bandwidth for the requested channel.
-Global rules (Silverman; Sheather–Jones 1991) for marginals; the load-bearing one for conditional
-moments is the **response-aware *local* plug-in** that answered the user's original question:
+**Estimand.** the MSE-optimal (AMISE) bandwidth for the requested channel — the ``h`` minimising ``\int \mathbb{E}[(\hat f_h - f_X)^2]`` for a kernel ``K`` and local-polynomial degree ``d``.
+
+For marginals, `bandwidth` (§4.1) defaults to the **kernel- and degree-aware normal-reference rule** ``h = C(K,d)\,\hat\sigma\,n^{-1/(2p+1)}``: the bias order is ``p = 2`` at degree 0/1 (rate ``n^{-1/5}``) and ``p = 4`` at degree 2/3 (a higher-order ``O(h^4)`` fit, so the wider rate ``n^{-1/9}``), and the kernel enters only through the canonical factor ``C(K,d) = (8\sqrt{\pi}/3)^{1/5}[R(K)/\mu_2(K)^2]^{1/5}`` at degree 0/1 (the fourth-order equivalent-kernel analog at degree 2/3; Loader 1996) — reducing to Silverman ``(4/3)^{1/5}\hat\sigma\,n^{-1/5}`` for the Gaussian at degree 0 and ``\approx 2.34\,\hat\sigma\,n^{-1/5}`` for the Epanechnikov. All kernel and degree dependence is thus one post-hoc factor (locfit's `Wikk` discipline), with ``R(K)`` and ``\mu_2(K)`` computed by quadrature so any kernel works. The data-driven **Sheather–Jones** plug-in and the fit-based **likelihood-CV / AIC** selectors — Loader's preferred route, degree- and kernel-aware by construction, both computable from the binned summary — are forthcoming. The load-bearing one for conditional moments is the **response-aware *local* plug-in** that answered the user's original question:
 ```math
 h^\star(x) \;=\; \left[\frac{R(K)\,\sigma^2(x)}{\mu_2(K)^2\,m''(x)^2\,f_X(x)\,n}\right]^{1/5}.
 ```
@@ -618,6 +618,19 @@ intentional — do not dedupe it).
   lag-``\tau`` joint (the two-time reading). The two bandwidths ``h_1`` (`hx`, conditioning) and
   ``h_2`` (`hy`, response) are supplied; the conditional MISE rate is the slower ``O(n^{-2/3})``.
   OU-oracle-tested against the closed-form Gaussian ``p_\tau(y\mid x)``.
+
+- **Bandwidth §4.5 — the marginal `bandwidth` made kernel- and degree-aware** (§4.5). *Generalised the
+  global rule.* The first slice returned only Silverman ``(4/3)^{1/5}\hat\sigma\,n^{-1/5}`` (Gaussian,
+  degree 0; rules `:silverman`/`:scott`). A survey of the field (locfit, KernSmooth, ks, statsmodels)
+  confirmed the AMISE-optimal ``h`` depends on the kernel only through the canonical factor
+  ``\delta(K) = [R(K)/\mu_2(K)^2]^{1/5}`` and on the local-polynomial degree through both the rate
+  (``n^{-1/5}`` at degree 0/1, ``n^{-1/9}`` at degree 2) and the equivalent-kernel constant — exactly
+  locfit's `Wikk(K, d)`. `bandwidth(summary; rule = :normal, kernel, degree)` now returns
+  ``C(K,d)\,\hat\sigma\,n^{-1/(2p+1)}`` (``R(K)``, ``\mu_2(K)`` by quadrature, so any kernel works) and
+  is also `density`'s default `h`, so a degree-2 or Epanechnikov call is matched automatically. The
+  kernel-as-standard-deviation shortcut (base-R, KDEpy, KernelDensity.jl — kernel-blind, not
+  AMISE-exact) was weighed and declined. The data-driven Sheather–Jones plug-in and the fit-based
+  likelihood-CV / AIC selectors (the latter Loader's preferred route) are the next slices.
 
 Open decisions still flagged **[OPEN]** in §10 (the projection road, `HistogramND`, vector-valued
 conditioning, prior-art mirroring) graduate to entries here when they are settled.

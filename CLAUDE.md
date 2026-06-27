@@ -63,7 +63,9 @@ estimands.
 - `src/MarkovInference.jl` — §4.4 `increment_moment` ``\equiv M_n(x,\tau)``, `kramers_moyal`
   ``\equiv D^{(n)}``, `drift` ``\equiv D^{(1)}``, `diffusion` ``\equiv D^{(2)}``, `pawula_quotient`
   ``\equiv Q(x)``, `markov_test`. Model-neutral functionals; the SDE *reading* stays consumer-side.
-- `src/Bandwidth.jl` — §4.5 `bandwidth`: global rules (Silverman; Sheather–Jones) and the
+- `src/Bandwidth.jl` — §4.5 `bandwidth`: the **kernel- and degree-aware normal-reference rule** (the
+  default, Silverman the Gaussian/degree-0 case; ``h = C(K,d)\,\hat\sigma\,n^{-1/(2p+1)}``), the
+  data-driven Sheather–Jones plug-in and fit-based likelihood-CV / AIC selectors (forthcoming), and the
   **response-aware local plug-in** ``h^\star(x)``; the post-hoc FFT smoothing helpers (the major
   performance lever, amortized over bandwidth). Owns `FFTW`, `AbstractFFTs`.
 - Include order: `Accumulators → Histograms → DensityEstimation → Regression → ConditionalDensity →
@@ -233,7 +235,13 @@ Mechanical bar:
    (`gaussian_kernel` default, `epanechnikov_kernel`). The estimand-first reference; tested across the
    grid (recovers the Gaussian pdf into the tail, beats fixed-``h`` there; degree-1 beats the KDE in a
    Laplace tail).
-5. **`Bandwidth.bandwidth`** (§4.5) — global Silverman/Scott plug-in from the recovered ``\\hat\\sigma``.
+5. **`Bandwidth.bandwidth`** (§4.5) — the **kernel- and degree-aware normal-reference** rule
+   ``h = C(K,d)\\,\\hat\\sigma\\,n^{-1/(2p+1)}`` from the recovered ``\\hat\\sigma``: the kernel enters
+   through the canonical factor ``[R(K)/\\mu_2(K)^2]^{1/5}`` (by quadrature), the degree through the
+   bias order ``p`` (``n^{-1/5}`` at degree 0/1, ``n^{-1/9}`` at degree 2); reduces to Silverman
+   ``(4/3)^{1/5}`` (Gaussian, degree 0), ``\\approx 2.34`` (Epanechnikov). It is also `density`'s
+   default `h`. Tested (`test/bandwidth.jl`): Silverman reproduction, the Epanechnikov ``2.214\\times``
+   ratio, the degree-2 ``n^{-1/9}`` closed form.
 6. **`Regression`** (§4.2) — `conditional_mean` ``\equiv m(x)`` and `conditional_variance``
    ``\equiv \sigma^2(x)`` by local-linear regression from `Histogram2D` (the ``T_\ell``/``P_\ell``
    recovered exactly from per-X-column counts and response totals). Tested against the bivariate-
@@ -260,11 +268,16 @@ Mechanical bar:
 
 **Next, in dependency order:**
 
-1. **The response-aware local bandwidth** ``h^\\star(x)`` (§4.5) — estimand-first, OU-oracle-tested,
+1. **Data-driven marginal bandwidth selectors** (§4.5) — the **Sheather–Jones** plug-in (``\\psi_4``,
+   ``\\psi_6`` as Hermite-weighted, mergeable reductions of the bin counts) and the fit-based
+   **likelihood-CV / AIC** selectors (Loader's preferred route, degree/kernel-aware by construction),
+   exposed as `bandwidth` rules `:sj` / `:lcv` / `:aic`; estimand-first, oracle-tested, each with a
+   `FORMALIZATION.md` entry. (The kernel- and degree-aware normal-reference default is **done** — Done 5.)
+2. **The response-aware local bandwidth** ``h^\\star(x)`` (§4.5) — estimand-first, OU-oracle-tested,
    with its `FORMALIZATION.md` entry, from the `Histogram2D` joint summary. Plus the Fan–Yao
    conditional-variance refinement, the ``n^{-2/5}`` / ``n^{-2/3}`` rate tests, and the FFT-amortized
    smoothing (§4.5).
-2. **The rest of `MarkovInference` §4.4** — `kramers_moyal` for ``n \ge 3``, the **Pawula `Q`**
+3. **The rest of `MarkovInference` §4.4** — `kramers_moyal` for ``n \ge 3``, the **Pawula `Q`**
    diagnostic (``M_4``, ``M_6``) and the all-orders Bell-polynomial finite-time correction, and
    `markov_test` (now unblocked — it composes the §4.3 transition density). The higher moments need the
    `Histogram2D` order-raise (Deferred, below).
