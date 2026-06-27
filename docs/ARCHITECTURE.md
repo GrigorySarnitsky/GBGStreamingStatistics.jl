@@ -300,7 +300,7 @@ Gaussian-tuned, so a non-Gaussian kernel wants a matched ``h`` (Epanechnikov's A
 ``h_j \propto \tilde f(c_j)^{-1/2}``, widening the kernel where data is thin) cuts the tail *variance*;
 the **local-log-polynomial** estimator `density(…; degree=d)` (fit ``\log f`` by a binned local Poisson
 likelihood — degree 1 exact for exponential tails, degree 2 for Gaussians) cuts the tail *bias*,
-capturing the decay shape a flat KDE smears. They compose. On a **bounded support** (a positive quantity such as a droplet radius), `density(…; bounds=(a,b))` renormalizes the degree-0 KDE by the kernel mass inside ``[a,b]`` (Jones 1993), removing the edge bias that otherwise halves the estimate at the boundary; and `density_se` returns the pointwise ``\sqrt{R(K)\,f_X/(nh)}`` variability band. Two consumer caveats remain: the fixed range
+capturing the decay shape a flat KDE smears. They compose. On a **bounded support** (a positive quantity such as a droplet radius), `density(…; bounds=(a,b))` renormalizes the degree-0 KDE by the kernel mass inside ``[a,b]`` (Jones 1993), removing the edge bias that otherwise halves the estimate at the boundary; and `density_standard_error` returns the pointwise ``\sqrt{R(K)\,f_X/(nh)}`` variability band. Two consumer caveats remain: the fixed range
 ``[\texttt{lower}, \texttt{upper})`` drops events beyond it (set it wide, ``\approx \pm 10\text{–}15\sigma``,
 to keep the tail), and uniform bins under-resolve power-law tails (bin a transform such as ``\log|X|``
 and change variables back; the ``O(1)`` GPU scatter does not log-bin) — though **variable bandwidth is

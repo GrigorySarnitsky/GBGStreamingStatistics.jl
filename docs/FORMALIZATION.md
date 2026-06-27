@@ -101,7 +101,7 @@ The implemented entries are test-linked; a forthcoming operation gets its entry 
   integrates to ``\approx 1``; the variable bandwidth resolves the sharp Laplace cusp the fixed KDE
   oversmooths; degree-1 beats the KDE in a Laplace tail).
 
-## Pointwise standard error (§4.1) — `density_se`
+## Pointwise standard error (§4.1) — `density_standard_error`
 
 - **Estimand.** the standard error of the density estimator, ``\mathrm{SE}(x) = \sqrt{\operatorname{Var}\hat f_h(x)}`` with the KDE asymptotic variance ``\operatorname{Var}\hat f_h(x) \approx R(K)\,f_X(x)/(nh)``.
 - **Estimator.** ``\sqrt{R(K)\,\hat f_h(x)/(nh)}`` from the recovered ``\hat f_h``, ``n``, ``h``, and ``R(K) = \int K^2`` (by quadrature). The ``z``-band ``\hat f_h(x) \pm z\,\mathrm{SE}(x)`` is a variability band about ``\mathbb{E}\hat f_h``, covering ``f_X`` where the ``O(h^2)`` smoothing bias is small. Degree 0/1 (the variable bandwidth and degree ``\ge 2`` are a coverage gap).

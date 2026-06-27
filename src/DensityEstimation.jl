@@ -10,7 +10,7 @@ using LinearAlgebra
 
 using ..Histograms: Histogram1D, _nbins, _bincenter, _total, _sample_std
 
-export density, density_se, gaussian_kernel, epanechnikov_kernel
+export density, density_standard_error, gaussian_kernel, epanechnikov_kernel
 
 
 """
@@ -317,7 +317,7 @@ end
 
 
 """
-    density_se(summary::Histogram1D, x; h = nothing, kernel = gaussian_kernel, degree = 0)   # ≡ SE[f̂(x)]
+    density_standard_error(summary::Histogram1D, x; h = nothing, kernel = gaussian_kernel, degree = 0)   # ≡ SE[f̂(x)]
 
 **Estimand.** the pointwise standard error of the density estimator
 [`density`](@ref GBGStreamingStatistics.DensityEstimation.density) at ``x`` — ``\\mathrm{SE}(x) =
@@ -339,14 +339,14 @@ julia> h = Histogram1D(-6.0, 6.0, 600);
 
 julia> observe!(h, [-0.4, 0.1, 0.2, 0.9, 1.3]);
 
-julia> density_se(h, 0.5) > 0
+julia> density_standard_error(h, 0.5) > 0
 true
 ```
 """
-function density_se(summary::Histogram1D, x::Real; h = nothing,
+function density_standard_error(summary::Histogram1D, x::Real; h = nothing,
                     kernel = gaussian_kernel, degree::Integer = 0)
   (degree == 0 || degree == 1) ||
-    throw(ArgumentError("density_se is a degree-0/1 (KDE) variability band; degree ≥ 2 is a coverage gap (got degree = $degree)"))
+    throw(ArgumentError("density_standard_error is a degree-0/1 (KDE) variability band; degree ≥ 2 is a coverage gap (got degree = $degree)"))
   n = _total(summary)
   iszero(n) && return 0.0
   hh = h === nothing ? _normal_reference_h(summary, kernel, degree) : float(h)
@@ -355,10 +355,10 @@ function density_se(summary::Histogram1D, x::Real; h = nothing,
   return sqrt(_quad(u -> kernel(u)^2) * max(fx, 0.0) / (n * hh))
 end
 
-function density_se(summary::Histogram1D, xs::AbstractVector; h = nothing,
+function density_standard_error(summary::Histogram1D, xs::AbstractVector; h = nothing,
                     kernel = gaussian_kernel, degree::Integer = 0)
   (degree == 0 || degree == 1) ||
-    throw(ArgumentError("density_se is a degree-0/1 (KDE) variability band; degree ≥ 2 is a coverage gap (got degree = $degree)"))
+    throw(ArgumentError("density_standard_error is a degree-0/1 (KDE) variability band; degree ≥ 2 is a coverage gap (got degree = $degree)"))
   n = _total(summary)
   iszero(n) && return zeros(Float64, length(xs))
   hh = h === nothing ? _normal_reference_h(summary, kernel, degree) : float(h)
