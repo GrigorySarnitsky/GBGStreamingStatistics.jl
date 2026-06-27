@@ -234,7 +234,10 @@ Mechanical bar:
    Gaussians) × **fixed / Abramson-variable bandwidth** (`adaptive`), with a **pluggable kernel**
    (`gaussian_kernel` default, `epanechnikov_kernel`). The estimand-first reference; tested across the
    grid (recovers the Gaussian pdf into the tail, beats fixed-``h`` there; degree-1 beats the KDE in a
-   Laplace tail).
+   Laplace tail), and across a **representative analytic-PDF suite** (uniform, exponential, Student-``t``
+   heavy tail, log-normal, bimodal) with a **convergence-rate test** — the ISE falls at
+   ``n^{-2p/(2p+1)}``, degree-2's steeper ``n^{-8/9}`` vs degree-0/1's ``n^{-4/5}`` — in
+   `test/density_convergence.jl`.
 5. **`Bandwidth.bandwidth`** (§4.5) — the **kernel- and degree-aware normal-reference** rule
    ``h = C(K,d)\\,\\hat\\sigma\\,n^{-1/(2p+1)}`` from the recovered ``\\hat\\sigma``: the kernel enters
    through the canonical factor ``[R(K)/\\mu_2(K)^2]^{1/5}`` (by quadrature), the degree through the

@@ -6,13 +6,19 @@ analytic round-trips: estimators are checked against distributions with closed f
 ## Layers
 
 - **Analytic oracles.** Estimators are verified against distributions whose target quantities are
-  known exactly: **Gaussian** marginals (``f_X``, conditional moments) and an **Ornstein–Uhlenbeck**
+  known exactly. The marginal density `density` is checked across a **representative analytic-PDF
+  suite** — Gaussian, uniform (bounded support), exponential, Student-``t`` ``\nu=3`` (heavy tail),
+  log-normal (skew), and a bimodal mixture (`test/density_convergence.jl`). The conditional/transition
+  estimators use **Gaussian** marginals (``f_X``, conditional moments) and an **Ornstein–Uhlenbeck**
   process, whose drift, diffusion, and transition density ``p_\tau(y\mid x)`` are closed-form — the
   natural end-to-end oracle for the conditional/transition densities (§4.3) and the Kramers–Moyal
   functionals (§4.4).
-- **Consistency / rate tests.** The estimation error falls at its theoretical rate as ``n`` grows
-  (``n^{-2/5}`` for a density or conditional mean; the slower ``n^{-2/3}`` for a conditional
-  density), checked over a sequence of growing ``n``.
+- **Consistency / rate tests.** The estimation error falls at its theoretical rate as ``n`` grows,
+  checked over a sequence of growing ``n``. For the **density** this is implemented
+  (`test/density_convergence.jl`): the ISE falls at ``n^{-2p/(2p+1)}`` — ``n^{-4/5}`` for degree 0/1,
+  the steeper ``n^{-8/9}`` for degree 2 (the higher-order ``n^{-1/9}`` bandwidth), the Abramson variable
+  bandwidth sharing the degree-0 order. The conditional-mean ``n^{-2/5}`` and conditional-density
+  ``n^{-2/3}`` rate tests remain forthcoming.
 - **Mergeability tests.** For every summary, *accumulate-then-merge `=` accumulate-together* (to
   round-off), and `merge!` is associative — the monoid laws of invariant 3.
 - **Allocation audit.** `test/allocations.jl` asserts via `@allocated` (on the CPU, where a
@@ -36,8 +42,9 @@ ops, GPU parity, and a `FORMALIZATION.md` entry with its test link.
 ## Layout
 
 `test/runtests.jl` includes each module's tests in its own wrapper module so top-level helpers and
-constants do not collide. The cross-cutting files are `test/oracles.jl` (the Gaussian/OU oracles and
-the rate tests), `test/mergeability.jl`, and `test/allocations.jl`.
+constants do not collide. The cross-cutting files are `test/oracles.jl` (the Gaussian/OU oracles),
+`test/density_convergence.jl` (the analytic-PDF accuracy suite and the density convergence-rate test),
+`test/mergeability.jl`, and `test/allocations.jl`.
 
 !!! note "Status"
     The summary suites (`Histogram1D`, `Histogram2D`), `density`, `bandwidth`, the §4.2 regression
@@ -46,5 +53,6 @@ the rate tests), `test/mergeability.jl`, and `test/allocations.jl`.
     oracles, the bivariate-Gaussian and **Ornstein–Uhlenbeck** oracles (exact stationary lagged pairs;
     closed-form drift, diffusion, and transition density), mergeability, the bounded `@allocated` audit,
     and **CPU-vs-AMD-GPU parity** (`test/gpu/`, ROCm); `Aqua.test_all` and JET run for real throughout.
-    The response-aware local bandwidth, the Pawula / Markov diagnostics, and the ``n^{-2/5}`` / ``n^{-2/3}``
-    rate tests remain placeholders until those land.
+    The response-aware local bandwidth and the Pawula / Markov diagnostics remain placeholders until
+    those land; the conditional-mean ``n^{-2/5}`` and conditional-density ``n^{-2/3}`` rate tests are
+    forthcoming (the **density** rate test is implemented — `test/density_convergence.jl`).

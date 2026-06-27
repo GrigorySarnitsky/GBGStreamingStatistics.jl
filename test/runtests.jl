@@ -8,6 +8,7 @@ module AccumulatorsTests;       include("accumulators.jl");       end
 module HistogramsTests;         include("histograms.jl");         end
 module Histogram2DTests;        include("histograms2d.jl");       end
 module DensityEstimationTests;  include("densityestimation.jl");  end
+module DensityConvergenceTests; include("density_convergence.jl"); end
 module RegressionTests;         include("regression.jl");         end
 module ConditionalDensityTests; include("conditionaldensity.jl"); end
 module MarkovInferenceTests;    include("markovinference.jl");    end

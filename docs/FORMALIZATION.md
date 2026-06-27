@@ -75,7 +75,12 @@ The implemented entries are test-linked; a forthcoming operation gets its entry 
   \tfrac12 h^2 \mu_2(K)\, f_X''(x)`` and ``\operatorname{Var}\hat f_h(x) \approx R(K)\,f_X(x)/(n h)``;
   the binning error ``O(b^2)`` is dominated by the ``O(h^2)`` smoothing bias when ``b \ll h``.
 - **Test.** `test/oracles.jl` (recovers the ``N(0,1)`` pdf to ``< 3\times10^{-3}`` over ``[-3,3]``,
-  integrates to 1; the Silverman/Scott bandwidths match their formulas).
+  integrates to 1). `test/density_convergence.jl` — a representative analytic-PDF suite (Gaussian,
+  uniform, exponential, Student-``t`` ``\nu=3`` heavy tail, log-normal, bimodal: each recovered to
+  ``\sim 10^{-2}`` and integrating to ``\approx 1``, the variable bandwidth tracking the ``t`` heavy
+  tail better than the fixed) and the **convergence-rate test**: the ISE falls at the theoretical
+  ``n^{-2p/(2p+1)}`` — slope ``\approx -0.80`` for degree 0/1 (``p=2``), the steeper ``\approx -0.87``
+  (``n^{-8/9}``, ``p=4``) for degree 2, the Abramson variable bandwidth sharing the degree-0 order.
 
 ## Local-log-polynomial & adaptive density (§4.1) — `density`'s `degree` / `adaptive`
 

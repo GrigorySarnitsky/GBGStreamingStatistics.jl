@@ -69,9 +69,6 @@ const H = Histograms
     ys = collect(-5s:0.02:5s)
     @test sum(transition_density(g, 0.0, ys; hx = 0.25, hy = 0.15)) * 0.02 ≈ 1 atol = 1e-2
   end
-
-  @testset "consistency / rate" begin
-    # Forthcoming: the integrated error of f̂ falls at the theoretical n^{-2/5} as n grows.
-    @test_skip estimation_error_falls_as_n_to_the_minus_two_fifths()
-  end
+  # the density convergence-rate test (ISE ∝ n^{-2p/(2p+1)} per degree) and the representative
+  # analytic-PDF accuracy suite live in `test/density_convergence.jl`.
 end
