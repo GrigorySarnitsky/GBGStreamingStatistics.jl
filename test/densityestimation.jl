@@ -142,3 +142,41 @@ end
   @test density(h, [0.05, 2.0]; bounds = (0.0, Inf)) isa AbstractVector
   @test_throws ArgumentError density(h, 0.1; degree = 1, bounds = (0.0, Inf))
 end
+
+@testset "asymmetric kernels: gamma [0,∞), beta [0,1] (§4.1)" begin
+  # gamma kernel on exponential(1) — boundary-free on the half-line (the droplet-radii case)
+  Random.seed!(41)
+  he = Histogram1D(0.0, 12.0, 1200); observe!(he, -log.(rand(400_000)))
+  expf(x) = exp(-x)
+  # recovers the density at the boundary, where the symmetric KDE collapses to ≈ half — and is closer
+  @test density(he, 0.02; kernel = gamma_kernel) ≈ expf(0.02)  atol = 6e-2
+  @test abs(density(he, 0.02; kernel = gamma_kernel) - expf(0.02)) < abs(density(he, 0.02) - expf(0.02))
+  # interior agrees with the truth
+  for x in (0.5, 1.0, 2.0)
+    @test density(he, x; kernel = gamma_kernel) ≈ expf(x)  rtol = 5e-2
+  end
+  # integrates to ≈ 1
+  xs = range(0.0, 12.0; length = 2001)
+  @test sum(density(he, collect(xs); kernel = gamma_kernel)) * step(xs) ≈ 1  atol = 2e-2
+
+  # beta kernel on Uniform(0,1) — boundary-free at both edges (true f ≡ 1)
+  Random.seed!(42)
+  hu = Histogram1D(0.0, 1.0, 500); observe!(hu, rand(400_000))
+  for x in (0.02, 0.2, 0.5, 0.8, 0.98)
+    @test density(hu, x; kernel = beta_kernel) ≈ 1.0  atol = 8e-2
+  end
+
+  # mergeable: a deterministic functional of the bin counts
+  Random.seed!(43); d1 = -log.(rand(120_000)); d2 = -log.(rand(120_000))
+  a = Histogram1D(0.0, 12.0, 1200); observe!(a, d1)
+  b = Histogram1D(0.0, 12.0, 1200); observe!(b, d2)
+  both = Histogram1D(0.0, 12.0, 1200); observe!(both, vcat(d1, d2))
+  merge!(a, b)
+  @test density(a, 0.5; kernel = gamma_kernel) ≈ density(both, 0.5; kernel = gamma_kernel)
+
+  # the asymmetric kernel is its own estimator: degree / adaptive / bounds / bad-h are rejected
+  @test_throws ArgumentError density(he, 0.5; kernel = gamma_kernel, degree = 1)
+  @test_throws ArgumentError density(he, 0.5; kernel = gamma_kernel, adaptive = true)
+  @test_throws ArgumentError density(he, 0.5; kernel = gamma_kernel, bounds = (0.0, Inf))
+  @test_throws ArgumentError density(he, 0.5; kernel = gamma_kernel, h = -1.0)
+end

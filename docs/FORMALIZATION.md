@@ -101,6 +101,13 @@ The implemented entries are test-linked; a forthcoming operation gets its entry 
   integrates to ``\approx 1``; the variable bandwidth resolves the sharp Laplace cusp the fixed KDE
   oversmooths; degree-1 beats the KDE in a Laplace tail).
 
+## Asymmetric kernels (§4.1) — `density`'s `gamma_kernel` / `beta_kernel`
+
+- **Estimand.** ``f_X`` on a bounded or positive support.
+- **Estimator.** the varying-shape estimate ``\hat f(x) = \tfrac1n \sum_j n_j K(c_j;\,x,\,b)`` with ``K(\cdot;x,b)`` the ``\mathrm{Gamma}(x/b+1,\,b)`` density (gamma kernel, support ``[0,\infty)``; Chen 2000) or the ``\mathrm{Beta}(x/b+1,\,(1-x)/b+1)`` density (beta kernel, support ``[0,1]``; Chen 1999) — the kernel's support matches the data, so no mass leaks past the boundary. A reduction over the bin counts (mergeable); default ``b = \hat\sigma\,n^{-2/5}``.
+- **Consistency claim.** bias ``O(b)`` uniformly *including at the boundary* (where a symmetric kernel is ``O(h)`` and inconsistent); interior variance ``O(n^{-1}b^{-1/2})``; optimal ``b \sim n^{-2/5}``, MISE ``\sim n^{-4/5}``. Not self-normalizing (an ``O(b)`` mass deviation).
+- **Test.** `test/densityestimation.jl` (gamma recovers the exponential at the boundary, beating the symmetric KDE there; beta recovers ``\mathrm{Uniform}(0,1)`` at both edges; integrates to ``\approx 1``; mergeability; degree/adaptive/bounds rejected).
+
 ## Pointwise standard error (§4.1) — `density_standard_error`
 
 - **Estimand.** the standard error of the density estimator, ``\mathrm{SE}(x) = \sqrt{\operatorname{Var}\hat f_h(x)}`` with the KDE asymptotic variance ``\operatorname{Var}\hat f_h(x) \approx R(K)\,f_X(x)/(nh)``.

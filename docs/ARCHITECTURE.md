@@ -300,7 +300,7 @@ Gaussian-tuned, so a non-Gaussian kernel wants a matched ``h`` (Epanechnikov's A
 ``h_j \propto \tilde f(c_j)^{-1/2}``, widening the kernel where data is thin) cuts the tail *variance*;
 the **local-log-polynomial** estimator `density(…; degree=d)` (fit ``\log f`` by a binned local Poisson
 likelihood — degree 1 exact for exponential tails, degree 2 for Gaussians) cuts the tail *bias*,
-capturing the decay shape a flat KDE smears. They compose. On a **bounded support** (a positive quantity such as a droplet radius), `density(…; bounds=(a,b))` renormalizes the degree-0 KDE by the kernel mass inside ``[a,b]`` (Jones 1993), removing the edge bias that otherwise halves the estimate at the boundary; and `density_standard_error` returns the pointwise ``\sqrt{R(K)\,f_X/(nh)}`` variability band. Two consumer caveats remain: the fixed range
+capturing the decay shape a flat KDE smears. They compose. On a **bounded support** (a positive quantity such as a droplet radius), `density(…; bounds=(a,b))` renormalizes the degree-0 KDE by the kernel mass inside ``[a,b]`` (Jones 1993), removing the edge bias that otherwise halves the estimate at the boundary; or pass an **asymmetric kernel** (`gamma_kernel` for ``[0,\infty)``, `beta_kernel` for ``[0,1]``; Chen 1999, 2000) whose support matches the data and so eliminates the boundary bias by construction (usually sharper than the renormalization); and `density_standard_error` returns the pointwise ``\sqrt{R(K)\,f_X/(nh)}`` variability band. Two consumer caveats remain: the fixed range
 ``[\texttt{lower}, \texttt{upper})`` drops events beyond it (set it wide, ``\approx \pm 10\text{–}15\sigma``,
 to keep the tail), and uniform bins under-resolve power-law tails (bin a transform such as ``\log|X|``
 and change variables back; the ``O(1)`` GPU scatter does not log-bin) — though **variable bandwidth is
@@ -705,6 +705,12 @@ The load-bearing works the package implements or pins to:
 - M. C. Jones (1993), [*Simple boundary correction for kernel density
   estimation*](https://doi.org/10.1007/BF00147776), Statist. Comput. 3(3). (Renormalization boundary
   correction — `density(…; bounds)`.)
+- S. X. Chen (2000), [*Probability density function estimation using gamma
+  kernels*](https://doi.org/10.1023/A:1004165218295), Ann. Inst. Statist. Math. 52(3). (Gamma asymmetric
+  kernel for ``[0,\infty)`` — `density(…; kernel=gamma_kernel)`.)
+- S. X. Chen (1999), [*Beta kernel estimators for density
+  functions*](https://doi.org/10.1016/S0167-9473(99)00010-9), Comput. Statist. Data Anal. 31(2). (Beta
+  asymmetric kernel for ``[0,1]`` — `density(…; kernel=beta_kernel)`.)
 - A. Rydin Gorjão et al. (2021), [*Arbitrary-Order Finite-Time Corrections for the Kramers–Moyal
   Operator*](https://doi.org/10.3390/e23050517), Entropy 23(5) — the all-orders Bell-polynomial
   ``\tau``-correction; the [`kramersmoyal`](https://doi.org/10.21105/joss.01693) software lineage.

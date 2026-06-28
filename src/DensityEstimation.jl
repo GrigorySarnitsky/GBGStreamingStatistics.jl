@@ -7,10 +7,11 @@
 module DensityEstimation
 
 using LinearAlgebra
+using SpecialFunctions: loggamma, logbeta
 
 using ..Histograms: Histogram1D, _nbins, _bincenter, _total, _sample_std
 
-export density, density_standard_error, gaussian_kernel, epanechnikov_kernel
+export density, density_standard_error, gaussian_kernel, epanechnikov_kernel, gamma_kernel, beta_kernel
 
 
 """
@@ -34,6 +35,64 @@ returns the matched Epanechnikov ``h \\approx 2.34\\,\\hat\\sigma\\,n^{-1/5}`` (
 Gaussian ``h``) automatically — no manual rescaling.
 """
 @inline epanechnikov_kernel(u) = abs(u) < 1 ? 0.75 * (1 - u^2) : 0.0
+
+
+# --- asymmetric (varying-shape) kernels for bounded / positive support (Chen 1999, 2000) ---
+# An asymmetric kernel is a density in the DATA argument whose shape depends on the query point x and
+# bandwidth b, with support matching the data domain — so no mass leaks past the boundary and the estimate
+# f̂(x) = (1/n) Σ_j n_j K(c_j; x, b) is boundary-bias-free by construction (O(b) bias uniformly, vs a
+# symmetric kernel's O(h) inconsistency at an endpoint). Still a reduction over the bin counts (post-hoc,
+# mergeable). The marker type routes these to the asymmetric estimator in `density`.
+struct AsymmetricKernel{F}
+  pdf::F                            # (c, x, b) → a density in the data argument c
+  support::Tuple{Float64,Float64}   # the data domain the kernel covers
+end
+
+@inline (k::AsymmetricKernel)(c, x, b) = k.pdf(c, x, b)
+
+
+_gamma_pdf(c, x, b) = c > 0 ? exp((x / b) * log(c) - c / b - (x / b + 1) * log(b) - loggamma(x / b + 1)) : 0.0
+
+"""
+    gamma_kernel
+
+The **gamma kernel** (Chen 2000) for a density on the half-line ``[0,\\infty)`` — a varying-shape
+*asymmetric* kernel: at the query point ``x`` it is the ``\\mathrm{Gamma}(x/b+1,\\,b)`` density in the
+data argument, so its support matches the data and **no mass leaks past 0**. Passed as
+`kernel = gamma_kernel`, [`density`](@ref GBGStreamingStatistics.DensityEstimation.density) returns the
+boundary-bias-free estimate ``\\hat f(x) = \\tfrac1n \\sum_j n_j\\,\\mathrm{Gamma}(c_j;\\,x/b+1,\\,b)``
+(``O(b)`` bias uniformly, including at the boundary where a symmetric kernel is inconsistent; the variance
+self-adapts, tightening toward the edge). Use it for non-negative quantities such as droplet radii — an
+alternative to (and usually sharper than) the `bounds` renormalization. The bandwidth defaults to
+``\\hat\\sigma\\,n^{-2/5}`` (the gamma-kernel rate; pass `h` to override). `degree`, `adaptive`, and
+`bounds` do not apply — the kernel is its own degree-0, boundary-free estimator.
+
+Reference: S. X. Chen (2000), [*Probability density function estimation using gamma
+kernels*](https://doi.org/10.1023/A:1004165218295), Ann. Inst. Statist. Math. 52(3).
+"""
+const gamma_kernel = AsymmetricKernel(_gamma_pdf, (0.0, Inf))
+
+
+function _beta_pdf(c, x, b)
+  (0 < c < 1) || return 0.0
+  p = x / b + 1
+  q = (1 - x) / b + 1
+  return exp((p - 1) * log(c) + (q - 1) * log1p(-c) - logbeta(p, q))
+end
+
+"""
+    beta_kernel
+
+The **beta kernel** (Chen 1999) for a density on the unit interval ``[0,1]`` — the bounded-interval
+analog of [`gamma_kernel`](@ref GBGStreamingStatistics.DensityEstimation.gamma_kernel): at ``x`` it is
+the ``\\mathrm{Beta}(x/b+1,\\,(1-x)/b+1)`` density in the data argument, boundary-bias-free at **both**
+edges. Pass `kernel = beta_kernel` with data scaled to ``[0,1]``; the bandwidth default, the knob
+restrictions, and the ``n^{-2/5}`` rate are as for `gamma_kernel`.
+
+Reference: S. X. Chen (1999), [*Beta kernel estimators for density
+functions*](https://doi.org/10.1016/S0167-9473(99)00010-9), Comput. Statist. Data Anal. 31(2).
+"""
+const beta_kernel = AsymmetricKernel(_beta_pdf, (0.0, 1.0))
 
 
 # --- default bandwidth: the kernel- and degree-aware normal-reference rule (§4.5) ---
@@ -208,6 +267,22 @@ function _kernel_mass(kernel, x, h, a, b)
 end
 
 
+# Asymmetric-kernel estimate f̂(x) = (1/n) Σ_j n_j K(c_j; x, b) — a reduction over the bin counts.
+function _asymmetric_eval(counts, centers, n, kernel, x, b)
+  acc = 0.0
+  @inbounds for j in eachindex(centers)
+    cj = counts[j]
+    iszero(cj) && continue
+    acc += cj * kernel(centers[j], x, b)
+  end
+  return acc / n
+end
+
+# Default bandwidth for an asymmetric kernel: the gamma/beta-kernel rate b ∝ n^(−2/5) (Chen 1999/2000),
+# scaled by σ̂ so the kernel's width at a typical point matches the symmetric optimum.
+_asymmetric_default_b(summary::Histogram1D) = _sample_std(summary) * float(_total(summary))^(-2 / 5)
+
+
 """
     density(summary::Histogram1D, x; degree = 0, h = nothing, adaptive = false, kernel = gaussian_kernel, bounds = nothing)   # ≡ f_X
 
@@ -241,8 +316,11 @@ knobs:
 
 The four corners (fixed/variable ``\\times`` KDE/local-log) and everything between are one call. `kernel`
 is any ``K`` with ``\\int K = 1`` ([`gaussian_kernel`](@ref GBGStreamingStatistics.DensityEstimation.gaussian_kernel)
-default, [`epanechnikov_kernel`](@ref GBGStreamingStatistics.DensityEstimation.epanechnikov_kernel)); a
-vector of query points returns a vector. The FFT amortization of the `degree = 0`, fixed-`h` convolution
+default, [`epanechnikov_kernel`](@ref GBGStreamingStatistics.DensityEstimation.epanechnikov_kernel)); for
+**bounded / positive support** pass the asymmetric
+[`gamma_kernel`](@ref GBGStreamingStatistics.DensityEstimation.gamma_kernel) (half-line) or
+[`beta_kernel`](@ref GBGStreamingStatistics.DensityEstimation.beta_kernel) (unit interval), which are
+boundary-bias-free by construction. A vector of query points returns a vector. The FFT amortization of the `degree = 0`, fixed-`h` convolution
 over a bandwidth grid is forthcoming (`CLAUDE.md` roadmap).
 
 ```jldoctest
@@ -263,6 +341,18 @@ correction for kernel density estimation*](https://doi.org/10.1007/BF00147776), 
 """
 function density(summary::Histogram1D, x::Real; degree::Integer = 0, h = nothing,
                  adaptive::Bool = false, kernel = gaussian_kernel, bounds = nothing)
+  if kernel isa AsymmetricKernel
+    (degree == 0 && !adaptive && bounds === nothing) ||
+      throw(ArgumentError("the asymmetric kernel is its own degree-0, boundary-free estimator; " *
+                          "`degree`, `adaptive`, and `bounds` do not apply"))
+    n = _total(summary)
+    iszero(n) && return 0.0
+    bb = h === nothing ? _asymmetric_default_b(summary) : float(h)
+    bb > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
+    counts = Array(summary.counts)
+    centers = [_bincenter(summary, j) for j in 1:length(counts)]
+    return _asymmetric_eval(counts, centers, n, kernel, x, bb)
+  end
   degree ≥ 0 || throw(ArgumentError("degree must be ≥ 0 (got $degree)"))
   (bounds === nothing || degree == 0) ||
     throw(ArgumentError("`bounds` (boundary renormalization) applies to the degree-0 KDE; " *
@@ -289,6 +379,18 @@ end
 
 function density(summary::Histogram1D, xs::AbstractVector; degree::Integer = 0, h = nothing,
                  adaptive::Bool = false, kernel = gaussian_kernel, bounds = nothing)
+  if kernel isa AsymmetricKernel
+    (degree == 0 && !adaptive && bounds === nothing) ||
+      throw(ArgumentError("the asymmetric kernel is its own degree-0, boundary-free estimator; " *
+                          "`degree`, `adaptive`, and `bounds` do not apply"))
+    n = _total(summary)
+    iszero(n) && return zeros(Float64, length(xs))
+    bb = h === nothing ? _asymmetric_default_b(summary) : float(h)
+    bb > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
+    counts = Array(summary.counts)
+    centers = [_bincenter(summary, j) for j in 1:length(counts)]
+    return [_asymmetric_eval(counts, centers, n, kernel, x, bb) for x in xs]
+  end
   degree ≥ 0 || throw(ArgumentError("degree must be ≥ 0 (got $degree)"))
   (bounds === nothing || degree == 0) ||
     throw(ArgumentError("`bounds` (boundary renormalization) applies to the degree-0 KDE; " *

@@ -63,7 +63,9 @@ using .DensityEstimation:
   density,
   density_standard_error,
   gaussian_kernel,
-  epanechnikov_kernel
+  epanechnikov_kernel,
+  gamma_kernel,
+  beta_kernel
 
 
 using .Regression:
@@ -104,6 +106,8 @@ export AbstractAccumulator,
        density_standard_error,
        gaussian_kernel,
        epanechnikov_kernel,
+       gamma_kernel,
+       beta_kernel,
        conditional_mean,
        conditional_variance,
        conditional_density,

@@ -54,8 +54,9 @@ estimands.
   recovered post hoc by the **shift formula**. Owns `KernelAbstractions`, `Atomix`.
 - `src/DensityEstimation.jl` — §4.1 `density` ``\equiv f_X`` — one call over the binned KDE, the
   local-log-polynomial (`degree`), the Abramson variable bandwidth (`adaptive`), and boundary
-  renormalization (`bounds`, Jones 1993) — plus
-  `gaussian_kernel` / `epanechnikov_kernel` and `density_standard_error` (the pointwise variability band
+  renormalization (`bounds`, Jones 1993) — plus the symmetric `gaussian_kernel` / `epanechnikov_kernel`,
+  the **asymmetric** `gamma_kernel` / `beta_kernel` for bounded/positive support (boundary-bias-free;
+  Chen 1999/2000), and `density_standard_error` (the pointwise variability band
   ``\mathrm{SE}(x) = \sqrt{R(K)\hat f_h(x)/(nh)}``).
 - `src/Regression.jl` — §4.2 `conditional_mean` ``\equiv m(x)``, `conditional_variance`
   ``\equiv \sigma^2(x)`` (local-linear, Fan & Gijbels; Nadaraya–Watson kept for reference). The
