@@ -6,6 +6,6 @@ fit-based AIC (`rule = :aic`), and asymmetric-kernel Chen plug-in (`rule = :plug
 (leave-one-out CV a recorded binned-ties gap), with the response-aware local plug-in ``h^\star(x)``
 forthcoming (§4.5).
 
-```@autodocs
-Modules = [GBGStreamingStatistics.Bandwidth]
+```@docs
+bandwidth
 ```
