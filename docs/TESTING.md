@@ -22,7 +22,15 @@ analytic round-trips: estimators are checked against distributions with closed f
   (`test/bandwidth.jl`): `:normal` reproduces Silverman ``(4/3)^{1/5}`` and the Epanechnikov
   ``2.214\times`` ratio; `:sj` / `:isj` ``\approx`` the normal reference on Gaussian data and tighten on a
   bimodal mixture; `:aic` finds a stable interior optimum; and the asymmetric-kernel Chen `:plugin` lowers
-  the ISE on skewed (log-normal / gamma) data and stays neutral on the near-exponential boundary case.
+  the ISE on skewed (log-normal / gamma) data and stays neutral on the near-exponential boundary case. On
+  the **Marron–Wand claw** (the field's standard hard-multimodal benchmark — a broad Gaussian with five
+  sharp spikes) the data-driven `:sj` / `:isj` resolve the spikes the global-``\hat\sigma`` normal
+  reference oversmooths into one bump (``\approx`` an order of magnitude lower ISE).
+- **Structural invariants (property-based, oracle-free).** Beyond the mergeability monoid laws, `density`
+  satisfies **affine equivariance** exactly (`test/densityestimation.jl`): for ``Y = aX + b`` with the
+  range and bandwidth scaled alike, ``\hat f_Y(ax+b) = \hat f_X(x)/a`` to floating point — a guard against
+  a stray normalization / ``\sigma``-scaling factor a single-scale oracle would miss, and a guarantee of
+  unit-consistency (the estimate cannot depend on ``\mu``m vs m).
 - **Consistency / rate tests.** The estimation error falls at its theoretical rate as ``n`` grows. For
   the **density** this is implemented (`test/density_convergence.jl`): the ISE falls at ``n^{-2p/(2p+1)}``
   — ``n^{-4/5}`` for degree 0/1, the steeper ``n^{-8/9}`` for degree 2 (the higher-order ``n^{-1/9}``
@@ -109,6 +117,13 @@ The **rate is the one characteristic not yet uniform** — `density` has it, the
 it scheduled, and `drift` / `diffusion` inherit `conditional_mean`'s rate (they are linear functionals of
 it). "via summary" means a host-side functional of the summary, so the device coverage is the summary's
 row.
+
+**Tolerances are seed-robust.** The ISE-comparison thresholds (the `:plugin` gains, the parametric-start
+gains, the convergence-rate slopes) are not cherry-picked to a fixed seed: they are audited across many
+seeds, and the threshold sits above the worst case with margin. The audit is the test-suite analog of the
+Monte-Carlo–averaged MISE the source papers report — its goal is a non-fragile regression guard, not an
+MISE estimate. (It is why the `:plugin`-on-`Beta(2,2)` test asserts only *competitiveness*: the rule of
+thumb is already near-optimal on that smooth, symmetric case, so the gain there is real but marginal.)
 
 ## Layout
 

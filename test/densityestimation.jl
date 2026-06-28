@@ -44,6 +44,24 @@ end
   check_point_estimator((s, x) -> density_standard_error(s, x; h = bw),  a, full; points = [-1.0, 0.0, 1.0])
 end
 
+@testset "density: affine equivariance — f̂_Y(ax+b) = f̂_X(x)/a (§4.1)" begin
+  # An exact, oracle-free structural invariant of the binned KDE: for Y = aX + b with the histogram range
+  # and the bandwidth scaled the same way, the bin assignments are identical and the 1/(nh) rescales
+  # cleanly, so f̂_Y(a x + b) = f̂_X(x)/a to floating point. It catches a stray normalization / σ-scaling
+  # factor that a single-scale (σ = 1) oracle would miss, and guarantees unit-consistency — the estimate
+  # of a droplet radius cannot depend on whether it is measured in μm or m.
+  Random.seed!(91)
+  X = randn(200_000)
+  a = 7.3; b = -2.1
+  hX = Histogram1D(-8.0, 8.0, 1600); observe!(hX, X)
+  hY = Histogram1D(a * (-8.0) + b, a * 8.0 + b, 1600); observe!(hY, a .* X .+ b)   # range scaled + shifted alike
+  hbw = 0.3
+  for degree in (0, 1), x in (-1.5, 0.0, 1.0, 2.5)
+    @test density(hY, a * x + b; h = a * hbw, degree = degree) ≈
+          density(hX, x; h = hbw, degree = degree) / a  rtol = 1e-10
+  end
+end
+
 @testset "kernels: Gaussian + Epanechnikov" begin
   # the two shipped kernels are public
   @test gaussian_kernel(0.0) ≈ 1 / sqrt(2π)

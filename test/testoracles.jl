@@ -8,6 +8,7 @@ module TestOracles
 using SpecialFunctions: loggamma, logbeta
 
 export gaussian_pdf, exponential_pdf, lognormal_pdf, gamma_pdf, beta_pdf, student_t_pdf, uniform_pdf,
+       claw_pdf,
        ou_stationary_std, ou_drift, ou_diffusion, ou_transition,
        trapz, ise
 
@@ -38,6 +39,9 @@ student_t_pdf(x; nu) =
 
 "Uniform density on ``[\\texttt{lower}, \\texttt{upper})``."
 uniform_pdf(x; lower = 0.0, upper = 1.0) = (lower ≤ x < upper) ? 1.0 / (upper - lower) : 0.0
+
+"Marron–Wand (1992) **claw** density: ``\\tfrac12 N(0,1) + \\sum_{l=0}^{4} \\tfrac1{10} N(l/2-1,\\,(1/10)^2)`` — a broad Gaussian with five sharp spikes, the standard hard-multimodal benchmark for bandwidth selection."
+claw_pdf(x) = 0.5 * gaussian_pdf(x) + sum(0.1 * gaussian_pdf(x; mu = l / 2 - 1, sigma = 0.1) for l in 0:4)
 
 
 # --- Ornstein–Uhlenbeck  dX = −θ X dt + σ dW : stationary N(0, s²) with s² = σ²/(2θ); the lag-τ
