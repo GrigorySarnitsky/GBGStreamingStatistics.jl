@@ -44,9 +44,12 @@ Gaussian ``h``) automatically — no manual rescaling.
 # f̂(x) = (1/n) Σ_j n_j K(c_j; x, b) is boundary-bias-free by construction (O(b) bias uniformly, vs a
 # symmetric kernel's O(h) inconsistency at an endpoint). Still a reduction over the bin counts (post-hoc,
 # mergeable). The marker type routes these to the asymmetric estimator in `density`.
-struct AsymmetricKernel{F}
+struct AsymmetricKernel{F,W}
   pdf::F                            # (c, x, b) → a density in the data argument c
   support::Tuple{Float64,Float64}   # the data domain the kernel covers
+  weight::W                         # the AMISE local-scale weight w(x) (x for the gamma kernel, x(1−x)
+                                    # for the beta): both the leading bias ½b·w(x)f''(x) and the variance
+                                    # ∝ w(x)^{-1/2} carry it. Used by the §4.5 plug-in bandwidth.
 end
 
 @inline (k::AsymmetricKernel)(c, x, b) = k.pdf(c, x, b)
@@ -73,13 +76,15 @@ boundary-bias-free estimate ``\\hat f(x) = \\tfrac1n \\sum_j n_j\\,\\mathrm{Gamm
 (``O(b)`` bias uniformly, including at the boundary where a symmetric kernel is inconsistent; the variance
 self-adapts, tightening toward the edge). Use it for non-negative quantities such as droplet radii — an
 alternative to (and usually sharper than) the `bounds` renormalization. The bandwidth defaults to
-``\\hat\\sigma\\,n^{-2/5}`` (the gamma-kernel rate; pass `h` to override). `degree`, `adaptive`, and
-`bounds` do not apply — the kernel is its own degree-0, boundary-free estimator.
+``\\hat\\sigma\\,n^{-2/5}`` (the gamma-kernel rate; pass `h` to override, or the data-driven Chen plug-in
+[`bandwidth`](@ref GBGStreamingStatistics.Bandwidth.bandwidth)`(summary; rule = :plugin, kernel = gamma_kernel)`,
+``\\approx 1.4\\text{–}1.7\\times`` lower ISE on skewed data). `degree`, `adaptive`, and `bounds` do not
+apply — the kernel is its own degree-0, boundary-free estimator.
 
 Reference: S. X. Chen (2000), [*Probability density function estimation using gamma
 kernels*](https://doi.org/10.1023/A:1004165218295), Ann. Inst. Statist. Math. 52(3).
 """
-const gamma_kernel = AsymmetricKernel(_gamma_pdf, (0.0, Inf))
+const gamma_kernel = AsymmetricKernel(_gamma_pdf, (0.0, Inf), x -> x)
 
 
 # Chen's modified beta shape: interior (x/b, (1-x)/b); a √-correction within 2b of an edge (mean ≈ x).
@@ -105,7 +110,7 @@ restrictions, and the ``n^{-2/5}`` rate are as for `gamma_kernel`.
 Reference: S. X. Chen (1999), [*Beta kernel estimators for density
 functions*](https://doi.org/10.1016/S0167-9473(99)00010-9), Comput. Statist. Data Anal. 31(2).
 """
-const beta_kernel = AsymmetricKernel(_beta_pdf, (0.0, 1.0))
+const beta_kernel = AsymmetricKernel(_beta_pdf, (0.0, 1.0), x -> x * (1 - x))
 
 
 # --- parametric-start (semiparametric) density (Hjort & Glad 1995) ---

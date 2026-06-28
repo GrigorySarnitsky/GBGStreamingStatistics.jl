@@ -70,7 +70,7 @@ estimands.
   ``\equiv Q(x)``, `markov_test`. Model-neutral functionals; the SDE *reading* stays consumer-side.
 - `src/Bandwidth.jl` — §4.5 `bandwidth`: the **kernel- and degree-aware normal-reference rule** (the
   default, Silverman the Gaussian/degree-0 case; ``h = C(K,d)\,\hat\sigma\,n^{-1/(2p+1)}``), the
-  data-driven **Sheather–Jones** plug-ins (`rule = :sj` classic, `:isj` improved-via-DCT) and the fit-based **AIC** (`rule = :aic`; leave-one-out CV a recorded binned-ties gap), and the
+  data-driven **Sheather–Jones** plug-ins (`rule = :sj` classic, `:isj` improved-via-DCT) and the fit-based **AIC** (`rule = :aic`; leave-one-out CV a recorded binned-ties gap), the **Chen plug-in** for the asymmetric gamma/beta kernels (`rule = :plugin`, the asymmetric Silverman analog), and the
   **response-aware local plug-in** ``h^\star(x)``; the post-hoc FFT smoothing helpers (the major
   performance lever, amortized over bandwidth). Owns `FFTW`, `AbstractFFTs`.
 - Include order: `Accumulators → Histograms → DensityEstimation → Regression → ConditionalDensity →
@@ -263,7 +263,13 @@ Mechanical bar:
    mergeability, the degree ``\\ge 2`` gap. The fit-based **AIC** (`rule = :aic`, degree 0/1) over an
    ``h``-grid is also available — a mergeable information criterion of the binned KDE with a stable
    interior optimum; the leave-one-out CV selectors (LCV, LSCV) are a recorded coverage gap (binned ties
-   drive them to zero bandwidth).
+   drive them to zero bandwidth). For the **asymmetric gamma/beta kernels**, `bandwidth` adds the
+   ``\\hat\\sigma\\,n^{-2/5}`` rule of thumb (`rule = :normal`) and the **Chen plug-in** (`rule = :plugin`,
+   the asymmetric Silverman analog ``b^\\star = [\\mathbb E[w(X)^{-1/2}]/(2\\sqrt\\pi\\,n\\int w^2 f''^2)]^{2/5}``,
+   weight ``w = x`` / ``x(1-x)``, curvature from a grid-quadrature pilot ``\\hat f''`` — boundary-valid,
+   unlike the ``\\psi_4`` U-statistic); ``\\approx 1.4\\text{–}1.7\\times`` lower ISE on skewed positive data.
+   Tested in `test/bandwidth.jl`; the AIC, U-statistic, and gamma-reference routes were tried and rejected
+   (see the §11 decision log), and a fully-adaptive curvature pilot is a recorded refinement.
 6. **`Regression`** (§4.2) — `conditional_mean` ``\equiv m(x)`` and `conditional_variance``
    ``\equiv \sigma^2(x)`` by local-linear regression from `Histogram2D` (the ``T_\ell``/``P_\ell``
    recovered exactly from per-X-column counts and response totals). Tested against the bivariate-

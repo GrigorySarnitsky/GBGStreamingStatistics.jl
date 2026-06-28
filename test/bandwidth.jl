@@ -116,3 +116,66 @@ end
   # degree ≥ 2 is a coverage gap
   @test_throws ArgumentError bandwidth(hg; rule = :isj, degree = 2)
 end
+
+@testset "Chen plug-in for asymmetric kernels (rule = :plugin, §4.5)" begin
+  # rule = :normal is the σ̂ n^(−2/5) rule of thumb (the public Bessel-corrected `std` vs the internal
+  # population σ̂ differ by ≈ √(n/(n−1)), hence rtol)
+  Random.seed!(411)
+  he = Histogram1D(0.0, 12.0, 2400); observe!(he, -log.(rand(150_000)))
+  @test bandwidth(he; rule = :normal, kernel = gamma_kernel) ≈
+        std(he) * float(sum(he.counts))^(-2 / 5)  rtol = 1e-3
+
+  # the plug-in lowers the ISE on skewed positive data, where the rule of thumb mis-scales (the
+  # droplet-radius regime). gamma kernel on log-normal data:
+  Random.seed!(412)
+  lnpdf(x) = exp(-(log(x))^2 / (2 * 0.36)) / (x * 0.6 * sqrt(2π))
+  hln = Histogram1D(0.0, 12.0, 2400); observe!(hln, exp.(0.6 .* randn(150_000)))
+  gln = collect(0.05:0.05:6.0)
+  iseln(b) = sum(abs2, density(hln, gln; kernel = gamma_kernel, h = b) .- lnpdf.(gln)) * 0.05
+  @test iseln(bandwidth(hln; rule = :plugin, kernel = gamma_kernel)) <
+        0.8 * iseln(bandwidth(hln; rule = :normal, kernel = gamma_kernel))
+
+  # …and on gamma(5) data
+  Random.seed!(413)
+  g5pdf(x) = x^4 * exp(-x) / 24
+  hg5 = Histogram1D(0.0, 20.0, 2000); observe!(hg5, [sum(-log(rand()) for _ in 1:5) for _ in 1:150_000])
+  gg5 = collect(0.1:0.1:16.0)
+  iseg5(b) = sum(abs2, density(hg5, gg5; kernel = gamma_kernel, h = b) .- g5pdf.(gg5)) * 0.1
+  @test iseg5(bandwidth(hg5; rule = :plugin, kernel = gamma_kernel)) <
+        0.85 * iseg5(bandwidth(hg5; rule = :normal, kernel = gamma_kernel))
+
+  # the beta-kernel plug-in on Beta(2,2) data
+  Random.seed!(414)
+  betadata = [(s = -log(rand()) - log(rand()); t = -log(rand()) - log(rand()); s / (s + t)) for _ in 1:150_000]
+  hb = Histogram1D(0.0, 1.0, 800); observe!(hb, betadata)
+  bpdf(x) = 6x * (1 - x); gb = collect(0.02:0.02:0.98)
+  iseb(b) = sum(abs2, density(hb, gb; kernel = beta_kernel, h = b) .- bpdf.(gb)) * 0.02
+  # (the smooth, near-symmetric Beta(2,2) is a modest-gain case — the strong gains are the skewed gamma
+  # cases above; here the plug-in is reliably at least a little better)
+  @test iseb(bandwidth(hb; rule = :plugin, kernel = beta_kernel)) <
+        0.95 * iseb(bandwidth(hb; rule = :normal, kernel = beta_kernel))
+
+  # near-exponential (sharp boundary peak): the hard case — the plug-in must not be materially worse than
+  # the rule of thumb (it is ≈ neutral there)
+  exppdf(x) = exp(-x); ge = collect(0.05:0.05:9.0)
+  isee(b) = sum(abs2, density(he, ge; kernel = gamma_kernel, h = b) .- exppdf.(ge)) * 0.05
+  @test isee(bandwidth(he; rule = :plugin, kernel = gamma_kernel)) <
+        1.25 * isee(bandwidth(he; rule = :normal, kernel = gamma_kernel))
+  @test bandwidth(he; rule = :plugin, kernel = gamma_kernel) > 0
+
+  # mergeable: a deterministic functional of the bin counts
+  Random.seed!(415); d1 = exp.(0.6 .* randn(80_000)); d2 = exp.(0.6 .* randn(80_000))
+  a = Histogram1D(0.0, 12.0, 2400); observe!(a, d1)
+  bh = Histogram1D(0.0, 12.0, 2400); observe!(bh, d2)
+  both = Histogram1D(0.0, 12.0, 2400); observe!(both, vcat(d1, d2))
+  merge!(a, bh)
+  @test bandwidth(a; rule = :plugin, kernel = gamma_kernel) ≈
+        bandwidth(both; rule = :plugin, kernel = gamma_kernel)  rtol = 1e-12
+
+  # the symmetric selectors do not apply to an asymmetric kernel; degree ≥ 1 and :plugin-on-symmetric error
+  @test_throws ArgumentError bandwidth(he; rule = :sj, kernel = gamma_kernel)
+  @test_throws ArgumentError bandwidth(he; rule = :isj, kernel = gamma_kernel)
+  @test_throws ArgumentError bandwidth(he; rule = :aic, kernel = gamma_kernel)
+  @test_throws ArgumentError bandwidth(he; rule = :plugin, kernel = gamma_kernel, degree = 1)
+  @test_throws ArgumentError bandwidth(he; rule = :plugin)   # :plugin needs an asymmetric kernel
+end
