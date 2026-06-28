@@ -8,8 +8,8 @@ analytic round-trips: estimators are checked against distributions with closed f
 - **Analytic oracles.** Estimators are verified against distributions whose target quantities are known
   exactly; the closed forms live once in `test/testoracles.jl` (the `TestOracles` module — `gaussian_pdf`,
   `exponential_pdf`, `lognormal_pdf`, `gamma_pdf`, `beta_pdf`, `student_t_pdf`, `uniform_pdf`, the
-  Ornstein–Uhlenbeck `ou_drift` / `ou_diffusion` / `ou_transition`, and the `trapz` / `ise` helpers),
-  `include`d by every file that needs one. The marginal density `density` is checked across a
+  Marron–Wand `claw_pdf`, the Ornstein–Uhlenbeck `ou_stationary_std` / `ou_drift` / `ou_diffusion` /
+  `ou_transition`, and the `trapz` / `ise` helpers), `include`d by every file that needs one. The marginal density `density` is checked across a
   **representative analytic-PDF suite** — Gaussian, uniform (bounded support), exponential, Student-``t``
   ``\nu = 3`` (heavy tail), log-normal (skew), and a bimodal mixture (`test/density_convergence.jl`) — and
   across its full knob grid (KDE / local-log `degree`, fixed / Abramson `adaptive`, the `bounds` boundary
@@ -135,7 +135,8 @@ the cross-cutting files are `oracles.jl` (the Gaussian / OU end-to-end oracles),
 `allocations.jl`, `testoracles.jl` (the shared `TestOracles` analytic library — the closed forms), and
 `testcontracts.jl` (the `TestContracts` universal-contract battery — `check_point_estimator`). `aqua.jl`
 and `jet.jl` are the package-quality checks; `gpu/` is the gated device suite. The test environment is
-`test/Project.toml` (Aqua, JET, Random, SpecialFunctions, Statistics, Test).
+`test/Project.toml` (Aqua, JET, Random, SpecialFunctions, Statistics, Test, plus the `LoweredCodeUtils`
+compat pin JET needs).
 
 !!! note "Status"
     The summary suites (`Histogram1D`, `Histogram2D`), `density` (with the asymmetric kernels, the
@@ -143,8 +144,9 @@ and `jet.jl` are the package-quality checks; `gpu/` is the gated device suite. T
     `:aic`, and the asymmetric Chen `:plugin`), the §4.2 regression, the §4.3
     `conditional_density` / `transition_density`, and the §4.4 `drift` / `diffusion` / `increment_moment`
     are real — the Gaussian and analytic-PDF oracles, the bivariate-Gaussian and **Ornstein–Uhlenbeck**
-    oracles, mergeability, the bounded `@allocated` audit, and **CPU-vs-AMD-GPU parity** (`test/gpu/`,
-    ROCm); `Aqua.test_all` and JET run for real throughout. The response-aware local bandwidth and the
-    Pawula / Markov diagnostics remain placeholders until those land; the conditional-mean ``n^{-2/5}`` and
-    conditional-density ``n^{-2/3}`` rate tests are forthcoming (the **density** rate test is implemented —
-    `test/density_convergence.jl`).
+    oracles, mergeability, the uniform `check_point_estimator` contract, `density`'s exact affine
+    equivariance, the Marron–Wand claw stress, the bounded `@allocated` audit, and **CPU-vs-AMD-GPU
+    parity** (`test/gpu/`, ROCm); `Aqua.test_all` and JET run for real throughout. The response-aware local
+    bandwidth and the Pawula / Markov diagnostics remain placeholders until those land; the conditional-mean
+    ``n^{-2/5}`` and conditional-density ``n^{-2/3}`` rate tests are **scheduled** (`CLAUDE.md` roadmap; the
+    **density** rate test is implemented — `test/density_convergence.jl`).
