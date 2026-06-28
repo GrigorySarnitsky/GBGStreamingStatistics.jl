@@ -118,7 +118,7 @@ detailed in §4:
 - **Conditional increment moments and their functionals** — Kramers–Moyal coefficients,
   drift/diffusion, Pawula / Q diagnostics — domain-neutral functionals of the above; the SDE
   *reading* stays consumer-side.
-- **Bandwidth selection** (cross-cutting) — global and **response-aware local**.
+- **Bandwidth selection** (cross-cutting) — global (built) and **response-aware local** (forthcoming).
 - **[OPEN]** a streaming **projection road** (basis projection à la Stochastic Force Inference /
   ULI) as an alternative accumulator.
 
@@ -195,8 +195,10 @@ transfer verbatim to every consumer.
 - **`Histogram1D`** — a binned empirical measure of a conditioning variable ``X``: linear (WARPing)
   bins over a fixed range (default ``\pm 5\sigma``, ``\gtrsim 10^3`` bins), each bin carrying its
   **count** and **per-bin power-sums about the bin center** ``S_p = \sum_{i\in\text{bin}}(X_i -
-  c_j)^p`` for ``p = 1 \dots P`` (default ``P = 4``; raise ``P`` for the heavy-tailed channels — the
-  turbulence Q-criterion needs ``M_6``, whose *sampling variance* reaches the 12th moment). Because the
+  c_j)^p`` for ``p = 1 \dots P`` (default ``P = 4``; raise ``P`` for the heavy-tailed channels — a high
+  marginal central moment such as ``M_6`` needs ``P = 6``, and its *sampling variance* reaches the 12th
+  moment; the *conditional* increment moments of the Pawula ``Q`` instead need the `Histogram2D`
+  order-raise, §11). Because the
   offset ``X_i - c_j`` is small within a bin (``\lesssim b/2 \approx \sigma/200``), the local
   power-sums are **well-conditioned**: they are accumulated by a plain atomic scatter-add — single-pass
   and numerically stable, with **no compensated summation needed**. The global central moments are
@@ -204,9 +206,9 @@ transfer verbatim to every consumer.
   Scott 2015; Cattaneo et al. 2024), *exactly* (the power-sums use the actual ``X_i``, not the center)
   and stably for the even high-order moments the consumers need.
 - **Bins are exactly uniform — by design.** The binning map is a single multiply-and-floor,
-  `i = floor((x - lower) * scale) + 1` with one `scale = nbins / (upper - lower)` — `O(1)`, branch-free, and
+  `i = floor((x - lower) * scale) + 1` with one `scale = nbins / (upper - lower)` — ``O(1)``, branch-free, and
   allocation-free, the GPU atomic-scatter hot path (§5). This *requires* equal-width bins; arbitrary
-  edges would force a per-sample search (`O(log nbins)`) and break the kernel. So the constructor takes
+  edges would force a per-sample search (``O(\log \texttt{nbins})``) and break the kernel. So the constructor takes
   the explicit `(lower, upper, nbins)`, which *states* the uniform contract, rather than a vector or
   range of edges (which would merely *happen* to be uniform — and floating-point rounding need not even
   guarantee that). Non-uniform binning is out of scope.
@@ -319,9 +321,10 @@ and ``P_\ell(x) = \sum_i K_h(X_i-x)(X_i-x)^\ell Y_i``, then
 ```
 Nadaraya–Watson is the local-constant (degree-0) fit ``\hat m_h = P_0/T_0`` (kept for reference, but
 local-linear is the default — it removes the design-density bias term ``2 m'(x) f'(x)/f(x)``).
-Conditional variance by the same fit applied to ``Y^2`` (Fan & Yao 1998). For heavy-tailed channels
-(e.g. ``(\Delta X)^6``) a **one-step robust local M-estimator** (Fan & Jiang 2000) replaces the
-least-squares fit.
+Conditional variance by the same fit applied to ``Y^2`` — the plug-in ``\hat{\mathbb E}[Y^2\mid x] - \hat m^2``,
+which carries the local-linear smoothing bias of the curved ``\mathbb E[Y^2\mid x]``. The bias-reducing
+**residual-based** estimator (Fan & Yao 1998) and, for heavy-tailed channels (e.g. ``(\Delta X)^6``), a
+**one-step robust local M-estimator** (Fan & Jiang 2000) are forthcoming.
 
 ### 4.3 Conditional and transition density
 
@@ -338,23 +341,25 @@ least-squares fit.
 — a pure statistical object (a conditional expectation of a power of an increment), estimated by
 §4.2 applied to the response ``(\Delta X)^n``.
 **Standard functionals** (named, but model-neutral): the **Kramers–Moyal coefficient**
-``D^{(n)}(x) = \lim_{\tau\to 0}\frac{1}{n!\,\tau}M_n(x,\tau)``, with the **drift** ``D^{(1)}`` and
-**diffusion** ``D^{(2)}``; the finite-``\tau`` bias removed by the **all-orders Bell-polynomial
-correction** (Rydin Gorjão et al. 2021) that inverts the ``\tau``-expansion rather than extrapolating
-``\tau\to 0``; the **Pawula / Q diagnostic** ``Q(x) = M_6(x,\tau)/(5\,M_4(x,\tau)^2)``.
+``D^{(n)}(x) = \lim_{\tau\to 0}\frac{1}{n!\,\tau}M_n(x,\tau)``, reported as the finite-``\tau`` ratio
+``M_n/(n!\tau)``, with the **drift** ``D^{(1)}`` and **diffusion** ``D^{(2)}``. Forthcoming: the
+**all-orders Bell-polynomial correction** (Rydin Gorjão et al. 2021) that removes the finite-``\tau`` bias
+by inverting the ``\tau``-expansion rather than extrapolating ``\tau\to 0``, and the **Pawula / Q
+diagnostic** ``Q(x) = M_6(x,\tau)/(5\,M_4(x,\tau)^2)``.
 
 > **Model-neutrality is the invariant here.** These functions are defined and estimated without
 > assuming the data *is* a diffusion. That the conditional moments *are* the coefficients of a
 > Fokker–Planck operator, that Pawula's theorem makes ``D^{(n\ge 3)}`` vanish, that ``D^{(1)}`` "is"
 > drift — these are the **consumer's interpretation**, exactly as "energy" is the consumer's reading
-> of PF's `inner(u,u)`. The package supplies the estimators and the **tests of the hypothesis**
-> (the Pawula ratio, a ``\chi^2`` Markov / Chapman–Kolmogorov test); the consumer asserts the model.
+> of PF's `inner(u,u)`. The package supplies the estimators and — forthcoming — the **tests of the
+> hypothesis** (the Pawula ratio, a ``\chi^2`` Markov / Chapman–Kolmogorov test); the consumer asserts
+> the model.
 
 ### 4.5 Bandwidth selection (cross-cutting)
 
 **Estimand.** the MSE-optimal (AMISE) bandwidth for the requested channel — the ``h`` minimising ``\int \mathbb{E}[(\hat f_h - f_X)^2]`` for a kernel ``K`` and local-polynomial degree ``d``.
 
-For marginals, `bandwidth` (§4.1) defaults to the **kernel- and degree-aware normal-reference rule** ``h = C(K,d)\,\hat\sigma\,n^{-1/(2p+1)}``: the bias order is ``p = 2`` at degree 0/1 (rate ``n^{-1/5}``) and ``p = 4`` at degree 2/3 (a higher-order ``O(h^4)`` fit, so the wider rate ``n^{-1/9}``), and the kernel enters only through the canonical factor ``C(K,d) = (8\sqrt{\pi}/3)^{1/5}[R(K)/\mu_2(K)^2]^{1/5}`` at degree 0/1 (the fourth-order equivalent-kernel analog at degree 2/3; Loader 1996) — reducing to Silverman ``(4/3)^{1/5}\hat\sigma\,n^{-1/5}`` for the Gaussian at degree 0 and ``\approx 2.34\,\hat\sigma\,n^{-1/5}`` for the Epanechnikov. All kernel and degree dependence is thus one post-hoc factor (locfit's `Wikk` discipline), with ``R(K)`` and ``\mu_2(K)`` computed by quadrature so any kernel works. The data-driven **Sheather–Jones** plug-in (`rule = :sj`, degree 0/1) adds the solve-the-equation bandwidth — the curvature ``\psi_4 = R(f'')`` and its ``\psi_6`` pilot estimated as Hermite-weighted, **mergeable** reductions of the bin counts (Sheather & Jones 1991), the eval kernel a clean ``\delta(K)`` rescale — so it adapts to the true shape (much tighter than the normal reference on a bimodal sample); its **improved** variant (`rule = :isj`, Botev et al. 2010) reads the curvature off the **DCT** of the bin counts instead of a normal-reference pilot, staying reliable on strongly multimodal data. The fit-based **AIC** (`rule = :aic`) adds an information criterion of the binned KDE minimised over an ``h``-grid — a mergeable functional of the counts, the eval kernel a ``\delta(K)`` rescale, with a stable interior optimum (Loader's preferred route is fit-based selection). Its leave-one-out **cross-validation** cousins (likelihood-CV, least-squares LSCV) are a deliberate coverage gap: a binned summary's ties drive their objective to ``h \to 0``. The **asymmetric** kernels take their own scale ``b`` (rate ``n^{-2/5}``); for them `bandwidth` offers the ``\hat\sigma\,n^{-2/5}`` rule of thumb (`rule = :normal`) and the **Chen plug-in** (`rule = :plugin`), the asymmetric analog of Silverman's — ``b^\star = [\mathbb{E}[w(X)^{-1/2}]/(2\sqrt{\pi}\,n\int w^2 (f'')^2)]^{2/5}`` with local-scale weight ``w(x) = x`` (gamma) / ``x(1-x)`` (beta), the curvature ``\int w^2 (f'')^2`` a grid quadrature of the pilot ``\hat f''`` (boundary-valid because ``w \to 0`` there, unlike the ``\psi_4`` U-statistic which assumes ``f`` vanishes at the edge). It lowers the ISE ``\approx 1.4\text{–}1.7\times`` on skewed positive data. The load-bearing one for conditional moments is the **response-aware *local* plug-in** that answered the user's original question:
+For marginals, `bandwidth` (§4.1) defaults to the **kernel- and degree-aware normal-reference rule** ``h = C(K,d)\,\hat\sigma\,n^{-1/(2p+1)}``: the bias order is ``p = 2`` at degree 0/1 (rate ``n^{-1/5}``) and ``p = 4`` at degree 2/3 (a higher-order ``O(h^4)`` fit, so the wider rate ``n^{-1/9}``), and the kernel enters only through the canonical factor ``C(K,d) = (8\sqrt{\pi}/3)^{1/5}[R(K)/\mu_2(K)^2]^{1/5}`` at degree 0/1 (the fourth-order equivalent-kernel analog at degree 2/3; Loader 1996) — reducing to Silverman ``(4/3)^{1/5}\hat\sigma\,n^{-1/5}`` for the Gaussian at degree 0 and ``\approx 2.34\,\hat\sigma\,n^{-1/5}`` for the Epanechnikov. All kernel and degree dependence is thus one post-hoc factor (locfit's `Wikk` discipline), with ``R(K)`` and ``\mu_2(K)`` computed by quadrature so any kernel works. The data-driven **Sheather–Jones** plug-in (`rule = :sj`, degree 0/1) adds the solve-the-equation bandwidth — the curvature ``\psi_4 = R(f'')`` and its ``\psi_6`` pilot estimated as Hermite-weighted, **mergeable** reductions of the bin counts (Sheather & Jones 1991), the eval kernel a clean ``\delta(K)`` rescale — so it adapts to the true shape (much tighter than the normal reference on a bimodal sample); its **improved** variant (`rule = :isj`, Botev, Grotowski & Kroese 2010) reads the curvature off the **DCT** of the bin counts instead of a normal-reference pilot, staying reliable on strongly multimodal data. The fit-based **AIC** (`rule = :aic`) adds an information criterion of the binned KDE minimised over an ``h``-grid — a mergeable functional of the counts, the eval kernel a ``\delta(K)`` rescale, with a stable interior optimum (Loader's preferred route is fit-based selection). Its leave-one-out **cross-validation** cousins (likelihood-CV, least-squares LSCV) are a deliberate coverage gap: a binned summary's ties drive their objective to ``h \to 0``. The **asymmetric** kernels take their own scale ``b`` (rate ``n^{-2/5}``); for them `bandwidth` offers the ``\hat\sigma\,n^{-2/5}`` rule of thumb (`rule = :normal`) and the **Chen plug-in** (`rule = :plugin`), the asymmetric analog of Silverman's — ``b^\star = [\mathbb{E}[w(X)^{-1/2}]/(2\sqrt{\pi}\,n\int w^2 (f'')^2)]^{2/5}`` with local-scale weight ``w(x) = x`` (gamma) / ``x(1-x)`` (beta), the curvature ``\int w^2 (f'')^2`` a grid quadrature of the pilot ``\hat f''`` (boundary-valid because ``w \to 0`` there, unlike the ``\psi_4`` U-statistic which assumes ``f`` vanishes at the edge). It lowers the ISE ``\approx 1.4\text{–}1.7\times`` on skewed positive data. The load-bearing one for conditional moments is the **response-aware *local* plug-in** (forthcoming, `CLAUDE.md` roadmap) that the design anticipates:
 ```math
 h^\star(x) \;=\; \left[\frac{R(K)\,\sigma^2(x)}{\mu_2(K)^2\,m''(x)^2\,f_X(x)\,n}\right]^{1/5}.
 ```
@@ -362,7 +367,7 @@ It depends on the **response's** conditional variance ``\sigma^2(x)`` **and** re
 ``m''(x)``, so **each response channel (``\Delta X, \dots, (\Delta X)^6``, the acceleration ``A``) gets
 its own ``h^\star``** — a single shared bandwidth is provably suboptimal. This is why accumulation
 must be estimand-agnostic and rich (per-bin moments to high order): ``\sigma^2(x)``, ``m''(x)``, and
-``f_X(x)`` are all read back from the *one* stored summary, per channel, post hoc.
+``f_X(x)`` are all recoverable from the *one* stored summary, per channel, post hoc.
 
 **Fast smoothing (FFT). [performance]** Because the data is binned on a regular grid, every smoother
 here — the binned KDE (§4.1) and the local-polynomial sums ``T_\ell, P_\ell`` (§4.2) — is a
@@ -384,7 +389,7 @@ deferred ECF summary (§2) does **not** preclude.
 An alternative to bin-and-smooth: estimate drift/diffusion by **projecting onto a function basis**
 using running inner-product accumulators (the Gram matrix and projection vector are themselves a
 mergeable summary) — Stochastic Force Inference (Frishman & Ronceray 2020) and the underdamped ULI
-(Brückner et al. 2020), which fits on ``(X, \dot X)`` data exactly as tracer sampling provides. Shares
+(Brückner, Ronceray & Broedersz 2020), which fits on ``(X, \dot X)`` data exactly as tracer sampling provides. Shares
 the lower-half monoid foundation. Include if a consumer wants parametric-in-basis drift fields;
 otherwise defer.
 
@@ -544,8 +549,9 @@ mergeable streaming-moment design is, however, worth mirroring — §10).
 - **[OPEN] Projection road** — include SFI/ULI from the start or defer (§4.6)?
 - **[OPEN] `HistogramND`** — wait for a multi-conditioning consumer (§3)?
 - **[OPEN] Prior art to mirror** — study `OnlineStats.jl` for its mergeable streaming-moment design
-  and `merge` semantics before writing `Accumulators` (it lacks the GPU-resident path and the
-  conditional/SDE estimators, but its composition model is a good CPU-side template).
+  and `merge` semantics, a comparison still worth making now that `Accumulators` is built (it lacks the
+  GPU-resident path and the conditional/SDE estimators, but its composition model is a good CPU-side
+  template).
 - **[OPEN] Vector-valued conditioning / responses** — reuse PF's `FiberVector`/`FiberTensor` fiber
   algebra, or stay scalar-channel and let the consumer loop components? (Lean scalar-channel: the
   estimators are per-component, and a fiber dependency would re-import structure the package doesn't
@@ -646,7 +652,14 @@ intentional — do not dedupe it).
   bins, a constrained search range, and a boundary warning. AIC needs no leave-one-out — both its
   log-likelihood and df-penalty diverge as ``h \to 0`` — so its optimum is a stable interior point. CV
   recorded as a coverage gap (a within-bin-spread correction from the power-sums could rescue it);
-  `:sj` and `:aic` are the data-driven selectors.
+  `:sj`, `:isj`, and `:aic` are the data-driven selectors.
+
+- **Bandwidth §4.5 — Improved Sheather–Jones (`rule = :isj`) added** (§4.5). The classic `:sj` plug-in
+  estimates the curvature ``\psi_4`` from a *normal-reference* pilot, which can mislead on strongly
+  multimodal data (the Marron–Wand claw). Botev, Grotowski & Kroese (2010) instead read the curvature
+  norms ``\|f^{(s)}\|^2`` off the **DCT** of the bin counts and solve the AMISE fixed point — a fully
+  nonparametric pilot. Added as `rule = :isj`: a mergeable functional of the counts' cosine transform,
+  the eval kernel the same ``\delta(K)`` rescale, robust where `:sj`'s pilot misleads.
 
 - **Density §4.1 — parametric start and exact normalization added** (§4.1). A second pass over the
   downloaded reference software (studying source, not docs) found two capabilities worth mirroring: the
@@ -659,7 +672,7 @@ intentional — do not dedupe it).
   (the leading bias is driven by ``(f/p)''``), valuable for the skewed positive shapes the package targets
   (droplet radii). `normalize=true` divides any estimate by its integral over the support so
   ``\int\hat f = 1`` exactly — the finishing step for the non-self-normalizing asymmetric kernels and
-  starts. Both are post-hoc degree-0 options; `start` does not compose with `degree ≥ 1`, `adaptive`,
+  starts. Both are post-hoc degree-0 options; `start` does not compose with `degree` ``\ge 1``, `adaptive`,
   `bounds`, or the asymmetric kernels (the local-likelihood-with-start generalization is a recorded gap).
   The cross-validated start bandwidth (`KernelEstimator.jl`) and the Hjort–Jones *locally parametric*
   generalization were weighed and deferred. The same source pass also corrected the gamma/beta kernels
@@ -752,8 +765,8 @@ The load-bearing works the package implements or pins to:
   Operator*](https://doi.org/10.3390/e23050517), Entropy 23(5) — the all-orders Bell-polynomial
   ``\tau``-correction; the [`kramersmoyal`](https://doi.org/10.21105/joss.01693) software lineage.
 - A. Frishman & P. Ronceray (2020), [*Learning force fields from stochastic
-  trajectories*](https://doi.org/10.1103/PhysRevX.10.021009), Phys. Rev. X 10; D. B. Brückner et al.
-  (2020), [*Inferring the dynamics of underdamped stochastic
+  trajectories*](https://doi.org/10.1103/PhysRevX.10.021009), Phys. Rev. X 10; D. B. Brückner,
+  P. Ronceray & C. P. Broedersz (2020), [*Inferring the dynamics of underdamped stochastic
   systems*](https://doi.org/10.1103/PhysRevLett.125.058103), Phys. Rev. Lett. 125. (Projection road;
   ULI on ``(X,\dot X)``.)
 - L. van Hove (1954), [*Correlations in space and time …*](https://doi.org/10.1103/PhysRev.95.249),

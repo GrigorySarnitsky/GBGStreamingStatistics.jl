@@ -9,12 +9,14 @@ The package has a single performance-critical path: the **per-sample accumulatio
 ``N^3 \times`` steps. Everything else is second-order:
 
 - **Post-hoc smoothing is dwarfed by accumulation.** Every smoother here — the binned KDE (§4.1) and
-  the local-polynomial sums (§4.2) — is a convolution of the small binned summary (a few ``\times
-  10^3`` bins) with the kernel, computed once per request. The FFT does it in ``O(B \log B)`` for
-  ``B`` bins and **amortizes over bandwidth**: transform the bin counts once, then each ``h`` (and
-  the bandwidth grid the local ``h^\star(x)`` sweep needs) is a multiply by the kernel's transform
-  and an inverse FFT. This total work is smaller than the accumulation by roughly ``10^3`` — so the
-  dominant lever is the accumulation loop, **not** the smoother.
+  the local-polynomial sums (§4.2) — is a convolution of the small binned summary (a few ``\times 10^3``
+  bins) with the kernel, computed once per request by **direct summation** over the bins (``O(B)`` per
+  query point for a compact-reach kernel, ``O(B^2)`` for the distance-histogram curvature functionals of
+  `:sj`). Even so it is dwarfed by the accumulation over every sample of the stream — a few thousand bins
+  versus ``N^3`` samples. The **FFT amortization** — transform the bin counts once in ``O(B \log B)``, then
+  each ``h`` (and the bandwidth grid a local ``h^\star(x)`` sweep needs) is a multiply by the kernel's
+  transform and an inverse FFT — is forthcoming; it is the major lever once a bandwidth *grid* is swept
+  (the `FFTW` dependency is already in place, used today for the ISJ DCT).
 
 ## Hot-loop best practices
 
@@ -38,5 +40,6 @@ For a perf-relevant change, add a benchmark in the matching `benchmark/` class a
 after against a saved baseline; confirm on the GPU, since platform optima diverge.
 
 !!! note "Status"
-    The benchmark suite is not yet built. The accumulation hot loop (`observe!`) is now implemented
-    and is the first thing to benchmark, alongside the forthcoming GPU-resident kernel.
+    The benchmark suite is not yet built. The accumulation hot loop (`observe!`) is implemented and runs
+    on both CPU and the GPU (the same KernelAbstractions scatter kernel, parity-verified on the AMD RX
+    6700 XT) — it is the first thing to benchmark.

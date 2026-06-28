@@ -1,6 +1,6 @@
 # Bandwidth — §4.5: bandwidth selection (the kernel/degree normal-reference, Sheather–Jones — classic
-# and improved (DCT) — and fit-based AIC rules now; the response-aware local plug-in and the FFT-amortized smoothing are
-# forthcoming). The smoothing is a convolution of the binned summary with the kernel; the
+# and improved (DCT) — fit-based AIC, and the Chen asymmetric-kernel plug-in rules now; the response-aware
+# local plug-in and the FFT-amortized smoothing are forthcoming). The smoothing is a convolution of the binned summary with the kernel; the
 # FFT computes it in O(B log B) and amortizes over bandwidth (`docs/ARCHITECTURE.md` §4.5) — hence the
 # FFTW dependency, used once that lands.
 
@@ -192,7 +192,7 @@ end
 # The solve-the-equation bandwidth read off the DCT of the bin counts: the curvature norms ‖f^(s)‖² are
 # evaluated from the cosine coefficients (Plancherel) and the AMISE fixed point t = ξ·γ⁵(t) is solved by
 # root-finding; h = √t·(upper−lower). Unlike the normal-reference pilot of `:sj`, the curvature is
-# estimated nonparametrically, so ISJ stays robust on strongly multimodal data (Botev et al. 2010). A
+# estimated nonparametrically, so ISJ stays robust on strongly multimodal data (Botev, Grotowski & Kroese 2010). A
 # deterministic functional of the counts (mergeable); the eval kernel enters as the δ(K) rescale. The
 # I²^ℓ·exp(−I²π²t) terms are formed in log-space, since I²^7 overflows Float64 at fine grids.
 function _isj_fixed_point(t, N, Isq, logIsq, a2)
@@ -351,7 +351,7 @@ reliable on strongly multimodal data, where the pilot scale of `:sj` can mislead
 of the counts' cosine transform); the eval kernel again enters as the ``\\delta(K)`` rescale.
 
 **Estimator** (`rule = :aic`, the fit-based information criterion; `degree` 0/1). Over a log-spaced
-``h``-grid around the normal reference, minimise ``\\mathrm{AIC}(h) = -2\\sum_j n_j \\log \\hat f_h(c_j) + 2\\,\\mathrm{df}(h)`` of the binned KDE, with ``\\mathrm{df}(h) = (K(0)/h)\\sum_j n_j/(n\\hat f_h(c_j))`` the kernel self-influence trace. Both terms diverge as ``h \\to 0``, so the optimum is a stable interior point; like `:sj` it is a deterministic functional of the counts (mergeable), and the kernel enters as the canonical ``\\delta(K)`` rescale. The leave-one-out **cross-validation** selectors (likelihood-CV and least-squares LSCV) are a deliberate coverage gap — binning ties drive their optimum to ``h \\to 0`` (use `:sj` for a data-driven alternative).
+``h``-grid around the normal reference, minimise ``\\mathrm{AIC}(h) = -2\\sum_j n_j \\log \\hat f_h(c_j) + 2\\,\\mathrm{df}(h)`` of the binned **Gaussian** KDE, with ``\\mathrm{df}(h) = (\\varphi(0)/h)\\sum_j n_j/(n\\hat f_h(c_j))`` the kernel self-influence trace (``\\varphi`` the Gaussian). Both terms diverge as ``h \\to 0``, so the optimum is a stable interior point; like `:sj` it is a deterministic functional of the counts (mergeable), and the eval kernel enters only as the canonical ``\\delta(K)`` rescale of the selected ``h``. The leave-one-out **cross-validation** selectors (likelihood-CV and least-squares LSCV) are a deliberate coverage gap — binning ties drive their optimum to ``h \\to 0`` (use `:sj` for a data-driven alternative).
 
 **Asymmetric kernels** ([`gamma_kernel`](@ref GBGStreamingStatistics.DensityEstimation.gamma_kernel),
 [`beta_kernel`](@ref GBGStreamingStatistics.DensityEstimation.beta_kernel)) carry their width in the

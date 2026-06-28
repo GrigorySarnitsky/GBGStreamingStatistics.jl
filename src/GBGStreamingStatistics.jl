@@ -22,11 +22,12 @@ model itself.
 
 The package provides the mergeable accumulators and histogram summaries (`observe!`, `observe_pairs!`,
 `merge!`, `bin_index`, `Histogram1D`, `Histogram2D`) with their recovered marginal moments (`mean`,
-`var`, `std`, `central_moment`), the marginal density (`density`, with `gaussian_kernel` / `epanechnikov_kernel`, the bounded-support `gamma_kernel` / `beta_kernel`, and the parametric starts `normal_start` / `lognormal_start` / `gamma_start` / `exponential_start` / `inverse_gaussian_start`), conditional moments
+`var`, `std`, `central_moment`), the marginal density (`density` and its variability band
+`density_standard_error`, with `gaussian_kernel` / `epanechnikov_kernel`, the bounded-support `gamma_kernel` / `beta_kernel`, and the parametric starts `normal_start` / `lognormal_start` / `gamma_start` / `exponential_start` / `inverse_gaussian_start`), conditional moments
 (`conditional_mean`, `conditional_variance`), conditional and transition densities
 (`conditional_density`, `transition_density`), the Kramers–Moyal functionals (`increment_moment`,
-`kramers_moyal`, `drift`, `diffusion`, `pawula_quotient`, `markov_test`), and bandwidth selection
-(`bandwidth`).
+`kramers_moyal`, `drift`, `diffusion`, with the `pawula_quotient` and `markov_test` diagnostics
+forthcoming), and bandwidth selection (`bandwidth`).
 """
 module GBGStreamingStatistics
 

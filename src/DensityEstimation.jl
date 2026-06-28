@@ -1,8 +1,10 @@
-# DensityEstimation — §4.1: the marginal density f_X. A single `density` spans the grid of a
-# local-log-polynomial degree (0 = KDE, ≥1 = local likelihood) crossed with a fixed or Abramson-variable
-# bandwidth. Two stages: set the bandwidth, then fit. The bandwidth is *sample-point* (per-bin h_j) for
-# the KDE and *balloon* (one h(x) at the query) for the local-log fit. Written estimand-first
-# (`docs/ARCHITECTURE.md` §2, §4.1).
+# DensityEstimation — §4.1: the marginal density f_X. A single `density` spans the local-log-polynomial
+# degree (0 = KDE, ≥1 = local likelihood) crossed with a fixed or Abramson-variable bandwidth, plus
+# pluggable kernels (the symmetric gaussian/epanechnikov and the bounded-support asymmetric gamma/beta),
+# the Jones boundary `bounds` renormalization, the Hjort–Glad parametric `start`, exact `normalize`, and
+# the `density_standard_error` band. Two stages: set the bandwidth, then fit. The bandwidth is
+# *sample-point* (per-bin h_j) for the KDE and *balloon* (one h(x) at the query) for the local-log fit.
+# Written estimand-first (`docs/ARCHITECTURE.md` §2, §4.1).
 
 module DensityEstimation
 
@@ -190,7 +192,8 @@ const exponential_start = ParametricStart(
 
 An inverse-Gaussian [parametric start](@ref GBGStreamingStatistics.DensityEstimation.density) on
 ``(0,\\infty)``, mean ``\\hat\\mu`` and shape ``\\hat\\lambda = \\hat\\mu^3/\\hat\\sigma^2`` by method of
-moments — a heavier-tailed positive start than the log-normal. Pass `start = inverse_gaussian_start`.
+moments — a positive start with an exponentially decaying right tail (lighter than the log-normal's).
+Pass `start = inverse_gaussian_start`.
 """
 const inverse_gaussian_start = ParametricStart(
   (mean, variance) -> (mean, mean^3 / variance),
@@ -462,7 +465,7 @@ conditioning variable ``X``, defined by ``P(X \\in A) = \\int_A f_X\\,\\mathrm{d
 **Estimator.** a binned local smoother of the counts ``n_j`` at centers ``c_j``, with these knobs:
 
 - **`degree`** — the local-polynomial order. `degree = 0` (default) is the binned KDE / WARPing
-  ``\\hat f(x) = \\frac1n \\sum_j (n_j/h_j)\\, K((x-c_j)/h_j)`` (``\\int K = 1``). `degree ≥ 1` is the
+  ``\\hat f(x) = \\frac1n \\sum_j (n_j/h_j)\\, K((x-c_j)/h_j)`` (``\\int K = 1``). `degree` ``\\ge 1`` is the
   **local-log-polynomial** (local-likelihood) estimator (Loader 1996): fit ``\\log f`` by a
   degree-`degree` polynomial through a binned **local Poisson** likelihood and report
   ``\\hat f(x) = e^{\\hat\\beta_0}``. `degree = 1` (log-linear) is **exact for an exponential density**,
@@ -480,7 +483,7 @@ conditioning variable ``X``, defined by ``P(X \\in A) = \\int_A f_X\\,\\mathrm{d
 - **`bounds`** — the support of the density, passed as the tuple `(lower, upper)` (e.g. `(0.0, Inf)` for
   a positive quantity such as a droplet radius), or `nothing` (default, unbounded). When given, the
   degree-0 KDE is **renormalized** by the kernel mass inside the support: ``\\hat f(x) \\big/ \\int_a^b K_h(x-u)\\,\\mathrm{d}u`` (Jones 1993). This corrects the boundary bias that otherwise drops the estimate
-  to ``\\approx`` half the true value at the edge. (Degree ``\\ge 1`` is already boundary-adaptive, so
+  to ``\\approx`` half the true value at the edge. (`degree` ``\\ge 1`` is already boundary-adaptive, so
   `bounds` is a degree-0 option.)
 - **`start`** — a **parametric start** (Hjort & Glad 1995): the semiparametric estimator
   ``\\hat f(x) = p(x;\\hat\\theta)\\,\\frac1{nh}\\sum_j \\frac{n_j}{p(c_j;\\hat\\theta)}\\,K((x-c_j)/h)``,
@@ -494,7 +497,7 @@ conditioning variable ``X``, defined by ``P(X \\in A) = \\int_A f_X\\,\\mathrm{d
   [`gamma_start`](@ref GBGStreamingStatistics.DensityEstimation.gamma_start),
   [`exponential_start`](@ref GBGStreamingStatistics.DensityEstimation.exponential_start),
   [`inverse_gaussian_start`](@ref GBGStreamingStatistics.DensityEstimation.inverse_gaussian_start). It is
-  a degree-0, fixed-`h`, symmetric-kernel estimator (`degree ≥ 1`, `adaptive`, `bounds`, and the
+  a degree-0, fixed-`h`, symmetric-kernel estimator (`degree` ``\\ge 1``, `adaptive`, `bounds`, and the
   asymmetric kernels do not combine with it; use `normalize` for ``\\int\\hat f = 1``).
 - **`normalize`** — when `true`, divide the estimate by ``\\int\\hat f`` over the summary's range
   (intersected with the estimator's support), so ``\\int\\hat f = 1`` **exactly**. The symmetric KDE
@@ -660,7 +663,7 @@ end
 ``n``, the bandwidth ``h`` (default the §4.5 normal reference), and ``R(K)`` by quadrature. The
 pointwise **variability band** is ``\\hat f_h(x) \\pm z\\,\\mathrm{SE}(x)`` (``z = 1.96`` for 95\\%) — a
 band about ``\\mathbb{E}\\hat f_h``, so it covers ``f_X`` where the ``O(h^2)`` smoothing bias is small
-and narrows that coverage at a sharp mode or in a tail. Degree 0/1 (the KDE variance; degree ``\\ge 2``
+and narrows that coverage at a sharp mode or in a tail. `degree` 0/1 (the KDE variance; `degree` ``\\ge 2``
 and the variable bandwidth are a coverage gap); a vector of query points returns a vector.
 
 ```jldoctest

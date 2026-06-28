@@ -176,9 +176,8 @@ one-step densities (see
 Intrinsically finite-sample — a test, not an estimand.
 
 !!! note "Forthcoming"
-    Declared; not yet implemented — it composes the §4.3
-    [`transition_density`](@ref GBGStreamingStatistics.ConditionalDensity.transition_density), which
-    lands first.
+    Declared; not yet implemented — it composes the now-available §4.3
+    [`transition_density`](@ref GBGStreamingStatistics.ConditionalDensity.transition_density).
 """
 function markov_test end
 

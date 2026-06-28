@@ -13,8 +13,10 @@ Throughout, ``K`` is the smoothing kernel with ``\int K = 1``, ``\mu_2(K) = \int
 du`` its second moment, and ``R(K) = \int K^2`` its roughness; ``h`` is the bandwidth, ``n`` the
 number of samples, ``f_X`` the marginal density of the conditioning variable.
 
-The implemented entries are test-linked; a forthcoming operation gets its entry in the same shape
-(estimand / estimator / consistency / test) before it lands.
+The implemented entries are test-linked; a forthcoming operation gets its entry — in the same shape
+(estimand / estimator / consistency / test) — when it lands, its estimand recorded in `ARCHITECTURE.md`
+§4 meanwhile (the response-aware ``h^\star(x)``, the Pawula / Markov diagnostics, the Fan–Yao
+conditional-variance refinement).
 
 ## Per-bin power-sums about the bin center (`Histograms`, the summaries)
 
@@ -73,7 +75,9 @@ The implemented entries are test-linked; a forthcoming operation gets its entry 
   `bandwidth` (Silverman ``h = (4/3)^{1/5}\hat\sigma\,n^{-1/5}``).
 - **Consistency claim** (``h \to 0``, ``nh \to \infty``): ``\operatorname{bias}\hat f_h(x) \approx
   \tfrac12 h^2 \mu_2(K)\, f_X''(x)`` and ``\operatorname{Var}\hat f_h(x) \approx R(K)\,f_X(x)/(n h)``;
-  the binning error ``O(b^2)`` is dominated by the ``O(h^2)`` smoothing bias when ``b \ll h``.
+  the binning error (simple binning, mass at the bin center) is ``O(\Delta)`` in the bin width ``\Delta``,
+  dominated by the ``O(h^2)`` smoothing bias when ``\Delta \ll h^2`` (linear binning's ``O(\Delta^2)``, via
+  the stored ``S_1``, is a roadmap refinement).
 - **Test.** `test/oracles.jl` (recovers the ``N(0,1)`` pdf to ``< 3\times10^{-3}`` over ``[-3,3]``,
   integrates to 1). `test/density_convergence.jl` — a representative analytic-PDF suite (Gaussian,
   uniform, exponential, Student-``t`` ``\nu=3`` heavy tail, log-normal, bimodal: each recovered to
@@ -90,7 +94,7 @@ The implemented entries are test-linked; a forthcoming operation gets its entry 
   per-bin bandwidths ``h_j = h\,(\tilde f(c_j)/g)^{-1/2}`` (``g`` the geometric mean of ``\tilde f`` over
   the sample), widening the kernel in the sparse tails: ``\operatorname{bias} = O(h^4)`` at interior
   smooth ``x`` (Abramson 1982), with far less tail variance than a fixed ``h``.
-- **`degree ≥ 1` (local-log-polynomial).** Fit ``\log f`` by a degree-``d`` polynomial through a binned
+- **`degree` ``\ge 1`` (local-log-polynomial).** Fit ``\log f`` by a degree-``d`` polynomial through a binned
   **local Poisson** likelihood — ``\log \mathbb{E}[n_j] = \log(nb) + \sum_{l \le d} \beta_l (c_j-x)^l``,
   weights ``K((c_j-x)/h_j)``, by Newton/IRLS — and report ``\hat f(x) = e^{\hat\beta_0}`` (Loader 1996).
   Degree 1 is exact for an exponential density (tracks exponential tails), degree 2 for a Gaussian. The
@@ -105,7 +109,7 @@ The implemented entries are test-linked; a forthcoming operation gets its entry 
 
 - **Estimand.** ``f_X`` on a bounded or positive support.
 - **Estimator.** the varying-shape estimate ``\hat f(x) = \tfrac1n \sum_j n_j K(c_j;\,x,\,b)`` with ``K(\cdot;x,b)`` the modified ``\mathrm{Gamma}(\rho(x),\,b)`` density (gamma kernel, support ``[0,\infty)``; Chen 2000) or the modified ``\mathrm{Beta}`` density (beta kernel, support ``[0,1]``; Chen 1999) — Chen's bias-reduced ``f_2`` shapes (interior shape ``x/b``, kernel mean ``\approx x``, removing the ``f'`` bias of the naive ``x/b+1`` form); the support matches the data, so no mass leaks past the boundary. A reduction over the bin counts (mergeable); default ``b = \hat\sigma\,n^{-2/5}``.
-- **Consistency claim.** bias ``O(b)`` uniformly *including at the boundary* (where a symmetric kernel is ``O(h)`` and inconsistent); interior variance ``O(n^{-1}b^{-1/2})``; optimal ``b \sim n^{-2/5}``, MISE ``\sim n^{-4/5}``. Not self-normalizing (an ``O(b)`` mass deviation). The modified ``f_2`` shape lowers the MISE constant (Chen proves ``\mathrm{MISE}(f_2) \le \mathrm{MISE}(f_1)``) — measured ``\approx 40\%`` lower ISE than the naive form on a log-normal.
+- **Consistency claim.** bias ``O(b)`` uniformly *including at the boundary* (where a symmetric kernel is ``O(h)`` and inconsistent); interior variance ``O(n^{-1}b^{-1/2})``; optimal ``b \sim n^{-2/5}``, MISE ``\sim n^{-4/5}``. Not self-normalizing (an ``O(b)`` mass deviation). The modified ``f_2`` shape lowers the MISE constant (Chen proves ``\mathrm{MISE}(f_2) \le \mathrm{MISE}(f_1)``; only ``f_2`` ships, so the gain is the literature result, not a repo-reproducible number).
 - **Test.** `test/densityestimation.jl` (gamma recovers the exponential at the boundary, beating the symmetric KDE there; beta recovers ``\mathrm{Uniform}(0,1)`` at both edges; integrates to ``\approx 1``; mergeability; degree/adaptive/bounds rejected).
 
 ## Parametric start & normalization (§4.1) — `density`'s `start` / `normalize`
@@ -126,11 +130,11 @@ The implemented entries are test-linked; a forthcoming operation gets its entry 
 
 - **Estimand.** the AMISE-optimal bandwidth ``h^\star = \arg\min_h \int \mathbb{E}[(\hat f_h(x) - f_X(x))^2]\,\mathrm{d}x`` for a kernel ``K`` and local-polynomial degree ``d`` — the asymptotically optimal smoothing scale, itself ``O(n^{-1/(2p+1)})`` (a finite-sample selector, not a fixed population constant).
 - **Estimator** (`rule = :normal`, the kernel- and degree-aware normal-reference). ``h = C(K,d)\,\hat\sigma\,n^{-1/(2p+1)}`` with bias order ``p = 2`` (degree 0/1) or ``p = 4`` (degree 2/3), and constant ``C(K,d) = [W_{ikk}(K,d)\,2^{p+1}\sqrt{\pi}/(2p-1)!!]^{1/(2p+1)}``. The canonical factor is ``W_{ikk}(K,d) = R(K)/\mu_2(K)^2`` at degree 0/1, and the fourth-order equivalent-kernel analog ``W_{ikk} = (4!^2/8)\,R(K^\star)/\mu_4(K^\star)^2`` with ``K^\star = K\,(n_4 - v^2 n_2)/(n_0 n_4 - n_2^2)`` at degree 2/3 (Loader 1996); here ``R(K) = \int K^2``, ``\mu_2(K) = \int u^2 K`` (by quadrature) and ``n_k = \int v^k K``. ``\hat\sigma`` and ``n`` are read from the one summary.
-- **Estimator** (`rule = :sj`, the data-driven Sheather–Jones plug-in; degree 0/1). The curvature ``\psi_4 = R(f'')`` and its ``\psi_6`` pilot are estimated from the bin counts, ``\hat\psi_r(g) = (n^2 g^{r+1})^{-1}\sum_{j,k} n_j n_k\,\varphi^{(r)}((c_j - c_k)/g)`` (Gaussian ``\varphi``, the ``n`` self-pairs removed), and the solve-the-equation bandwidth (Sheather & Jones 1991) is the root of ``h = [R(\varphi)/(\mu_2(\varphi)^2\,\hat\psi_4(\alpha\,h^{5/7})\,n)]^{1/5}``; the eval kernel then multiplies by the canonical ``\delta(K)/\delta(\varphi)``. Both functionals are reductions of the bin counts, hence mergeable; degree ``\ge 2`` is a recorded coverage gap. The **improved** variant (`rule = :isj`; Botev, Grotowski & Kroese 2010) instead reads ``\|f^{(s)}\|^2`` off the DCT of the bin counts and solves the AMISE fixed point ``t = \xi\gamma^5(t)`` — also a mergeable functional of the counts, and robust on strongly multimodal data.
+- **Estimator** (`rule = :sj`, the data-driven Sheather–Jones plug-in; degree 0/1). The curvature ``\psi_4 = R(f'')`` and its ``\psi_6`` pilot are estimated from the bin counts, ``\hat\psi_r(g) = (n^2 g^{r+1})^{-1}\sum_{j,k} n_j n_k\,\varphi^{(r)}((c_j - c_k)/g)`` (Gaussian ``\varphi``, the ``n`` self-pairs removed), and the solve-the-equation bandwidth (Sheather & Jones 1991) is the root of ``h = [R(\varphi)/(\mu_2(\varphi)^2\,\hat\psi_4(\alpha\,h^{5/7})\,n)]^{1/5}``; the eval kernel then multiplies by the canonical-bandwidth ratio ``\delta(K)/\delta(\varphi)`` with ``\delta(K) = [R(K)/\mu_2(K)^2]^{1/5}``. Both functionals are reductions of the bin counts, hence mergeable; degree ``\ge 2`` is a recorded coverage gap. The **improved** variant (`rule = :isj`; Botev, Grotowski & Kroese 2010) instead reads ``\|f^{(s)}\|^2`` off the DCT of the bin counts and solves the AMISE fixed point ``t = \xi\gamma^5(t)`` — also a mergeable functional of the counts, and robust on strongly multimodal data.
 - **Estimator** (`rule = :aic`, the fit-based information criterion; degree 0/1). Minimise ``\mathrm{AIC}(h) = -2\sum_j n_j\log\hat f_h(c_j) + 2\,\mathrm{df}(h)`` of the binned KDE over a log-spaced ``h``-grid, with ``\mathrm{df}(h) = (K(0)/h)\sum_j n_j/(n\hat f_h(c_j))``; both terms diverge as ``h\to0``, giving a stable interior optimum. Mergeable (a functional of the counts); the eval kernel multiplies by ``\delta(K)/\delta(\varphi)``. The leave-one-out cross-validation selectors (likelihood-CV, least-squares LSCV) are a recorded coverage gap — binning ties drive their objective to ``h\to0``.
-- **Estimator** (`rule = :plugin`, the **asymmetric-kernel** Chen plug-in; `gamma_kernel` / `beta_kernel`). The gamma / beta estimators take a scale ``b`` (rate ``n^{-2/5}``), not ``h``; their AMISE (Chen 1999, 2000; modified ``f_2``) is ``A b^2 + C b^{-1/2}/n`` with ``A = \tfrac14\int w^2 (f'')^2``, ``C = (2\sqrt\pi)^{-1}\mathbb{E}[w(X)^{-1/2}]`` and local-scale weight ``w(x) = x`` (gamma) or ``x(1-x)`` (beta), giving ``b^\star = [\mathbb{E}[w(X)^{-1/2}]/(2\sqrt\pi\,n\int w^2 (f'')^2)]^{2/5}``. ``\mathbb{E}[w(X)^{-1/2}]`` is an exact count moment; the curvature ``\int w^2 (f'')^2`` is a grid quadrature of the pilot KDE's ``\hat f''_g`` (pilot ``g = 1.3\,\hat\sigma\,n^{-1/9}``, the variance inflation ``R(\varphi'')\,\mathbb{E}[w^2]/(n g^5)`` removed), which — unlike the integration-by-parts ``\psi_4`` U-statistic — stays valid where ``f(0) > 0`` (the ``w \to 0`` boundary weight suppresses the pilot's edge leakage). A deterministic functional of the counts (mergeable). The symmetric `:sj` / `:isj` / `:aic` do not apply; a fully data-adaptive curvature pilot is a recorded refinement.
+- **Estimator** (`rule = :plugin`, the **asymmetric-kernel** Chen plug-in; `gamma_kernel` / `beta_kernel`). The gamma / beta estimators take a scale ``b`` (rate ``n^{-2/5}``), not ``h``; their AMISE (Chen 1999, 2000; modified ``f_2``) is ``A b^2 + C b^{-1/2}/n`` with ``A = \tfrac14\int w^2 (f'')^2``, ``C = (2\sqrt\pi)^{-1}\mathbb{E}[w(X)^{-1/2}]`` and local-scale weight ``w(x) = x`` (gamma) or ``x(1-x)`` (beta), giving ``b^\star = [\mathbb{E}[w(X)^{-1/2}]/(2\sqrt\pi\,n\int w^2 (f'')^2)]^{2/5}``. ``\mathbb{E}[w(X)^{-1/2}]`` is an exact count moment; the curvature ``\int w^2 (f'')^2`` is a grid quadrature of the pilot KDE's ``\hat f''_g`` (pilot ``g = 1.3\,s\,n^{-1/9}`` at the robust scale ``s = \min(\hat\sigma,\,\mathrm{IQR}/1.349)``, the variance inflation ``R(\varphi'')\,\mathbb{E}[w^2]/(n g^5)`` removed), which — unlike the integration-by-parts ``\psi_4`` U-statistic — stays valid where ``f(0) > 0`` (the ``w \to 0`` boundary weight suppresses the pilot's edge leakage). A deterministic functional of the counts (mergeable). The symmetric `:sj` / `:isj` / `:aic` do not apply; a fully data-adaptive curvature pilot is a recorded refinement.
 - **Consistency claim.** with ``\hat\sigma \to \sigma`` and the Gaussian reference ``R(f^{(p)}) = (2p-1)!!/(2^{p+1}\sqrt{\pi}\,\sigma^{2p+1})``, ``C(K,d)`` is the exact AMISE-optimal constant: degree 0/1 gives ``h \sim n^{-1/5}`` (MISE ``\sim n^{-4/5}``), degree 2 the higher-order ``h \sim n^{-1/9}`` (MISE ``\sim n^{-8/9}``); the Gaussian/degree-0 case is Silverman ``(4/3)^{1/5}``, the Epanechnikov ``\approx 2.34``.
-- **Test.** `test/bandwidth.jl` (Gaussian degree 0 reproduces Silverman, degree 1 equals degree 0, the Epanechnikov ``h`` is ``2.214\times`` the Gaussian, degree 2 matches the closed-form ``n^{-1/9}`` rule and exceeds degree 0; coverage-gap and sample-size errors; plus the Sheather–Jones tests — SJ ``\approx`` the normal reference on Gaussian data, much tighter on a bimodal mixture, the exact ``\delta(K)`` kernel ratio, mergeability, the degree ``\ge 2`` gap; and the AIC tests — a stable optimum below the normal reference on Gaussian data, far smaller on a bimodal mixture, the exact ``\delta(K)`` ratio, mergeability, and the deliberately-absent CV rules erroring; and the asymmetric Chen plug-in — `:normal` reproduces the ``\hat\sigma\,n^{-2/5}`` rule of thumb, `:plugin` lowers the ISE ``\ge 1.4\times`` on log-normal and gamma data and stays ``\approx`` neutral on the near-exponential boundary case, gamma and beta kernels, mergeability, and the inapplicable `:sj`/`:isj`/`:aic` and `degree \ge 1` rules erroring) and `test/oracles.jl` (the kernel-aware ratio on the ``N(0,1)`` oracle).
+- **Test.** `test/bandwidth.jl` (Gaussian degree 0 reproduces Silverman, degree 1 equals degree 0, the Epanechnikov ``h`` is ``2.214\times`` the Gaussian, degree 2 matches the closed-form ``n^{-1/9}`` rule and exceeds degree 0; coverage-gap and sample-size errors; plus the Sheather–Jones tests — SJ ``\approx`` the normal reference on Gaussian data, much tighter on a bimodal mixture, the exact ``\delta(K)`` kernel ratio, mergeability, the degree ``\ge 2`` gap; and the AIC tests — a stable optimum below the normal reference on Gaussian data, far smaller on a bimodal mixture, the exact ``\delta(K)`` ratio, mergeability, and the deliberately-absent CV rules erroring; and the asymmetric Chen plug-in — `:normal` reproduces the ``\hat\sigma\,n^{-2/5}`` rule of thumb, `:plugin` lowers the ISE (``\ge 1.25\times`` on log-normal, ``\ge 1.11\times`` on gamma; ``\approx 1.4\text{–}1.7\times`` typically, seed-audited) and stays ``\approx`` neutral on the near-exponential boundary case, gamma and beta kernels, mergeability, and the inapplicable `:sj`/`:isj`/`:aic` and `degree` ``\ge 1`` rules erroring; the Improved Sheather–Jones tests (`:isj` ``\approx`` the normal reference on Gaussian, ``< 0.5\times`` it on a bimodal mixture, the exact ``\delta(K)`` ratio, mergeability); and the **Marron–Wand claw** stress, where the data-driven `:sj` / `:isj` resolve the five spikes the normal reference oversmooths — ``\approx`` an order of magnitude lower ISE) and `test/oracles.jl` (the kernel-aware ratio on the ``N(0,1)`` oracle).
 
 ## Local-linear conditional mean (§4.2) — `conditional_mean`
 
@@ -154,7 +158,21 @@ The implemented entries are test-linked; a forthcoming operation gets its entry 
   ``\lesssim 2\times10^{-2}``; `conditional_variance` recovers ``1-\rho^2`` to a few percent (the
   simple ``\hat{\mathbb E}[Y^2\mid x]-\hat m^2`` estimator carries the local-linear smoothing bias of
   the curved ``E[Y^2\mid x]``; the Fan–Yao residual refinement is forthcoming). The ``n^{-2/5}`` rate
-  test is forthcoming.
+  test is scheduled.
+
+## Local-linear conditional variance (§4.2) — `conditional_variance`
+
+- **Estimand.** ``\sigma^2(x) = \operatorname{Var}(Y \mid X = x) = \mathbb{E}[Y^2 \mid X = x] - m(x)^2``,
+  with ``m(x)`` the conditional mean above.
+- **Estimator.** the plug-in ``\hat\sigma^2_h(x) = \widehat{\mathbb{E}}[Y^2 \mid x] - \hat m_h(x)^2`` — the
+  §4.2 local-linear fit applied to ``Y`` and ``Y^2`` (per-X-column totals ``\sum Y``, ``\sum Y^2``, exact
+  from the per-cell power-sums), clamped to be non-negative.
+- **Consistency claim.** consistent for ``\sigma^2(x)``, but the simple difference carries the
+  local-linear smoothing bias of the curved ``\mathbb{E}[Y^2\mid x]`` (an ``O(h^2)`` term, a few percent at
+  a modest ``h``) — the bias-reducing residual-based estimator (Fan & Yao 1998) is forthcoming.
+- **Test.** `test/regression.jl` (recovers ``1-\rho^2`` on the bivariate-Gaussian oracle to a few percent;
+  the universal contract via `check_point_estimator` — scalar ``=`` vector, functional of the merged
+  summary, ``\mathrm{NaN}`` off-support). The ``n^{-2/5}`` rate test is scheduled.
 
 ## Conditional increment moments, drift & diffusion (§4.4) — `increment_moment`, `kramers_moyal`, `drift`, `diffusion`
 
@@ -196,7 +214,8 @@ The implemented entries are test-linked; a forthcoming operation gets its entry 
 
 - **Estimand.** ``f_{Y\mid X}(y\mid x) = f_{X,Y}(x,y)/f_X(x)``, and the two-time transition density
   ``p_\tau(y\mid x) = f_{X_{t+\tau}\mid X_t}(y\mid x)`` (the same object on a lag-``\tau`` joint).
-- **Estimator.** the binned double-kernel (Rosenblatt 1969; Hyndman, Bashtannyk & Grunwald 1996): from
+- **Estimator.** the binned double-kernel (Rosenblatt 1969; Hyndman, Bashtannyk & Grunwald 1996), with
+  the (Gaussian) conditioning bandwidth ``h_1 =`` `hx` and response bandwidth ``h_2 =`` `hy`: from
   the cell counts ``n_{jk}`` at centers ``(c^x_j, c^y_k)`` with ``N_j = \sum_k n_{jk}``,
 
   ```math

@@ -67,9 +67,9 @@ end
 ``f_{Y\\mid X}(y \\mid x) = f_{X,Y}(x, y) / f_X(x)``.
 
 **Estimator** (double-kernel; Rosenblatt 1969; Hyndman, Bashtannyk & Grunwald 1996). From the joint
-[`Histogram2D`](@ref GBGStreamingStatistics.Histograms.Histogram2D) `summary`, with kernel ``K``
-(``\\int K = 1``), conditioning bandwidth ``h_1 =`` `hx` (in ``x``) and response bandwidth
-``h_2 =`` `hy` (in ``y``),
+[`Histogram2D`](@ref GBGStreamingStatistics.Histograms.Histogram2D) `summary`, with the fixed Gaussian
+kernel ``K`` (``\\int K = 1``; there is no `kernel` argument), conditioning bandwidth ``h_1 =`` `hx`
+(in ``x``) and response bandwidth ``h_2 =`` `hy` (in ``y``),
 
 ```math
 \\hat f(y \\mid x) =
