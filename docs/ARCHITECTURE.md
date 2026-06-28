@@ -711,8 +711,8 @@ intentional — do not dedupe it).
   and the weighted `merge!(into, from; weight)`
   (``\texttt{into} \mathrel{+}= \texttt{weight} \cdot \texttt{from}``; ``\texttt{weight} = 1`` recovers the
   plain monoid add), on a **Float-count variant** (`count = Float64`; the default `UInt64` counts cannot
-  hold a fractional ``w\,n``, so `scale!` and a weighted merge `ArgumentError` on them). The carrier needed
-  almost no change — `observe!`'s atomic scatter already adds `one(eltype(counts))`, so a Float count routes
+  hold a fractional ``w\,n``, so `scale!` and a weighted merge `ArgumentError` on them). The summary storage
+  needed almost no change — `observe!`'s atomic scatter already adds `one(eltype(counts))`, so a Float count routes
   through the atomic-*float* add (CPU and GPU), and `merge!` was already an elementwise broadcast. Estimand:
   the **hyperstatistical** parameter-mixture density
   ``P(x) = \int f(\beta)\,P(x\mid\beta)\,\mathrm{d}\beta \approx \sum_k w_k f_k(x) = \sum_k (w_k/N_k)\,T_k``
