@@ -51,16 +51,24 @@ end
 @inline (k::AsymmetricKernel)(c, x, b) = k.pdf(c, x, b)
 
 
-_gamma_pdf(c, x, b) = c > 0 ? exp((x / b) * log(c) - c / b - (x / b + 1) * log(b) - loggamma(x / b + 1)) : 0.0
+# Chen's **modified** gamma kernel (f̂₂): shape ρ(x) = x/b in the interior (so the kernel mean is exactly
+# x, removing the f' bias term of the naive x/b+1 form) and ρ(x) = (x/b)²/4 + 1 within 2b of the edge.
+function _gamma_pdf(c, x, b)
+  c > 0 || return 0.0
+  ρ = x < 2b ? (x / b)^2 / 4 + 1 : x / b
+  return exp((ρ - 1) * log(c) - c / b - ρ * log(b) - loggamma(ρ))
+end
 
 """
     gamma_kernel
 
 The **gamma kernel** (Chen 2000) for a density on the half-line ``[0,\\infty)`` — a varying-shape
-*asymmetric* kernel: at the query point ``x`` it is the ``\\mathrm{Gamma}(x/b+1,\\,b)`` density in the
-data argument, so its support matches the data and **no mass leaks past 0**. Passed as
+*asymmetric* kernel: at the query point ``x`` it is the modified (bias-reduced) ``\\mathrm{Gamma}(\\rho(x),\\,b)``
+density in the data argument (Chen's ``f_2``: shape ``\\rho(x) = x/b`` in the interior — so the kernel mean
+is exactly ``x``, removing the ``f'`` bias of the naive ``x/b+1`` form — and ``(x/b)^2/4 + 1`` within ``2b``
+of the edge), so its support matches the data and **no mass leaks past 0**. Passed as
 `kernel = gamma_kernel`, [`density`](@ref GBGStreamingStatistics.DensityEstimation.density) returns the
-boundary-bias-free estimate ``\\hat f(x) = \\tfrac1n \\sum_j n_j\\,\\mathrm{Gamma}(c_j;\\,x/b+1,\\,b)``
+boundary-bias-free estimate ``\\hat f(x) = \\tfrac1n \\sum_j n_j\\,\\mathrm{Gamma}(c_j;\\,\\rho(x),\\,b)``
 (``O(b)`` bias uniformly, including at the boundary where a symmetric kernel is inconsistent; the variance
 self-adapts, tightening toward the edge). Use it for non-negative quantities such as droplet radii — an
 alternative to (and usually sharper than) the `bounds` renormalization. The bandwidth defaults to
@@ -73,10 +81,13 @@ kernels*](https://doi.org/10.1023/A:1004165218295), Ann. Inst. Statist. Math. 52
 const gamma_kernel = AsymmetricKernel(_gamma_pdf, (0.0, Inf))
 
 
+# Chen's modified beta shape: interior (x/b, (1-x)/b); a √-correction within 2b of an edge (mean ≈ x).
+_beta_rho(x, b) = 2b^2 + 2.5 - sqrt(4b^4 + 6b^2 + 2.25 - x^2 - x / b)
+
 function _beta_pdf(c, x, b)
   (0 < c < 1) || return 0.0
-  p = x / b + 1
-  q = (1 - x) / b + 1
+  p = x < 2b ? _beta_rho(x, b) : x / b
+  q = x > 1 - 2b ? _beta_rho(1 - x, b) : (1 - x) / b
   return exp((p - 1) * log(c) + (q - 1) * log1p(-c) - logbeta(p, q))
 end
 
@@ -85,8 +96,9 @@ end
 
 The **beta kernel** (Chen 1999) for a density on the unit interval ``[0,1]`` — the bounded-interval
 analog of [`gamma_kernel`](@ref GBGStreamingStatistics.DensityEstimation.gamma_kernel): at ``x`` it is
-the ``\\mathrm{Beta}(x/b+1,\\,(1-x)/b+1)`` density in the data argument, boundary-bias-free at **both**
-edges. Pass `kernel = beta_kernel` with data scaled to ``[0,1]``; the bandwidth default, the knob
+the modified (bias-reduced) ``\\mathrm{Beta}`` density in the data argument (Chen's ``f_2``: interior
+shapes ``(x/b,\\,(1-x)/b)``, with a ``\\sqrt{\\,\\cdot\\,}`` correction within ``2b`` of an edge),
+boundary-bias-free at **both** edges. Pass `kernel = beta_kernel` with data scaled to ``[0,1]``; the bandwidth default, the knob
 restrictions, and the ``n^{-2/5}`` rate are as for `gamma_kernel`.
 
 Reference: S. X. Chen (1999), [*Beta kernel estimators for density
