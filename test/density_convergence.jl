@@ -105,30 +105,40 @@ include("testoracles.jl"); using .TestOracles
     @test se ≈ -0.80  atol = 0.12     # Epanechnikov — the same kernel-independent rate
   end
 
-  @testset "binning-error convergence (WARPing → exact KDE)" begin
-    # The binned KDE rounds each sample to its bin center (simple binning); as the bins refine it must
-    # converge to the exact un-binned KDE (1/nh)Σ K((x−xᵢ)/h) at the same h. Simple binning is O(binwidth)
-    # — linear binning would be O(binwidth²), a possible refinement using the stored within-bin S₁ (CLAUDE
-    # roadmap). Seed-averaged so the deterministic O(binwidth) rate shows through the per-sample fluctuation.
+  @testset "binning-error convergence (WARPing → exact KDE): simple O(Δ), linear O(Δ²)" begin
+    # The binned KDE places each bin's mass at a representative location; as the bins refine it converges
+    # to the exact un-binned KDE (1/nh)Σ K((x−xᵢ)/h) at the same h. Simple binning (mass at the bin center)
+    # is O(binwidth); linear binning (mass at the recovered within-bin centroid cⱼ + S₁[j]/nⱼ, which
+    # matches the bin's first moment so the within-bin displacement averages to zero) is O(binwidth²) — the
+    # default. Seed-averaged so the deterministic rate shows through the per-sample fluctuation.
     hbw = 0.3
     gridb = collect(-4.0:0.05:4.0)
     K(u) = exp(-u^2 / 2) / sqrt(2π)               # the smoothing kernel, as a reference
     nbs = (600, 1200, 2400, 4800)
-    errs = Float64[]
-    for nb in nbs
-      e = 0.0
-      for sd in 1:3
-        Random.seed!(sd); samples = randn(40_000)
-        exact = [sum(K((x - s) / hbw) for s in samples) / (40_000 * hbw) for x in gridb]
-        binned = Histogram1D(-10.0, 10.0, nb); observe!(binned, samples)
-        e += sqrt(ise(density(binned, gridb; h = hbw), exact, 0.05))
+    binwidths = 20 ./ nbs                          # range width 20 ([-10,10]) over nbins
+    function discretization_errors(binning)
+      errs = Float64[]
+      for nb in nbs
+        e = 0.0
+        for sd in 1:3
+          Random.seed!(sd); samples = randn(40_000)
+          exact = [sum(K((x - s) / hbw) for s in samples) / (40_000 * hbw) for x in gridb]
+          binned = Histogram1D(-10.0, 10.0, nb); observe!(binned, samples)
+          e += sqrt(ise(density(binned, gridb; h = hbw, binning = binning), exact, 0.05))
+        end
+        push!(errs, e / 3)
       end
-      push!(errs, e / 3)
+      errs
     end
-    @test errs[end] < 0.4 * errs[1]               # the binning error converges as the grid refines
-    slope = let lb = log.(20 ./ nbs), le = log.(errs), mb = mean(log.(20 ./ nbs)), me = mean(log.(errs))
+    logslope(errs) = let lb = log.(binwidths), le = log.(errs), mb = mean(log.(binwidths)), me = mean(log.(errs))
       sum((lb .- mb) .* (le .- me)) / sum((lb .- mb) .^ 2)
     end
-    @test slope ≈ 1.0  atol = 0.4                  # simple binning ⇒ O(binwidth)
+    errs_simple = discretization_errors(:simple)
+    errs_linear = discretization_errors(:linear)
+    @test errs_simple[end] < 0.4 * errs_simple[1]   # both converge as the grid refines
+    @test errs_linear[end] < 0.4 * errs_linear[1]
+    @test logslope(errs_simple) ≈ 1.0  atol = 0.4   # simple binning (mass at center) ⇒ O(binwidth)
+    @test logslope(errs_linear) ≈ 2.0  atol = 0.4   # linear (centroid) binning ⇒ O(binwidth²)
+    @test errs_linear[end] < 0.2 * errs_simple[end] # and far more accurate at a fine grid (the default)
   end
 end

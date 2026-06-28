@@ -8,13 +8,16 @@ include("testcontracts.jl"); using .TestContracts
 @testset "DensityEstimation (density)" begin
   K(u) = exp(-u^2 / 2) / sqrt(2π)
 
-  # One point binned at a known bin center → the binned KDE is a single Gaussian bump at that center
-  # (the WARPing approximation evaluates at bin centers, not the raw sample).
+  # One sample → a single Gaussian bump. With linear (centroid) binning — the default — the bump sits at
+  # the sample's exact location (the within-bin centroid of a lone sample IS the sample); with simple
+  # binning it sits at the bin center (the WARPing approximation evaluates at bin centers).
   h = Histogram1D(-1.0, 1.0, 2)        # bins [-1,0) center −0.5, [0,1) center 0.5
-  observe!(h, 0.4)                      # lands in bin 2 (center 0.5)
+  observe!(h, 0.4)                      # lands in bin 2 (center 0.5, centroid 0.4)
   bw = 0.2
-  @test density(h, 0.5; h = bw) ≈ K(0.0) / bw
-  @test density(h, 0.3; h = bw) ≈ K((0.3 - 0.5) / bw) / bw
+  @test density(h, 0.4; h = bw) ≈ K(0.0) / bw                            # linear: bump at the sample 0.4
+  @test density(h, 0.2; h = bw) ≈ K((0.2 - 0.4) / bw) / bw
+  @test density(h, 0.5; h = bw, binning = :simple) ≈ K(0.0) / bw         # simple: bump at the center 0.5
+  @test density(h, 0.3; h = bw, binning = :simple) ≈ K((0.3 - 0.5) / bw) / bw
 
   # an empty histogram has zero density everywhere
   @test density(Histogram1D(-1.0, 1.0, 4), 0.0; h = 0.1) == 0.0
@@ -71,10 +74,10 @@ end
   @test epanechnikov_kernel(1.0) == 0.0                   # compact support [-1, 1]
   @test epanechnikov_kernel(2.0) == 0.0
 
-  h = Histogram1D(-1.0, 1.0, 2); observe!(h, 0.4)         # one sample, bin 2 (center 0.5)
+  h = Histogram1D(-1.0, 1.0, 2); observe!(h, 0.4)         # one sample, bin 2 (center 0.5, centroid 0.4)
   bw = 0.6
-  @test density(h, 0.5; h = bw, kernel = epanechnikov_kernel) ≈ epanechnikov_kernel(0.0) / bw
-  @test density(h, 0.5; h = bw, kernel = gaussian_kernel) ≈ density(h, 0.5; h = bw)   # explicit == default
+  @test density(h, 0.4; h = bw, kernel = epanechnikov_kernel) ≈ epanechnikov_kernel(0.0) / bw   # bump at the centroid 0.4
+  @test density(h, 0.4; h = bw, kernel = gaussian_kernel) ≈ density(h, 0.4; h = bw)   # explicit == default
   @test density(h, -0.9; h = 0.3, kernel = epanechnikov_kernel) == 0.0                # compact support → 0 far away
 
   # both kernels integrate the recovered density to ≈ 1 over the range

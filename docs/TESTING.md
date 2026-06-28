@@ -39,8 +39,10 @@ analytic round-trips: estimators are checked against distributions with closed f
   asymptotics make it visible by ``n = 10^6``; a non-Gaussian does not reach the asymptotic regime there
   (its slope muddies to ``\approx -0.66`` and degree 2 fails to separate from degree 0), a recorded
   omission rather than a missing test. A companion **binning-error** test confirms the binned estimate
-  converges to the exact un-binned KDE as the grid refines, at ``O(\Delta)`` in the bin width ``\Delta``
-  (simple binning; linear binning would be ``O(\Delta^2)``, a refinement latent in the stored ``S_1``).
+  converges to the exact un-binned KDE as the grid refines — at ``O(\Delta^2)`` in the bin width ``\Delta``
+  for the default linear/centroid `binning` (mass at the recovered within-bin centroid, via the stored
+  ``S_1``) and at ``O(\Delta)`` for `binning = :simple` (mass at the bin center), the two slopes checked
+  against ``2`` and ``1``.
   The conditional-mean ``n^{-2/5}`` and conditional-density ``n^{-2/3}`` rate tests are scheduled.
 - **Mergeability tests.** For every summary, *accumulate-then-merge ``=`` accumulate-together* (to
   round-off), plus the incompatible-summary rejection — the monoid laws of invariant 3

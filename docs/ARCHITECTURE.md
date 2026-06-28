@@ -288,11 +288,15 @@ Each entry is written **estimand first** (per §2), demonstrating the convention
 
 **Estimand.** ``f_X = \mathrm{d}\mu_X/\mathrm{d}\lambda``, the Lebesgue density:
 ``P(X \in A) = \int_A f_X\,\mathrm{d}\lambda``.
-**Estimator** (binned KDE / WARPing): from bin counts ``n_j`` at centers ``c_j``,
+**Estimator** (binned KDE / WARPing): from bin counts ``n_j`` at bin locations ``\ell_j``,
 ```math
-\hat f_h(x) \;=\; \frac{1}{n\,h}\sum_{j} n_j\, K\!\Big(\frac{x - c_j}{h}\Big), \qquad \int K = 1,
+\hat f_h(x) \;=\; \frac{1}{n\,h}\sum_{j} n_j\, K\!\Big(\frac{x - \ell_j}{h}\Big), \qquad \int K = 1,
 ```
-the binned approximation to ``\frac{1}{nh}\sum_i K(\frac{x-X_i}{h})``. Bandwidth from §4.5.
+the binned approximation to ``\frac{1}{nh}\sum_i K(\frac{x-X_i}{h})``. The location ``\ell_j`` is the
+recovered within-bin **centroid** ``c_j + S_1^{(j)}/n_j`` (linear binning, the default — matching the
+bin's first moment, so the discretization error is ``O(\Delta^2)`` in the bin width ``\Delta``) or the
+geometric center ``c_j`` (`binning = :simple`, ``O(\Delta)``); the centroid is read from the already-stored
+``S_1``, so the higher-order accuracy is free. Bandwidth from §4.5.
 
 **Kernels.** ``K`` is pluggable (any ``\int K = 1``); two ship — `gaussian_kernel` (default) and
 `epanechnikov_kernel` (the MSE-optimal ``\tfrac34(1-u^2)`` on ``|u| \le 1``). `bandwidth` (§4.5) is
@@ -725,6 +729,20 @@ intentional — do not dedupe it).
   *default* bandwidth reads ``n \approx 1`` — pass an explicit ``h`` (or rescale the weights to a
   representative sample size). An effective-sample-size bandwidth for weighted summaries
   (Kish ``(\sum_i w_i)^2 / \sum_i w_i^2``) is a possible refinement, not built.
+
+- **Linear (centroid) binning — the default for `density`** (§4.1). *Built.* The binned KDE places each
+  bin's mass at a representative location ``\ell_j``. The geometric center ``\ell_j = c_j`` (simple binning)
+  leaves a nonzero within-bin first moment, an ``O(\Delta)`` discretization of the exact KDE; placing the
+  mass at the recovered within-bin **centroid** ``\ell_j = c_j + S_1^{(j)}/n_j`` zeroes that first moment
+  (``\sum_{i\in j}(X_i - \ell_j) = 0``), so the leading term cancels and the discretization error drops to
+  ``O(\Delta^2)`` — the centroid analog of Hall–Wand linear binning. The first power-sum ``S_1`` is *already
+  stored*, so the refinement is free, and it is the new default (`binning = :linear`; `binning = :simple`
+  keeps the center). One change threads it everywhere: every `density` path reads a `centers` vector, so the
+  KDE, the local-log fit, the parametric start, and the asymmetric kernels all inherit the centroid at no
+  extra cost. Oracle-tested by the binning-error convergence sub-test (`test/density_convergence.jl`: a
+  log–log slope ``\approx 2`` in ``\Delta`` for `:linear` against ``\approx 1`` for `:simple`, the linear
+  estimate an order of magnitude tighter at a fine grid). A higher-order correction using the stored ``S_2``
+  is conceivable but not built.
 
 Open decisions still flagged **[OPEN]** in §10 (the projection road, `HistogramND`, vector-valued
 conditioning, prior-art mirroring) graduate to entries here when they are settled.

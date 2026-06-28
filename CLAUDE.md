@@ -59,8 +59,9 @@ estimands.
   local-log-polynomial (`degree`), the Abramson variable bandwidth (`adaptive`), boundary
   renormalization (`bounds`, Jones 1993), the **parametric start** (`start`, Hjort & Glad 1995 — the
   moment-fitted `normal_start` / `lognormal_start` / `gamma_start` / `exponential_start` /
-  `inverse_gaussian_start`, or a user-supplied `ParametricStart`), and exact `normalize`
-  (``\int\hat f = 1``) — plus the symmetric `gaussian_kernel` / `epanechnikov_kernel` (or any callable
+  `inverse_gaussian_start`, or a user-supplied `ParametricStart`), exact `normalize`
+  (``\int\hat f = 1``), and the **`binning`** location rule (`:linear` centroid default — ``O(\Delta^2)``
+  via the stored ``S_1``; `:simple` bin-center, ``O(\Delta)``) — plus the symmetric `gaussian_kernel` / `epanechnikov_kernel` (or any callable
   with ``\int K = 1``), the **asymmetric** `gamma_kernel` / `beta_kernel` for bounded/positive support
   (boundary-bias-free; Chen 1999/2000, or a user-supplied `AsymmetricKernel`), and
   `density_standard_error` (the pointwise variability band
@@ -252,7 +253,9 @@ Mechanical bar:
    heavy tail, log-normal, bimodal) with a **convergence-rate test** — the ISE falls at
    ``n^{-2p/(2p+1)}``, degree-2's steeper ``n^{-8/9}`` vs degree-0/1's ``n^{-4/5}``, the Epanechnikov
    reproducing the kernel-independent ``n^{-4/5}``, plus a **binning-error convergence** test (the binned
-   estimate → the exact KDE at ``O(\\Delta)`` — simple binning) — in `test/density_convergence.jl`. Also the **bounded/positive-support** kernels (`gamma_kernel` `[0,∞)`,
+   estimate → the exact KDE at ``O(\\Delta^2)`` for the default **linear/centroid `binning`** — mass at the
+   recovered within-bin centroid ``c_j + S_1^{(j)}/n_j`` — and ``O(\\Delta)`` for `binning = :simple`,
+   mass at the bin center) — in `test/density_convergence.jl`. Also the **bounded/positive-support** kernels (`gamma_kernel` `[0,∞)`,
    `beta_kernel` `[0,1]`; Chen's bias-reduced ``f_2``), the **parametric start** (`start`, Hjort & Glad
    1995 — five moment-fitted starts; a bias reduction, near-exact where the model fits, ``>3\times``
    better than the KDE on log-normal data), and exact **`normalize`** (``\int\hat f = 1``); tested in
@@ -352,10 +355,7 @@ vector-valued conditioning (lean scalar-channel — let the consumer loop compon
 its first consumer); the **leave-one-out cross-validation** bandwidth selectors
 (likelihood-CV, least-squares LSCV — a binned summary's ties drive their objective to zero bandwidth; the
 built `:aic` / `:sj` are the data-driven selectors instead, and a within-bin-spread correction from the
-power-sums could rescue CV later); **linear (centroid) binning** for `density` — the binned KDE uses simple
-binning (mass at the bin center, ``O(\\Delta)`` discretization, verified in `test/density_convergence.jl`),
-whereas placing each bin's mass at its recovered within-bin centroid ``c_j + S_1[j]/n_j`` (already stored)
-would be the ``O(\\Delta^2)`` linear-binning analog — a latent accuracy refinement, not yet built.
+power-sums could rescue CV later).
 
 ## Working agreements
 

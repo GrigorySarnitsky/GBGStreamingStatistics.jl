@@ -116,21 +116,27 @@ conditional-variance refinement).
 ## Marginal density (§4.1) — `density`
 
 - **Estimand.** ``f_X = \mathrm{d}\mu_X/\mathrm{d}\lambda``, the Lebesgue density of ``X``.
-- **Estimator.** the binned KDE ``\hat f_h(x) = \frac{1}{nh}\sum_j n_j K\!\left(\frac{x-c_j}{h}\right)``
-  (``\int K = 1``, Gaussian ``K``) from the bin counts ``n_j`` at centers ``c_j``, with ``h`` from
-  `bandwidth` (Silverman ``h = (4/3)^{1/5}\hat\sigma\,n^{-1/5}``).
+- **Estimator.** the binned KDE ``\hat f_h(x) = \frac{1}{nh}\sum_j n_j K\!\left(\frac{x-\ell_j}{h}\right)``
+  (``\int K = 1``, Gaussian ``K``) from the bin counts ``n_j`` at bin locations ``\ell_j`` — the within-bin
+  **centroid** ``\ell_j = c_j + S_1^{(j)}/n_j`` (linear binning, the default `binning = :linear`) or the
+  geometric center ``\ell_j = c_j`` (`binning = :simple`) — with ``h`` from `bandwidth`
+  (Silverman ``h = (4/3)^{1/5}\hat\sigma\,n^{-1/5}``).
 - **Consistency claim** (``h \to 0``, ``nh \to \infty``): ``\operatorname{bias}\hat f_h(x) \approx
   \tfrac12 h^2 \mu_2(K)\, f_X''(x)`` and ``\operatorname{Var}\hat f_h(x) \approx R(K)\,f_X(x)/(n h)``;
-  the binning error (simple binning, mass at the bin center) is ``O(\Delta)`` in the bin width ``\Delta``,
-  dominated by the ``O(h^2)`` smoothing bias when ``\Delta \ll h^2`` (linear binning's ``O(\Delta^2)``, via
-  the stored ``S_1``, is a roadmap refinement).
+  the binning error converges to the exact KDE at ``O(\Delta^2)`` in the bin width ``\Delta`` for linear
+  binning — the centroid matches the within-bin first moment, ``\sum_{i\in j}(X_i - \ell_j) = 0``, so the
+  leading ``O(\Delta)`` discretization term vanishes — and at ``O(\Delta)`` for simple binning; either is
+  dominated by the ``O(h^2)`` smoothing bias when ``\Delta`` is small.
 - **Test.** `test/oracles.jl` (recovers the ``N(0,1)`` pdf to ``< 3\times10^{-3}`` over ``[-3,3]``,
   integrates to 1). `test/density_convergence.jl` — a representative analytic-PDF suite (Gaussian,
   uniform, exponential, Student-``t`` ``\nu=3`` heavy tail, log-normal, bimodal: each recovered to
   ``\sim 10^{-2}`` and integrating to ``\approx 1``, the variable bandwidth tracking the ``t`` heavy
   tail better than the fixed) and the **convergence-rate test**: the ISE falls at the theoretical
   ``n^{-2p/(2p+1)}`` — slope ``\approx -0.80`` for degree 0/1 (``p=2``), the steeper ``\approx -0.87``
-  (``n^{-8/9}``, ``p=4``) for degree 2, the Abramson variable bandwidth sharing the degree-0 order.
+  (``n^{-8/9}``, ``p=4``) for degree 2, the Abramson variable bandwidth sharing the degree-0 order; plus the
+  **binning-error convergence** sub-test — the binned estimate approaches the exact KDE at ``O(\Delta^2)``
+  for the default linear/centroid `binning` (slope ``\approx 2`` in ``\Delta``) and ``O(\Delta)`` for
+  `binning = :simple` (slope ``\approx 1``).
 
 ## Local-log-polynomial & adaptive density (§4.1) — `density`'s `degree` / `adaptive`
 

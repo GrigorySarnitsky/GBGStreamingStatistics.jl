@@ -337,14 +337,14 @@ end
 
 
 # Z = ∫ f̂ over [summary.lower, summary.upper] ∩ support, by the trapezoidal rule on a fine grid.
-function _normalization_constant(summary::Histogram1D; degree, h, adaptive, kernel, bounds, start)
+function _normalization_constant(summary::Histogram1D; degree, h, adaptive, kernel, bounds, start, binning)
   slower, supper = _density_support(kernel, bounds, start)
   lower = max(float(summary.lower), slower)
   upper = min(float(summary.upper), supper)
   npts = clamp(4 * _nbins(summary), 512, 8192)
   grid = collect(range(lower, upper; length = npts))
   vals = density(summary, grid; degree = degree, h = h, adaptive = adaptive,
-                 kernel = kernel, bounds = bounds, start = start, normalize = false)
+                 kernel = kernel, bounds = bounds, start = start, normalize = false, binning = binning)
   Δ = (upper - lower) / (npts - 1)
   return (sum(vals) - 0.5 * (vals[1] + vals[end])) * Δ
 end
@@ -538,6 +538,25 @@ end
 _asymmetric_default_b(summary::Histogram1D) = _sample_std(summary) * float(_total(summary))^(-2 / 5)
 
 
+# Each bin's representative location for the post-hoc estimators, set by `binning`. `:simple` — the
+# geometric bin center c_j (the histogram's mass-at-center approximation, an O(Δ) discretization of the
+# exact KDE). `:linear` — the recovered within-bin centroid ĉ_j = c_j + S_1[j]/n_j from the stored first
+# power-sum, which matches the bin's own first moment, so the within-bin displacement averages to zero and
+# the binned KDE's discretization error drops to O(Δ²) (the centroid analog of linear binning). Every eval
+# helper is agnostic to which — it just reads `centers`. Empty bins keep the geometric center (no mass).
+function _bin_locations(summary::Histogram1D, counts, binning::Symbol)
+  nb = length(counts)
+  if binning === :simple
+    return [_bincenter(summary, j) for j in 1:nb]
+  elseif binning === :linear
+    S1 = Array(summary.powersums[1, :])      # the first power-sum S_1 about each bin center
+    return [iszero(counts[j]) ? _bincenter(summary, j) : _bincenter(summary, j) + S1[j] / counts[j]
+            for j in 1:nb]
+  end
+  throw(ArgumentError("binning must be :simple or :linear (got :$(binning))"))
+end
+
+
 """
     density(summary::Histogram1D, x; degree = 0, h = nothing, adaptive = false, kernel = gaussian_kernel, bounds = nothing, start = nothing, normalize = false)   # ≡ f_X
 
@@ -585,6 +604,12 @@ conditioning variable ``X``, defined by ``P(X \\in A) = \\int_A f_X\\,\\mathrm{d
   (intersected with the estimator's support), so ``\\int\\hat f = 1`` **exactly**. The symmetric KDE
   already integrates to ``\\approx 1``; the asymmetric kernels and a parametric start do not, so this is
   their finishing step.
+- **`binning`** — where each bin's mass sits for the post-hoc evaluation. `:linear` (the default) places
+  it at the recovered within-bin **centroid** ``c_j + S_1^{(j)}/n_j`` (from the stored first power-sum
+  ``S_1``), which matches the bin's own first moment, so the binned estimate converges to the exact KDE at
+  ``O(\\Delta^2)`` in the bin width ``\\Delta``; `:simple` places it at the geometric bin center ``c_j``,
+  the ``O(\\Delta)`` mass-at-center approximation. The centroid is read from data already in the summary, so
+  the higher-order accuracy is free; it applies to every path (KDE, local-log, start, asymmetric kernel).
 
 The four corners (fixed/variable ``\\times`` KDE/local-log) and everything between are one call. `kernel`
 is any ``K`` with ``\\int K = 1`` ([`gaussian_kernel`](@ref GBGStreamingStatistics.DensityEstimation.gaussian_kernel)
@@ -598,9 +623,9 @@ over a bandwidth grid is forthcoming (`CLAUDE.md` roadmap).
 ```jldoctest
 julia> h = Histogram1D(-1.0, 1.0, 2);
 
-julia> observe!(h, [0.4]);          # one sample, binned at center 0.5
+julia> observe!(h, [0.4]);          # one sample at 0.4
 
-julia> round(density(h, 0.5; h = 0.2); digits = 4)
+julia> round(density(h, 0.4; h = 0.2); digits = 4)   # linear binning centers the bump at 0.4 (the centroid)
 1.9947
 ```
 
@@ -615,12 +640,12 @@ estimator).
 """
 function density(summary::Histogram1D, x::Real; degree::Integer = 0, h = nothing,
                  adaptive::Bool = false, kernel = gaussian_kernel, bounds = nothing,
-                 start = nothing, normalize::Bool = false)
+                 start = nothing, normalize::Bool = false, binning::Symbol = :linear)
   if normalize
     Z = _normalization_constant(summary; degree = degree, h = h, adaptive = adaptive,
-                                kernel = kernel, bounds = bounds, start = start)
+                                kernel = kernel, bounds = bounds, start = start, binning = binning)
     fx = density(summary, x; degree = degree, h = h, adaptive = adaptive, kernel = kernel,
-                 bounds = bounds, start = start, normalize = false)
+                 bounds = bounds, start = start, normalize = false, binning = binning)
     return Z > 0 ? fx / Z : fx
   end
   if start !== nothing
@@ -631,7 +656,7 @@ function density(summary::Histogram1D, x::Real; degree::Integer = 0, h = nothing
     hh > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
     params = _start_params(summary, start)
     counts = Array(summary.counts)
-    centers = [_bincenter(summary, j) for j in 1:length(counts)]
+    centers = _bin_locations(summary, counts, binning)
     return _parametric_start_eval(counts, centers, n, x, hh, kernel, start, params)
   end
   if kernel isa AsymmetricKernel
@@ -643,7 +668,7 @@ function density(summary::Histogram1D, x::Real; degree::Integer = 0, h = nothing
     bb = h === nothing ? _asymmetric_default_b(summary) : float(h)
     bb > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
     counts = Array(summary.counts)
-    centers = [_bincenter(summary, j) for j in 1:length(counts)]
+    centers = _bin_locations(summary, counts, binning)
     return _asymmetric_eval(counts, centers, n, kernel, x, bb)
   end
   degree ≥ 0 || throw(ArgumentError("degree must be ≥ 0 (got $degree)"))
@@ -655,7 +680,7 @@ function density(summary::Histogram1D, x::Real; degree::Integer = 0, h = nothing
   hh = h === nothing ? _normal_reference_h(summary, kernel, degree) : float(h)
   hh > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
   counts = Array(summary.counts)
-  centers = [_bincenter(summary, j) for j in 1:length(counts)]
+  centers = _bin_locations(summary, counts, binning)
   if degree == 0 && !adaptive
     fx = _kde_h(counts, centers, n, x, hh, kernel)
     return bounds === nothing ? fx : fx / _kernel_mass(kernel, x, hh, bounds[1], bounds[2])
@@ -672,12 +697,12 @@ end
 
 function density(summary::Histogram1D, xs::AbstractVector; degree::Integer = 0, h = nothing,
                  adaptive::Bool = false, kernel = gaussian_kernel, bounds = nothing,
-                 start = nothing, normalize::Bool = false)
+                 start = nothing, normalize::Bool = false, binning::Symbol = :linear)
   if normalize
     Z = _normalization_constant(summary; degree = degree, h = h, adaptive = adaptive,
-                                kernel = kernel, bounds = bounds, start = start)
+                                kernel = kernel, bounds = bounds, start = start, binning = binning)
     fxs = density(summary, xs; degree = degree, h = h, adaptive = adaptive, kernel = kernel,
-                  bounds = bounds, start = start, normalize = false)
+                  bounds = bounds, start = start, normalize = false, binning = binning)
     return Z > 0 ? fxs ./ Z : fxs
   end
   if start !== nothing
@@ -688,7 +713,7 @@ function density(summary::Histogram1D, xs::AbstractVector; degree::Integer = 0, 
     hh > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
     params = _start_params(summary, start)
     counts = Array(summary.counts)
-    centers = [_bincenter(summary, j) for j in 1:length(counts)]
+    centers = _bin_locations(summary, counts, binning)
     return [_parametric_start_eval(counts, centers, n, x, hh, kernel, start, params) for x in xs]
   end
   if kernel isa AsymmetricKernel
@@ -700,7 +725,7 @@ function density(summary::Histogram1D, xs::AbstractVector; degree::Integer = 0, 
     bb = h === nothing ? _asymmetric_default_b(summary) : float(h)
     bb > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
     counts = Array(summary.counts)
-    centers = [_bincenter(summary, j) for j in 1:length(counts)]
+    centers = _bin_locations(summary, counts, binning)
     return [_asymmetric_eval(counts, centers, n, kernel, x, bb) for x in xs]
   end
   degree ≥ 0 || throw(ArgumentError("degree must be ≥ 0 (got $degree)"))
@@ -712,7 +737,7 @@ function density(summary::Histogram1D, xs::AbstractVector; degree::Integer = 0, 
   hh = h === nothing ? _normal_reference_h(summary, kernel, degree) : float(h)
   hh > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
   counts = Array(summary.counts)
-  centers = [_bincenter(summary, j) for j in 1:length(counts)]
+  centers = _bin_locations(summary, counts, binning)
   if degree == 0 && !adaptive
     fxs = [_kde_h(counts, centers, n, x, hh, kernel) for x in xs]
     return bounds === nothing ? fxs : [f / _kernel_mass(kernel, x, hh, bounds[1], bounds[2]) for (f, x) in zip(fxs, xs)]
@@ -758,19 +783,19 @@ true
 ```
 """
 function density_standard_error(summary::Histogram1D, x::Real; h = nothing,
-                    kernel = gaussian_kernel, degree::Integer = 0)
+                    kernel = gaussian_kernel, degree::Integer = 0, binning::Symbol = :linear)
   (degree == 0 || degree == 1) ||
     throw(ArgumentError("density_standard_error is a degree-0/1 (KDE) variability band; degree ≥ 2 is a coverage gap (got degree = $degree)"))
   n = _total(summary)
   iszero(n) && return 0.0
   hh = h === nothing ? _normal_reference_h(summary, kernel, degree) : float(h)
   hh > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
-  fx = density(summary, x; h = hh, kernel = kernel, degree = degree)
+  fx = density(summary, x; h = hh, kernel = kernel, degree = degree, binning = binning)
   return sqrt(_quad(u -> kernel(u)^2) * max(fx, 0.0) / (n * hh))
 end
 
 function density_standard_error(summary::Histogram1D, xs::AbstractVector; h = nothing,
-                    kernel = gaussian_kernel, degree::Integer = 0)
+                    kernel = gaussian_kernel, degree::Integer = 0, binning::Symbol = :linear)
   (degree == 0 || degree == 1) ||
     throw(ArgumentError("density_standard_error is a degree-0/1 (KDE) variability band; degree ≥ 2 is a coverage gap (got degree = $degree)"))
   n = _total(summary)
@@ -778,7 +803,7 @@ function density_standard_error(summary::Histogram1D, xs::AbstractVector; h = no
   hh = h === nothing ? _normal_reference_h(summary, kernel, degree) : float(h)
   hh > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
   RK = _quad(u -> kernel(u)^2)
-  fxs = density(summary, xs; h = hh, kernel = kernel, degree = degree)
+  fxs = density(summary, xs; h = hh, kernel = kernel, degree = degree, binning = binning)
   return [sqrt(RK * max(f, 0.0) / (n * hh)) for f in fxs]
 end
 
