@@ -300,7 +300,7 @@ Gaussian-tuned, so a non-Gaussian kernel wants a matched ``h`` (Epanechnikov's A
 ``h_j \propto \tilde f(c_j)^{-1/2}``, widening the kernel where data is thin) cuts the tail *variance*;
 the **local-log-polynomial** estimator `density(…; degree=d)` (fit ``\log f`` by a binned local Poisson
 likelihood — degree 1 exact for exponential tails, degree 2 for Gaussians) cuts the tail *bias*,
-capturing the decay shape a flat KDE smears. They compose. On a **bounded support** (a positive quantity such as a droplet radius), `density(…; bounds=(a,b))` renormalizes the degree-0 KDE by the kernel mass inside ``[a,b]`` (Jones 1993), removing the edge bias that otherwise halves the estimate at the boundary; or pass an **asymmetric kernel** (`gamma_kernel` for ``[0,\infty)``, `beta_kernel` for ``[0,1]``; Chen 1999, 2000) whose support matches the data and so eliminates the boundary bias by construction (usually sharper than the renormalization); and `density_standard_error` returns the pointwise ``\sqrt{R(K)\,f_X/(nh)}`` variability band. Two consumer caveats remain: the fixed range
+capturing the decay shape a flat KDE smears. They compose. On a **bounded support** (a positive quantity such as a droplet radius), `density(…; bounds=(a,b))` renormalizes the degree-0 KDE by the kernel mass inside ``[a,b]`` (Jones 1993), removing the edge bias that otherwise halves the estimate at the boundary; or pass an **asymmetric kernel** (`gamma_kernel` for ``[0,\infty)``, `beta_kernel` for ``[0,1]``; Chen 1999, 2000) whose support matches the data and so eliminates the boundary bias by construction (usually sharper than the renormalization). For a shape with a known parametric skeleton, a **parametric start** `density(…; start=…)` (Hjort & Glad 1995) multiplies a moment-fitted model (`normal_start`, `lognormal_start`, `gamma_start`, `exponential_start`, `inverse_gaussian_start`) by a KDE of its *correction* ``f_X/p`` — near-exact where the model fits (the bias is driven by ``(f_X/p)''``, not ``f_X''``) and a tail-friendly bias reduction otherwise; `normalize=true` rescales any estimate to ``\int\hat f = 1`` exactly (the asymmetric kernels and a start are not self-normalizing). Finally, `density_standard_error` returns the pointwise ``\sqrt{R(K)\,f_X/(nh)}`` variability band. Two consumer caveats remain: the fixed range
 ``[\texttt{lower}, \texttt{upper})`` drops events beyond it (set it wide, ``\approx \pm 10\text{–}15\sigma``,
 to keep the tail), and uniform bins under-resolve power-law tails (bin a transform such as ``\log|X|``
 and change variables back; the ``O(1)`` GPU scatter does not log-bin) — though **variable bandwidth is
@@ -648,6 +648,23 @@ intentional — do not dedupe it).
   recorded as a coverage gap (a within-bin-spread correction from the power-sums could rescue it);
   `:sj` and `:aic` are the data-driven selectors.
 
+- **Density §4.1 — parametric start and exact normalization added** (§4.1). A second pass over the
+  downloaded reference software (studying source, not docs) found two capabilities worth mirroring: the
+  **parametric start** (Hjort & Glad 1995; `kdensity`'s headline feature) and the **exact
+  renormalization** (`kdensity`'s `normalized`). The start is the semiparametric
+  ``\hat f = p(\cdot;\hat\theta)\cdot\widehat{(f/p)}`` — a moment-fitted model times a KDE of its
+  correction — with five moment-fittable starts (`normal_start`, `lognormal_start`, `gamma_start`,
+  `exponential_start`, `inverse_gaussian_start`); it stays in-discipline because ``\hat\theta`` is a
+  functional of the recovered moments, so the whole estimate is mergeable, and it is a *bias* reduction
+  (the leading bias is driven by ``(f/p)''``), valuable for the skewed positive shapes the package targets
+  (droplet radii). `normalize=true` divides any estimate by its integral over the support so
+  ``\int\hat f = 1`` exactly — the finishing step for the non-self-normalizing asymmetric kernels and
+  starts. Both are post-hoc degree-0 options; `start` does not compose with `degree ≥ 1`, `adaptive`,
+  `bounds`, or the asymmetric kernels (the local-likelihood-with-start generalization is a recorded gap).
+  The cross-validated start bandwidth (`KernelEstimator.jl`) and the Hjort–Jones *locally parametric*
+  generalization were weighed and deferred. The same source pass also corrected the gamma/beta kernels
+  from Chen's naive ``f_1`` to the bias-reduced ``f_2`` (a fix, committed separately).
+
 Open decisions still flagged **[OPEN]** in §10 (the projection road, `HistogramND`, vector-valued
 conditioning, prior-art mirroring) graduate to entries here when they are settled.
 
@@ -711,6 +728,9 @@ The load-bearing works the package implements or pins to:
 - S. X. Chen (1999), [*Beta kernel estimators for density
   functions*](https://doi.org/10.1016/S0167-9473(99)00010-9), Comput. Statist. Data Anal. 31(2). (Beta
   asymmetric kernel for ``[0,1]`` — `density(…; kernel=beta_kernel)`.)
+- N. L. Hjort & I. K. Glad (1995), [*Nonparametric density estimation with a parametric
+  start*](https://doi.org/10.1214/aos/1176324627), Ann. Statist. 23(3). (Semiparametric density — the
+  parametric model times a KDE of its correction; `density(…; start)`.)
 - A. Rydin Gorjão et al. (2021), [*Arbitrary-Order Finite-Time Corrections for the Kramers–Moyal
   Operator*](https://doi.org/10.3390/e23050517), Entropy 23(5) — the all-orders Bell-polynomial
   ``\tau``-correction; the [`kramersmoyal`](https://doi.org/10.21105/joss.01693) software lineage.

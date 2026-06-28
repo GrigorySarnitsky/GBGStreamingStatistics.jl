@@ -180,3 +180,59 @@ end
   @test_throws ArgumentError density(he, 0.5; kernel = gamma_kernel, bounds = (0.0, Inf))
   @test_throws ArgumentError density(he, 0.5; kernel = gamma_kernel, h = -1.0)
 end
+
+@testset "parametric start (Hjort–Glad) + normalization (§4.1)" begin
+  # a CORRECT start removes the KDE's smoothing bias (the correction f/p ≡ 1): at a deliberately wide
+  # bandwidth the plain KDE flattens the Gaussian peak (≈ 10% low) while the normal start recovers it
+  Random.seed!(51)
+  hg = Histogram1D(-8.0, 8.0, 800); observe!(hg, randn(50_000))
+  grid = collect(-4.0:0.05:4.0)
+  normpdf(x) = exp(-x^2 / 2) / sqrt(2π)
+  truth = normpdf.(grid)
+  ise(estimate) = sum((estimate .- truth) .^ 2) * 0.05
+  @test density(hg, 0.0; h = 0.5) < 0.95 * normpdf(0.0)                                # the KDE is biased
+  @test density(hg, 0.0; h = 0.5, start = normal_start) ≈ normpdf(0.0)  rtol = 2e-2    # the start fixes it
+  @test ise(density(hg, grid; h = 0.5, start = normal_start)) < 0.05 * ise(density(hg, grid; h = 0.5))
+
+  # a MATCHING start on skewed positive data (the droplet-radius case): the log-normal start tracks the
+  # log-normal far better than the symmetric KDE, decisively so in the right tail
+  Random.seed!(52)
+  σln = 0.6
+  hln = Histogram1D(0.0, 25.0, 1250); observe!(hln, exp.(σln .* randn(200_000)))
+  gln = collect(0.1:0.05:6.0)
+  lnpdf(x) = exp(-(log(x))^2 / (2σln^2)) / (x * σln * sqrt(2π))
+  tln = lnpdf.(gln)
+  iseln(estimate) = sum((estimate .- tln) .^ 2) * 0.05
+  @test iseln(density(hln, gln; start = lognormal_start)) < 0.3 * iseln(density(hln, gln))
+  for x in (2.0, 3.0, 4.0)
+    @test density(hln, x; start = lognormal_start) ≈ lnpdf(x)  rtol = 0.1
+  end
+
+  # `normalize` makes ∫f̂ = 1 EXACTLY over the support — a parametric start (and an asymmetric kernel) is
+  # not self-normalizing
+  fine = collect(range(0.0, 25.0; length = 5001)); Δ = 25.0 / 5000
+  trapz(v) = (sum(v) - 0.5 * (v[1] + v[end])) * Δ
+  @test abs(trapz(density(hln, fine; start = gamma_start)) - 1.0) > 1e-3            # the raw start is off
+  @test trapz(density(hln, fine; start = gamma_start, normalize = true)) ≈ 1.0  atol = 1e-6
+  @test trapz(density(hln, fine; kernel = gamma_kernel, normalize = true)) ≈ 1.0  atol = 1e-6
+
+  # mergeable: the start parameters merge through the recovered moments, the reweighted counts add
+  Random.seed!(53); d1 = exp.(σln .* randn(100_000)); d2 = exp.(σln .* randn(100_000))
+  a = Histogram1D(0.0, 25.0, 1250); observe!(a, d1)
+  b = Histogram1D(0.0, 25.0, 1250); observe!(b, d2)
+  both = Histogram1D(0.0, 25.0, 1250); observe!(both, vcat(d1, d2))
+  merge!(a, b)
+  for x in (0.5, 1.5, 3.0)
+    @test density(a, x; start = lognormal_start, normalize = true) ≈
+          density(both, x; start = lognormal_start, normalize = true)  rtol = 1e-9
+  end
+
+  # a parametric start is the degree-0, fixed-h, symmetric-kernel estimator — the other knobs are rejected
+  @test_throws ArgumentError density(hg, 0.0; start = normal_start, degree = 1)
+  @test_throws ArgumentError density(hg, 0.0; start = normal_start, adaptive = true)
+  @test_throws ArgumentError density(hg, 0.0; start = normal_start, bounds = (0.0, Inf))
+  @test_throws ArgumentError density(hg, 0.0; start = normal_start, kernel = gamma_kernel)
+  # a positive-support start needs the sample mean inside its support
+  hneg = Histogram1D(-10.0, 2.0, 200); observe!(hneg, randn(2_000) .- 4.0)
+  @test_throws ArgumentError density(hneg, 0.5; start = gamma_start)
+end

@@ -9,9 +9,10 @@ module DensityEstimation
 using LinearAlgebra
 using SpecialFunctions: loggamma, logbeta
 
-using ..Histograms: Histogram1D, _nbins, _bincenter, _total, _sample_std
+using ..Histograms: Histogram1D, _nbins, _bincenter, _total, _sample_mean, _sample_variance, _sample_std
 
-export density, density_standard_error, gaussian_kernel, epanechnikov_kernel, gamma_kernel, beta_kernel
+export density, density_standard_error, gaussian_kernel, epanechnikov_kernel, gamma_kernel, beta_kernel,
+       normal_start, lognormal_start, gamma_start, exponential_start, inverse_gaussian_start
 
 
 """
@@ -105,6 +106,158 @@ Reference: S. X. Chen (1999), [*Beta kernel estimators for density
 functions*](https://doi.org/10.1016/S0167-9473(99)00010-9), Comput. Statist. Data Anal. 31(2).
 """
 const beta_kernel = AsymmetricKernel(_beta_pdf, (0.0, 1.0))
+
+
+# --- parametric-start (semiparametric) density (Hjort & Glad 1995) ---
+# f̂(x) = p(x; θ̂)·r̂(x): fit a parametric "start" p(·; θ̂) — its parameters by method of moments from the
+# recovered sample mean and variance, so θ̂ is itself a post-hoc functional of the summary — then KDE the
+# *correction* r̂(x) = (1/n) Σᵢ K_h(x−xᵢ)/p(xᵢ; θ̂), the start's local relative error. The estimate is
+# exact wherever the start is correct (the correction is then ≡ 1, so f̂ ≈ the parametric fit) and degrades
+# only to the bias of a KDE-of-the-ratio where it is not — a tail-friendly bias reduction. Binned form:
+# r̂(x) = (1/nh) Σⱼ (nⱼ/p(cⱼ; θ̂)) K((x−cⱼ)/h), a reduction over the bin counts and mergeable (θ̂ merges
+# through the moments; the reweighted counts add). A start carries its *log*-density (stable: the
+# correction weight is exp(−logpdf)) and its support; off-support points contribute nothing.
+struct ParametricStart{F,G}
+  fit::F                            # (mean, variance) → params (a tuple), by method of moments
+  logpdf::G                         # (x, params) → log p(x; params); −Inf off the start's support
+  support::Tuple{Float64,Float64}   # where the start is positive (the estimand's domain)
+end
+
+
+"""
+    normal_start
+
+A Gaussian (normal) [parametric start](@ref GBGStreamingStatistics.DensityEstimation.density) on
+``(-\\infty,\\infty)``: ``p(x;\\hat\\mu,\\hat\\sigma^2)`` with ``\\hat\\mu``, ``\\hat\\sigma^2`` the
+recovered sample mean and variance. Pass `start = normal_start` to
+[`density`](@ref GBGStreamingStatistics.DensityEstimation.density); the estimate is then near-exact on
+genuinely Gaussian data and reduces to a bias-corrected KDE otherwise.
+"""
+const normal_start = ParametricStart(
+  (mean, variance) -> (mean, variance),
+  (x, p) -> -0.5 * (log(2π) + log(p[2]) + (x - p[1])^2 / p[2]),
+  (-Inf, Inf))
+
+
+"""
+    lognormal_start
+
+A log-normal [parametric start](@ref GBGStreamingStatistics.DensityEstimation.density) on
+``(0,\\infty)``, parameters by method of moments (``s^2 = \\log(1+\\hat\\sigma^2/\\hat\\mu^2)``,
+``m = \\log\\hat\\mu - s^2/2``). A natural start for a **positively skewed** quantity such as a droplet
+radius; pass `start = lognormal_start`.
+"""
+const lognormal_start = ParametricStart(
+  (mean, variance) -> (log(mean) - log1p(variance / mean^2) / 2, log1p(variance / mean^2)),
+  (x, p) -> x > 0 ? -log(x) - 0.5 * (log(2π) + log(p[2]) + (log(x) - p[1])^2 / p[2]) : -Inf,
+  (0.0, Inf))
+
+
+"""
+    gamma_start
+
+A gamma [parametric start](@ref GBGStreamingStatistics.DensityEstimation.density) on ``(0,\\infty)``,
+shape ``k = \\hat\\mu^2/\\hat\\sigma^2`` and scale ``\\theta = \\hat\\sigma^2/\\hat\\mu`` by method of
+moments. For a non-negative quantity; pass `start = gamma_start`.
+"""
+const gamma_start = ParametricStart(
+  (mean, variance) -> (mean^2 / variance, variance / mean),
+  (x, p) -> x > 0 ? (p[1] - 1) * log(x) - x / p[2] - p[1] * log(p[2]) - loggamma(p[1]) : -Inf,
+  (0.0, Inf))
+
+
+"""
+    exponential_start
+
+An exponential [parametric start](@ref GBGStreamingStatistics.DensityEstimation.density) on
+``[0,\\infty)``, rate ``\\hat\\lambda = 1/\\hat\\mu`` (a one-parameter start fit from the mean alone).
+Pass `start = exponential_start`; pairs with the `degree = 1` log-linear fit as the two
+exponential-tail tools.
+"""
+const exponential_start = ParametricStart(
+  (mean, variance) -> (1 / mean,),
+  (x, p) -> x ≥ 0 ? log(p[1]) - p[1] * x : -Inf,
+  (0.0, Inf))
+
+
+"""
+    inverse_gaussian_start
+
+An inverse-Gaussian [parametric start](@ref GBGStreamingStatistics.DensityEstimation.density) on
+``(0,\\infty)``, mean ``\\hat\\mu`` and shape ``\\hat\\lambda = \\hat\\mu^3/\\hat\\sigma^2`` by method of
+moments — a heavier-tailed positive start than the log-normal. Pass `start = inverse_gaussian_start`.
+"""
+const inverse_gaussian_start = ParametricStart(
+  (mean, variance) -> (mean, mean^3 / variance),
+  (x, p) -> x > 0 ? 0.5 * (log(p[2]) - log(2π) - 3 * log(x)) - p[2] * (x - p[1])^2 / (2 * p[1]^2 * x) : -Inf,
+  (0.0, Inf))
+
+
+# Validate the recovered moments against the start's support and fit θ̂ (method of moments).
+function _start_params(summary::Histogram1D, start::ParametricStart)
+  mean = _sample_mean(summary)
+  variance = _sample_variance(summary)
+  variance > 0 ||
+    throw(ArgumentError("a parametric `start` needs a positive sample variance (degenerate summary; got variance = $variance)"))
+  (isfinite(start.support[1]) && mean ≤ start.support[1]) &&
+    throw(ArgumentError("a positive-support parametric `start` needs the sample mean inside its support (got mean = $mean, support lower bound = $(start.support[1]))"))
+  return start.fit(mean, variance)
+end
+
+
+# Reject the knobs that do not combine with a parametric start (it is the degree-0, fixed-h, symmetric-
+# kernel local-constant estimator of Hjort & Glad; `normalize` is its renormalization, `bounds` its rival).
+function _check_start(kernel, degree, adaptive, bounds)
+  kernel isa AsymmetricKernel &&
+    throw(ArgumentError("a parametric `start` pairs with a symmetric kernel; the asymmetric `gamma_kernel`/`beta_kernel` are already boundary-free — drop `start`"))
+  (degree == 0 && !adaptive && bounds === nothing) ||
+    throw(ArgumentError("a parametric `start` is the degree-0, fixed-bandwidth estimator without `bounds`; `degree ≥ 1`, `adaptive`, and `bounds` do not combine with it (use `normalize` to enforce ∫f̂ = 1)"))
+end
+
+
+# Hjort–Glad estimate at x: f̂(x) = p(x; θ̂)·(1/nh) Σⱼ (nⱼ/p(cⱼ; θ̂)) K((x−cⱼ)/h). Off the start's support
+# (p = 0) the estimate is 0, and bins off the support carry no correction weight.
+function _parametric_start_eval(counts, centers, n, x, h, kernel, start, params)
+  logpx = start.logpdf(x, params)
+  isfinite(logpx) || return 0.0
+  invh = inv(h)
+  acc = 0.0
+  @inbounds for j in eachindex(centers)
+    cj = counts[j]
+    iszero(cj) && continue
+    logpj = start.logpdf(centers[j], params)
+    isfinite(logpj) || continue
+    acc += cj * exp(-logpj) * kernel((x - centers[j]) * invh)
+  end
+  return exp(logpx) * acc / (n * h)
+end
+
+
+# --- exact renormalization: divide the estimate by ∫f̂ over the summary's range ∩ the estimator's support
+# so ∫f̂ = 1 exactly. The symmetric KDE already integrates to ≈1; the asymmetric kernels and a parametric
+# start do not, so `normalize` is their finishing step. A post-hoc functional (off the hot path). ---
+# The estimand's support: the asymmetric kernel's domain, the `bounds`, and/or the start's support, met.
+function _density_support(kernel, bounds, start)
+  lower, upper = -Inf, Inf
+  kernel isa AsymmetricKernel && ((lower, upper) = kernel.support)
+  bounds === nothing || ((lower, upper) = (max(lower, bounds[1]), min(upper, bounds[2])))
+  start === nothing || ((lower, upper) = (max(lower, start.support[1]), min(upper, start.support[2])))
+  return lower, upper
+end
+
+
+# Z = ∫ f̂ over [summary.lower, summary.upper] ∩ support, by the trapezoidal rule on a fine grid.
+function _normalization_constant(summary::Histogram1D; degree, h, adaptive, kernel, bounds, start)
+  slower, supper = _density_support(kernel, bounds, start)
+  lower = max(float(summary.lower), slower)
+  upper = min(float(summary.upper), supper)
+  npts = clamp(4 * _nbins(summary), 512, 8192)
+  grid = collect(range(lower, upper; length = npts))
+  vals = density(summary, grid; degree = degree, h = h, adaptive = adaptive,
+                 kernel = kernel, bounds = bounds, start = start, normalize = false)
+  Δ = (upper - lower) / (npts - 1)
+  return (sum(vals) - 0.5 * (vals[1] + vals[end])) * Δ
+end
 
 
 # --- default bandwidth: the kernel- and degree-aware normal-reference rule (§4.5) ---
@@ -296,13 +449,12 @@ _asymmetric_default_b(summary::Histogram1D) = _sample_std(summary) * float(_tota
 
 
 """
-    density(summary::Histogram1D, x; degree = 0, h = nothing, adaptive = false, kernel = gaussian_kernel, bounds = nothing)   # ≡ f_X
+    density(summary::Histogram1D, x; degree = 0, h = nothing, adaptive = false, kernel = gaussian_kernel, bounds = nothing, start = nothing, normalize = false)   # ≡ f_X
 
 **Estimand.** the marginal (Lebesgue) density ``f_X = \\mathrm{d}\\mu_X/\\mathrm{d}\\lambda`` of the
 conditioning variable ``X``, defined by ``P(X \\in A) = \\int_A f_X\\,\\mathrm{d}\\lambda``.
 
-**Estimator.** a binned local smoother of the counts ``n_j`` at centers ``c_j``, with two orthogonal
-knobs:
+**Estimator.** a binned local smoother of the counts ``n_j`` at centers ``c_j``, with these knobs:
 
 - **`degree`** — the local-polynomial order. `degree = 0` (default) is the binned KDE / WARPing
   ``\\hat f(x) = \\frac1n \\sum_j (n_j/h_j)\\, K((x-c_j)/h_j)`` (``\\int K = 1``). `degree ≥ 1` is the
@@ -325,6 +477,24 @@ knobs:
   degree-0 KDE is **renormalized** by the kernel mass inside the support: ``\\hat f(x) \\big/ \\int_a^b K_h(x-u)\\,\\mathrm{d}u`` (Jones 1993). This corrects the boundary bias that otherwise drops the estimate
   to ``\\approx`` half the true value at the edge. (Degree ``\\ge 1`` is already boundary-adaptive, so
   `bounds` is a degree-0 option.)
+- **`start`** — a **parametric start** (Hjort & Glad 1995): the semiparametric estimator
+  ``\\hat f(x) = p(x;\\hat\\theta)\\,\\frac1{nh}\\sum_j \\frac{n_j}{p(c_j;\\hat\\theta)}\\,K((x-c_j)/h)``,
+  which multiplies a fitted parametric model ``p(\\cdot;\\hat\\theta)`` by a KDE of its *correction*
+  (the local relative error). ``\\hat\\theta`` is fit by method of moments from the recovered
+  ``\\hat\\mu``, ``\\hat\\sigma^2``, so the start is itself a functional of the summary. The estimate is
+  **near-exact wherever the start is correct** (the correction is then ``\\equiv 1``) and degrades only to
+  a bias-corrected KDE where it is not — a tail-friendly bias reduction. Pass one of
+  [`normal_start`](@ref GBGStreamingStatistics.DensityEstimation.normal_start),
+  [`lognormal_start`](@ref GBGStreamingStatistics.DensityEstimation.lognormal_start),
+  [`gamma_start`](@ref GBGStreamingStatistics.DensityEstimation.gamma_start),
+  [`exponential_start`](@ref GBGStreamingStatistics.DensityEstimation.exponential_start),
+  [`inverse_gaussian_start`](@ref GBGStreamingStatistics.DensityEstimation.inverse_gaussian_start). It is
+  a degree-0, fixed-`h`, symmetric-kernel estimator (`degree ≥ 1`, `adaptive`, `bounds`, and the
+  asymmetric kernels do not combine with it; use `normalize` for ``\\int\\hat f = 1``).
+- **`normalize`** — when `true`, divide the estimate by ``\\int\\hat f`` over the summary's range
+  (intersected with the estimator's support), so ``\\int\\hat f = 1`` **exactly**. The symmetric KDE
+  already integrates to ``\\approx 1``; the asymmetric kernels and a parametric start do not, so this is
+  their finishing step.
 
 The four corners (fixed/variable ``\\times`` KDE/local-log) and everything between are one call. `kernel`
 is any ``K`` with ``\\int K = 1`` ([`gaussian_kernel`](@ref GBGStreamingStatistics.DensityEstimation.gaussian_kernel)
@@ -349,10 +519,31 @@ law*](https://doi.org/10.1214/aos/1176345986), Ann. Statist. 10(4) (variable ban
 C. R. Loader (1996), [*Local likelihood density estimation*](https://doi.org/10.1214/aos/1032298287),
 Ann. Statist. 24(4) (the local-log-polynomial estimator); M. C. Jones (1993), [*Simple boundary
 correction for kernel density estimation*](https://doi.org/10.1007/BF00147776), Statist. Comput. 3(3)
-(the `bounds` renormalization).
+(the `bounds` renormalization); N. L. Hjort & I. K. Glad (1995), [*Nonparametric density estimation with
+a parametric start*](https://doi.org/10.1214/aos/1176324627), Ann. Statist. 23(3) (the `start`
+estimator).
 """
 function density(summary::Histogram1D, x::Real; degree::Integer = 0, h = nothing,
-                 adaptive::Bool = false, kernel = gaussian_kernel, bounds = nothing)
+                 adaptive::Bool = false, kernel = gaussian_kernel, bounds = nothing,
+                 start = nothing, normalize::Bool = false)
+  if normalize
+    Z = _normalization_constant(summary; degree = degree, h = h, adaptive = adaptive,
+                                kernel = kernel, bounds = bounds, start = start)
+    fx = density(summary, x; degree = degree, h = h, adaptive = adaptive, kernel = kernel,
+                 bounds = bounds, start = start, normalize = false)
+    return Z > 0 ? fx / Z : fx
+  end
+  if start !== nothing
+    _check_start(kernel, degree, adaptive, bounds)
+    n = _total(summary)
+    iszero(n) && return 0.0
+    hh = h === nothing ? _normal_reference_h(summary, kernel, 0) : float(h)
+    hh > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
+    params = _start_params(summary, start)
+    counts = Array(summary.counts)
+    centers = [_bincenter(summary, j) for j in 1:length(counts)]
+    return _parametric_start_eval(counts, centers, n, x, hh, kernel, start, params)
+  end
   if kernel isa AsymmetricKernel
     (degree == 0 && !adaptive && bounds === nothing) ||
       throw(ArgumentError("the asymmetric kernel is its own degree-0, boundary-free estimator; " *
@@ -390,7 +581,26 @@ function density(summary::Histogram1D, x::Real; degree::Integer = 0, h = nothing
 end
 
 function density(summary::Histogram1D, xs::AbstractVector; degree::Integer = 0, h = nothing,
-                 adaptive::Bool = false, kernel = gaussian_kernel, bounds = nothing)
+                 adaptive::Bool = false, kernel = gaussian_kernel, bounds = nothing,
+                 start = nothing, normalize::Bool = false)
+  if normalize
+    Z = _normalization_constant(summary; degree = degree, h = h, adaptive = adaptive,
+                                kernel = kernel, bounds = bounds, start = start)
+    fxs = density(summary, xs; degree = degree, h = h, adaptive = adaptive, kernel = kernel,
+                  bounds = bounds, start = start, normalize = false)
+    return Z > 0 ? fxs ./ Z : fxs
+  end
+  if start !== nothing
+    _check_start(kernel, degree, adaptive, bounds)
+    n = _total(summary)
+    iszero(n) && return zeros(Float64, length(xs))
+    hh = h === nothing ? _normal_reference_h(summary, kernel, 0) : float(h)
+    hh > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
+    params = _start_params(summary, start)
+    counts = Array(summary.counts)
+    centers = [_bincenter(summary, j) for j in 1:length(counts)]
+    return [_parametric_start_eval(counts, centers, n, x, hh, kernel, start, params) for x in xs]
+  end
   if kernel isa AsymmetricKernel
     (degree == 0 && !adaptive && bounds === nothing) ||
       throw(ArgumentError("the asymmetric kernel is its own degree-0, boundary-free estimator; " *

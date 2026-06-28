@@ -53,11 +53,13 @@ estimands.
   addition; `bin_index` is the binning map (exposed for pre-quantization); global central moments are
   recovered post hoc by the **shift formula**. Owns `KernelAbstractions`, `Atomix`.
 - `src/DensityEstimation.jl` — §4.1 `density` ``\equiv f_X`` — one call over the binned KDE, the
-  local-log-polynomial (`degree`), the Abramson variable bandwidth (`adaptive`), and boundary
-  renormalization (`bounds`, Jones 1993) — plus the symmetric `gaussian_kernel` / `epanechnikov_kernel`,
-  the **asymmetric** `gamma_kernel` / `beta_kernel` for bounded/positive support (boundary-bias-free;
-  Chen 1999/2000), and `density_standard_error` (the pointwise variability band
-  ``\mathrm{SE}(x) = \sqrt{R(K)\hat f_h(x)/(nh)}``).
+  local-log-polynomial (`degree`), the Abramson variable bandwidth (`adaptive`), boundary
+  renormalization (`bounds`, Jones 1993), the **parametric start** (`start`, Hjort & Glad 1995 — the
+  moment-fitted `normal_start` / `lognormal_start` / `gamma_start` / `exponential_start` /
+  `inverse_gaussian_start`), and exact `normalize` (``\int\hat f = 1``) — plus the symmetric
+  `gaussian_kernel` / `epanechnikov_kernel`, the **asymmetric** `gamma_kernel` / `beta_kernel` for
+  bounded/positive support (boundary-bias-free; Chen 1999/2000), and `density_standard_error` (the
+  pointwise variability band ``\mathrm{SE}(x) = \sqrt{R(K)\hat f_h(x)/(nh)}``).
 - `src/Regression.jl` — §4.2 `conditional_mean` ``\equiv m(x)``, `conditional_variance`
   ``\equiv \sigma^2(x)`` (local-linear, Fan & Gijbels; Nadaraya–Watson kept for reference). The
   **estimand-first reference module** — write its docstrings to the documentation policy below.
@@ -240,7 +242,12 @@ Mechanical bar:
    Laplace tail), and across a **representative analytic-PDF suite** (uniform, exponential, Student-``t``
    heavy tail, log-normal, bimodal) with a **convergence-rate test** — the ISE falls at
    ``n^{-2p/(2p+1)}``, degree-2's steeper ``n^{-8/9}`` vs degree-0/1's ``n^{-4/5}`` — in
-   `test/density_convergence.jl`.
+   `test/density_convergence.jl`. Also the **bounded/positive-support** kernels (`gamma_kernel` `[0,∞)`,
+   `beta_kernel` `[0,1]`; Chen's bias-reduced ``f_2``), the **parametric start** (`start`, Hjort & Glad
+   1995 — five moment-fitted starts; a bias reduction, near-exact where the model fits, ``>3\times``
+   better than the KDE on log-normal data), and exact **`normalize`** (``\int\hat f = 1``); tested in
+   `test/densityestimation.jl` (oracle recovery, the start's wide-``h`` bias removal, normalization,
+   mergeability, rejected knob combinations).
 5. **`Bandwidth.bandwidth`** (§4.5) — the **kernel- and degree-aware normal-reference** rule
    ``h = C(K,d)\\,\\hat\\sigma\\,n^{-1/(2p+1)}`` from the recovered ``\\hat\\sigma``: the kernel enters
    through the canonical factor ``[R(K)/\\mu_2(K)^2]^{1/5}`` (by quadrature), the degree through the
