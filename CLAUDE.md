@@ -56,10 +56,13 @@ estimands.
   local-log-polynomial (`degree`), the Abramson variable bandwidth (`adaptive`), boundary
   renormalization (`bounds`, Jones 1993), the **parametric start** (`start`, Hjort & Glad 1995 — the
   moment-fitted `normal_start` / `lognormal_start` / `gamma_start` / `exponential_start` /
-  `inverse_gaussian_start`), and exact `normalize` (``\int\hat f = 1``) — plus the symmetric
-  `gaussian_kernel` / `epanechnikov_kernel`, the **asymmetric** `gamma_kernel` / `beta_kernel` for
-  bounded/positive support (boundary-bias-free; Chen 1999/2000), and `density_standard_error` (the
-  pointwise variability band ``\mathrm{SE}(x) = \sqrt{R(K)\hat f_h(x)/(nh)}``).
+  `inverse_gaussian_start`, or a user-supplied `ParametricStart`), and exact `normalize`
+  (``\int\hat f = 1``) — plus the symmetric `gaussian_kernel` / `epanechnikov_kernel` (or any callable
+  with ``\int K = 1``), the **asymmetric** `gamma_kernel` / `beta_kernel` for bounded/positive support
+  (boundary-bias-free; Chen 1999/2000, or a user-supplied `AsymmetricKernel`), and
+  `density_standard_error` (the pointwise variability band
+  ``\mathrm{SE}(x) = \sqrt{R(K)\hat f_h(x)/(nh)}``). `AsymmetricKernel` and `ParametricStart` are
+  exported so consumers can plug in custom kernels / parametric skeletons.
 - `src/Regression.jl` — §4.2 `conditional_mean` ``\equiv m(x)``, `conditional_variance`
   ``\equiv \sigma^2(x)`` (local-linear, Fan & Gijbels; Nadaraya–Watson kept for reference). The
   **estimand-first reference module** — write its docstrings to the documentation policy below.

@@ -284,6 +284,8 @@ function _plugin_asymmetric(summary::Histogram1D, kernel::AsymmetricKernel)
   isempty(occ) &&
     throw(ArgumentError("no occupied in-support bins for the plug-in bandwidth; use rule = :normal"))
   weight = kernel.weight
+  weight === nothing &&
+    throw(ArgumentError("this `AsymmetricKernel` was built without an AMISE weight, so `rule = :plugin` has no `w(x)` to use; supply it as `AsymmetricKernel(pdf, support, weight)`, or select `rule = :normal`"))
   σ = _sample_std(summary)
   iqr = _binned_quantile(summary, 0.75) - _binned_quantile(summary, 0.25)
   scale = (iqr > 0) ? min(σ, iqr / 1.349) : σ

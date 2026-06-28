@@ -13,8 +13,9 @@ using SpecialFunctions: loggamma, logbeta
 
 using ..Histograms: Histogram1D, _nbins, _bincenter, _total, _sample_mean, _sample_variance, _sample_std
 
-export density, density_standard_error, gaussian_kernel, epanechnikov_kernel, gamma_kernel, beta_kernel,
-       normal_start, lognormal_start, gamma_start, exponential_start, inverse_gaussian_start
+export density, density_standard_error, gaussian_kernel, epanechnikov_kernel,
+       AsymmetricKernel, gamma_kernel, beta_kernel,
+       ParametricStart, normal_start, lognormal_start, gamma_start, exponential_start, inverse_gaussian_start
 
 
 """
@@ -46,13 +47,58 @@ Gaussian ``h``) automatically — no manual rescaling.
 # f̂(x) = (1/n) Σ_j n_j K(c_j; x, b) is boundary-bias-free by construction (O(b) bias uniformly, vs a
 # symmetric kernel's O(h) inconsistency at an endpoint). Still a reduction over the bin counts (post-hoc,
 # mergeable). The marker type routes these to the asymmetric estimator in `density`.
+"""
+    AsymmetricKernel(pdf, support)
+    AsymmetricKernel(pdf, support, weight)
+
+A varying-shape **asymmetric kernel** for
+[`density`](@ref GBGStreamingStatistics.DensityEstimation.density) on a bounded or half-line support —
+the boundary-bias-free analog of a symmetric smoothing kernel (Chen 1999, 2000). The built-ins are
+[`gamma_kernel`](@ref GBGStreamingStatistics.DensityEstimation.gamma_kernel) for ``[0,\\infty)`` and
+[`beta_kernel`](@ref GBGStreamingStatistics.DensityEstimation.beta_kernel) for ``[0,1]``; construct one
+directly to plug in a custom boundary kernel. The three fields are the construction contract:
+
+- `pdf(c, x, b)` — the kernel as a **density in the data argument** ``c``, whose shape is set by the
+  evaluation point ``x`` and bandwidth ``b`` (normalized: ``\\int \\texttt{pdf}(c, x, b)\\,\\mathrm{d}c = 1``
+  over the support, for each ``x`` and ``b``). The estimate is the binned reduction
+  ``\\hat f(x) = \\tfrac1n \\sum_j n_j\\,\\texttt{pdf}(c_j, x, b)`` over the bin counts ``n_j`` at centers
+  ``c_j`` — post hoc and mergeable.
+- `support` — the data domain the kernel covers, as a `(lower, upper)` tuple (e.g. `(0.0, Inf)`).
+- `weight(x)` — the AMISE **local-scale weight** ``w(x)``: the leading bias is
+  ``\\tfrac12 b\\,w(x)\\,f''(x)`` and the variance ``\\propto w(x)^{-1/2}`` (``w(x) = x`` for the gamma
+  kernel, ``x(1-x)`` for the beta). It is used **only** by
+  [`bandwidth`](@ref GBGStreamingStatistics.Bandwidth.bandwidth)`(…; rule = :plugin)`. The two-argument
+  constructor leaves it unset (`nothing`): `rule = :plugin` then errors rather than silently use a wrong
+  weight, while the ``\\hat\\sigma\\,n^{-2/5}`` rule of thumb (`rule = :normal`) needs no weight and still
+  applies.
+
+```julia
+using SpecialFunctions: loggamma
+# the built-in gamma kernel, as a template (Chen's modified f₂ shape):
+mygamma = AsymmetricKernel(
+    (c, x, b) -> c > 0 ? (ρ = x < 2b ? (x / b)^2 / 4 + 1 : x / b;
+                          exp((ρ - 1) * log(c) - c / b - ρ * log(b) - loggamma(ρ))) : 0.0,
+    (0.0, Inf),
+    x -> x)                       # the AMISE weight w(x) = x, for rule = :plugin
+density(summary, 1.0; kernel = mygamma)
+```
+
+References: S. X. Chen (1999), [*Beta kernel estimators for density
+functions*](https://doi.org/10.1016/S0167-9473(99)00010-9), Comput. Statist. Data Anal. 31(2);
+S. X. Chen (2000), [*Probability density function estimation using gamma
+kernels*](https://doi.org/10.1023/A:1004165218295), Ann. Inst. Statist. Math. 52(3).
+"""
 struct AsymmetricKernel{F,W}
   pdf::F                            # (c, x, b) → a density in the data argument c
   support::Tuple{Float64,Float64}   # the data domain the kernel covers
   weight::W                         # the AMISE local-scale weight w(x) (x for the gamma kernel, x(1−x)
                                     # for the beta): both the leading bias ½b·w(x)f''(x) and the variance
                                     # ∝ w(x)^{-1/2} carry it. Used by the §4.5 plug-in bandwidth.
+                                    # `nothing` (the 2-arg constructor) ⇒ rule=:plugin is unavailable.
 end
+
+# A custom kernel that only needs the rule-of-thumb bandwidth can omit the plug-in weight.
+AsymmetricKernel(pdf, support) = AsymmetricKernel(pdf, support, nothing)
 
 @inline (k::AsymmetricKernel)(c, x, b) = k.pdf(c, x, b)
 
@@ -124,6 +170,42 @@ const beta_kernel = AsymmetricKernel(_beta_pdf, (0.0, 1.0), x -> x * (1 - x))
 # r̂(x) = (1/nh) Σⱼ (nⱼ/p(cⱼ; θ̂)) K((x−cⱼ)/h), a reduction over the bin counts and mergeable (θ̂ merges
 # through the moments; the reweighted counts add). A start carries its *log*-density (stable: the
 # correction weight is exp(−logpdf)) and its support; off-support points contribute nothing.
+"""
+    ParametricStart(fit, logpdf, support)
+
+A **parametric start** for the Hjort–Glad semiparametric density (Hjort & Glad 1995). Passed as
+[`density`](@ref GBGStreamingStatistics.DensityEstimation.density)`(…; start = …)`, it multiplies the
+moment-fitted model ``p(\\cdot;\\hat\\theta)`` by a kernel estimate of the **correction** ``f_X/p`` —
+near-exact where the model fits (the bias is driven by ``(f_X/p)''``, not ``f_X''``), degrading only to a
+kernel-of-the-ratio bias where it does not. The built-ins are
+[`normal_start`](@ref GBGStreamingStatistics.DensityEstimation.normal_start),
+[`lognormal_start`](@ref GBGStreamingStatistics.DensityEstimation.lognormal_start),
+[`gamma_start`](@ref GBGStreamingStatistics.DensityEstimation.gamma_start),
+[`exponential_start`](@ref GBGStreamingStatistics.DensityEstimation.exponential_start), and
+[`inverse_gaussian_start`](@ref GBGStreamingStatistics.DensityEstimation.inverse_gaussian_start);
+construct one directly to plug in a custom parametric model. The three fields are the construction contract:
+
+- `fit(mean, variance)` — fit the model parameters from the **recovered moments** by method of moments,
+  returning a parameter tuple. Fitting from the mean and variance (not the raw data) is what keeps the whole
+  estimate **mergeable**: ``\\hat\\theta`` is itself a post-hoc functional of the summary.
+- `logpdf(x, params)` — the model log-density ``\\log p(x;\\hat\\theta)``, returning ``-\\infty`` off the
+  support. `density` reweights each bin by ``1/p(c_j;\\hat\\theta)`` through this log form (stable in the
+  tails, where ``p`` is tiny).
+- `support` — the domain the model is positive on, as a `(lower, upper)` tuple (e.g. `(0.0, Inf)`).
+
+```jldoctest
+julia> rayleigh = ParametricStart(
+           (mean, variance) -> (mean * sqrt(2 / π),),                            # σ from the mean
+           (x, p) -> x > 0 ? log(x) - 2 * log(p[1]) - x^2 / (2 * p[1]^2) : -Inf,  # Rayleigh log-density
+           (0.0, Inf));
+
+julia> rayleigh isa ParametricStart
+true
+```
+
+Reference: N. L. Hjort & I. K. Glad (1995), [*Nonparametric density estimation with a parametric
+start*](https://doi.org/10.1214/aos/1176324627), Ann. Statist. 23(3).
+"""
 struct ParametricStart{F,G}
   fit::F                            # (mean, variance) → params (a tuple), by method of moments
   logpdf::G                         # (x, params) → log p(x; params); −Inf off the start's support

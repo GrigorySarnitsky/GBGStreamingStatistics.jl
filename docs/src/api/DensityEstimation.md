@@ -12,21 +12,27 @@ density_standard_error
 
 ## Kernels
 
-The smoothing kernel passed as `density(…; kernel = …)` — the symmetric `gaussian_kernel` /
-`epanechnikov_kernel`, and the bounded/positive-support **asymmetric** `gamma_kernel` / `beta_kernel`,
-which are boundary-bias-free for data on ``[0,\infty)`` or ``[0,1]``.
+The smoothing kernel passed as `density(…; kernel = …)`. The **symmetric** kernel is any callable with
+``\int K = 1`` — the built-in `gaussian_kernel` / `epanechnikov_kernel`, or a custom one (the kernel-aware
+[`bandwidth`](@ref) computes its roughness ``R(K)`` and second moment ``\mu_2(K)`` by quadrature, so a
+custom symmetric kernel needs no manual constants). The bounded/positive-support **asymmetric** kernels are
+[`AsymmetricKernel`](@ref) values — `gamma_kernel` for ``[0,\infty)``, `beta_kernel` for ``[0,1]``, or a
+custom one — boundary-bias-free by construction.
 
 ```@docs
 gaussian_kernel
 epanechnikov_kernel
 gamma_kernel
 beta_kernel
+AsymmetricKernel
 ```
 
 ## Parametric starts
 
 The moment-fitted parametric models for the Hjort–Glad semiparametric estimator `density(…; start = …)`,
-which multiplies the start by a KDE of its correction.
+which multiplies the start by a KDE of its correction. The built-ins are `normal_start`, `lognormal_start`,
+`gamma_start`, `exponential_start`, and `inverse_gaussian_start`; a custom model is a
+[`ParametricStart`](@ref) — supply the moment fit, the log-density, and the support.
 
 ```@docs
 normal_start
@@ -34,4 +40,5 @@ lognormal_start
 gamma_start
 exponential_start
 inverse_gaussian_start
+ParametricStart
 ```

@@ -1,6 +1,7 @@
 using Test
 using GBGStreamingStatistics
 using Random
+using SpecialFunctions: loggamma
 include("testoracles.jl"); using .TestOracles
 include("testcontracts.jl"); using .TestContracts
 
@@ -265,4 +266,65 @@ end
   # a positive-support start needs the sample mean inside its support
   hneg = Histogram1D(-10.0, 2.0, 200); observe!(hneg, randn(2_000) .- 4.0)
   @test_throws ArgumentError density(hneg, 0.5; start = gamma_start)
+end
+
+@testset "custom kernels and starts: user-built, through density + bandwidth (§4.1)" begin
+  # (1) a custom SYMMETRIC kernel is just a callable with ∫K = 1 — here the quartic (biweight)
+  #     K(u) = (15/16)(1−u²)². The kernel-aware `bandwidth` reads its R(K), μ₂(K) off quadrature, so it
+  #     flows through with no manual constants.
+  Random.seed!(81)
+  hq = Histogram1D(-8.0, 8.0, 800); observe!(hq, randn(200_000))
+  quartic(u) = abs(u) < 1 ? (15 / 16) * (1 - u^2)^2 : 0.0
+  @test bandwidth(hq; kernel = quartic) > 0                              # kernel-aware h, by quadrature
+  @test density(hq, 0.0; kernel = quartic) ≈ gaussian_pdf(0.0)  rtol = 5e-2
+  @test density(hq, 1.0; kernel = quartic) ≈ gaussian_pdf(1.0)  rtol = 8e-2
+
+  # (2) a custom ASYMMETRIC kernel via the public `AsymmetricKernel` constructor: rebuild the gamma
+  #     kernel from its contract and confirm it matches the built-in through both `density` and the
+  #     `:plugin` bandwidth (same pdf + same AMISE weight ⇒ identical).
+  Random.seed!(82)
+  he = Histogram1D(0.0, 12.0, 1200); observe!(he, -log.(rand(300_000)))
+  gamma_pdf_fn(c, x, b) =
+    c > 0 ? (ρ = x < 2b ? (x / b)^2 / 4 + 1 : x / b; exp((ρ - 1) * log(c) - c / b - ρ * log(b) - loggamma(ρ))) : 0.0
+  my_gamma = AsymmetricKernel(gamma_pdf_fn, (0.0, Inf), x -> x)
+  for x in (0.1, 1.0, 3.0)
+    @test density(he, x; kernel = my_gamma) ≈ density(he, x; kernel = gamma_kernel)  rtol = 1e-12
+  end
+  @test bandwidth(he; rule = :plugin, kernel = my_gamma) ≈ bandwidth(he; rule = :plugin, kernel = gamma_kernel)  rtol = 1e-12
+
+  # the two-argument constructor omits the plug-in weight: `density` and the rule of thumb still work,
+  # but `:plugin` fails loud rather than use a wrong w(x).
+  my_gamma_noweight = AsymmetricKernel(gamma_pdf_fn, (0.0, Inf))
+  @test density(he, 1.0; kernel = my_gamma_noweight) ≈ density(he, 1.0; kernel = gamma_kernel)  rtol = 1e-12
+  @test bandwidth(he; rule = :normal, kernel = my_gamma_noweight) > 0
+  @test_throws ArgumentError bandwidth(he; rule = :plugin, kernel = my_gamma_noweight)
+
+  # (3) a custom `ParametricStart`: a Rayleigh start (one parameter σ, fit from the mean). On Rayleigh
+  #     data the matching start beats the plain KDE, recovers the density, composes with `normalize`, and
+  #     stays mergeable — the whole semiparametric path is open to a user model.
+  rayleigh_start = ParametricStart(
+    (mean, variance) -> (mean * sqrt(2 / π),),
+    (x, p) -> x > 0 ? log(x) - 2 * log(p[1]) - x^2 / (2 * p[1]^2) : -Inf,
+    (0.0, Inf))
+  Random.seed!(83)
+  σray = 1.5
+  raydata = σray .* sqrt.(-2 .* log.(rand(200_000)))                    # inverse-CDF Rayleigh(σ) draws
+  hr = Histogram1D(0.0, 12.0, 1200); observe!(hr, raydata)
+  raypdf(x) = x > 0 ? (x / σray^2) * exp(-x^2 / (2σray^2)) : 0.0
+  gray = collect(0.1:0.05:6.0)
+  # at a deliberately wide bandwidth the KDE oversmooths the peak; the matching start removes that bias
+  @test density(hr, σray; h = 0.7) < 0.9 * raypdf(σray)                               # the wide KDE is biased low
+  @test density(hr, σray; h = 0.7, start = rayleigh_start) ≈ raypdf(σray)  rtol = 3e-2
+  @test ise(density(hr, gray; h = 0.7, start = rayleigh_start), raypdf.(gray), 0.05) <
+        0.5 * ise(density(hr, gray; h = 0.7), raypdf.(gray), 0.05)
+
+  # mergeable: σ̂ merges through the recovered mean, the reweighted counts add
+  Random.seed!(84)
+  r1 = σray .* sqrt.(-2 .* log.(rand(100_000))); r2 = σray .* sqrt.(-2 .* log.(rand(100_000)))
+  ra = Histogram1D(0.0, 12.0, 1200); observe!(ra, r1)
+  rb = Histogram1D(0.0, 12.0, 1200); observe!(rb, r2)
+  rboth = Histogram1D(0.0, 12.0, 1200); observe!(rboth, vcat(r1, r2))
+  merge!(ra, rb)
+  @test density(ra, 2.0; start = rayleigh_start, normalize = true) ≈
+        density(rboth, 2.0; start = rayleigh_start, normalize = true)  rtol = 1e-9
 end
