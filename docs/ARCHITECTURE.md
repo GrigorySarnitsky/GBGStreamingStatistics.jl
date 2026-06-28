@@ -345,7 +345,9 @@ which carries the local-linear smoothing bias of the curved ``\mathbb E[Y^2\mid 
 ``M_n/(n!\tau)``, with the **drift** ``D^{(1)}`` and **diffusion** ``D^{(2)}``. Forthcoming: the
 **all-orders Bell-polynomial correction** (Rydin Gorjão et al. 2021) that removes the finite-``\tau`` bias
 by inverting the ``\tau``-expansion rather than extrapolating ``\tau\to 0``, and the **Pawula / Q
-diagnostic** ``Q(x) = M_6(x,\tau)/(5\,M_4(x,\tau)^2)``.
+diagnostic** ``Q(x) = \mu_4(x,\tau)/(3\,\mu_2(x,\tau)^2)`` — the standardized fourth conditional-increment
+moment (``\mu_n`` central, about the conditional mean), ``= 1`` for the Gaussian increments of a diffusion
+(Pawula's theorem), the excess ``Q - 1`` flagging jump-like dynamics.
 
 > **Model-neutrality is the invariant here.** These functions are defined and estimated without
 > assuming the data *is* a diffusion. That the conditional moments *are* the coefficients of a
@@ -597,8 +599,8 @@ intentional — do not dedupe it).
   elementwise addition, and the marginal moments unified with the regression power-sums. The offset
   ``X_i - c_j`` is tiny, so the local sums are well-conditioned (Kahan no longer needed); global central
   moments are recovered post hoc by the shift formula — exact, and stable for the even high-order
-  moments (``M_4``, ``M_6``) the Q-criterion needs (odd moments keep weaker relative precision, an
-  accepted trade). Verified by the ROCm GPU parity suite.
+  marginal moments the consumers need (odd moments keep weaker relative precision, an accepted trade).
+  Verified by the ROCm GPU parity suite.
 
 - **Kramers–Moyal §4.4 — drift and diffusion first, as conditional increment moments** (§4.4). The
   first slice implements the increment moments and the finite-``\tau`` Kramers–Moyal coefficients
@@ -607,9 +609,10 @@ intentional — do not dedupe it).
   ``M_2(x) = \widehat{\mathbb{E}}[Y^2\mid x] - 2x\,\hat m_h(x) + x^2`` — reusing the §4.2 local-linear
   primitives (no new accumulator), reported as the plain finite-``\tau`` ratio ``M_n/(n!\,\tau)``. The
   all-orders Bell-polynomial finite-time correction (Rydin Gorjão et al. 2021) and the ``\tau\to0``
-  limit stay forthcoming / consumer-side. ``n \ge 3`` — the Pawula ``M_4, M_6`` and `pawula_quotient`
-  — is a **recorded coverage gap** (it needs the joint summary raised to order-``n`` per-cell ``Y``
-  power-sums, deferred per invariant 5); `markov_test` waits on the §4.3 transition density.
+  limit stay forthcoming / consumer-side. ``n \ge 3`` — the higher Kramers–Moyal coefficients and
+  `pawula_quotient` (whose ``Q = \mu_4/(3\mu_2^2)`` needs ``M_4``) — is a **recorded coverage gap** (it
+  needs the joint summary raised to order-``n`` per-cell ``Y`` power-sums, deferred per invariant 5);
+  `markov_test` composes the now-available §4.3 transition density.
   OU-oracle-tested: drift recovers the finite-``\tau`` value ``x(e^{-\theta\tau}-1)/\tau`` exactly (no
   smoothing bias — the OU conditional mean is linear — ``\to -\theta x`` as ``\tau \to 0``), diffusion
   ``\to \sigma^2/2`` carrying the local-linear bias of the curved ``\mathbb{E}[Y^2\mid x]``.

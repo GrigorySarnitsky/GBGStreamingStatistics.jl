@@ -30,7 +30,7 @@ end
 function _check_order(n::Integer)
   1 ≤ n ≤ 2 || throw(ArgumentError(
     "increment-moment order n = $n is outside {1, 2}: the order-2 Histogram2D resolves only M_1 " *
-    "(drift) and M_2 (diffusion). Higher n (the Pawula M_4, M_6) needs the joint summary raised to " *
+    "(drift) and M_2 (diffusion). Higher n (the higher KM coefficients, and the Pawula Q's M_4) needs the joint summary raised to " *
     "per-cell Y power-sums of order n — a recorded coverage gap (docs/ARCHITECTURE.md §4.4)."))
   return nothing
 end
@@ -59,8 +59,9 @@ M_2(x, \\tau) = \\widehat{\\mathbb{E}}[Y^2 \\mid x] - 2x\\,\\hat m_h(x) + x^2 ,
 with ``\\hat m_h(x) = \\widehat{\\mathbb{E}}[Y \\mid x]`` the local-linear
 [`conditional_mean`](@ref GBGStreamingStatistics.Regression.conditional_mean) and
 ``\\widehat{\\mathbb{E}}[Y^2 \\mid x]`` the same fit applied to the ``Y^2`` response — both exact from
-the per-cell power-sums. Hence ``n \\in \\{1, 2\\}`` (drift and diffusion); ``n \\ge 3`` (the Pawula
-``M_4``, ``M_6``) needs the summary raised to order-``n`` per-cell ``Y`` power-sums — a recorded
+the per-cell power-sums. Hence ``n \\in \\{1, 2\\}`` (drift and diffusion); ``n \\ge 3`` (the higher
+Kramers–Moyal coefficients, and the Pawula ``Q``, which needs ``M_4``) needs the summary raised to
+order-``n`` per-cell ``Y`` power-sums — a recorded
 coverage gap, so it throws rather than silently approximate. `h` is the supplied smoothing bandwidth;
 a vector `x` returns a vector.
 """
@@ -152,15 +153,18 @@ diffusion(summary::Histogram2D, x; h::Real, τ::Real = summary.lag) =
 """
     pawula_quotient(summary, x; ...)   # ≡ Q(x)
 
-**Estimand.** the Pawula / ``Q`` diagnostic
-``Q(x) = M_6(x, \\tau) / \\bigl(5\\, M_4(x, \\tau)^2\\bigr)`` (with ``M_n`` the conditional
-[`increment_moment`](@ref GBGStreamingStatistics.MarkovInference.increment_moment)) — a *test* of
-whether the higher Kramers–Moyal coefficients vanish (Pawula's theorem), not a premise. A small ``Q``
-supports a diffusion reading; a large one refutes it.
+**Estimand.** the Pawula / ``Q`` diagnostic — the standardized fourth conditional-increment moment
+``Q(x) = \\mu_4(x,\\tau) / \\bigl(3\\,\\mu_2(x,\\tau)^2\\bigr)``, with ``\\mu_n`` the *central* conditional
+increment moments (about the conditional mean increment ``M_1``, so the drift does not contaminate the
+ratio; recovered from the [`increment_moment`](@ref GBGStreamingStatistics.MarkovInference.increment_moment)
+``M_n`` by the shift formula). A diffusion has Gaussian conditional increments, for which
+``\\mu_4 = 3\\mu_2^2``, so ``Q(x) \\to 1`` — a *test* of whether the higher Kramers–Moyal coefficients
+vanish (Pawula's theorem), not a premise: ``Q \\approx 1`` supports a diffusion reading, while the excess
+``Q - 1`` (the increment kurtosis) flags non-Gaussian, jump-like dynamics.
 
 !!! note "Forthcoming — needs the order raise"
-    Declared; not yet implemented. ``M_4`` and ``M_6`` require the joint summary raised to per-cell
-    ``Y`` power-sums of order 4–6, beyond the current order-2
+    Declared; not yet implemented. ``\\mu_4`` requires the joint summary raised to per-cell ``Y``
+    power-sums of order 4, beyond the current order-2
     [`Histogram2D`](@ref GBGStreamingStatistics.Histograms.Histogram2D) — a recorded coverage gap.
 """
 function pawula_quotient end
