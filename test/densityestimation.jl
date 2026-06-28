@@ -1,6 +1,7 @@
 using Test
 using GBGStreamingStatistics
 using Random
+include("testoracles.jl"); using .TestOracles
 
 @testset "DensityEstimation (density)" begin
   K(u) = exp(-u^2 / 2) / sqrt(2π)
@@ -53,15 +54,14 @@ end
 @testset "density knobs: degree × fixed/variable bandwidth (§4.1)" begin
   Random.seed!(13)
   ha = Histogram1D(-8.0, 8.0, 1600); observe!(ha, randn(500_000))
-  phi(x) = exp(-x^2 / 2) / sqrt(2π)
 
   # every corner of the grid recovers the Gaussian pdf, interior and into the tail
   for kw in ((;), (; adaptive = true), (; degree = 1), (; degree = 2), (; degree = 1, adaptive = true))
-    @test density(ha, 0.0; kw...) ≈ phi(0.0) rtol = 5e-2
-    @test density(ha, 3.0; kw...) ≈ phi(3.0) rtol = 1.5e-1
+    @test density(ha, 0.0; kw...) ≈ gaussian_pdf(0.0) rtol = 5e-2
+    @test density(ha, 3.0; kw...) ≈ gaussian_pdf(3.0) rtol = 1.5e-1
   end
   # degree-2 (log-quadratic) is exact for a Gaussian → tighter than the plain KDE
-  @test density(ha, 1.0; degree = 2) ≈ phi(1.0) rtol = 2e-2
+  @test density(ha, 1.0; degree = 2) ≈ gaussian_pdf(1.0) rtol = 2e-2
 
   # each variant integrates to ≈ 1 (local-likelihood need not be exactly 1)
   xs = range(-8.0, 8.0; length = 801); dx = step(xs)
@@ -93,7 +93,7 @@ end
 @testset "density_standard_error (pointwise variability band, §4.1)" begin
   Random.seed!(31)
   hg = Histogram1D(-8.0, 8.0, 1600); observe!(hg, randn(400_000))
-  n = 400_000; phi(x) = exp(-x^2 / 2) / sqrt(2π)
+  n = 400_000
   RK = 1 / (2 * sqrt(π))                                  # R(K) for the Gaussian
 
   # the SE is exactly sqrt(R(K)·f̂/(n h))
@@ -104,7 +104,7 @@ end
 
   # the 95% band f̂ ± 1.96·SE covers the truth across the interior (aggregate; bias dips it at mode/tail)
   xs = -2.5:0.25:2.5
-  covered = count(x -> abs(density(hg, x; h = bw) - phi(x)) ≤ 1.96 * density_standard_error(hg, x; h = bw), xs)
+  covered = count(x -> abs(density(hg, x; h = bw) - gaussian_pdf(x)) ≤ 1.96 * density_standard_error(hg, x; h = bw), xs)
   @test covered / length(xs) ≥ 0.75
 
   # more data ⇒ smaller SE
@@ -124,9 +124,8 @@ end
   # edge; the renormalized estimate (bounds = (0, Inf)) recovers it (Jones 1993)
   Random.seed!(41)
   h = Histogram1D(0.0, 12.0, 1200); observe!(h, -log.(rand(400_000)))
-  expf(x) = exp(-x)
-  @test abs(density(h, 0.02; bounds = (0.0, Inf)) - expf(0.02)) < abs(density(h, 0.02) - expf(0.02))
-  @test density(h, 0.02; bounds = (0.0, Inf)) ≈ expf(0.02)  atol = 7e-2     # corrected ≈ true at the edge
+  @test abs(density(h, 0.02; bounds = (0.0, Inf)) - exponential_pdf(0.02)) < abs(density(h, 0.02) - exponential_pdf(0.02))
+  @test density(h, 0.02; bounds = (0.0, Inf)) ≈ exponential_pdf(0.02)  atol = 7e-2     # corrected ≈ true at the edge
   @test density(h, 0.02) < 0.7                                              # uncorrected ≈ half (true 0.98)
 
   # interior is unchanged (the kernel mass is ≈ 1 far from the edge)
@@ -147,13 +146,12 @@ end
   # gamma kernel on exponential(1) — boundary-free on the half-line (the droplet-radii case)
   Random.seed!(41)
   he = Histogram1D(0.0, 12.0, 1200); observe!(he, -log.(rand(400_000)))
-  expf(x) = exp(-x)
   # recovers the density at the boundary, where the symmetric KDE collapses to ≈ half — and is closer
-  @test density(he, 0.02; kernel = gamma_kernel) ≈ expf(0.02)  atol = 6e-2
-  @test abs(density(he, 0.02; kernel = gamma_kernel) - expf(0.02)) < abs(density(he, 0.02) - expf(0.02))
+  @test density(he, 0.02; kernel = gamma_kernel) ≈ exponential_pdf(0.02)  atol = 6e-2
+  @test abs(density(he, 0.02; kernel = gamma_kernel) - exponential_pdf(0.02)) < abs(density(he, 0.02) - exponential_pdf(0.02))
   # interior agrees with the truth
   for x in (0.5, 1.0, 2.0)
-    @test density(he, x; kernel = gamma_kernel) ≈ expf(x)  rtol = 5e-2
+    @test density(he, x; kernel = gamma_kernel) ≈ exponential_pdf(x)  rtol = 5e-2
   end
   # integrates to ≈ 1
   xs = range(0.0, 12.0; length = 2001)
@@ -187,12 +185,11 @@ end
   Random.seed!(51)
   hg = Histogram1D(-8.0, 8.0, 800); observe!(hg, randn(50_000))
   grid = collect(-4.0:0.05:4.0)
-  normpdf(x) = exp(-x^2 / 2) / sqrt(2π)
-  truth = normpdf.(grid)
-  ise(estimate) = sum((estimate .- truth) .^ 2) * 0.05
-  @test density(hg, 0.0; h = 0.5) < 0.95 * normpdf(0.0)                                # the KDE is biased
-  @test density(hg, 0.0; h = 0.5, start = normal_start) ≈ normpdf(0.0)  rtol = 2e-2    # the start fixes it
-  @test ise(density(hg, grid; h = 0.5, start = normal_start)) < 0.05 * ise(density(hg, grid; h = 0.5))
+  truth = gaussian_pdf.(grid)
+  @test density(hg, 0.0; h = 0.5) < 0.95 * gaussian_pdf(0.0)                                # the KDE is biased
+  @test density(hg, 0.0; h = 0.5, start = normal_start) ≈ gaussian_pdf(0.0)  rtol = 2e-2    # the start fixes it
+  @test ise(density(hg, grid; h = 0.5, start = normal_start), truth, 0.05) <
+        0.05 * ise(density(hg, grid; h = 0.5), truth, 0.05)
 
   # a MATCHING start on skewed positive data (the droplet-radius case): the log-normal start tracks the
   # log-normal far better than the symmetric KDE, decisively so in the right tail
@@ -200,12 +197,11 @@ end
   σln = 0.6
   hln = Histogram1D(0.0, 25.0, 1250); observe!(hln, exp.(σln .* randn(200_000)))
   gln = collect(0.1:0.05:6.0)
-  lnpdf(x) = exp(-(log(x))^2 / (2σln^2)) / (x * σln * sqrt(2π))
-  tln = lnpdf.(gln)
-  iseln(estimate) = sum((estimate .- tln) .^ 2) * 0.05
-  @test iseln(density(hln, gln; start = lognormal_start)) < 0.3 * iseln(density(hln, gln))
+  tln = lognormal_pdf.(gln; sigma = σln)
+  @test ise(density(hln, gln; start = lognormal_start), tln, 0.05) <
+        0.3 * ise(density(hln, gln), tln, 0.05)
   for x in (2.0, 3.0, 4.0)
-    @test density(hln, x; start = lognormal_start) ≈ lnpdf(x)  rtol = 0.1
+    @test density(hln, x; start = lognormal_start) ≈ lognormal_pdf(x; sigma = σln)  rtol = 0.1
   end
 
   # `normalize` makes ∫f̂ = 1 EXACTLY over the support — a parametric start (and an asymmetric kernel) is

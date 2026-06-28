@@ -3,6 +3,7 @@ using GBGStreamingStatistics
 using GBGStreamingStatistics: Histograms
 using Random, Statistics
 const H = Histograms
+include("testoracles.jl"); using .TestOracles
 
 @testset "analytic oracles (Gaussian, Ornstein–Uhlenbeck)" begin
   @testset "density recovers the Gaussian pdf (§4.1)" begin
@@ -16,9 +17,8 @@ const H = Histograms
     @test bw ≈ (4 / 3)^(1 / 5) * H._sample_std(h) * float(H._total(h))^(-1 / 5)
     @test bandwidth(h; kernel = epanechnikov_kernel) ≈ 2.2138 * bw  rtol = 2e-3   # kernel-aware: δ(Epan)/δ(Gauss)
 
-    truepdf(x) = exp(-x^2 / 2) / sqrt(2π)
     for x in -3.0:0.5:3.0
-      @test density(h, x; h = bw) ≈ truepdf(x) atol = 3e-3
+      @test density(h, x; h = bw) ≈ gaussian_pdf(x) atol = 3e-3
     end
 
     # normalization: the estimate integrates to 1 (trapezoid on a fine grid covering the support)
@@ -34,15 +34,15 @@ const H = Histograms
     #   diffusion D⁽²⁾(x,τ) = [s²(1 − e^{−2θτ}) + x²(e^{−θτ} − 1)²]/(2τ)  → σ²/2  as τ → 0.
     Random.seed!(2025)
     θ = 0.8; σ = 1.2; τ = 0.5
-    s = sqrt(σ^2 / (2θ))
+    s = ou_stationary_std(theta = θ, sigma = σ)
     n = 3_000_000
     x0 = s .* randn(n)
     xτ = x0 .* exp(-θ * τ) .+ (s * sqrt(1 - exp(-2θ * τ))) .* randn(n)
     g = Histogram2D(-5s, 5s, 300, -5s, 5s, 300; lag = 1)
     observe_pairs!(g, x0, xτ)
 
-    D1(x) = x * (exp(-θ * τ) - 1) / τ
-    D2(x) = (s^2 * (1 - exp(-2θ * τ)) + x^2 * (exp(-θ * τ) - 1)^2) / (2τ)
+    D1(x) = ou_drift(x; theta = θ, tau = τ)
+    D2(x) = ou_diffusion(x; theta = θ, sigma = σ, tau = τ)
     hh = 0.2
     for x in (-1.0, -0.5, 0.0, 0.5, 1.0)
       # drift is essentially unbiased — the OU conditional mean E[Y|x] = x e^{−θτ} is linear, so the
@@ -58,8 +58,7 @@ const H = Histograms
 
     # transition density (§4.3): p_τ(y∣x) = N(x e^{−θτ}, s²(1−e^{−2θτ})), from the same OU pairs. The
     # double-kernel estimate carries the usual O(h²) KDE bias, worst at the mode; atol reflects it.
-    vt = s^2 * (1 - exp(-2θ * τ))
-    ptrans(y, x) = exp(-(y - x * exp(-θ * τ))^2 / (2vt)) / sqrt(2π * vt)
+    ptrans(y, x) = ou_transition(y, x; theta = θ, sigma = σ, tau = τ)
     for x in (-0.5, 0.0, 0.5)
       μx = x * exp(-θ * τ)
       for y in (μx - 0.4, μx, μx + 0.4)

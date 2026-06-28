@@ -22,6 +22,6 @@ using Random
   merge!(a, b)                                          # warm up
   @test (@allocated merge!(a, b)) == 0
 
-  # observe_pairs! is allocation-free too — asserted once the Histogram2D path lands.
-  @test_skip (@allocated observe_pairs!) == 0
+  # the Histogram2D hot path (observe_pairs! / merge!) has the same bounded-allocation contract; it is
+  # asserted alongside the 2D summary in test/histograms2d.jl.
 end

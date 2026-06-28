@@ -1,6 +1,7 @@
 using Test
 using GBGStreamingStatistics
 using Random
+include("testoracles.jl"); using .TestOracles
 
 @testset "ConditionalDensity (f_{Y|X}, transition density §4.3)" begin
   # Bivariate-Gaussian fixture: Y = ρX + √(1−ρ²)·ε ⇒ Y | X=x ∼ N(ρx, 1−ρ²) — an exact analytic
@@ -14,7 +15,7 @@ using Random
   observe_pairs!(g, X, Y)
   hx = 0.3; hy = 0.2
 
-  cond_pdf(y, x) = exp(-(y - ρ * x)^2 / (2 * (1 - ρ^2))) / sqrt(2π * (1 - ρ^2))   # N(ρx, 1−ρ²)
+  cond_pdf(y, x) = gaussian_pdf(y; mu = ρ * x, sigma = sqrt(1 - ρ^2))   # N(ρx, 1−ρ²)
 
   @testset "normalization: ∫ f̂(y|x) dy ≈ 1" begin
     ys = collect(-6.0:0.02:6.0)

@@ -34,4 +34,17 @@ using Random
     vs = conditional_variance(hist, [-1.0, 0.0, 1.0]; h = 0.2)
     @test length(vs) == 3
   end
+
+  @testset "mergeability: the conditional moments are functionals of the merged summary" begin
+    half = N ÷ 2
+    a = Histogram2D(-6.0, 6.0, 120, -6.0, 6.0, 120)
+    b = Histogram2D(-6.0, 6.0, 120, -6.0, 6.0, 120)
+    observe_pairs!(a, view(X, 1:half), view(Y, 1:half))
+    observe_pairs!(b, view(X, half+1:N), view(Y, half+1:N))
+    merge!(a, b)
+    for x in (-1.0, 0.0, 1.0)
+      @test conditional_mean(a, x; h = 0.4)     ≈ conditional_mean(hist, x; h = 0.4)     rtol = 1e-8
+      @test conditional_variance(a, x; h = 0.2) ≈ conditional_variance(hist, x; h = 0.2) rtol = 1e-8
+    end
+  end
 end

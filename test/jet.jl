@@ -20,6 +20,16 @@ using GBGStreamingStatistics: Histograms, DensityEstimation, Bandwidth, Regressi
   @test_call target_modules = mods merge!(h, h2)
   @test_call target_modules = mods bandwidth(h)
   @test_call target_modules = mods density(h, 0.0; h = 0.5)
+  # the density knobs and asymmetric kernels (closures in the kernel/start fields are the type-stability
+  # risk these guard) and the bandwidth-selector ladder
+  @test_call target_modules = mods density(h, 0.0; h = 0.5, kernel = gamma_kernel)
+  @test_call target_modules = mods density(h, 0.0; h = 0.5, start = normal_start)
+  @test_call target_modules = mods density(h, 0.0; h = 0.5, normalize = true)
+  @test_call target_modules = mods density_standard_error(h, 0.0; h = 0.5)
+  @test_call target_modules = mods bandwidth(h; rule = :sj)
+  @test_call target_modules = mods bandwidth(h; rule = :isj)
+  @test_call target_modules = mods bandwidth(h; rule = :aic)
+  @test_call target_modules = mods bandwidth(h; rule = :plugin, kernel = gamma_kernel)
 
   g = Histogram2D(-5.0, 5.0, 50, -5.0, 5.0, 50)
   g2 = Histogram2D(-5.0, 5.0, 50, -5.0, 5.0, 50)

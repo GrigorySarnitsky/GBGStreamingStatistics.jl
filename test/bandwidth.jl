@@ -2,6 +2,7 @@ using Test
 using GBGStreamingStatistics
 using Random
 const H = GBGStreamingStatistics.Histograms
+include("testoracles.jl"); using .TestOracles
 
 @testset "Bandwidth (bandwidth selection)" begin
   # A known sample: σ̂ recovered exactly from the binned moments.
@@ -128,19 +129,19 @@ end
   # the plug-in lowers the ISE on skewed positive data, where the rule of thumb mis-scales (the
   # droplet-radius regime). gamma kernel on log-normal data:
   Random.seed!(412)
-  lnpdf(x) = exp(-(log(x))^2 / (2 * 0.36)) / (x * 0.6 * sqrt(2π))
   hln = Histogram1D(0.0, 12.0, 2400); observe!(hln, exp.(0.6 .* randn(150_000)))
   gln = collect(0.05:0.05:6.0)
-  iseln(b) = sum(abs2, density(hln, gln; kernel = gamma_kernel, h = b) .- lnpdf.(gln)) * 0.05
+  tln = lognormal_pdf.(gln; sigma = 0.6)
+  iseln(b) = ise(density(hln, gln; kernel = gamma_kernel, h = b), tln, 0.05)
   @test iseln(bandwidth(hln; rule = :plugin, kernel = gamma_kernel)) <
         0.8 * iseln(bandwidth(hln; rule = :normal, kernel = gamma_kernel))
 
   # …and on gamma(5) data
   Random.seed!(413)
-  g5pdf(x) = x^4 * exp(-x) / 24
   hg5 = Histogram1D(0.0, 20.0, 2000); observe!(hg5, [sum(-log(rand()) for _ in 1:5) for _ in 1:150_000])
   gg5 = collect(0.1:0.1:16.0)
-  iseg5(b) = sum(abs2, density(hg5, gg5; kernel = gamma_kernel, h = b) .- g5pdf.(gg5)) * 0.1
+  tg5 = gamma_pdf.(gg5; shape = 5)
+  iseg5(b) = ise(density(hg5, gg5; kernel = gamma_kernel, h = b), tg5, 0.1)
   @test iseg5(bandwidth(hg5; rule = :plugin, kernel = gamma_kernel)) <
         0.85 * iseg5(bandwidth(hg5; rule = :normal, kernel = gamma_kernel))
 
@@ -148,8 +149,9 @@ end
   Random.seed!(414)
   betadata = [(s = -log(rand()) - log(rand()); t = -log(rand()) - log(rand()); s / (s + t)) for _ in 1:150_000]
   hb = Histogram1D(0.0, 1.0, 800); observe!(hb, betadata)
-  bpdf(x) = 6x * (1 - x); gb = collect(0.02:0.02:0.98)
-  iseb(b) = sum(abs2, density(hb, gb; kernel = beta_kernel, h = b) .- bpdf.(gb)) * 0.02
+  gb = collect(0.02:0.02:0.98)
+  tb = beta_pdf.(gb; a = 2, b = 2)
+  iseb(b) = ise(density(hb, gb; kernel = beta_kernel, h = b), tb, 0.02)
   # (the smooth, near-symmetric Beta(2,2) is a modest-gain case — the strong gains are the skewed gamma
   # cases above; here the plug-in is reliably at least a little better)
   @test iseb(bandwidth(hb; rule = :plugin, kernel = beta_kernel)) <
@@ -157,8 +159,9 @@ end
 
   # near-exponential (sharp boundary peak): the hard case — the plug-in must not be materially worse than
   # the rule of thumb (it is ≈ neutral there)
-  exppdf(x) = exp(-x); ge = collect(0.05:0.05:9.0)
-  isee(b) = sum(abs2, density(he, ge; kernel = gamma_kernel, h = b) .- exppdf.(ge)) * 0.05
+  ge = collect(0.05:0.05:9.0)
+  te = exponential_pdf.(ge)
+  isee(b) = ise(density(he, ge; kernel = gamma_kernel, h = b), te, 0.05)
   @test isee(bandwidth(he; rule = :plugin, kernel = gamma_kernel)) <
         1.25 * isee(bandwidth(he; rule = :normal, kernel = gamma_kernel))
   @test bandwidth(he; rule = :plugin, kernel = gamma_kernel) > 0

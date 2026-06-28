@@ -36,7 +36,8 @@ const H = Histograms
     observe!(h, data)
     @test H._total(h) == count(x -> -8.0 ≤ x < 8.0, data)
 
-    # Exact agreement with the direct sample central moments (the Pébay recursion is exact arithmetic).
+    # Exact agreement with the direct sample central moments: the power-sums about the bin center recover
+    # the moments by the shift formula, which is exact arithmetic (no approximation in the reduction).
     m = mean(data)
     direct(p) = sum((data .- m) .^ p) / length(data)
     for p in 2:6
