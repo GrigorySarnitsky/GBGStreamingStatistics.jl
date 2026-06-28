@@ -241,8 +241,9 @@ Mechanical bar:
    grid (recovers the Gaussian pdf into the tail, beats fixed-``h`` there; degree-1 beats the KDE in a
    Laplace tail), and across a **representative analytic-PDF suite** (uniform, exponential, Student-``t``
    heavy tail, log-normal, bimodal) with a **convergence-rate test** — the ISE falls at
-   ``n^{-2p/(2p+1)}``, degree-2's steeper ``n^{-8/9}`` vs degree-0/1's ``n^{-4/5}`` — in
-   `test/density_convergence.jl`. Also the **bounded/positive-support** kernels (`gamma_kernel` `[0,∞)`,
+   ``n^{-2p/(2p+1)}``, degree-2's steeper ``n^{-8/9}`` vs degree-0/1's ``n^{-4/5}``, the Epanechnikov
+   reproducing the kernel-independent ``n^{-4/5}``, plus a **binning-error convergence** test (the binned
+   estimate → the exact KDE at ``O(\\Delta)`` — simple binning) — in `test/density_convergence.jl`. Also the **bounded/positive-support** kernels (`gamma_kernel` `[0,∞)`,
    `beta_kernel` `[0,1]`; Chen's bias-reduced ``f_2``), the **parametric start** (`start`, Hjort & Glad
    1995 — five moment-fitted starts; a bias reduction, near-exact where the model fits, ``>3\times``
    better than the KDE on log-normal data), and exact **`normalize`** (``\int\hat f = 1``); tested in
@@ -331,7 +332,10 @@ parameter-dependent weights (a Float-count summary variant — equal-weight `mer
 special case; `docs/ARCHITECTURE.md` §10); the **leave-one-out cross-validation** bandwidth selectors
 (likelihood-CV, least-squares LSCV — a binned summary's ties drive their objective to zero bandwidth; the
 built `:aic` / `:sj` are the data-driven selectors instead, and a within-bin-spread correction from the
-power-sums could rescue CV later).
+power-sums could rescue CV later); **linear (centroid) binning** for `density` — the binned KDE uses simple
+binning (mass at the bin center, ``O(\\Delta)`` discretization, verified in `test/density_convergence.jl`),
+whereas placing each bin's mass at its recovered within-bin centroid ``c_j + S_1[j]/n_j`` (already stored)
+would be the ``O(\\Delta^2)`` linear-binning analog — a latent accuracy refinement, not yet built.
 
 ## Working agreements
 

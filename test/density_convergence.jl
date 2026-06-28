@@ -61,7 +61,7 @@ include("testoracles.jl"); using .TestOracles
     # accumulate Gaussian data at growing n; at the rate-optimal (default) bandwidth the integrated
     # squared error ISE = ∫(f̂ − φ)² should fall as n^(−2p/(2p+1)) — fit the log–log slope and check it
     # against the theoretical exponent. Bias order p = 2 (degree 0/1), p = 4 (degree 2).
-    function ise_slope(; degree, adaptive)
+    function ise_slope(; degree, adaptive = false, kernel = gaussian_kernel)
       ns = (30_000, 100_000, 300_000, 1_000_000)
       logn = Float64[]; logise = Float64[]
       for n in ns
@@ -70,7 +70,7 @@ include("testoracles.jl"); using .TestOracles
           Random.seed!(1000 + s)
           h = Histogram1D(-10.0, 10.0, 2400); observe!(h, randn(n))
           grid = range(-4.0, 4.0; length = 401)
-          fh = density(h, collect(grid); degree = degree, adaptive = adaptive)
+          fh = density(h, collect(grid); degree = degree, adaptive = adaptive, kernel = kernel)
           push!(ises, ise(fh, gaussian_pdf.(grid), step(grid)))
         end
         push!(logn, log(n)); push!(logise, log(mean(ises)))
@@ -83,6 +83,13 @@ include("testoracles.jl"); using .TestOracles
     s1 = ise_slope(degree = 1, adaptive = false)
     s2 = ise_slope(degree = 2, adaptive = false)
     sa = ise_slope(degree = 0, adaptive = true)
+    se = ise_slope(degree = 0, kernel = epanechnikov_kernel)
+    # the rate is kernel-independent (any second-order kernel ⇒ n^(−4/5)); the Epanechnikov, with its own
+    # kernel-aware bandwidth, hits the same slope — a guard that the kernel-generic binned path delivers it
+    # (only the constant differs, via δ(K), tested in test/bandwidth.jl). The non-Gaussian rate is a
+    # deliberate omission: on a non-Gaussian the asymptotic regime is not reached by n = 10⁶ (the slope
+    # muddies to ≈ −0.66 and degree 2 fails to separate from degree 0), so the Gaussian — whose fast
+    # asymptotics make the rate visible at testable n — is the rate-test distribution.
 
     # degree 0/1 (bias O(h²)): MISE ∝ n^(−4/5) ⇒ slope ≈ −0.80 (RMISE ∝ n^(−2/5), the classic rate)
     @test s0 ≈ -0.80  atol = 0.10
@@ -95,5 +102,33 @@ include("testoracles.jl"); using .TestOracles
     # not the asymptotic rate; whether the constant improves is density-dependent — it does not for this
     # smooth Gaussian, but does for peaked / heavy-tailed densities, per the ISE split commentary)
     @test sa ≈ -0.80  atol = 0.15
+    @test se ≈ -0.80  atol = 0.12     # Epanechnikov — the same kernel-independent rate
+  end
+
+  @testset "binning-error convergence (WARPing → exact KDE)" begin
+    # The binned KDE rounds each sample to its bin center (simple binning); as the bins refine it must
+    # converge to the exact un-binned KDE (1/nh)Σ K((x−xᵢ)/h) at the same h. Simple binning is O(binwidth)
+    # — linear binning would be O(binwidth²), a possible refinement using the stored within-bin S₁ (CLAUDE
+    # roadmap). Seed-averaged so the deterministic O(binwidth) rate shows through the per-sample fluctuation.
+    hbw = 0.3
+    gridb = collect(-4.0:0.05:4.0)
+    K(u) = exp(-u^2 / 2) / sqrt(2π)               # the smoothing kernel, as a reference
+    nbs = (600, 1200, 2400, 4800)
+    errs = Float64[]
+    for nb in nbs
+      e = 0.0
+      for sd in 1:3
+        Random.seed!(sd); samples = randn(40_000)
+        exact = [sum(K((x - s) / hbw) for s in samples) / (40_000 * hbw) for x in gridb]
+        binned = Histogram1D(-10.0, 10.0, nb); observe!(binned, samples)
+        e += sqrt(ise(density(binned, gridb; h = hbw), exact, 0.05))
+      end
+      push!(errs, e / 3)
+    end
+    @test errs[end] < 0.4 * errs[1]               # the binning error converges as the grid refines
+    slope = let lb = log.(20 ./ nbs), le = log.(errs), mb = mean(log.(20 ./ nbs)), me = mean(log.(errs))
+      sum((lb .- mb) .* (le .- me)) / sum((lb .- mb) .^ 2)
+    end
+    @test slope ≈ 1.0  atol = 0.4                  # simple binning ⇒ O(binwidth)
   end
 end

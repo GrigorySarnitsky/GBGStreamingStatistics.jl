@@ -26,8 +26,14 @@ analytic round-trips: estimators are checked against distributions with closed f
 - **Consistency / rate tests.** The estimation error falls at its theoretical rate as ``n`` grows. For
   the **density** this is implemented (`test/density_convergence.jl`): the ISE falls at ``n^{-2p/(2p+1)}``
   — ``n^{-4/5}`` for degree 0/1, the steeper ``n^{-8/9}`` for degree 2 (the higher-order ``n^{-1/9}``
-  bandwidth), the Abramson variable bandwidth sharing the degree-0 order. The conditional-mean
-  ``n^{-2/5}`` and conditional-density ``n^{-2/3}`` rate tests remain forthcoming.
+  bandwidth), the Abramson variable bandwidth sharing the degree-0 order, and the **Epanechnikov**
+  reproducing the (kernel-independent) ``n^{-4/5}``. The rate is measured on the **Gaussian**, whose fast
+  asymptotics make it visible by ``n = 10^6``; a non-Gaussian does not reach the asymptotic regime there
+  (its slope muddies to ``\approx -0.66`` and degree 2 fails to separate from degree 0), a recorded
+  omission rather than a missing test. A companion **binning-error** test confirms the binned estimate
+  converges to the exact un-binned KDE as the grid refines, at ``O(\Delta)`` in the bin width ``\Delta``
+  (simple binning; linear binning would be ``O(\Delta^2)``, a refinement latent in the stored ``S_1``).
+  The conditional-mean ``n^{-2/5}`` and conditional-density ``n^{-2/3}`` rate tests are scheduled.
 - **Mergeability tests.** For every summary, *accumulate-then-merge ``=`` accumulate-together* (to
   round-off), plus the incompatible-summary rejection — the monoid laws of invariant 3
   (`test/mergeability.jl` for `Histogram1D`, `test/histograms2d.jl` for `Histogram2D`). Every post-hoc
