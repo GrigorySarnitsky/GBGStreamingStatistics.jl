@@ -28,7 +28,8 @@ are recorded once — in `docs/ARCHITECTURE.md` and this file; the umbrella modu
 
 > **Status: lower half complete (CPU + GPU); estimators landing.** The summaries `Histogram1D` and
 > `Histogram2D` (`observe!` / `observe_pairs!` as one KernelAbstractions + Atomix scatter-add of counts
-> and power-sums about the bin center, `merge!` by addition, allocation-free), the marginal density
+> and power-sums about the bin center, `merge!` by addition — and `scale!` / weighted `merge!` the cone
+> for hyperstatistics / forgetting, allocation-free), the marginal density
 > `density` (§4.1), local-linear `conditional_mean` / `conditional_variance` (§4.2), the conditional /
 > transition density `conditional_density` / `transition_density` (§4.3), the Kramers–Moyal `drift` /
 > `diffusion` (§4.4), and global `bandwidth` selection (§4.5) are implemented and tested — Gaussian,
@@ -43,15 +44,17 @@ stream and transfers verbatim to every consumer; the **estimator upper half** is
 estimands.
 
 - `src/Accumulators.jl` — the foundation (lower half): the `AbstractAccumulator` supertype and the
-  `observe!` / `merge!` mergeable-monoid interface only. The concrete summaries and the portable
-  KernelAbstractions + Atomix scatter kernels live in `Histograms`.
+  `observe!` / `merge!` / `scale!` interface only — the mergeable monoid, extended to the **cone** by the
+  weighted `merge!(into, from; weight)` and `scale!` (§10 hyperstatistics / forgetting). The concrete
+  summaries and the portable KernelAbstractions + Atomix scatter kernels live in `Histograms`.
 - `src/Histograms.jl` — the summaries (lower half): `Histogram1D` / `Histogram2D` — linear (WARPing)
   binned empirical measures over a fixed range, each bin/cell carrying its **count** and **power-sums
   about the bin center** ``S_p`` / ``S_{rs}`` (the local sufficient statistic for moments and
   local-polynomial fitting). Accumulated by one **KernelAbstractions + Atomix atomic scatter-add**
   (`observe!` / `observe_pairs!`, one work-item per sample, CPU and GPU alike); `merge!` is elementwise
-  addition; `bin_index` is the binning map (exposed for pre-quantization); global central moments are
-  recovered post hoc by the **shift formula**. Owns `KernelAbstractions`, `Atomix`.
+  addition (and `scale!` / weighted `merge!` elementwise scaling — the cone, on the `count = Float64`
+  Float-count variant); `bin_index` is the binning map (exposed for pre-quantization); global central
+  moments are recovered post hoc by the **shift formula**. Owns `KernelAbstractions`, `Atomix`.
 - `src/DensityEstimation.jl` — §4.1 `density` ``\equiv f_X`` — one call over the binned KDE, the
   local-log-polynomial (`degree`), the Abramson variable bandwidth (`adaptive`), boundary
   renormalization (`bounds`, Jones 1993), the **parametric start** (`start`, Hjort & Glad 1995 — the
@@ -94,9 +97,12 @@ The PF discipline: a missing capability encodes a decision (`docs/ARCHITECTURE.m
    variate / response / lag / conditioning value), never particle / tracer / droplet / velocity. No
    stationarity, Markov, diffusion, or parametric assumption is a *premise*; such structure is only
    ever *tested* (the Pawula ratio, the Markov / Chapman–Kolmogorov test).
-3. **Everything is a mergeable monoid.** Every summary supports `merge!`; the unnormalized summary
-   is additive over the stream. No non-mergeable accumulator is admitted. Tested: accumulate-then-
-   merge `=` accumulate-together.
+3. **Everything is a mergeable monoid — in fact a cone.** Every summary supports `merge!`; the
+   unnormalized summary is additive over the stream. No non-mergeable accumulator is admitted. The
+   unnormalized summary is also **scalable** (`scale!`), so it lives in a convex cone — equal-weight
+   `merge!` is the built special case, the weighted `merge!(into, from; weight)` and `scale!` the cone
+   operations (§10 hyperstatistics / exponential forgetting, on the `count = Float64` variant). Tested:
+   accumulate-then-merge `=` accumulate-together, and the cone laws.
 4. **The hot path is allocation-free and backend-agnostic.** `observe!(summary, batch)` allocates only
    a bounded amount (the kernel launch), never an ``O(n)``/``O(bins)`` temporary (enforced by an
    `@allocated` audit on the CPU). Storage is generic `AbstractArray`; no scalar indexing of device
@@ -297,6 +303,19 @@ Mechanical bar:
    (normalization + pointwise) and the **Ornstein–Uhlenbeck** transition density
    ``N(x e^{-\theta\tau}, s^2(1-e^{-2\theta\tau}))``; scalar/vector forms, `transition_density`
    equivalence, off-support NaN, and mergeability.
+9. **The cone — `scale!` + weighted `merge!`** (§10 hyperstatistics / forgetting) — the unnormalized
+   summaries are scalable, so they form a convex cone, not merely an additive monoid: `scale!(summary, w)`
+   reweights every count and power-sum (the scalar action), and `merge!(into, from; weight)` forms
+   ``\text{into} \mathrel{+}= \text{weight}\cdot\text{from}`` (the default `weight = 1` the plain monoid
+   add). On a **Float-count variant** (`count = Float64`; the default `UInt64` cannot hold a fractional
+   ``w\,n``) for both histograms. Realizes the **hyperstatistical** parameter-mixture density
+   ``P(x) = \sum_k w_k f_k(x) = \sum_k (w_k/N_k) T_k`` (superstatistics; Beck & Cohen 2003) — keep one
+   summary per ``\beta``, choose the mixing law ``f(\beta)`` *post hoc*, re-weight without re-accumulating —
+   and **exponential forgetting** (`scale!(s, λ)` before the next block). Tested (`test/hyperstatistics.jl`):
+   the cone laws, the discrete Gaussian-mixture oracle, the **χ²-superstatistics → Student-``t``** Beck–Cohen
+   oracle (a Gamma-weighted Gaussian superposition recovers the heavy ``t`` tail), exact exponential
+   forgetting, the `Histogram2D` cone with `conditional_mean` scale-invariance, allocation, and GPU parity
+   (incl. the atomic-**float** add of Float-count `observe!`).
 
 **Next, in dependency order:**
 
@@ -330,9 +349,7 @@ projection / SFI–ULI road (§4.6); `HistogramND` (§3, wait for a multi-condit
 vector-valued conditioning (lean scalar-channel — let the consumer loop components); the **bulk scalar time-correlation function**
 (consumer-side — a `Histogram2D` per lag is the wrong cost for one cross-moment; §6); raising
 `Histogram2D` beyond its order-2 per-cell power-sums (the higher Kramers–Moyal / Pawula moments (``M_4``–``M_6``) of *Next* 3 will be
-its first consumer); the **weighted merge** for ensemble / hyperstatistical pooling with
-parameter-dependent weights (a Float-count summary variant — equal-weight `merge!` is the built
-special case; `docs/ARCHITECTURE.md` §10); the **leave-one-out cross-validation** bandwidth selectors
+its first consumer); the **leave-one-out cross-validation** bandwidth selectors
 (likelihood-CV, least-squares LSCV — a binned summary's ties drive their objective to zero bandwidth; the
 built `:aic` / `:sj` are the data-driven selectors instead, and a within-bin-spread correction from the
 power-sums could rescue CV later); **linear (centroid) binning** for `density` — the binned KDE uses simple

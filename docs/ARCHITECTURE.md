@@ -69,7 +69,8 @@ Let ``X_1, X_2, \dots`` be the observed stream. The object that carries all info
 where ``\delta_x`` is the unit point mass at ``x`` and ``n`` the number of samples seen. We do **not**
 store the ``n`` point masses. We store a **finite-dimensional summary** ``T(\hat\mu_n)`` that is
 
-1. **mergeable** — ``T`` is an *additive monoid* over the sample stream: the unnormalized summary of
+1. **mergeable** — ``T`` is an *additive monoid* (in fact a *cone* — also scalable by `scale!`; §10)
+   over the sample stream: the unnormalized summary of
    a batch is a running sum, so two batches' summaries combine by `merge!` and
    accumulate-then-merge equals accumulate-together (to round-off). This is just additivity of
    measures, and it is what makes multi-device reduction and time-chunk stitching free (§5, §6);
@@ -221,9 +222,10 @@ transfer verbatim to every consumer.
   c^x)^{r}(Y_i - c^y)^{s}`` about the cell center, the local sufficient statistic for local-polynomial
   regression; Cattaneo et al. 2024). All bandwidths, kernels, and moments are recovered from them
   post hoc.
-- **the mergeable-monoid interface** — `merge!` on every summary is **elementwise addition** (same
-  binning ⇒ same bin centers ⇒ counts and power-sums add). Tested: accumulate-then-merge ``=``
-  accumulate-together.
+- **the mergeable-monoid (cone) interface** — `merge!` on every summary is **elementwise addition** (same
+  binning ⇒ same bin centers ⇒ counts and power-sums add); the weighted `merge!(into, from; weight)` and
+  `scale!` extend it to the cone (§10). Tested: accumulate-then-merge ``=`` accumulate-together, and the
+  cone laws.
 - **the backend-agnostic scatter-add primitive** *is* `observe!` / `observe_pairs!` — one
   KernelAbstractions + Atomix kernel (one work-item per sample) that atomically scatters the count and
   the power-sums into the preallocated summary, the direct analog of PF's `_bin_by_shell` /
@@ -440,8 +442,10 @@ The PF discipline: a missing capability encodes a decision. The candidate invari
    (sample / variate / response / lag / conditioning value), never particle / tracer / droplet /
    velocity. No stationarity, Markov, diffusion, or parametric assumption is a *premise*; such
    structure is only ever *tested*. (The analog of PF's "no time, no particles.")
-3. **Everything is a mergeable monoid.** Every summary supports `merge!`; the unnormalized summary
-   is additive over the stream. No non-mergeable accumulator is admitted.
+3. **Everything is a mergeable monoid — in fact a cone.** Every summary supports `merge!`; the
+   unnormalized summary is additive over the stream, and **scalable** (`scale!`), so the summaries form a
+   convex cone (equal-weight `merge!` the built special case; the weighted `merge!` and `scale!` the cone
+   operations — §10 hyperstatistics / forgetting). No non-mergeable accumulator is admitted.
 4. **The hot path is allocation-free and backend-agnostic** (§5).
 5. **The summary is rich enough to recover every target post hoc.** A target that would need a
    finer or different summary is a recorded coverage gap, **not** silently approximated — the "no
@@ -558,19 +562,22 @@ mergeable streaming-moment design is, however, worth mirroring — §10).
   algebra, or stay scalar-channel and let the consumer loop components? (Lean scalar-channel: the
   estimators are per-component, and a fiber dependency would re-import structure the package doesn't
   otherwise need.)
-- **[OPEN] Weighted merge — ensembles and hyperstatistics.** `merge!` is equal-weight addition (the
-  monoid), which already makes **ensemble pooling free**: each run / device / time-chunk accumulates
-  its own summary and they add (§2). The unnormalised summary is also **scalable** — multiply every
-  count and power-sum by a nonnegative weight and it is the valid summary of a reweighted measure — so
-  it lives in a *cone* (closed under nonnegative linear combinations), not merely an additive monoid.
-  That extra freedom is exactly **hyperstatistics** (superstatistics; Beck & Cohen 2003): a
-  parameter-weighted superposition ``P(x) = \sum_k w_k f_k(x)`` equals ``\sum_k (w_k / N_k)\, T_k`` over
-  per-parameter summaries ``T_k``. Planned as a weighted `merge!(into, from; weight)` over a
-  **Float-count summary variant** (a weighted count ``w\,n`` is not an integer); the conditional /
-  transition estimators then carry the correct local mixing weight ``w_k f_k(x)`` automatically, being
-  ratios of linear functionals of the summary. Recorded, not built — and it fits the post-hoc rule:
-  keep one summary per ``\beta`` and choose ``f(\beta)`` after the runs, re-weighting without
-  re-accumulating, just as bandwidth is a post-hoc knob.
+- **Weighted merge — settled, built (the cone).** `merge!` is equal-weight addition (the monoid), which
+  already makes **ensemble pooling free**: each run / device / time-chunk accumulates its own summary and
+  they add (§2). The unnormalised summary is also **scalable** (`scale!`) — multiply every count and
+  power-sum by a nonnegative weight and it is the valid summary of a reweighted measure — so it lives in a
+  *cone* (closed under nonnegative linear combinations), not merely an additive monoid. That extra freedom
+  is exactly **hyperstatistics** (superstatistics; Beck & Cohen 2003): a parameter-weighted superposition
+  ``P(x) = \sum_k w_k f_k(x)`` equals ``\sum_k (w_k / N_k)\, T_k`` over per-parameter summaries ``T_k``.
+  Built as the weighted `merge!(into, from; weight)`
+  (``\texttt{into} \mathrel{+}= \texttt{weight} \cdot \texttt{from}``, the default ``\texttt{weight} = 1``
+  the plain monoid add) and `scale!(summary, weight)`, over a **Float-count summary variant**
+  (`count = Float64`; a weighted count ``w\,n`` is not an integer); the conditional / transition estimators
+  carry the correct local mixing weight ``w_k f_k(x)`` automatically, being ratios of linear functionals of
+  the summary. It fits the post-hoc rule: keep one summary per ``\beta`` and choose ``f(\beta)`` after the
+  runs, re-weighting without re-accumulating, just as bandwidth is a post-hoc knob. `scale!` also gives
+  **exponential forgetting** (`scale!(s, λ)` with ``0 < \lambda < 1`` before the next block) for a
+  non-stationary stream. See the §11 decision-log entry.
 
 ---
 
@@ -697,6 +704,27 @@ intentional — do not dedupe it).
   ``1.3\,\hat\sigma\,n^{-1/9}`` (constant calibrated for robustness, as Silverman's 1.06 is): never
   materially worse than the rule of thumb, ``1.4\text{–}1.7\times`` lower ISE on skewed data. A
   fully-adaptive (solve-the-equation) curvature pilot is a recorded refinement.
+
+- **Hyperstatistics — the cone: `scale!` + weighted `merge!` over a Float-count variant** (§10). *Built.*
+  The unnormalised summary is scalable, so the summaries form a convex cone, not merely an additive monoid.
+  Realized as `scale!(summary, weight)` (the scalar action — every count and power-sum ``\times`` weight)
+  and the weighted `merge!(into, from; weight)`
+  (``\texttt{into} \mathrel{+}= \texttt{weight} \cdot \texttt{from}``; ``\texttt{weight} = 1`` recovers the
+  plain monoid add), on a **Float-count variant** (`count = Float64`; the default `UInt64` counts cannot
+  hold a fractional ``w\,n``, so `scale!` and a weighted merge `ArgumentError` on them). The carrier needed
+  almost no change — `observe!`'s atomic scatter already adds `one(eltype(counts))`, so a Float count routes
+  through the atomic-*float* add (CPU and GPU), and `merge!` was already an elementwise broadcast. Estimand:
+  the **hyperstatistical** parameter-mixture density
+  ``P(x) = \int f(\beta)\,P(x\mid\beta)\,\mathrm{d}\beta \approx \sum_k w_k f_k(x) = \sum_k (w_k/N_k)\,T_k``
+  (superstatistics; Beck & Cohen 2003) — keep one summary ``T_k`` per ``\beta_k``, choose the mixing law
+  ``f(\beta)`` post hoc, re-weight without re-accumulating; and **exponential forgetting** (`scale!(s, λ)`
+  before the next block). Oracle-tested by the χ²-superstatistics → Student-``t`` result (a Gamma-weighted
+  Gaussian superposition has the heavy ``t`` tail), a discrete Gaussian mixture, the cone laws, exact
+  forgetting, the `Histogram2D` cone, and GPU parity (`test/hyperstatistics.jl`, `FORMALIZATION.md`). One
+  caveat recorded: the mixture's total mass is ``\sum_k w_k`` (``\approx 1`` for a normalized law), so its
+  *default* bandwidth reads ``n \approx 1`` — pass an explicit ``h`` (or rescale the weights to a
+  representative sample size). An effective-sample-size bandwidth for weighted summaries
+  (Kish ``(\sum_i w_i)^2 / \sum_i w_i^2``) is a possible refinement, not built.
 
 Open decisions still flagged **[OPEN]** in §10 (the projection road, `HistogramND`, vector-valued
 conditioning, prior-art mirroring) graduate to entries here when they are settled.

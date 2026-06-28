@@ -8,9 +8,9 @@ folded into a fixed-size summary, and discarded.
 
 The summary (a fine histogram with per-bin moments) is accumulated online and is *estimand-agnostic*:
 every reported quantity is a post-hoc smoothing functional of that one summary, so there is no storage
-of the underlying state and no recompute-from-raw reruns. It is a **mergeable monoid** (combine across
-threads, devices, or time-chunks by addition) and targets both **CPU and GPU** array backends on a
-single shared-memory node. The library is **domain-neutral and model-neutral** — it assumes no
+of the underlying state and no recompute-from-raw reruns. It is a **mergeable monoid** — in fact a
+**cone** (combine across threads, devices, or time-chunks by addition, or weight and superpose for
+hyperstatistics) — and targets both **CPU and GPU** array backends on a single shared-memory node. The library is **domain-neutral and model-neutral** — it assumes no
 statistical model (no stationarity, Markov, diffusion, or parametric premise): it consumes a stream
 of values (optionally lagged pairs) and returns estimators.
 
@@ -31,7 +31,8 @@ two-time conditional densities) — but nothing in the library is specific to a 
 
 !!! note "Status"
     The summaries `Histogram1D` and `Histogram2D` (power-sums about the bin center, `observe!` /
-    `observe_pairs!` / `merge!` / `bin_index`), the marginal
+    `observe_pairs!` / `merge!` / `scale!` / `bin_index`, with a Float-count cone variant for
+    hyperstatistics / forgetting), the marginal
     [`density`](@ref GBGStreamingStatistics.DensityEstimation.density) (§4.1), global
     [`bandwidth`](@ref GBGStreamingStatistics.Bandwidth.bandwidth) selection, and the conditional mean
     and variance ([`conditional_mean`](@ref GBGStreamingStatistics.Regression.conditional_mean),

@@ -46,6 +46,26 @@ function run_gpu_suite(::Type{T}) where {T<:AbstractFloat}
     @test isapprox(Array(hd.powersums), hh.powersums; rtol = rtol)
   end
 
+  @testset "cone parity — Float-count observe!, scale!, weighted merge! ($T)" begin
+    # the Float-count variant routes observe! through the GPU atomic FLOAT add (distinct from the
+    # integer-count atomic path); scale! and the weighted merge! are device broadcasts.
+    a = randn(T, 200_000); b = randn(T, 200_000)
+    hh = Histogram1D(-6.0, 6.0, 500; order = 5, count = Float64); observe!(hh, a)
+    hd = on_device(Histogram1D(-6.0, 6.0, 500; order = 5, count = Float64)); observe!(hd, to_device(a))
+    @test isapprox(Array(hd.counts), hh.counts; rtol = rtol)
+    @test isapprox(Array(hd.powersums), hh.powersums; rtol = rtol)
+
+    scale!(hh, 0.7); scale!(hd, 0.7)
+    @test isapprox(Array(hd.counts), hh.counts; rtol = rtol)
+    @test isapprox(Array(hd.powersums), hh.powersums; rtol = rtol)
+
+    gh = Histogram1D(-6.0, 6.0, 500; order = 5, count = Float64); observe!(gh, b)
+    gd = on_device(Histogram1D(-6.0, 6.0, 500; order = 5, count = Float64)); observe!(gd, to_device(b))
+    merge!(hh, gh; weight = 0.3); merge!(hd, gd; weight = 0.3)
+    @test isapprox(Array(hd.counts), hh.counts; rtol = rtol)
+    @test isapprox(Array(hd.powersums), hh.powersums; rtol = rtol)
+  end
+
   @testset "heavy-contention scatter ($T)" begin
     # Thousands of samples crammed into a few bins ⇒ the device atomics take many concurrent adds to
     # the same cell; a race or a wrong atomic would make the device differ from the CPU.

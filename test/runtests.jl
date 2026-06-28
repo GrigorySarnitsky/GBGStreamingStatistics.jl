@@ -15,6 +15,7 @@ module MarkovInferenceTests;    include("markovinference.jl");    end
 module BandwidthTests;          include("bandwidth.jl");          end
 module OraclesTests;            include("oracles.jl");            end
 module MergeabilityTests;       include("mergeability.jl");       end
+module HyperstatisticsTests;    include("hyperstatistics.jl");    end
 module AllocationsTests;        include("allocations.jl");        end
 module AquaTests;               include("aqua.jl");               end
 module JETTests;                include("jet.jl");                end

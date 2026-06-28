@@ -22,6 +22,13 @@ using Random
   merge!(a, b)                                          # warm up
   @test (@allocated merge!(a, b)) == 0
 
+  # the cone operations (scale! and the weighted merge!) are in-place broadcasts — also allocation-free
+  c = Histogram1D(-8.0, 8.0, 1000; order = 6, count = Float64); observe!(c, batch)
+  f = Histogram1D(-8.0, 8.0, 1000; order = 6, count = Float64); observe!(f, batch)
+  scale!(c, 0.9); merge!(c, f; weight = 0.5)            # warm up
+  @test (@allocated scale!(c, 0.9)) == 0
+  @test (@allocated merge!(c, f; weight = 0.5)) == 0
+
   # the Histogram2D hot path (observe_pairs! / merge!) has the same bounded-allocation contract; it is
   # asserted alongside the 2D summary in test/histograms2d.jl.
 end

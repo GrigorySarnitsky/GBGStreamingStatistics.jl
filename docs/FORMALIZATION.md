@@ -67,6 +67,52 @@ conditional-variance refinement).
   `test/mergeability.jl` (merge ``=`` together); `test/allocations.jl` (bounded `observe!` / `merge!`);
   `test/gpu/suite.jl` (CPU-vs-AMD-GPU parity).
 
+## The cone — `scale!`, weighted `merge!`, hyperstatistics (§10)
+
+- **Object.** the summary monoid ``(\mathcal{S}, \oplus, 0)`` of the previous entry, equipped also with a
+  nonnegative scalar action ``w \cdot T`` (`scale!` — multiply every count and power-sum by ``w \ge 0``),
+  making ``\mathcal{S}`` a **convex cone**: closed under ``\oplus`` and under nonnegative scaling, hence
+  under all nonnegative linear combinations ``\sum_k w_k T_k`` (the weighted
+  `merge!(into, from; weight)`, ``\texttt{into} \mathrel{+}= \texttt{weight} \cdot \texttt{from}``; the
+  default ``\texttt{weight} = 1`` the plain ``\oplus``). Carried on a **Float-count variant**
+  (`count = Float64`): a weighted count ``w\,n`` is not an integer.
+- **Estimand (hyperstatistics; Beck & Cohen 2003).** the parameter-mixture (superstatistical) density over
+  a slowly varying parameter ``\beta`` with mixing law ``f(\beta)``,
+
+  ```math
+  P(x) = \int f(\beta)\,P(x \mid \beta)\,\mathrm{d}\beta \;\approx\; \sum_k w_k\, f_k(x),
+  \qquad w_k = f(\beta_k)\,\Delta\beta,
+  ```
+
+  with ``f_k = P(\cdot \mid \beta_k)`` the per-parameter density.
+- **Estimator.** keep one summary ``T_k`` per ``\beta_k`` (accumulated independently, ``N_k`` samples),
+  form the cone combination ``M = \sum_k (w_k / N_k)\, T_k`` by weighted `merge!`, and read out any
+  smoothing functional ``E_h`` of ``M``. Since ``E_h`` normalizes by the total mass
+  ``N_M = \sum_j m_j = \sum_k w_k``, this yields ``E_h(M) = (\sum_k w_k f_k(x)) / \sum_k w_k`` — the
+  mixture (exactly, when the ``w_k`` sum to one); the ``1/N_k`` normalizes each component to a probability
+  measure before mixing, and the conditional / transition estimators carry the local weight ``w_k f_k(x)``
+  automatically (ratios of linear functionals). **Post hoc**: ``f(\beta)`` is chosen after the runs,
+  re-weighting without re-accumulating.
+- **Cone laws (the spec; the operations have no population estimand).** `scale!` is the monoid action —
+  ``a \cdot (b \cdot T) = (ab) \cdot T``, ``1 \cdot T = T`` — and distributes over ``\oplus``:
+  ``w \cdot (A \oplus B) = (w \cdot A) \oplus (w \cdot B)``; the weighted `merge!` is ``A \oplus (w \cdot B)``.
+  `scale!` preserves the *normalized* distribution: the mean and the uncorrected central moments are exact
+  invariants; only the total mass — and through it the Bessel-corrected variance — scales.
+- **Exponential forgetting.** for a non-stationary stream, `scale!(s, λ)` with ``0 < \lambda < 1`` before
+  folding the next block gives a geometrically down-weighted summary (effective window ``1/(1-\lambda)``);
+  the recovered mean is the exact ``\lambda``-weighted mean of the blocks.
+- **Caveat.** ``N_M = \sum_k w_k`` (``\approx 1`` for a normalized law), so ``M``'s *default* bandwidth
+  reads ``n \approx 1``; pass an explicit ``h`` (or pre-scale the weights to a representative sample size).
+  An effective-sample-size rule (Kish ``(\sum_i w_i)^2 / \sum_i w_i^2``) is a recorded refinement.
+- **Test.** `test/hyperstatistics.jl` — the cone laws (`scale!` homogeneity / distributivity, weighted
+  merge ``=`` scale-then-merge, ``\texttt{weight} = 1`` ``=`` plain `merge!`, the Float-count guard); the
+  discrete Gaussian-mixture oracle; the **χ²-superstatistics → Student-``t``** oracle
+  (``X \mid \beta \sim N(0, 1/\beta)``, ``\beta \sim \mathrm{Gamma}(\nu/2, 2/\nu)`` ``\Rightarrow`` the
+  Student-``t_\nu`` marginal, recovered into the heavy tail); exact exponential forgetting; the
+  `Histogram2D` cone with `conditional_mean` scale-invariance. `test/allocations.jl` (allocation-free
+  `scale!` / weighted `merge!`); `test/gpu/suite.jl` (CPU-vs-GPU parity, incl. the atomic-float add of
+  Float-count `observe!`).
+
 ## Marginal density (§4.1) — `density`
 
 - **Estimand.** ``f_X = \mathrm{d}\mu_X/\mathrm{d}\lambda``, the Lebesgue density of ``X``.

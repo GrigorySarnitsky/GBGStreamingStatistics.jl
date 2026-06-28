@@ -33,6 +33,12 @@ The package has a single performance-critical path: the **per-sample accumulatio
 - **Allocation-free.** `observe!` allocates only a bounded amount (the KernelAbstractions launch) on a
   preallocated summary (invariant 4) — never an ``O(n)`` temporary that would escape the host GC and
   wedge a long GPU run.
+- **The cone operations are off the hot path.** `merge!`, the weighted `merge!`, and `scale!` are
+  ``O(B)`` in-place elementwise broadcasts over the ``B`` bins — per combination, not per sample — so the
+  hyperstatistical mixture (one weighted `merge!` per parameter value) and exponential forgetting (one
+  `scale!` per block) cost a bin-sweep each, negligible beside the per-sample accumulation, and
+  allocation-free like `merge!`. The `count = Float64` variant routes `observe!` through the GPU
+  atomic-*float* add — the same memory-/atomic-bound profile as the integer-count path.
 
 ## Benchmark coverage contract
 

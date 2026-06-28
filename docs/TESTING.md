@@ -44,7 +44,10 @@ analytic round-trips: estimators are checked against distributions with closed f
   The conditional-mean ``n^{-2/5}`` and conditional-density ``n^{-2/3}`` rate tests are scheduled.
 - **Mergeability tests.** For every summary, *accumulate-then-merge ``=`` accumulate-together* (to
   round-off), plus the incompatible-summary rejection — the monoid laws of invariant 3
-  (`test/mergeability.jl` for `Histogram1D`, `test/histograms2d.jl` for `Histogram2D`). Every post-hoc
+  (`test/mergeability.jl` for `Histogram1D`, `test/histograms2d.jl` for `Histogram2D`). The **cone laws**
+  that extend the monoid (`scale!` homogeneity and distributivity, the weighted `merge!` as
+  scale-then-merge, ``\texttt{weight} = 1`` ``=`` plain `merge!`, the Float-count guard) are tested
+  alongside the hyperstatistics oracles in `test/hyperstatistics.jl`. Every post-hoc
   estimator is then re-checked to be a deterministic functional of the merged summary — uniformly, through
   the `check_point_estimator` battery (see *The estimator contract*) for the query-point estimators, and a
   dedicated check for the `bandwidth` selectors and the `density` start.
@@ -110,6 +113,7 @@ The summaries and the selector carry a different contract:
 |---|---|---|---|---|
 | `Histogram1D` (`observe!` / `merge!`) | Gaussian moments ``M_2``–``M_6`` | yes | yes | yes |
 | `Histogram2D` (`observe_pairs!` / `merge!`) | indep-Gaussian marginals + covariance | yes | yes | yes |
+| cone (`scale!` / weighted `merge!`) | χ²-superstatistics → Student-``t``, Gaussian mixture | cone laws | yes | yes |
 | `bandwidth` (`:normal` / `:sj` / `:isj` / `:aic` / `:plugin`) | Silverman / ``\delta(K)`` / bimodal / ISE gain | yes | n/a | via summary |
 
 `n/a` is not applicable; **scheduled** is a recorded gap with a planned test (the roadmap in `CLAUDE.md`).
@@ -132,7 +136,8 @@ constants do not collide; every file is also runnable on its own (`julia --proje
 The per-module files are `accumulators.jl`, `histograms.jl`, `histograms2d.jl`, `densityestimation.jl`,
 `density_convergence.jl`, `bandwidth.jl`, `regression.jl`, `conditionaldensity.jl`, `markovinference.jl`;
 the cross-cutting files are `oracles.jl` (the Gaussian / OU end-to-end oracles), `mergeability.jl`,
-`allocations.jl`, `testoracles.jl` (the shared `TestOracles` analytic library — the closed forms), and
+`hyperstatistics.jl` (the cone laws and the superstatistics / forgetting oracles), `allocations.jl`,
+`testoracles.jl` (the shared `TestOracles` analytic library — the closed forms), and
 `testcontracts.jl` (the `TestContracts` universal-contract battery — `check_point_estimator`). `aqua.jl`
 and `jet.jl` are the package-quality checks; `gpu/` is the gated device suite. The test environment is
 `test/Project.toml` (Aqua, JET, Random, SpecialFunctions, Statistics, Test, plus the `LoweredCodeUtils`
