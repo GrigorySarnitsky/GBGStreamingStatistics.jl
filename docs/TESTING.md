@@ -31,9 +31,9 @@ analytic round-trips: estimators are checked against distributions with closed f
 - **Mergeability tests.** For every summary, *accumulate-then-merge ``=`` accumulate-together* (to
   round-off), plus the incompatible-summary rejection — the monoid laws of invariant 3
   (`test/mergeability.jl` for `Histogram1D`, `test/histograms2d.jl` for `Histogram2D`). Every post-hoc
-  estimator is then separately re-checked to be a deterministic functional of the merged summary (the
-  `density` start, the `bandwidth` selectors, the conditional moments, the conditional / transition
-  densities, drift / diffusion).
+  estimator is then re-checked to be a deterministic functional of the merged summary — uniformly, through
+  the `check_point_estimator` battery (see *The estimator contract*) for the query-point estimators, and a
+  dedicated check for the `bandwidth` selectors and the `density` start.
 - **Allocation audit.** `test/allocations.jl` (`Histogram1D`) and `test/histograms2d.jl` (`Histogram2D`)
   assert via `@allocated` that `observe!` / `observe_pairs!` / `merge!` allocate only a **bounded** amount
   on a preallocated summary — the KernelAbstractions launch, never an ``O(n)`` or ``O(\text{bins})``
@@ -47,29 +47,62 @@ analytic round-trips: estimators are checked against distributions with closed f
   the asymmetric-kernel, parametric-start, `normalize`, and bandwidth-selector paths, whose function-typed
   fields are the type-stability risk) run against the loaded package.
 
-## Coverage contract
+## The estimator contract
 
-For a new or changed operation, the *Definition of done* in `CLAUDE.md` is the spec: an independent
-oracle correctness test, a rate test, a mergeability test, the `@allocated` assertion for in-place ops,
-GPU parity, and a `FORMALIZATION.md` entry with its test link. The matrix tracks what each operation has.
+Every estimator is held to the **same uniform set** of characteristics, in two tiers plus a few
+class-specific variations. The *Definition of done* in `CLAUDE.md` is the parent spec; this section is the
+operational form. The universal tier is enforced **by construction** — `check_point_estimator`
+(`test/testcontracts.jl`) runs it from one call per estimator, so a new estimator cannot silently omit a
+check (the failure mode that once left `conditional_mean` without a mergeability test).
+
+**Universal** — every query-point estimator (a functional of the summary at a query point) satisfies:
+
+1. **Analytic-oracle correctness** — recovers a closed-form target (the oracle layer above).
+2. **Scalar ``=`` vector** — the vectorized call equals the per-point scalar calls.
+3. **Functional of the merged summary** — `f`(merge) ``=`` `f`(accumulate-together) — mergeability.
+4. **Off-support sentinel** — `NaN` where the estimand is undefined off the data's support (the conditional
+   estimators); a marginal density is defined everywhere and is exempt.
+5. **Argument-domain errors** — a non-positive bandwidth, and any rejected knob combination, throws.
+
+Characteristics 2–4 are the `check_point_estimator` battery; 1 and 5 are per-estimator (the oracle, the
+`@test_throws`).
+
+**Estimand-specific** — layered on where the estimand demands it: **normalization** ``\int\hat f = 1`` (the
+densities), the **Kramers–Moyal identities** (``M_1 = \mathbb{E}[Y \mid x] - x``, the variance
+decomposition, the ``1/(n!\tau)`` scaling — `drift` / `diffusion` / `increment_moment`), the
+**`transition_density` alias**, and the **convergence rate** (the matrix).
+
+**Class variations.** The **summaries** (`Histogram1D` / `Histogram2D`) are accumulators, not query-point
+estimators: their contract is the moment-recovery oracle, mergeability, the `@allocated` audit, and GPU
+parity. The **selector** `bandwidth` has no query point: oracle (per rule), mergeability, and argument
+errors — no scalar/vector or off-support.
 
 ## Coverage matrix
 
-| Operation | Oracle | Rate | Merge | Alloc | GPU |
-|---|---|---|---|---|---|
-| `Histogram1D` (`observe!` / `merge!`) | Gaussian moments ``M_2``–``M_6`` | — | yes | yes | yes |
-| `Histogram2D` (`observe_pairs!` / `merge!`) | indep-Gaussian marginals + covariance | — | yes | yes | yes |
-| `density` (all knobs) | 6-PDF suite + Gaussian | yes, ``n^{-2p/(2p+1)}`` | yes | n/a | via summary |
-| `density_standard_error` | exact SE + band coverage | — | n/a | n/a | via summary |
-| `bandwidth` (`:normal` / `:sj` / `:isj` / `:aic`) | Silverman / ``\delta(K)`` / bimodal | — | yes | n/a | via summary |
-| `bandwidth` (`:plugin`, asymmetric) | ISE gain on log-normal / gamma / beta | — | yes | n/a | via summary |
-| `conditional_mean` / `conditional_variance` | bivariate-Gaussian | forthcoming ``n^{-2/5}`` | yes | n/a | via summary |
-| `conditional_density` / `transition_density` | bivariate-Gaussian + OU | forthcoming ``n^{-2/3}`` | yes | n/a | via summary |
-| `drift` / `diffusion` / `increment_moment` | Ornstein–Uhlenbeck | — | yes | n/a | via summary |
+The query-point estimators — the universal contract (oracle / scalar==vector / merge / off-support /
+argument errors) plus the convergence rate:
 
-`n/a` is not applicable (a rate test for a summary; an allocation audit for a read-only post-hoc
-estimator); **forthcoming** is a recorded gap. "via summary" means the estimator is a host-side functional
-of the summary, so its device coverage is the summary's GPU-parity row.
+| Estimator | Oracle | Scalar==vec | Merge | Off-support | Arg err | Rate |
+|---|---|---|---|---|---|---|
+| `density` | 6-PDF suite + Gaussian | yes | yes | n/a, defined everywhere | yes | yes, ``n^{-2p/(2p+1)}`` |
+| `density_standard_error` | exact SE + band coverage | yes | yes | n/a | yes | n/a, variability band |
+| `conditional_mean` / `conditional_variance` | bivariate-Gaussian | yes | yes | `NaN` | yes | **scheduled** ``n^{-2/5}`` |
+| `conditional_density` / `transition_density` | biv-Gaussian + OU | yes | yes | `NaN` off-support ``x`` | yes | **scheduled** ``n^{-2/3}`` |
+| `drift` / `diffusion` / `increment_moment` | Ornstein–Uhlenbeck | yes | yes | `NaN` | yes | **scheduled**, ``= conditional_mean`` |
+
+The summaries and the selector carry a different contract:
+
+| Operation | Oracle | Merge | Alloc | GPU |
+|---|---|---|---|---|
+| `Histogram1D` (`observe!` / `merge!`) | Gaussian moments ``M_2``–``M_6`` | yes | yes | yes |
+| `Histogram2D` (`observe_pairs!` / `merge!`) | indep-Gaussian marginals + covariance | yes | yes | yes |
+| `bandwidth` (`:normal` / `:sj` / `:isj` / `:aic` / `:plugin`) | Silverman / ``\delta(K)`` / bimodal / ISE gain | yes | n/a | via summary |
+
+`n/a` is not applicable; **scheduled** is a recorded gap with a planned test (the roadmap in `CLAUDE.md`).
+The **rate is the one characteristic not yet uniform** — `density` has it, the conditional estimators have
+it scheduled, and `drift` / `diffusion` inherit `conditional_mean`'s rate (they are linear functionals of
+it). "via summary" means a host-side functional of the summary, so the device coverage is the summary's
+row.
 
 ## Layout
 
@@ -78,8 +111,9 @@ constants do not collide; every file is also runnable on its own (`julia --proje
 The per-module files are `accumulators.jl`, `histograms.jl`, `histograms2d.jl`, `densityestimation.jl`,
 `density_convergence.jl`, `bandwidth.jl`, `regression.jl`, `conditionaldensity.jl`, `markovinference.jl`;
 the cross-cutting files are `oracles.jl` (the Gaussian / OU end-to-end oracles), `mergeability.jl`,
-`allocations.jl`, and `testoracles.jl` (the shared `TestOracles` analytic library). `aqua.jl` and `jet.jl`
-are the package-quality checks; `gpu/` is the gated device suite. The test environment is
+`allocations.jl`, `testoracles.jl` (the shared `TestOracles` analytic library — the closed forms), and
+`testcontracts.jl` (the `TestContracts` universal-contract battery — `check_point_estimator`). `aqua.jl`
+and `jet.jl` are the package-quality checks; `gpu/` is the gated device suite. The test environment is
 `test/Project.toml` (Aqua, JET, Random, SpecialFunctions, Statistics, Test).
 
 !!! note "Status"

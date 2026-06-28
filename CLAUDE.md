@@ -298,13 +298,20 @@ Mechanical bar:
 
 1. **The response-aware local bandwidth** ``h^\\star(x)`` (§4.5) — estimand-first, OU-oracle-tested,
    with its `FORMALIZATION.md` entry, from the `Histogram2D` joint summary. Plus the Fan–Yao
-   conditional-variance refinement, the ``n^{-2/5}`` / ``n^{-2/3}`` rate tests, and the FFT-amortized
-   smoothing (§4.5).
-2. **The rest of `MarkovInference` §4.4** — `kramers_moyal` for ``n \ge 3``, the **Pawula `Q`**
+   conditional-variance refinement and the FFT-amortized smoothing (§4.5).
+2. **Scheduled — the conditional convergence-rate tests** (the one characteristic not yet uniform across
+   the testing contract; `docs/TESTING.md`, the coverage matrix). `conditional_mean` at the ``n^{-2/5}``
+   ``L^2``-projection rate and `conditional_density` at the ``n^{-2/3}`` rate, each mirroring the
+   implemented `density` ISE-slope test (`test/density_convergence.jl`) — accumulate the bivariate-Gaussian
+   / OU oracle at growing ``n``, fit the log–log error slope, check it against the exponent. `drift` /
+   `diffusion` inherit `conditional_mean`'s rate (they are linear functionals of it); the `bandwidth`
+   selectors and `density_standard_error` need none (a selector and a variability band, not function
+   estimators). This closes the rate column of the matrix.
+3. **The rest of `MarkovInference` §4.4** — `kramers_moyal` for ``n \ge 3``, the **Pawula `Q`**
    diagnostic (``M_4``, ``M_6``) and the all-orders Bell-polynomial finite-time correction, and
    `markov_test` (now unblocked — it composes the §4.3 transition density). The higher moments need the
    `Histogram2D` order-raise (Deferred, below).
-3. **Density-estimation methods from the prior-art survey** (`inspiration/density-software/ALGORITHMS.md`),
+4. **Density-estimation methods from the prior-art survey** (`inspiration/density-software/ALGORITHMS.md`),
    in priority order — all mergeable functionals of the summary: the **POT–GPD heavy-tail splice**
    (domain-critical for intermittent tails; a binned GPD-MLE on the tail bin counts that extrapolates
    beyond the histogram's `[lower, upper)` range, plus an optional mergeable top-k max-heap for exact
@@ -318,7 +325,7 @@ Deferred (recorded, not built): the ECF summary (`docs/ARCHITECTURE.md` §2 — 
 projection / SFI–ULI road (§4.6); `HistogramND` (§3, wait for a multi-conditioning consumer);
 vector-valued conditioning (lean scalar-channel — let the consumer loop components); the **bulk scalar time-correlation function**
 (consumer-side — a `Histogram2D` per lag is the wrong cost for one cross-moment; §6); raising
-`Histogram2D` beyond its order-2 per-cell power-sums (the Pawula ``M_4``/``M_6`` of *Next* 2 will be
+`Histogram2D` beyond its order-2 per-cell power-sums (the Pawula ``M_4``/``M_6`` of *Next* 3 will be
 its first consumer); the **weighted merge** for ensemble / hyperstatistical pooling with
 parameter-dependent weights (a Float-count summary variant — equal-weight `merge!` is the built
 special case; `docs/ARCHITECTURE.md` §10); the **leave-one-out cross-validation** bandwidth selectors

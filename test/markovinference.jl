@@ -1,6 +1,7 @@
 using Test
 using GBGStreamingStatistics
 using Random
+include("testcontracts.jl"); using .TestContracts
 
 @testset "MarkovInference (increment moments, drift, diffusion §4.4)" begin
   # A bivariate-Gaussian fixture (Y = bX + noise standing in for the lagged response) suffices to
@@ -23,8 +24,6 @@ using Random
     @test M1 ≈ conditional_mean(g, x; h = hh) - x atol = 1e-9
     # M_2(x) = E[(Y−x)²|x] = Var(Y|x) + M_1²   (the variance decomposition)
     @test M2 ≈ conditional_variance(g, x; h = hh) + M1^2 rtol = 1e-6
-    ms = increment_moment(g, [-0.5, 0.0, 0.5], 1; h = hh)
-    @test ms isa AbstractVector && length(ms) == 3
   end
 
   @testset "Kramers–Moyal scaling: drift = D⁽¹⁾, diffusion = D⁽²⁾" begin
@@ -35,8 +34,6 @@ using Random
     @test diffusion(g, x; h = hh) ≈ kramers_moyal(g, x, 2; h = hh)            rtol = 1e-12
     # the lag time τ enters as 1/(n!·τ): doubling τ halves D⁽¹⁾
     @test drift(g, x; h = hh, τ = 2τ) ≈ drift(g, x; h = hh) / 2 rtol = 1e-12
-    ds = drift(g, [-0.5, 0.0, 0.5]; h = hh)
-    @test ds isa AbstractVector && length(ds) == 3
   end
 
   @testset "coverage gaps and argument checks" begin
@@ -49,16 +46,16 @@ using Random
     @test drift(g0, 0.0; h = hh, τ = 1.0) isa Real                    # explicit τ is fine
   end
 
-  @testset "mergeability: drift/diffusion are functionals of the merged summary" begin
-    half = N ÷ 2
-    ga = Histogram2D(-6.0, 6.0, 120, -6.0, 6.0, 120; lag = τ)
-    gb = Histogram2D(-6.0, 6.0, 120, -6.0, 6.0, 120; lag = τ)
-    observe_pairs!(ga, view(X, 1:half), view(Y, 1:half))
-    observe_pairs!(gb, view(X, half+1:N), view(Y, half+1:N))
-    merge!(ga, gb)
-    for x in (-0.5, 0.0, 0.5)
-      @test drift(ga, x; h = hh)     ≈ drift(g, x; h = hh)     rtol = 1e-8
-      @test diffusion(ga, x; h = hh) ≈ diffusion(g, x; h = hh) rtol = 1e-8
-    end
-  end
+  # the universal query-point contract (scalar==vector, a functional of the merged summary, NaN off the
+  # data's support), applied by construction to the Kramers–Moyal functionals — see test/testcontracts.jl
+  half = N ÷ 2
+  ga = Histogram2D(-6.0, 6.0, 120, -6.0, 6.0, 120; lag = τ)
+  gb = Histogram2D(-6.0, 6.0, 120, -6.0, 6.0, 120; lag = τ)
+  observe_pairs!(ga, view(X, 1:half), view(Y, 1:half))
+  observe_pairs!(gb, view(X, half+1:N), view(Y, half+1:N))
+  merge!(ga, gb)
+  pts = [-0.5, 0.0, 0.5]
+  check_point_estimator((s, x) -> drift(s, x; h = hh),                 ga, g; points = pts, outside = 100.0)
+  check_point_estimator((s, x) -> diffusion(s, x; h = hh),             ga, g; points = pts, outside = 100.0)
+  check_point_estimator((s, x) -> increment_moment(s, x, 1; h = hh),   ga, g; points = pts, outside = 100.0)
 end

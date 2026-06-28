@@ -2,6 +2,7 @@ using Test
 using GBGStreamingStatistics
 using Random
 include("testoracles.jl"); using .TestOracles
+include("testcontracts.jl"); using .TestContracts
 
 @testset "DensityEstimation (density)" begin
   K(u) = exp(-u^2 / 2) / sqrt(2π)
@@ -26,6 +27,21 @@ include("testoracles.jl"); using .TestOracles
   # the bandwidth must be positive
   @test_throws ArgumentError density(h, 0.0; h = 0.0)
   @test_throws ArgumentError density(h, 0.0; h = -0.5)
+end
+
+@testset "density: universal contract (scalar==vector, mergeable)" begin
+  # the universal query-point contract applied by construction to the marginal density — see
+  # test/testcontracts.jl. No off-support sentinel: a density is defined everywhere (≈ 0 in the tails).
+  Random.seed!(61)
+  data = randn(300_000)
+  full = Histogram1D(-8.0, 8.0, 1600); observe!(full, data)
+  a = Histogram1D(-8.0, 8.0, 1600); observe!(a, view(data, 1:150_000))
+  b = Histogram1D(-8.0, 8.0, 1600); observe!(b, view(data, 150_001:300_000))
+  merge!(a, b)
+  bw = bandwidth(full)
+  check_point_estimator((s, x) -> density(s, x; h = bw),                 a, full; points = [-1.0, 0.0, 1.0])
+  check_point_estimator((s, x) -> density(s, x; h = bw, degree = 1),     a, full; points = [-1.0, 0.0, 1.0])
+  check_point_estimator((s, x) -> density_standard_error(s, x; h = bw),  a, full; points = [-1.0, 0.0, 1.0])
 end
 
 @testset "kernels: Gaussian + Epanechnikov" begin
