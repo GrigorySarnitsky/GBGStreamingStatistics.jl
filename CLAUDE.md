@@ -291,6 +291,15 @@ Mechanical bar:
    diagnostic (``M_4``, ``M_6``) and the all-orders Bell-polynomial finite-time correction, and
    `markov_test` (now unblocked — it composes the §4.3 transition density). The higher moments need the
    `Histogram2D` order-raise (Deferred, below).
+3. **Density-estimation methods from the prior-art survey** (`inspiration/density-software/ALGORITHMS.md`),
+   in priority order — all mergeable functionals of the summary: the **POT–GPD heavy-tail splice**
+   (domain-critical for intermittent tails; a binned GPD-MLE on the tail bin counts that extrapolates
+   beyond the histogram's `[lower, upper)` range, plus an optional mergeable top-k max-heap for exact
+   Hill/Pickands tail indices); the **P-spline penalized-Poisson** density (Eilers–Marx, counts-native
+   global smoothing); **max-entropy from the moments** (uses the power-sums); the **self-consistent**
+   Fourier-filter KDE (Bernacchia–Pigolotti) and **orthogonal series** (Hermite/DCT, seeding §4.6). The
+   asymmetric gamma/beta kernels are **done** (Done 4). Deliberate skips recorded there: shape-constrained
+   MLE (shape-as-premise, invariant 2), taut-string (a mode-count diagnostic), DEFT, kNN, neural/DP-mixture.
 
 Deferred (recorded, not built): the ECF summary (`docs/ARCHITECTURE.md` §2 — likely never); the
 projection / SFI–ULI road (§4.6); `HistogramND` (§3, wait for a multi-conditioning consumer);
