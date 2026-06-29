@@ -39,7 +39,14 @@ reading is not a check.
    misses). A symbol that is really a code identifier is a *Formatted* defect (it should be backticked or
    `\texttt`-wrapped), not a binding. (Universally standard math — `∫`, `ℝ`, `π`,
    `𝔼`, the imaginary unit `i`, plain summation indices — needs no binding; the estimand symbols
-   `f_X`, `m(x)`, `p_τ`, `D⁽ⁿ⁾`, `σ²(x)` are bound on first use.)
+   `f_X`, `m(x)`, `p_τ`, `D⁽ⁿ⁾`, `σ²(x)` are bound on first use.) **Argument coverage (signature-driven)
+   — run this separately, and from the signature, not the prose.** Enumerate **every argument in each
+   docstring's signature** (positional *and* keyword) and, for each, cite where the body documents it (a
+   `- **`arg`**` bullet, a binding clause, an `arg = value` mention, or a `::Type` for a conventional
+   first arg like `summary`); emit an `arg | binding (or UNDOCUMENTED)` table. The symbol sweep above is
+   not enough: an arg that appears only inside a formula reads as "bound by use" and slips through — that
+   is exactly how `density` showed `x`/`h` in formulas yet never said `x` is the evaluation point or gave
+   `h` its own entry.
 3. **Estimand first** — every estimator surface states the **population quantity, in standard probability
    notation, with its defining formula, BEFORE** the estimator that approximates it, and binds the code
    name to its math symbol. Flag any docstring/page that leads with the estimator.
@@ -96,7 +103,12 @@ definitions; this command runs all of them.
   `awk '/^"""/{d=!d;s=d;next} s&&/^[^ ]/{s=0} s&&/^    [A-Za-z_].*\(/&&length>88{print FILENAME":"NR}' src/*.jl`
   flags a docstring signature wider than 88 source columns (rendered > 84; split with a hanging indent
   under the first argument), and `grep -rnE '\\q?quad.*\\q?quad' src docs` flags a math line queuing two
-  equations behind spacers (rebreak with `aligned`/`gathered`/`split` unless already `\\`-separated).
+  equations behind spacers (rebreak with `aligned`/`gathered`/`split` unless already `\\`-separated); an
+  **argument-coverage scan** — a short Julia helper that splits each `"""…"""`, parses the signature
+  parameters (positional + keyword), and flags any never mentioned as a backticked `` `arg` `` in the
+  body, then triage the false positives (an arg bound by `::Type`, by the estimand `m(x)`/`D(x)`, by an
+  `arg = value` mention, or by a `` `arg(…)` `` field bullet) and document the genuine misses — the
+  deterministic backstop for check (2)'s signature-driven argument coverage.
 - Triage (drop false positives — universally standard math; kwarg names correctly backticked), then fix
   EVERY genuine finding in one pass. A flagged instance is a sample of a class — fix the class, not the line.
 - Rebuild: `julia --project=docs docs/make.jl` (the inline-math lint + doctests + cross-references +

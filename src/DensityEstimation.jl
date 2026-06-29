@@ -777,7 +777,9 @@ end
 ```
 
 **Estimator.** ``\\sqrt{R(K)\\,\\hat f_h(x)/(n h)}`` from the recovered ``\\hat f_h(x)``, the count
-``n``, the bandwidth ``h`` (default the §4.5 normal reference), and ``R(K)`` by quadrature. The
+``n``, the bandwidth `h` (default the §4.5 normal reference), and the roughness ``R(K) = \\int K^2`` of the
+smoothing `kernel` ``K`` — any with ``\\int K = 1``, default
+[`gaussian_kernel`](@ref GBGStreamingStatistics.DensityEstimation.gaussian_kernel) — by quadrature. The
 pointwise **variability band** is ``\\hat f_h(x) \\pm z\\,\\mathrm{SE}(x)`` (``z = 1.96`` for 95\\%) — a
 band about ``\\mathbb{E}\\hat f_h``, so it covers ``f_X`` where the ``O(h^2)`` smoothing bias is small
 and narrows that coverage at a sharp mode or in a tail. `degree` 0/1 (the KDE variance; `degree` ``\\ge 2``

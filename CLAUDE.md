@@ -192,7 +192,11 @@ the estimand whenever a clean population definition exists; for an intrinsically
 **(1) Correct** — every claim/formula/normalization true and precise, the estimator consistent for
 its estimand, run as a *positive* per-formula verification, not a read-through; **(2) Self-contained**
 — every symbol *bound* to its meaning in plain language at first use (enumerate symbols, cite the
-binding clause); **(3) Notation** — one symbol per concept and one concept per symbol; standard
+binding clause), **and every signature argument documented** — positional and keyword alike, enumerated
+*from the signature* (not the prose) so an "obvious" `x` or `h` cannot be skipped: each says what it is
+(and for a knob, how to set it); an argument that surfaces only inside a formula, or not at all, is the
+defect — this is how `density`'s query point `x` and bandwidth `h` slipped past a symbol-only sweep;
+**(3) Notation** — one symbol per concept and one concept per symbol; standard
 notation; **(4) Formatted (bidirectional)** — math is LaTeX never backticks, every code identifier
 backticked never bare, and inline ``math`` stays on **one source line** (a wrapped continuation that
 begins with a list/blockquote leader — `- `/`* `/`> `/`1.` — is parsed as a list item and silently

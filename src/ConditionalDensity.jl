@@ -130,8 +130,10 @@ Ornstein–Uhlenbeck oracle this is Gaussian in closed form (the natural end-to-
 double-kernel estimator applied to the per-lag joint histogram of pairs
 ``\\bigl(X_t,\\, X_{t+\\tau}\\bigr)`` (binned by
 [`observe_pairs!`](@ref GBGStreamingStatistics.Histograms.observe_pairs!) at the summary's lag
-``\\tau``); the computation is identical — the name marks the two-time reading. A vector `y` returns
-the transition-density curve at the fixed present state `x`.
+``\\tau``); the computation is identical — the name marks the two-time reading. The bandwidths `hx`
+(conditioning, in ``x``) and `hy` (response, in ``y``) are as for
+[`conditional_density`](@ref GBGStreamingStatistics.ConditionalDensity.conditional_density). A vector
+`y` returns the transition-density curve at the fixed present state `x`.
 """
 transition_density(summary::Histogram2D, x::Real, y; hx::Real, hy::Real) =
   conditional_density(summary, x, y; hx = hx, hy = hy)

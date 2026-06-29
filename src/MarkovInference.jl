@@ -92,7 +92,9 @@ conditional [`increment_moment`](@ref GBGStreamingStatistics.MarkovInference.inc
 **Estimator.** the finite-``\\tau`` ratio
 ``\\widehat{D}^{(n)}(x) = \\widehat{M}_n(x, \\tau)\\,/\\,(n!\\,\\tau)`` at the summary's lag ``\\tau``.
 The keyword `τ` is the **physical lag time**; it defaults to the integer `lag` label of the summary
-(exact when the sampling interval is the time unit). For small ``\\tau`` this approximates ``D^{(n)}``
+(exact when the sampling interval is the time unit); the smoothing bandwidth `h` is passed to the
+underlying [`increment_moment`](@ref GBGStreamingStatistics.MarkovInference.increment_moment) local-linear
+fit. For small ``\\tau`` this approximates ``D^{(n)}``
 to ``O(\\tau)``; the all-orders finite-time (Bell-polynomial) correction that inverts the
 ``\\tau``-expansion rather than extrapolating (Rydin Gorjão et al. 2021) is forthcoming. Supports
 ``n \\in \\{1, 2\\}`` — see [`drift`](@ref GBGStreamingStatistics.MarkovInference.drift) and
