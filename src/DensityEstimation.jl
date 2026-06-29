@@ -590,7 +590,10 @@ is a binned local smoother of the `summary` counts ``n_j`` at bin centers ``c_j`
 - **`adaptive`** — whether the bandwidth **varies with the local density**. `false` (default) holds `h`
   fixed everywhere; `true` uses the **Abramson** variable bandwidth — the kernel width scales by
   ``(\\tilde f/g)^{-1/2}`` (a pilot ``\\tilde f`` at the bandwidth `h`, ``g`` its geometric mean), widening
-  in the sparse tails for far less tail variance (Abramson 1982). (Fixed-`h` KDE uses the sample-point
+  in the sparse tails for far less tail variance (Abramson 1982). It is **orthogonal to how `h` is
+  chosen**, so it composes with the data-driven bandwidth — pass `h = bandwidth(summary; rule = :sj)` to
+  vary a *shape-adaptive* global scale locally (choosing the global bandwidth and varying it by location
+  are independent: the chosen `h` becomes the Abramson pilot). (Fixed-`h` KDE uses the sample-point
   ``h_j`` per bin; the local-log fit uses one balloon ``h(x)`` at the query.)
 - **`bounds`** — the support of the density, passed as the tuple `(lower, upper)` (e.g. `(0.0, Inf)` for
   a positive quantity such as a droplet radius), or `nothing` (default, unbounded). When given, the
