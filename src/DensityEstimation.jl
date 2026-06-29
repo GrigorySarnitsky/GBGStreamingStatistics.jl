@@ -631,7 +631,9 @@ default, [`epanechnikov_kernel`](@ref GBGStreamingStatistics.DensityEstimation.e
 **bounded / positive support** pass the asymmetric
 [`gamma_kernel`](@ref GBGStreamingStatistics.DensityEstimation.gamma_kernel) (half-line) or
 [`beta_kernel`](@ref GBGStreamingStatistics.DensityEstimation.beta_kernel) (unit interval), which are
-boundary-bias-free by construction. A vector of query points returns a vector. The FFT amortization of the `degree = 0`, fixed-`h` convolution
+boundary-bias-free by construction — each is its own degree-0, boundary-free estimator, so `degree`,
+`adaptive`, and `bounds` do not apply to it (and a parametric `start` needs a symmetric kernel). A
+vector of query points returns a vector. The FFT amortization of the `degree = 0`, fixed-`h` convolution
 over a bandwidth grid is forthcoming (`CLAUDE.md` roadmap).
 
 ```jldoctest
