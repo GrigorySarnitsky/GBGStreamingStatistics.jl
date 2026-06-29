@@ -167,6 +167,14 @@ the estimand whenever a clean population definition exists; for an intrinsically
   prose but `\texttt{}`-wrapped inside a formula. **And backticks hold only well-formed Julia** — a
   name, type, call, or valid expression — never math notation (an interval, a product ``a \times b``,
   an inequality, a `·`/`−`/`≤` glyph), which is LaTeX. Plain `#` comments stay Unicode.
+- **No horizontal scroll — hand-wrap what the renderer won't.** A rendered **code block** (a docstring
+  signature) and a **display-math block** do not auto-wrap, so a long one overflows the page column with
+  a horizontal scrollbar. **Signatures:** split across lines with a hanging indent aligned under the
+  first argument (the `inspiration/GBGPeriodicFields.jl` convention — its `anterpolate!`), each rendered
+  line within the content column ≈ 84 characters (Documenter strips the 4-space code-block indent, so
+  ≈ 88 source characters). **Display formulas:** break a wide one with a multi-line LaTeX environment —
+  `aligned` (align on `=`), `gathered`, or `split` — never one line packing several equations behind
+  `\qquad`/`\quad`. Inline math reflows with the prose, so it is exempt.
 - **Correctness is its own check, distinct from formatting.** Verify the estimator is **consistent
   for the stated estimand** under the stated assumptions, and that **every normalization is exact**:
   the ``1/n``, ``1/(nh)``, ``\int K = 1``, kernel moments ``\mu_2(K) = \int u^2 K``, roughness
@@ -192,7 +200,10 @@ drops the span out of math mode; `docs/make.jl` lints for this and fails the bui
 renders the broken page without complaint); a **formula is a single LaTeX span**, never ``math`` split
 onto an adjacent `code` continuation (a code name inside a formula is `\texttt{}`-wrapped), and
 **backticks hold only well-formed Julia** (a name/type/call/expression), never math notation —
-intervals, products, inequalities, `·`/`−`/`≤` glyphs; **(5) Current & complete** — no stale *deferred/none-exist* claims, and a
+intervals, products, inequalities, `·`/`−`/`≤` glyphs; and **nothing horizontally scrolls** — a long
+docstring signature is split with a hanging indent under the first argument, a wide display formula
+broken with `aligned`/`gathered`/`split` (neither a rendered code block nor display math auto-wraps);
+**(5) Current & complete** — no stale *deferred/none-exist* claims, and a
 summary that names only a subset of what the code now provides is stale. "Check the docs" means this
 **complete battery across every surface** (the four rationale docs, every `src/` docstring, every
 `docs/src/` page) — the `.claude/commands/check-docs.md` command (`/check-docs`) encodes it. A

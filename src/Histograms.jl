@@ -287,7 +287,8 @@ central_moment(summary::Histogram1D, p::Integer) = _sample_central_moment(summar
 
 """
     Histogram2D <: AbstractAccumulator
-    Histogram2D(xlower, xupper, nx, ylower, yupper, ny; lag = 0, accumulator = Float64, count = UInt64)
+    Histogram2D(xlower, xupper, nx, ylower, yupper, ny; lag = 0,
+                accumulator = Float64, count = UInt64)
 
 A **joint binned empirical measure** of ``(X, Y)`` — one per lag ``\\tau`` — for conditional and
 two-time transition densities. ``\\texttt{nx} \\times \\texttt{ny}`` equal-width cells tile

@@ -558,7 +558,9 @@ end
 
 
 """
-    density(summary::Histogram1D, x; degree = 0, h = nothing, adaptive = false, kernel = gaussian_kernel, bounds = nothing, start = nothing, normalize = false)   # ≡ f_X
+    density(summary::Histogram1D, x; degree = 0, h = nothing, adaptive = false,
+            kernel = gaussian_kernel, bounds = nothing, start = nothing,
+            normalize = false, binning = :linear)   # ≡ f_X
 
 **Estimand.** the marginal (Lebesgue) density ``f_X = \\mathrm{d}\\mu_X/\\mathrm{d}\\lambda`` of the
 conditioning variable ``X``, defined by ``P(X \\in A) = \\int_A f_X\\,\\mathrm{d}\\lambda``.
@@ -754,7 +756,8 @@ end
 
 
 """
-    density_standard_error(summary::Histogram1D, x; h = nothing, kernel = gaussian_kernel, degree = 0)   # ≡ SE[f̂(x)]
+    density_standard_error(summary::Histogram1D, x; h = nothing,
+                           kernel = gaussian_kernel, degree = 0)   # ≡ SE[f̂(x)]
 
 **Estimand.** the pointwise standard error of the density estimator
 [`density`](@ref GBGStreamingStatistics.DensityEstimation.density) at ``x`` — ``\\mathrm{SE}(x) =

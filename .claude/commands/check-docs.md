@@ -55,7 +55,11 @@ reading is not a check.
    it (e.g. ``1 \le i \le`` `nbins`, which should be ``1 \le i \le \texttt{nbins}``); code names inside a
    formula are `\texttt{}`-wrapped. **Backticks hold only well-formed Julia** — a name, type, call, or
    expression; flag math notation in backticks (a half-open interval like `[lo, hi)`, a product `a × b`,
-   an inequality, or a `·`/`−`/`≤` glyph), which belongs in LaTeX.
+   an inequality, or a `·`/`−`/`≤` glyph), which belongs in LaTeX. **No horizontal scroll** — a rendered
+   code block and a display-math block do not auto-wrap: flag a docstring **signature** line wider than
+   ~88 source columns (rendered > ~84; split it with a hanging indent aligned under the first argument,
+   the `inspiration/GBGPeriodicFields.jl` `anterpolate!` convention), and a **display formula** that
+   packs several equations on one line behind `\qquad`/`\quad` (break it with `aligned`/`gathered`/`split`).
 5. **Current & complete** — every claim matches the code's present state; no stale *future / deferred /
    none-exist* claims about what is now implemented; and a docstring or summary that names only a *subset*
    of what the code now provides is stale even if literally true. Check each module/operation/summary
@@ -88,7 +92,11 @@ definitions; this command runs all of them.
   which must instead be one `\texttt{}`-using LaTeX span; triage the legitimate LaTeX command bodies; a
   **crammed-references scan** — `grep -rnzE 'References?:[^"]*;' src` flags a `Reference(s):` docstring block
   that joins two citations with a `;` (anywhere before its closing `"""`), which must instead be a `- `
-  bullet list, one citation per line (`CLAUDE.md` Citations).
+  bullet list, one citation per line (`CLAUDE.md` Citations); a **no-horizontal-scroll scan** —
+  `awk '/^"""/{d=!d;s=d;next} s&&/^[^ ]/{s=0} s&&/^    [A-Za-z_].*\(/&&length>88{print FILENAME":"NR}' src/*.jl`
+  flags a docstring signature wider than 88 source columns (rendered > 84; split with a hanging indent
+  under the first argument), and `grep -rnE '\\q?quad.*\\q?quad' src docs` flags a math line queuing two
+  equations behind spacers (rebreak with `aligned`/`gathered`/`split` unless already `\\`-separated).
 - Triage (drop false positives — universally standard math; kwarg names correctly backticked), then fix
   EVERY genuine finding in one pass. A flagged instance is a sample of a class — fix the class, not the line.
 - Rebuild: `julia --project=docs docs/make.jl` (the inline-math lint + doctests + cross-references +

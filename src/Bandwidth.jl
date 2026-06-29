@@ -306,7 +306,8 @@ end
 
 
 """
-    bandwidth(summary::Histogram1D; rule = :normal, kernel = gaussian_kernel, degree = 0) -> h
+    bandwidth(summary::Histogram1D; rule = :normal, kernel = gaussian_kernel,
+              degree = 0) -> h
 
 **Estimand.** the AMISE-optimal smoothing bandwidth for the marginal density
 [`density`](@ref GBGStreamingStatistics.DensityEstimation.density) of `summary` — the ``h`` minimising
@@ -325,10 +326,11 @@ where ``p`` is the estimator's leading **bias order** — ``p = 2`` for `degree`
 slowly shrinking rate ``n^{-1/9}``). At `degree` 0/1 the constant is the **canonical bandwidth**
 
 ```math
-C(K, d) = (8\\sqrt{\\pi}/3)^{1/5}\\,\\delta(K),
-\\qquad
-\\delta(K) = \\bigl[R(K)/\\mu_2(K)^2\\bigr]^{1/5},
-\\quad R(K) = \\int K^2,\\ \\mu_2(K) = \\int u^2 K(u)\\,\\mathrm{d}u,
+\\begin{aligned}
+C(K, d) &= (8\\sqrt{\\pi}/3)^{1/5}\\,\\delta(K), \\\\
+\\delta(K) &= \\bigl[R(K)/\\mu_2(K)^2\\bigr]^{1/5}, \\\\
+R(K) &= \\int K^2, \\qquad \\mu_2(K) = \\int u^2 K(u)\\,\\mathrm{d}u,
+\\end{aligned}
 ```
 
 and at `degree` 2/3 the analogous fourth-order **equivalent-kernel** constant (Loader 1996). ``R(K)``

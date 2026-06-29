@@ -54,8 +54,10 @@ conditional-variance refinement).
 - **Recovery.** the global central moments are the **shift formula**
 
   ```math
-  \sum_i (X_i - \bar X)^p = \sum_j \sum_{k=0}^{p} \binom{p}{k}\,(c_j - \bar X)^{p-k}\, S_k^{(j)},
-  \qquad S_0^{(j)} = n_j, \quad \bar X = \tfrac1n \sum_j \bigl(c_j n_j + S_1^{(j)}\bigr),
+  \begin{aligned}
+  \sum_i (X_i - \bar X)^p &= \sum_j \sum_{k=0}^{p} \binom{p}{k}\,(c_j - \bar X)^{p-k}\, S_k^{(j)}, \\
+  \bar X &= \tfrac1n \sum_j \bigl(c_j n_j + S_1^{(j)}\bigr), \qquad S_0^{(j)} = n_j,
+  \end{aligned}
   ```
 
   which is **exact** (the ``S_p`` use the actual ``X_i``, not the center) and numerically stable for
