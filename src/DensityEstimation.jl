@@ -565,7 +565,9 @@ end
 **Estimand.** the marginal (Lebesgue) density ``f_X = \\mathrm{d}\\mu_X/\\mathrm{d}\\lambda`` of the
 conditioning variable ``X``, defined by ``P(X \\in A) = \\int_A f_X\\,\\mathrm{d}\\lambda``.
 
-**Estimator.** a binned local smoother of the counts ``n_j`` at centers ``c_j``, with these knobs:
+**Estimator.** the smoothed estimate ``\\hat f_h(x)``, evaluated at the **query point(s)** `x` — a scalar
+to get the density at one point, or a vector to get the whole curve — from the accumulated `summary`. It
+is a binned local smoother of the `summary` counts ``n_j`` at bin centers ``c_j``, shaped by these knobs:
 
 - **`degree`** — the local-polynomial order. `degree = 0` (default) is the binned KDE / WARPing
   ``\\hat f(x) = \\frac1n \\sum_j (n_j/h_j)\\, K((x-c_j)/h_j)`` (``\\int K = 1``). `degree` ``\\ge 1`` is the
@@ -575,14 +577,21 @@ conditioning variable ``X``, defined by ``P(X \\in A) = \\int_A f_X\\,\\mathrm{d
   so it tracks the exponential / stretched-exponential **tails** a flat KDE smears; `degree = 2`
   (log-quadratic) is exact for a Gaussian. It falls back to the KDE where the local fit is degenerate or
   runs away in a sparse tail.
-- **`adaptive`** — the bandwidth. `false` (default) uses the fixed `h`; `true` uses the **Abramson**
-  variable bandwidth — the kernel width scales by ``(\\tilde f/g)^{-1/2}`` (a pilot ``\\tilde f`` at `h`,
-  ``g`` its geometric mean), widening in the sparse tails: far less tail variance (Abramson 1982). `h`
-  is the fixed bandwidth or the pilot; it **defaults to the kernel- and degree-aware normal-reference
+- **`h`** — the **smoothing bandwidth**: the kernel scale, the one knob that sets the bias–variance
+  trade-off (larger `h` smooths more — less variance, more bias). Pass a positive number, or leave it
+  `nothing` (default) to select one from the data by the kernel- and degree-aware **normal-reference
   rule** ([`bandwidth`](@ref GBGStreamingStatistics.Bandwidth.bandwidth), §4.5 — Silverman's
-  ``(4/3)^{1/5}\\hat\\sigma\\,n^{-1/5}`` for the Gaussian kernel at degree 0/1, wider at the
-  ``n^{-1/9}`` rate for degree 2). (The KDE uses the sample-point ``h_j`` per bin; the local-log fit
-  uses one balloon ``h(x)`` at the query.)
+  ``(4/3)^{1/5}\\hat\\sigma\\,n^{-1/5}`` for the Gaussian kernel at degree 0/1, wider at the ``n^{-1/9}``
+  rate for degree 2). For a shape-adaptive choice, compute `bandwidth(summary; rule = :sj)` (or `:isj` /
+  `:aic`) yourself and pass the number. The asymmetric
+  [`gamma_kernel`](@ref GBGStreamingStatistics.DensityEstimation.gamma_kernel) /
+  [`beta_kernel`](@ref GBGStreamingStatistics.DensityEstimation.beta_kernel) take their own scale ``b``
+  here (rate ``n^{-2/5}``) in place of the symmetric `h`.
+- **`adaptive`** — whether the bandwidth **varies with the local density**. `false` (default) holds `h`
+  fixed everywhere; `true` uses the **Abramson** variable bandwidth — the kernel width scales by
+  ``(\\tilde f/g)^{-1/2}`` (a pilot ``\\tilde f`` at the bandwidth `h`, ``g`` its geometric mean), widening
+  in the sparse tails for far less tail variance (Abramson 1982). (Fixed-`h` KDE uses the sample-point
+  ``h_j`` per bin; the local-log fit uses one balloon ``h(x)`` at the query.)
 - **`bounds`** — the support of the density, passed as the tuple `(lower, upper)` (e.g. `(0.0, Inf)` for
   a positive quantity such as a droplet radius), or `nothing` (default, unbounded). When given, the
   degree-0 KDE is **renormalized** by the kernel mass inside the support: ``\\hat f(x) \\big/ \\int_a^b K_h(x-u)\\,\\mathrm{d}u`` (Jones 1993). This corrects the boundary bias that otherwise drops the estimate
