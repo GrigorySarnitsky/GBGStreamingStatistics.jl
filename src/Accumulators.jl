@@ -45,8 +45,10 @@ summation needed); global central moments are recovered post hoc by the shift fo
 Accumulated in the summary's accumulator type (`Float64` by default),
 never narrowed to the input element type — *accumulate wider than the data*.
 
-Reference: D. W. Scott (2015), [*Multivariate Density Estimation*](https://doi.org/10.1002/9781118575574), 2nd ed.; M. D. Cattaneo et al.
-(2024), [*On binscatter*](https://doi.org/10.1257/aer.20221576) (the local-moment / WARPing construction).
+References:
+
+- D. W. Scott (2015), [*Multivariate Density Estimation*](https://doi.org/10.1002/9781118575574), 2nd ed.
+- M. D. Cattaneo et al. (2024), [*On binscatter*](https://doi.org/10.1257/aer.20221576) (the local-moment / WARPing construction).
 """
 function observe! end
 

@@ -121,10 +121,10 @@ bias of the curved ``\\mathbb{E}[Y^2\\mid x]``; the bias-reducing **residual-bas
 local fit to the squared residuals; Fan & Yao 1998) and a one-step robust local M-estimator for
 heavy-tailed channels (e.g. ``(\\Delta X)^6``; Fan & Jiang 2000) are forthcoming.
 
-References: J. Fan & Q. Yao (1998), [*Efficient estimation of conditional variance functions in
-stochastic regression*](https://doi.org/10.1093/biomet/85.3.645), Biometrika 85(3) (the residual-based
-estimator); J. Fan & J. Jiang (2000), [*Variable bandwidth and one-step local
-M-estimator*](https://doi.org/10.1007/BF02903849), Sci. China Ser. A 43 (the robust refinement).
+References:
+
+- J. Fan & Q. Yao (1998), [*Efficient estimation of conditional variance functions in stochastic regression*](https://doi.org/10.1093/biomet/85.3.645), Biometrika 85(3) (the residual-based estimator).
+- J. Fan & J. Jiang (2000), [*Variable bandwidth and one-step local M-estimator*](https://doi.org/10.1007/BF02903849), Sci. China Ser. A 43 (the robust refinement).
 """
 function conditional_variance(summary::Histogram2D, x::Real; h::Real)
   h > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))

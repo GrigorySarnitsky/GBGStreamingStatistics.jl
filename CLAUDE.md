@@ -175,7 +175,10 @@ the estimand whenever a clean population definition exists; for an intrinsically
 - **Citations:** context-standard author–year; name up to three authors, `First et al.` for four or
   more; **never cite an inaccessible source** (the private notes under `inspiration/` are working
   material, not citable). The canonical reference list lives in `docs/ARCHITECTURE.md` §References;
-  docstrings carry the full reference inline, verbatim-consistent with it.
+  docstrings carry the full reference inline, verbatim-consistent with it. **A reference *block* of two
+  or more citations is a bullet list — one citation per `-` line, under a `References:` label and a blank
+  line — never a semicolon-joined paragraph (which is unreadable in a rendered docstring); a lone
+  citation stays inline as `Reference: …`.**
 
 **Doc-edit checklist — run all on every documentation change** (most strictly on `ARCHITECTURE.md`):
 **(1) Correct** — every claim/formula/normalization true and precise, the estimator consistent for

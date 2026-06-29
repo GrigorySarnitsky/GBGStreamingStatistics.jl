@@ -64,6 +64,9 @@ reading is not a check.
    code lands.)
 6. **Cited** — context-standard author–year; ≤3 authors named, `First et al.` for 4+; never cite an
    inaccessible source; inline references verbatim-consistent with the `ARCHITECTURE.md` §References entry.
+   **A multi-citation reference block is a bullet list** — one citation per `-` line under a `References:`
+   label and a blank line, never a semicolon-joined paragraph (a lone citation stays inline as
+   `Reference: …`); flag any `Reference(s):` block that crams two or more citations into one paragraph.
 
 `CLAUDE.md` (the doc-edit checklist and the standing notation/structure rules) holds the authoritative
 definitions; this command runs all of them.
@@ -82,7 +85,10 @@ definitions; this command runs all of them.
   half-open interval (``grep -rnE '`\[[^`]*\)`' docs``) and the glyphs `×`/`·`/`−`/`≤`/`≥`/`…` inside a
   backtick span (drop `#`-comment hits and valid array/tuple literals); a **split-formula scan** — a
   math span ending in `\le`/`\ge`/`<`/`>`/`\dots` immediately followed by a backticked `code` span,
-  which must instead be one `\texttt{}`-using LaTeX span; triage the legitimate LaTeX command bodies.
+  which must instead be one `\texttt{}`-using LaTeX span; triage the legitimate LaTeX command bodies; a
+  **crammed-references scan** — `grep -rnzE 'References?:[^"]*;' src` flags a `Reference(s):` docstring block
+  that joins two citations with a `;` (anywhere before its closing `"""`), which must instead be a `- `
+  bullet list, one citation per line (`CLAUDE.md` Citations).
 - Triage (drop false positives — universally standard math; kwarg names correctly backticked), then fix
   EVERY genuine finding in one pass. A flagged instance is a sample of a class — fix the class, not the line.
 - Rebuild: `julia --project=docs docs/make.jl` (the inline-math lint + doctests + cross-references +

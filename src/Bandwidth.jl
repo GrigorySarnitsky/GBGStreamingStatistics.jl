@@ -380,15 +380,12 @@ The response-aware *local* plug-in ``h^\\star(x) = \\bigl[R(K)\\,\\sigma^2(x) /
 the conditional variance ``\\sigma^2(x)`` and regression curvature ``m''(x)`` — is forthcoming
 (`CLAUDE.md` roadmap).
 
-References: B. W. Silverman (1986), [*Density Estimation for Statistics and Data
-Analysis*](https://doi.org/10.1201/9781315140919), Chapman & Hall (the normal-reference rule and the
-canonical bandwidth); S. P. Sheather & M. C. Jones (1991), [*A reliable data-based bandwidth selection
-method for kernel density estimation*](https://doi.org/10.1111/j.2517-6161.1991.tb01857.x), J. R.
-Statist. Soc. B 53(3) (the solve-the-equation plug-in); Z. I. Botev, J. F. Grotowski & D. P. Kroese
-(2010), [*Kernel density estimation via diffusion*](https://doi.org/10.1214/10-AOS799), Ann. Statist.
-38(5) (the DCT solve-the-equation, `:isj`); C. R. Loader (1996), [*Local likelihood density
-estimation*](https://doi.org/10.1214/aos/1032298287), Ann. Statist. 24(4) (the degree / equivalent-
-kernel factor).
+References:
+
+- B. W. Silverman (1986), [*Density Estimation for Statistics and Data Analysis*](https://doi.org/10.1201/9781315140919), Chapman & Hall (the normal-reference rule and the canonical bandwidth).
+- S. P. Sheather & M. C. Jones (1991), [*A reliable data-based bandwidth selection method for kernel density estimation*](https://doi.org/10.1111/j.2517-6161.1991.tb01857.x), J. R. Statist. Soc. B 53(3) (the solve-the-equation plug-in).
+- Z. I. Botev, J. F. Grotowski & D. P. Kroese (2010), [*Kernel density estimation via diffusion*](https://doi.org/10.1214/10-AOS799), Ann. Statist. 38(5) (the DCT solve-the-equation, `:isj`).
+- C. R. Loader (1996), [*Local likelihood density estimation*](https://doi.org/10.1214/aos/1032298287), Ann. Statist. 24(4) (the degree / equivalent-kernel factor).
 """
 function bandwidth(summary::Histogram1D; rule::Symbol = :normal,
                    kernel = gaussian_kernel, degree::Integer = 0)

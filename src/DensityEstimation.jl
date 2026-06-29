@@ -83,10 +83,10 @@ mygamma = AsymmetricKernel(
 density(summary, 1.0; kernel = mygamma)
 ```
 
-References: S. X. Chen (1999), [*Beta kernel estimators for density
-functions*](https://doi.org/10.1016/S0167-9473(99)00010-9), Comput. Statist. Data Anal. 31(2);
-S. X. Chen (2000), [*Probability density function estimation using gamma
-kernels*](https://doi.org/10.1023/A:1004165218295), Ann. Inst. Statist. Math. 52(3).
+References:
+
+- S. X. Chen (1999), [*Beta kernel estimators for density functions*](https://doi.org/10.1016/S0167-9473(99)00010-9), Comput. Statist. Data Anal. 31(2).
+- S. X. Chen (2000), [*Probability density function estimation using gamma kernels*](https://doi.org/10.1023/A:1004165218295), Ann. Inst. Statist. Math. 52(3).
 """
 struct AsymmetricKernel{F,W}
   pdf::F                            # (c, x, b) → a density in the data argument c
@@ -629,14 +629,12 @@ julia> round(density(h, 0.4; h = 0.2); digits = 4)   # linear binning centers th
 1.9947
 ```
 
-References: I. S. Abramson (1982), [*On bandwidth variation in kernel estimates—a square root
-law*](https://doi.org/10.1214/aos/1176345986), Ann. Statist. 10(4) (variable bandwidth);
-C. R. Loader (1996), [*Local likelihood density estimation*](https://doi.org/10.1214/aos/1032298287),
-Ann. Statist. 24(4) (the local-log-polynomial estimator); M. C. Jones (1993), [*Simple boundary
-correction for kernel density estimation*](https://doi.org/10.1007/BF00147776), Statist. Comput. 3(3)
-(the `bounds` renormalization); N. L. Hjort & I. K. Glad (1995), [*Nonparametric density estimation with
-a parametric start*](https://doi.org/10.1214/aos/1176324627), Ann. Statist. 23(3) (the `start`
-estimator).
+References:
+
+- I. S. Abramson (1982), [*On bandwidth variation in kernel estimates—a square root law*](https://doi.org/10.1214/aos/1176345986), Ann. Statist. 10(4) (variable bandwidth).
+- C. R. Loader (1996), [*Local likelihood density estimation*](https://doi.org/10.1214/aos/1032298287), Ann. Statist. 24(4) (the local-log-polynomial estimator).
+- M. C. Jones (1993), [*Simple boundary correction for kernel density estimation*](https://doi.org/10.1007/BF00147776), Statist. Comput. 3(3) (the `bounds` renormalization).
+- N. L. Hjort & I. K. Glad (1995), [*Nonparametric density estimation with a parametric start*](https://doi.org/10.1214/aos/1176324627), Ann. Statist. 23(3) (the `start` estimator).
 """
 function density(summary::Histogram1D, x::Real; degree::Integer = 0, h = nothing,
                  adaptive::Bool = false, kernel = gaussian_kernel, bounds = nothing,
