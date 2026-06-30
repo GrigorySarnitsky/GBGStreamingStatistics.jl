@@ -15,9 +15,9 @@ analytic round-trips: estimators are checked against distributions with closed f
   across its full option grid (KDE / local-log `degree`, fixed / Abramson `adaptive`, the `bounds` boundary
   correction, the asymmetric `gamma_kernel` / `beta_kernel`, the parametric `start`, and `normalize`) in
   `test/marginaldensity.jl`. The conditional / transition estimators use **Gaussian** marginals
-  (``f_X``, conditional moments) and an **Ornstein–Uhlenbeck** process, whose drift, diffusion, and
-  transition density ``p_\tau(y \mid x)`` are closed-form — the end-to-end oracle for the conditional /
-  transition densities (§4.3) and the Kramers–Moyal functionals (§4.4).
+  (``f_X``, conditional moments) and an **Ornstein–Uhlenbeck** process, whose transition density
+  ``p_\tau(y \mid x)`` is closed-form — the end-to-end oracle for the conditional / transition densities
+  (§4.3).
 - **Bandwidth selectors.** Each `bandwidth` rule is checked against its analytic target
   (`test/bandwidth.jl`): `:normal` reproduces Silverman ``(4/3)^{1/5}`` and the Epanechnikov
   ``2.214\times`` ratio; `:sj` / `:isj` ``\approx`` the normal reference on Gaussian data and tighten on a
@@ -50,8 +50,6 @@ analytic round-trips: estimators are checked against distributions with closed f
   ``\propto n^{-2/3}`` (slope ``\approx -2/3``, measured in ``y`` at ``x_0 = 0``, the n-range starting
   higher than the 1-D test since the 2-D asymptotic regime is reached later — below ``\sim 10^5`` the
   measured slope runs shallow, the conditional analog of the density test's non-Gaussian muddying).
-  `drift` / `diffusion` inherit `conditional_mean`'s rate (affine functionals of the same fit) — no
-  separate test.
 - **Mergeability tests.** For every summary, *accumulate-then-merge ``=`` accumulate-together* (to
   round-off), plus the incompatible-summary rejection — the monoid laws of invariant 3
   (`test/mergeability.jl` for `Histogram1D`, `test/histograms2d.jl` for `Histogram2D`). The **cone laws**
@@ -95,9 +93,7 @@ Characteristics 2–4 are the `check_point_estimator` battery; 1 and 5 are per-e
 `@test_throws`).
 
 **Estimand-specific** — layered on where the estimand demands it: **normalization** ``\int\hat f = 1`` (the
-densities), the **Kramers–Moyal identities** (``M_1 = \mathbb{E}[Y \mid x] - x``, the variance
-decomposition, the ``1/(n!\tau)`` scaling — `drift` / `diffusion` / `increment_moment`), the
-**`transition_density` alias**, and the **convergence rate** (the matrix).
+densities), the **`transition_density` alias**, and the **convergence rate** (the matrix).
 
 **Class variations.** The **summaries** (`Histogram1D` / `Histogram2D`) are accumulators, not query-point
 estimators: their contract is the moment-recovery oracle, mergeability, the `@allocated` audit, and GPU
@@ -117,7 +113,6 @@ argument errors) plus the convergence rate:
 | `density_standard_error` | exact SE + band coverage | yes | yes | n/a | yes | n/a, variability band |
 | `conditional_mean` / `conditional_variance` | bivariate-Gaussian (+ heteroscedastic curved-mean for Fan–Yao `conditional_variance`) | yes | yes | `NaN` | yes | yes, ``n^{-4/5}`` ISE |
 | `conditional_density` / `transition_density` | biv-Gaussian + OU + bounded-response (asym. `kernely`) | yes | yes | `NaN` off-support ``x`` | yes | yes, ``n^{-2/3}`` |
-| `drift` / `diffusion` / `increment_moment` | Ornstein–Uhlenbeck | yes | yes | `NaN` | yes | yes (inherited), ``= conditional_mean`` |
 | `bandwidth(::Histogram2D)` ``h^\star(x)`` | quadratic-mean Gaussian (closed-form) | yes | yes | `NaN` | yes | n/a, a selector |
 
 The summaries and the selector carry a different contract:
@@ -132,9 +127,8 @@ The summaries and the selector carry a different contract:
 
 `n/a` is not applicable. The **rate column is now uniform** — `density` (`test/density_convergence.jl`),
 `conditional_mean` (``n^{-4/5}`` ISE), and `conditional_density` (the slower 2-D ``n^{-2/3}``) each carry a
-log–log ISE-slope test (the conditional pair in `test/conditional_convergence.jl`), and `drift` /
-`diffusion` / `conditional_variance` inherit `conditional_mean`'s rate (affine and second-stage functionals
-of the same local fit), so they need no separate test. "via summary" means a host-side functional of the
+log–log ISE-slope test (the conditional pair in `test/conditional_convergence.jl`); `conditional_variance`
+inherits `conditional_mean`'s rate (a second-stage local fit), so it needs no separate test. "via summary" means a host-side functional of the
 summary, so the device coverage is the summary's row.
 
 **Tolerances are seed-robust.** The ISE-comparison thresholds (the `:plugin` gains, the parametric-start
@@ -165,7 +159,7 @@ compat pin JET needs).
     `:aic`, the asymmetric Chen `:plugin`, and the joint-summary response-aware local `:local`
     ``h^\star(x)``), the shared `LocalPolynomial.local_fit` jet primitive, the §4.2 regression (with the
     `degree` / `kernel` options and the Fan–Yao `conditional_variance`), the §4.3
-    `conditional_density` / `transition_density`, and the §4.4 `drift` / `diffusion` / `increment_moment`
+    `conditional_density` / `transition_density`
     are real — the Gaussian and analytic-PDF oracles, the bivariate-Gaussian, **heteroscedastic
     curved-mean**, quadratic-mean, and **Ornstein–Uhlenbeck** oracles, mergeability, the uniform
     `check_point_estimator` contract, `density`'s exact affine equivariance, the Marron–Wand claw stress,

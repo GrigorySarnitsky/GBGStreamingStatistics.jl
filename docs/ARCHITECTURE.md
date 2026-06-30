@@ -116,15 +116,28 @@ is **not** a cone homomorphism — the estimand-agnostic-accumulation / post-hoc
 pooling must happen on the cone (linear, mergeable), and the degree-zero readout must stay post hoc. That
 is *why* "no reruns" forces the smoothing post hoc.
 
-The lens also fixes the shape of the estimators. Every estimand is a degree-zero readout of one
-**linear** object — the kernel-weighted local-polynomial **jet-smoother** of the binned measure,
-returning the local Taylor coefficients ``(\beta_0, \beta_1, \dots)`` at the query point — consumed in
-one of three ways: a **ratio** of two smoothings (conditioning, the disintegration of the joint —
-`conditional_density`), a **link-capped intercept** (the density's local-likelihood ``e^{\beta_0}``), or
-a **higher jet component** (the derivative functionals `drift`, `diffusion`, and the response-aware local
-bandwidth ``h^\star(x)``). The package's one nonlinearity — the density's log link, and normalization —
-lives in the readout, exactly where the cone homomorphism already breaks. The shared primitive that
-realizes this in code is `LocalPolynomial.local_fit` (§11).
+The lens also fixes the shape of the estimators. The universal object is the **summary-as-measure**; every
+estimand is a **degree-zero readout** of it, and the readouts fall into **two families, each with one
+shared code atom**:
+
+- **Kernel-weighting** — the *local* / smoothing readouts. A query point ``x``, a bandwidth ``h``, and a
+  kernel define the per-bin weights ``w_j`` through the single `Kernels._kernel_weight` atom (symmetric
+  ``(1/h)K((c_j-x)/h)``, or asymmetric ``K(c_j; x, h)`` — its own normalized density on a bounded support);
+  the readouts consume them: a **count sum** (the marginal density), a **Nadaraya–Watson / local-polynomial
+  ratio** returning the jet ``(\beta_0, \beta_1, \dots)`` (the `conditional_mean` is its ``\beta_0``; the
+  conditional density a ratio of two such smoothings; the response-aware local bandwidth ``h^\star(x)`` a
+  higher jet component ``\beta_2``). `local_fit` is the jet readout built on the atom; an asymmetric kernel
+  is degree-0 (it has no jet).
+- **Power-sum quadrature** — the *global* / moment readouts. A smooth functional ``\mathbb{E}[g(X)]`` is the
+  Taylor contraction ``\tfrac1n \sum_j \sum_p g^{(p)}(c_j)/p!\, S_p^{(j)}`` of the stored power-sums — exact
+  for polynomials up to the stored order (the `mean` / `var` / `central_moment` recovery), ``O(\Delta^{p+1})``
+  for general smooth ``g``. No kernel, no query point.
+
+The package's one nonlinearity — the density's log link, and normalization — lives in the readout, exactly
+where the cone homomorphism already breaks. The shared code atoms are `Kernels._kernel_weight` (with
+`LocalPolynomial.local_fit` the jet readout on it) and the shift/Taylor contraction of the ``S_p`` (§11);
+`local_fit` is the kernel-weighting family's primitive, **not** the universal one — ``\mathbb{E}[g(X)]`` is
+a readout with no jet at all.
 
 ### Why a fine histogram is the canonical ``T`` (and the honest caveat)
 
@@ -318,7 +331,15 @@ alongside** the summary — never something the package's vocabulary depends on.
 
 ## 4. Estimand families (estimators — the exportable upper half)
 
-Each entry is written **estimand first** (per §2), demonstrating the convention.
+Each entry is written **estimand first** (per §2). These are the **two readout families** of the §2 lens.
+The **kernel-weighting** family (the local / smoothing readouts through `Kernels._kernel_weight`): the
+marginal density (§4.1), the conditional mean and variance (§4.2), the conditional / transition density
+(§4.3), and bandwidth selection (§4.5). The **power-sum quadrature** family (the global moment readouts):
+the recovered `mean` / `var` / `central_moment` (§3) and — forthcoming — the general smooth functional
+``\mathbb{E}[g(X)]`` and pushforward density ``f_{g(X)}`` (the Taylor contraction of the stored ``S_p``, a
+post-hoc functional the summary already supports). The §4.4 Kramers–Moyal / SDE-reading functionals are
+**archived** (`archive/`, restore when a consumer needs them and `Histogram2D` raises its per-cell order);
+§4.6 stays [OPEN].
 
 ### 4.1 Marginal density ``f_X``
 
@@ -385,28 +406,6 @@ beta; Chen 1999, 2000), boundary-bias-free in ``y``, the conditional analog of t
 asymmetric kernels, with `normalize` restoring the exact ``\int\hat f\,\mathrm dy = 1``. The conditioning
 kernel cancels in the ``f_{X,Y}/f_X`` ratio, so it stays symmetric (and a bounded *conditioning* variable
 needs no asymmetric kernel — the local-linear `conditional_mean` is boundary-adaptive, §4.2).
-
-### 4.4 Conditional increment moments and their functionals
-
-**Estimand.** The conditional increment moment ``M_n(x,\tau) = \mathbb{E}[(X_{t+\tau}-X_t)^n \mid X_t = x]``
-— a pure statistical object (a conditional expectation of a power of an increment), estimated by
-§4.2 applied to the response ``(\Delta X)^n``.
-**Standard functionals** (named, but model-neutral): the **Kramers–Moyal coefficient**
-``D^{(n)}(x) = \lim_{\tau\to 0}\frac{1}{n!\,\tau}M_n(x,\tau)``, reported as the finite-``\tau`` ratio
-``M_n/(n!\tau)``, with the **drift** ``D^{(1)}`` and **diffusion** ``D^{(2)}``. Forthcoming: the
-**all-orders Bell-polynomial correction** (Rydin Gorjão et al. 2021) that removes the finite-``\tau`` bias
-by inverting the ``\tau``-expansion rather than extrapolating ``\tau\to 0``, and the **Pawula / Q
-diagnostic** ``Q(x) = \mu_4(x,\tau)/(3\,\mu_2(x,\tau)^2)`` — the standardized fourth conditional-increment
-moment (``\mu_n`` central, about the conditional mean), ``= 1`` for the Gaussian increments of a diffusion
-(Pawula's theorem), the excess ``Q - 1`` flagging jump-like dynamics.
-
-> **Model-neutrality is the invariant here.** These functions are defined and estimated without
-> assuming the data *is* a diffusion. That the conditional moments *are* the coefficients of a
-> Fokker–Planck operator, that Pawula's theorem makes ``D^{(n\ge 3)}`` vanish, that ``D^{(1)}`` "is"
-> drift — these are the **consumer's interpretation**, exactly as "energy" is the consumer's reading
-> of PF's `inner(u,u)`. The package supplies the estimators and — forthcoming — the **tests of the
-> hypothesis** (the Pawula ratio, a ``\chi^2`` Markov / Chapman–Kolmogorov test); the consumer asserts
-> the model.
 
 ### 4.5 Bandwidth selection (cross-cutting)
 
@@ -840,6 +839,28 @@ intentional — do not dedupe it).
   is boundary-adaptive (Fan 1992), already correcting the ``O(h)`` boundary bias to ``O(h^2)`` with a
   symmetric kernel, so an asymmetric conditioning kernel would be a boundary-*variance* refinement only,
   not a correctness fix — a recorded possibility, not built (convenience / parity is not a justification, §6).
+
+- **Kernels / LocalPolynomial — the kernel-weighting atom `_kernel_weight`; the lens corrected to two
+  readout families** (§2, §4). The symmetric/asymmetric kernel protocols, previously re-coded inline at four
+  sites (`local_fit`, the density KDE, its asymmetric branch, the conditional density), are unified in one
+  `Kernels._kernel_weight` (the ``1/h`` folded in, so every readout — count sum, NW ratio, jet — is uniform;
+  the fold is ``\beta``-invariant for the local-polynomial solve, so symmetric results are bit-unchanged).
+  `local_fit` carries the **one** guard: an asymmetric kernel has no jet, so it is admitted at ``\texttt{degree} = 0``
+  only (a clean `ArgumentError`, not the former `MethodError`). This made degree-0 `conditional_mean` accept
+  asymmetric kernels uniformly — **building** the degree-0 conditioning-side asymmetric kernel the entry
+  above had left "not built". **Honest finding:** the Chen gamma/beta kernels are a *density* boundary tool;
+  their asymmetry interacts with the regression design density, so asymmetric-kernel Nadaraya–Watson does
+  **not** generally improve the conditional mean (degree-1 local-linear — boundary-adaptive, unbiased for a
+  linear mean — is the regression tool). The capability is admitted for **uniformity of the abstraction**,
+  not as the recommended regression estimator; the code is uniform, the guidance separate (in
+  `conditional_mean`). The episode also **corrected the lens**: `local_fit` is the kernel-weighting family's
+  primitive, not *the* universal one — ``\mathbb{E}[g(X)]`` is a power-sum-quadrature readout with no jet,
+  the second family. Settled by the measure-algebra lens, not convenience.
+- **IncrementMoments §4.4 — archived** (§4). The SDE-reading drift / diffusion / Kramers–Moyal functionals
+  (working, OU-tested; Pawula / Markov were stubs) moved to `archive/` to focus the package on its universal
+  statistical core — they are thin functionals of `conditional_mean`, the most physics-flavored,
+  least-complete, most consumer-side part, and the identity is sharper without them. Restore when a consumer
+  needs them and `Histogram2D` raises its per-cell order for ``n \ge 3``.
 
 Open decisions still flagged **[OPEN]** in §10 (the projection road, `HistogramND`, vector-valued
 conditioning, prior-art mirroring) graduate to entries here when they are settled.

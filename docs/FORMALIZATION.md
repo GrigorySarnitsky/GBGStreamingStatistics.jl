@@ -281,48 +281,6 @@ The implemented entries are test-linked; a forthcoming operation gets its entry 
   ``h^\star(x)`` is closed-form: recovered near the centre to ``\lesssim 12\%``, positive/finite on
   support, ``\mathrm{NaN}`` off it, scalar ``=`` vector, default-pilot sanity, and mergeability.
 
-## Conditional increment moments, drift & diffusion (§4.4) — `increment_moment`, `kramers_moyal`, `drift`, `diffusion`
-
-- **Estimand.** the conditional increment moment and the Kramers–Moyal coefficient
-
-  ```math
-  M_n(x, \tau) = \mathbb{E}\!\left[(X_{t+\tau} - X_t)^n \mid X_t = x\right], \qquad
-  D^{(n)}(x) = \frac{1}{n!}\lim_{\tau\to0} \frac{M_n(x,\tau)}{\tau},
-  ```
-
-  with `kramers_moyal` ``\equiv D^{(n)}``, `drift` ``\equiv D^{(1)}``, and `diffusion` ``\equiv D^{(2)}``. Model-neutral — a conditional
-  expectation of an increment power, no diffusion premise.
-- **Estimator.** conditioning on ``X_t = x`` (so the increment is ``\Delta X = Y - x`` with
-  ``Y = X_{t+\tau}``), the order-2 joint summary resolves
-
-  ```math
-  M_1(x) = \hat m_h(x) - x, \quad
-  M_2(x) = \widehat{\mathbb{E}}[Y^2\mid x] - 2x\,\hat m_h(x) + x^2, \quad
-  \widehat D^{(1)} = \frac{M_1}{\tau}, \quad \widehat D^{(2)} = \frac{M_2}{2\tau},
-  ```
-
-  where ``\hat m_h`` and ``\widehat{\mathbb{E}}[Y^2\mid x]`` are the local-linear §4.2 fits (exact from
-  the per-cell power-sums). ``n \ge 3`` is a recorded coverage gap — it needs order-``n`` per-cell
-  ``Y`` power-sums.
-- **Consistency claim.** ``\widehat D^{(1)}`` is consistent for the finite-``\tau`` drift at the
-  `conditional_mean` rate, with no smoothing bias where ``m(x)`` is linear in ``x``; ``\widehat D^{(2)}``
-  carries the local-polynomial bias from the curvature of the **raw** moment
-  ``\mathbb{E}[(\Delta X)^2\mid x]`` (a higher `degree` reduces it; the Fan–Yao *variance* refinement does
-  not apply — ``D^{(2)}`` is the raw increment moment, not the conditional variance). The finite-``\tau``
-  coefficients approach ``D^{(n)}(x)`` as ``\tau\to0`` up to the ``O(\tau)`` finite-time bias (the
-  Bell-polynomial correction, forthcoming).
-- **Test.** `test/oracles.jl` — the Ornstein–Uhlenbeck oracle (exact stationary lagged pairs from
-  ``\mathrm dX = -\theta X\,\mathrm dt + \sigma\,\mathrm dW``): `drift` recovers
-  ``x(e^{-\theta\tau}-1)/\tau`` to ``\le 2\times10^{-2}`` and `diffusion` recovers the closed-form
-  ``[s^2(1-e^{-2\theta\tau}) + x^2(e^{-\theta\tau}-1)^2]/(2\tau)`` (``s^2 = \sigma^2/2\theta``) to
-  ``8\%``. `test/incrementmoments.jl` — the variance decomposition
-  ``M_2 = \operatorname{Var}(Y\mid x) + M_1^2`` (against the matching `:plugin` variance — the exact
-  algebraic identity ``M_2 - M_1^2 = \widehat{\mathbb{E}}[Y^2\mid x] - \hat m^2``), the ``1/(n!\,\tau)``
-  scaling, the ``n\ge3`` and static-lag coverage-gap errors, and mergeability. `drift` and `diffusion`
-  inherit the `conditional_mean` ``n^{-2/5}`` rate exactly — ``\widehat D^{(1)} = (\hat m(x) - x)/\tau`` is
-  an affine functional of the same local-linear fit — so the rate is established by the `conditional_mean`
-  slope test (`test/conditional_convergence.jl`), with no separate test.
-
 ## Conditional & transition density (§4.3) — `conditional_density`, `transition_density`
 
 - **Estimand.** ``f_{Y\mid X}(y\mid x) = f_{X,Y}(x,y)/f_X(x)``, and the two-time transition density
