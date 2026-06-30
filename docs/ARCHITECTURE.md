@@ -379,6 +379,13 @@ is forthcoming.
 \hat f(y\mid x) \;=\; \frac{\sum_i K_{h_1}(X_i-x)\,K_{h_2}(Y_i-y)}{\sum_i K_{h_1}(X_i-x)}.
 ```
 
+with a separate conditioning kernel `kernelx` (in ``x``) and response kernel `kernely` (in ``y``). For a
+**bounded / positive response** — a droplet radius as ``Y`` — `kernely` may be **asymmetric** (gamma /
+beta; Chen 1999, 2000), boundary-bias-free in ``y``, the conditional analog of the marginal density's
+asymmetric kernels, with `normalize` restoring the exact ``\int\hat f\,\mathrm dy = 1``. The conditioning
+kernel cancels in the ``f_{X,Y}/f_X`` ratio, so it stays symmetric (and a bounded *conditioning* variable
+needs no asymmetric kernel — the local-linear `conditional_mean` is boundary-adaptive, §4.2).
+
 ### 4.4 Conditional increment moments and their functionals
 
 **Estimand.** The conditional increment moment ``M_n(x,\tau) = \mathbb{E}[(X_{t+\tau}-X_t)^n \mid X_t = x]``
@@ -826,10 +833,10 @@ intentional — do not dedupe it).
   extracted, `density` was their sole consumer — a historical artifact, not a design boundary. **A kernel
   is a kernel**: an asymmetric boundary kernel is a smoothing kernel for bounded / positive support, so it
   belongs in the shared foundation, where any density estimator — marginal or conditional — can reach it.
-  This gives the `kernel` argument one documented home (no cross-module split) and is the prerequisite for
-  an asymmetric-kernel **conditional density** (a bounded *response* — e.g. a droplet radius as ``Y`` —
-  wants a boundary-free ``y``-kernel, the same first-order boundary-bias fix the marginal density already
-  has). It does **not** motivate asymmetric *conditioning* in `conditional_mean`: local-linear regression
+  This gives the `kernel` argument one documented home (no cross-module split) and enabled the now-built
+  asymmetric-kernel **conditional density** (§4.3: a bounded *response* — e.g. a droplet radius as ``Y`` —
+  takes a boundary-free ``y``-kernel via `conditional_density(…; kernely = gamma_kernel, normalize = true)`,
+  the same first-order boundary-bias fix the marginal density already has). It does **not** motivate asymmetric *conditioning* in `conditional_mean`: local-linear regression
   is boundary-adaptive (Fan 1992), already correcting the ``O(h)`` boundary bias to ``O(h^2)`` with a
   symmetric kernel, so an asymmetric conditioning kernel would be a boundary-*variance* refinement only,
   not a correctness fix — a recorded possibility, not built (convenience / parity is not a justification, §6).

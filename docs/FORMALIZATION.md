@@ -328,22 +328,30 @@ The implemented entries are test-linked; a forthcoming operation gets its entry 
 - **Estimand.** ``f_{Y\mid X}(y\mid x) = f_{X,Y}(x,y)/f_X(x)``, and the two-time transition density
   ``p_\tau(y\mid x) = f_{X_{t+\tau}\mid X_t}(y\mid x)`` (the same object on a lag-``\tau`` joint).
 - **Estimator.** the binned double-kernel (Rosenblatt 1969; Hyndman, Bashtannyk & Grunwald 1996), with a
-  symmetric `kernel` ``K`` (``\int K = 1``, default `gaussian_kernel`), conditioning bandwidth
-  ``h_1 =`` `hx` and response bandwidth ``h_2 =`` `hy`: from
-  the cell counts ``n_{jk}`` at centers ``(c^x_j, c^y_k)`` with ``N_j = \sum_k n_{jk}``,
+  conditioning kernel ``K_1 =`` `kernelx` (bandwidth ``h_1 =`` `hx`, in ``x``) and a response kernel
+  ``K_2 =`` `kernely` (bandwidth ``h_2 =`` `hy`, in ``y``); each ``\int K = 1``, default `gaussian_kernel`:
+  from the cell counts ``n_{jk}`` at centers ``(c^x_j, c^y_k)`` with ``N_j = \sum_k n_{jk}``,
 
   ```math
   \hat f(y\mid x) =
     \frac{\sum_{j,k} n_{jk}\, K_{h_1}(c^x_j - x)\, K_{h_2}(c^y_k - y)}{\sum_j N_j\, K_{h_1}(c^x_j - x)} ,
   ```
 
-  computed as ``\hat f(y\mid x) = \big(\sum_k P_k\, K((c^y_k - y)/h_2)\big) / (h_2 D)`` with
-  the X-kernel-weighted profile ``P_k = \sum_j n_{jk} K_{h_1}(c^x_j - x)`` and ``D = \sum_k P_k``. The
-  X-kernel weighting cancels in the ratio; the surviving ``1/h_2`` makes ``\int \hat f(y\mid x)\,\mathrm dy = 1`` exactly (``\int K = 1``).
-- **Consistency claim** (``h_1, h_2 \to 0``, ``n h_1 h_2 \to \infty``): the pointwise bias is ``\tfrac12 h_1^2 \mu_2(K)\big[\partial_{xx} f_{Y\mid X} + 2\,\partial_x f_{Y\mid X}\,\partial_x f_X / f_X\big] + \tfrac12 h_2^2 \mu_2(K)\,\partial_{yy} f_{Y\mid X}`` and the variance ``R(K)^2 f_{Y\mid X}/(n h_1 h_2 f_X)``, giving the slower conditional rate ``O(n^{-2/3})`` at the optimal ``h \sim n^{-1/6}`` (the bias is worst at the conditional mode).
+  computed as ``\hat f(y\mid x) = \big(\sum_k P_k\, K((c^y_k - y)/h_2)\big) / (h_2 D)`` for a symmetric
+  ``K_2`` (the surviving ``1/h_2`` from ``K_{h_2}``), with the conditioning-kernel-weighted profile
+  ``P_k = \sum_j n_{jk} K_{h_1}(c^x_j - x)`` and ``D = \sum_k P_k``. The conditioning-kernel weighting
+  cancels in the ratio (so `kernelx` only weights the local window); for a symmetric ``K_2`` the
+  ``1/h_2`` makes ``\int \hat f(y\mid x)\,\mathrm dy = 1`` exactly (``\int K = 1``). For a **bounded /
+  positive response** an **asymmetric** ``K_2`` = `kernely` (gamma / beta; Chen 1999, 2000) is instead a
+  density in the data argument, ``\hat f = \big(\sum_k P_k\, K_2(c^y_k;\, y, h_2)\big)/D`` — boundary-bias-free
+  in ``y`` but only ``\approx``-normalized, made exact by the `normalize` renormalization.
+- **Consistency claim** (``h_1, h_2 \to 0``, ``n h_1 h_2 \to \infty``): for symmetric kernels the pointwise bias is ``\tfrac12 h_1^2 \mu_2(K)\big[\partial_{xx} f_{Y\mid X} + 2\,\partial_x f_{Y\mid X}\,\partial_x f_X / f_X\big] + \tfrac12 h_2^2 \mu_2(K)\,\partial_{yy} f_{Y\mid X}`` and the variance ``R(K)^2 f_{Y\mid X}/(n h_1 h_2 f_X)``, giving the slower conditional rate ``O(n^{-2/3})`` at the optimal ``h \sim n^{-1/6}`` (the bias is worst at the conditional mode). An asymmetric ``K_2`` carries the boundary-uniform ``O(h_2)`` Chen ``y``-bias instead of the ``O(h_2^2)`` interior term — the price of consistency at the ``y = 0`` edge a symmetric kernel cannot reach.
 - **Test.** `test/conditionaldensity.jl` — the bivariate-Gaussian fixture ``Y\mid X=x \sim N(\rho x, 1-\rho^2)``: ``\int \hat f\,\mathrm dy \approx 1`` and pointwise recovery to ``3\times10^{-2}``; the
   scalar/vector forms, the `transition_density` equivalence, off-support `NaN`, bandwidth checks, and
-  mergeability. `test/oracles.jl` — the Ornstein–Uhlenbeck oracle: `transition_density` recovers the
+  mergeability; plus the **asymmetric-response** oracle (``X\sim N(0,1)``, ``Y\sim\mathrm{Exp}(1)\perp X``
+  ``\Rightarrow`` ``f(y\mid x)=e^{-y}``), where the gamma `kernely` recovers the density at the boundary
+  ``y\approx0`` that the symmetric Gaussian leaks low, `normalize` driving ``\int\hat f\,\mathrm dy`` to 1.
+  `test/oracles.jl` — the Ornstein–Uhlenbeck oracle: `transition_density` recovers the
   closed-form ``p_\tau(y\mid x) = N(x e^{-\theta\tau},\, s^2(1-e^{-2\theta\tau}))`` to ``4\times10^{-2}``
   (the ``O(h^2)`` mode bias). `test/conditional_convergence.jl` — the ``n^{-2/3}`` rate: on the
   bivariate-Gaussian oracle, with ``h_1 = h_2 \propto n^{-1/6}``, the ISE in ``y`` at ``x_0 = 0`` falls

@@ -46,5 +46,7 @@ using GBGStreamingStatistics: Histograms, MarginalDensity, Bandwidth, Regression
   @test_call target_modules = mods drift(glag, 0.0; h = 0.5)
   @test_call target_modules = mods diffusion(glag, 0.0; h = 0.5)
   @test_call target_modules = mods conditional_density(glag, 0.0, 0.0; hx = 0.5, hy = 0.5)
+  # the asymmetric-response path (gamma kernely + normalize) — its own specialization / branch
+  @test_call target_modules = mods conditional_density(glag, 0.0, 0.0; hx = 0.5, hy = 0.5, kernely = gamma_kernel, normalize = true)
   @test_call target_modules = mods transition_density(glag, 0.0, 0.0; hx = 0.5, hy = 0.5)
 end

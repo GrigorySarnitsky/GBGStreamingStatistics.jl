@@ -32,20 +32,55 @@ include("testcontracts.jl"); using .TestContracts
     end
   end
 
-  @testset "the kernel option (parity): Epanechnikov normalizes and recovers" begin
-    # The double-kernel now takes any symmetric ∫K=1 kernel; Epanechnikov still integrates to 1 (the
-    # ∫K=1 normalization is what guarantees it) and recovers the conditional to a few percent.
+  @testset "symmetric kernel options (parity): Epanechnikov in both directions" begin
+    # The double-kernel takes a separate kernelx (conditioning) and kernely (response), each any ∫K=1
+    # callable; Epanechnikov in both still integrates to 1 (the ∫K=1 normalization guarantees it) and
+    # recovers the conditional to a few percent.
     ys = collect(-6.0:0.02:6.0)
     for x in (-0.5, 0.0, 0.5)
-      fy = conditional_density(g, x, ys; hx = hx, hy = hy, kernel = epanechnikov_kernel)
+      fy = conditional_density(g, x, ys; hx = hx, hy = hy, kernelx = epanechnikov_kernel, kernely = epanechnikov_kernel)
       @test sum(fy) * 0.02 ≈ 1 atol = 1e-2
     end
     for x in (-0.5, 0.0, 0.5), y in (-0.5, 0.0, 0.5)
-      @test conditional_density(g, x, y; hx = hx, hy = hy, kernel = epanechnikov_kernel) ≈
+      @test conditional_density(g, x, y; hx = hx, hy = hy, kernelx = epanechnikov_kernel, kernely = epanechnikov_kernel) ≈
             cond_pdf(y, x) atol = 0.05
-      @test transition_density(g, x, y; hx = hx, hy = hy, kernel = epanechnikov_kernel) ≈
-            conditional_density(g, x, y; hx = hx, hy = hy, kernel = epanechnikov_kernel)
+      @test transition_density(g, x, y; hx = hx, hy = hy, kernely = epanechnikov_kernel) ≈
+            conditional_density(g, x, y; hx = hx, hy = hy, kernely = epanechnikov_kernel)
     end
+  end
+
+  @testset "asymmetric response kernel: bounded / positive Y (boundary-bias-free, §4.3)" begin
+    # A bounded RESPONSE — Y ≥ 0 (a droplet radius). Independent oracle X ~ N(0,1), Y ~ Exponential(1),
+    # so f(y|x) = e^{-y} for every x, positive at the boundary y = 0. A symmetric y-kernel leaks mass past
+    # 0 and underestimates near the edge; the asymmetric gamma kernel (kernely = gamma_kernel) is
+    # boundary-bias-free there. It is only ≈-normalized in y, so normalize = true makes ∫f̂dy = 1 exactly.
+    Random.seed!(43)
+    M = 2_000_000
+    Xe = randn(M); Ye = -log.(rand(M))                          # Y ~ Exp(1) ⊥ X
+    ge = Histogram2D(-6.0, 6.0, 240, 0.0, 12.0, 480; lag = 1)
+    observe_pairs!(ge, Xe, Ye)
+    fexp(y) = exp(-y)
+
+    # boundary win: near y = 0 the gamma kernel beats the symmetric Gaussian, which leaks low
+    for y0 in (0.1, 0.3)
+      fg = conditional_density(ge, 0.0, y0; hx = 0.4, hy = 0.3, kernely = gamma_kernel, normalize = true)
+      fs = conditional_density(ge, 0.0, y0; hx = 0.4, hy = 0.3)              # symmetric Gaussian
+      @test abs(fg - fexp(y0)) < abs(fs - fexp(y0))           # gamma closer to the truth
+    end
+    @test conditional_density(ge, 0.0, 0.1; hx = 0.4, hy = 0.3) < fexp(0.1)  # Gaussian leaks low at the edge
+
+    # interior recovery (the gamma kernel's width grows with y, so the convex e^{-y} is mildly oversmoothed
+    # there — a looser tolerance than the boundary win), and exact normalization with the asymmetric kernel
+    for y0 in (0.5, 1.0)
+      @test conditional_density(ge, 0.0, y0; hx = 0.4, hy = 0.3, kernely = gamma_kernel, normalize = true) ≈
+            fexp(y0) rtol = 0.12
+    end
+    ys = collect(0.0:0.02:12.0)
+    @test sum(conditional_density(ge, 0.0, ys; hx = 0.4, hy = 0.3, kernely = gamma_kernel, normalize = true)) * 0.02 ≈
+          1 atol = 2e-2
+    # transition_density forwards kernely / normalize
+    @test transition_density(ge, 0.0, 0.5; hx = 0.4, hy = 0.3, kernely = gamma_kernel, normalize = true) ≈
+          conditional_density(ge, 0.0, 0.5; hx = 0.4, hy = 0.3, kernely = gamma_kernel, normalize = true)
   end
 
   @testset "estimand-specific API: transition_density alias, NaN off the conditioning support, bandwidth errors" begin

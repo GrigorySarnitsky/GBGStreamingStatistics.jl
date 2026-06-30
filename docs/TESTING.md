@@ -116,7 +116,7 @@ argument errors) plus the convergence rate:
 | `density` | 6-PDF suite + Gaussian | yes | yes | n/a, defined everywhere | yes | yes, ``n^{-2p/(2p+1)}`` |
 | `density_standard_error` | exact SE + band coverage | yes | yes | n/a | yes | n/a, variability band |
 | `conditional_mean` / `conditional_variance` | bivariate-Gaussian (+ heteroscedastic curved-mean for Fan–Yao `conditional_variance`) | yes | yes | `NaN` | yes | yes, ``n^{-4/5}`` ISE |
-| `conditional_density` / `transition_density` | biv-Gaussian + OU | yes | yes | `NaN` off-support ``x`` | yes | yes, ``n^{-2/3}`` |
+| `conditional_density` / `transition_density` | biv-Gaussian + OU + bounded-response (asym. `kernely`) | yes | yes | `NaN` off-support ``x`` | yes | yes, ``n^{-2/3}`` |
 | `drift` / `diffusion` / `increment_moment` | Ornstein–Uhlenbeck | yes | yes | `NaN` | yes | yes (inherited), ``= conditional_mean`` |
 | `bandwidth(::Histogram2D)` ``h^\star(x)`` | quadratic-mean Gaussian (closed-form) | yes | yes | `NaN` | yes | n/a, a selector |
 

@@ -89,7 +89,9 @@ estimands.
   :residual`; the plug-in is `:plugin`). The **estimand-first reference module** — write its docstrings to
   the documentation policy below.
 - `src/ConditionalDensity.jl` — §4.3 `conditional_density` ``\equiv f_{Y\mid X}``,
-  `transition_density` ``\equiv p_\tau(y\mid x)`` (double-kernel with a `kernel` option, Rosenblatt).
+  `transition_density` ``\equiv p_\tau(y\mid x)`` (binned double-kernel, Rosenblatt) — a separate
+  `kernelx` / `kernely`, with an **asymmetric** `kernely` (`gamma_kernel` / `beta_kernel`) for a
+  bounded/positive response and `normalize` for exact ``\int\hat f\,\mathrm dy = 1``.
 - `src/IncrementMoments.jl` — §4.4 `increment_moment` ``\equiv M_n(x,\tau)``, `kramers_moyal`
   ``\equiv D^{(n)}``, `drift` ``\equiv D^{(1)}``, `diffusion` ``\equiv D^{(2)}``, `pawula_quotient`
   ``\equiv Q(x)``, `markov_test`. Model-neutral functionals; the SDE *reading* stays consumer-side.
@@ -355,13 +357,16 @@ Mechanical bar:
    ``1/(n!\tau)`` scaling, coverage-gap errors (``n\ge3``, static lag), and mergeability.
 8. **`ConditionalDensity`** (§4.3) — `conditional_density` ``\equiv f_{Y\mid X}`` and `transition_density`
    ``\equiv p_\tau(y\mid x)`` by the binned double-kernel (Rosenblatt) from the `Histogram2D` cell
-   counts: the joint is reduced at ``x`` to an X-kernel-weighted Y-profile, then smoothed in ``y`` with
-   the surviving ``1/h_2`` normalization (``\int \hat f\,\mathrm dy = 1`` exactly, since ``\int K = 1``).
-   Two supplied bandwidths `hx`, `hy` and a symmetric `kernel` option (default Gaussian). Tested: the
+   counts: the joint is reduced at ``x`` to a `kernelx`-weighted Y-profile, then smoothed in ``y`` by
+   `kernely` (the surviving ``1/h_2`` gives ``\int \hat f\,\mathrm dy = 1`` exactly for a symmetric
+   `kernely`). Supplied bandwidths `hx`, `hy`; for a **bounded/positive response** (a droplet radius as
+   ``Y``) an **asymmetric** `kernely` (`gamma_kernel` / `beta_kernel`) is boundary-bias-free in ``y``,
+   with `normalize = true` for an exact integral. Tested: the
    bivariate-Gaussian conditional ``N(\rho x, 1-\rho^2)``
    (normalization + pointwise) and the **Ornstein–Uhlenbeck** transition density
    ``N(x e^{-\theta\tau}, s^2(1-e^{-2\theta\tau}))``; scalar/vector forms, `transition_density`
-   equivalence, off-support NaN, and mergeability.
+   equivalence, off-support NaN, mergeability, and the **bounded-response** oracle (``Y\sim\mathrm{Exp}(1)``:
+   the gamma `kernely` recovers the boundary the Gaussian leaks, `normalize` ``\Rightarrow`` ``\int\hat f = 1``).
 9. **The cone — `scale!` + weighted `merge!`** (§10 hyperstatistics / forgetting) — the unnormalized
    summaries are scalable, so they form a convex cone, not merely an additive monoid: `scale!(summary, w)`
    reweights every count and power-sum (the scalar action), and `merge!(into, from; weight)` forms
