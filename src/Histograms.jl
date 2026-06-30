@@ -347,6 +347,36 @@ _xbincenter(h::Histogram2D, ix::Integer) = h.xlower + (oftype(h.xlower, ix) - of
 _ybincenter(h::Histogram2D, iy::Integer) = h.ylower + (oftype(h.ylower, iy) - oftype(h.ylower, 0.5)) / h.yscale
 
 
+# Per-X-column reduction of a `Histogram2D` (the regression-ready sufficient statistic): for each X-bin,
+# the count ``N``, the response total ``\sum Y`` and ``\sum Y^2`` — recovered *exactly* from the per-cell
+# counts and power-sums (``S_{01}`` / ``S_{02}`` use the actual ``Y``, not the cell center). Host-side;
+# a no-op `Array` for CPU summaries. Shared by the conditional-mean / increment-moment / bandwidth consumers.
+function _column_sums(summary::Histogram2D)
+  counts = Array(summary.counts)
+  S = Array(summary.powersums)
+  nx = summary.nx
+  ny = summary.ny
+  cx = [_xbincenter(summary, ix) for ix in 1:nx]
+  N = zeros(Float64, nx)
+  sumY = zeros(Float64, nx)
+  sumY2 = zeros(Float64, nx)
+  for iy in 1:ny
+    cy = _ybincenter(summary, iy)
+    for ix in 1:nx
+      cell = ix + (iy - 1) * nx
+      nc = counts[cell]
+      iszero(nc) && continue
+      s01 = S[2, cell]
+      s02 = S[5, cell]
+      N[ix] += nc
+      sumY[ix] += cy * nc + s01                       # Σ Y over the column, exact
+      sumY2[ix] += cy * cy * nc + 2 * cy * s01 + s02  # Σ Y² over the column, exact
+    end
+  end
+  return cx, N, sumY, sumY2
+end
+
+
 # The 2D scatter-add: one work-item per pair atomically accumulates the per-cell count and the five
 # order-2 bivariate power-sums about the cell center. Out-of-box pairs are skipped.
 @kernel function _scatter2d!(counts, powersums, @Const(xs), @Const(ys),

@@ -9,10 +9,10 @@ module Bandwidth
 using AbstractFFTs
 using FFTW
 
-using ..Histograms: Histogram1D, Histogram2D, _total, _sample_std, _bincenter
+using ..Histograms: Histogram1D, Histogram2D, _total, _sample_std, _bincenter, _column_sums
 using ..LocalPolynomial: local_fit
 using ..Kernels: gaussian_kernel, _quad
-using ..Regression: _column_sums, _residual_response
+using ..Regression: _residual_response
 using ..DensityEstimation: _normal_reference_h, _kde_h, AsymmetricKernel, _asymmetric_default_b
 
 export bandwidth
