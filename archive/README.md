@@ -3,7 +3,11 @@
 Working code removed from the active package but kept retrievable. Not compiled, not tested, not
 documented — inert until deliberately restored.
 
-## `IncrementMoments.jl` + `incrementmoments.jl` (the §4.4 SDE-reading functionals)
+## `IncrementMoments.jl` + `incrementmoments_tests.jl` (the §4.4 SDE-reading functionals)
+
+(The test file is named `incrementmoments_tests.jl` here, not `incrementmoments.jl`, to avoid a
+case-insensitive-filesystem collision with `IncrementMoments.jl`; on restore it becomes
+`test/incrementmoments.jl` again.)
 
 The conditional increment moments and their Kramers–Moyal functionals — `increment_moment`,
 `kramers_moyal`, `drift`, `diffusion`, and the declared-but-unimplemented `pawula_quotient` /
