@@ -30,12 +30,14 @@ are recorded once — in `docs/ARCHITECTURE.md` and this file; the umbrella modu
 > `Histogram2D` (`observe!` / `observe_pairs!` as one KernelAbstractions + Atomix scatter-add of counts
 > and power-sums about the bin center, `merge!` by addition — and `scale!` / weighted `merge!` the cone
 > for hyperstatistics / forgetting, allocation-free), the marginal density
-> `density` (§4.1), local-linear `conditional_mean` / `conditional_variance` (§4.2), the conditional /
+> `density` (§4.1), the shared local-polynomial jet primitive `LocalPolynomial.local_fit` and the
+> local-polynomial `conditional_mean` / Fan–Yao `conditional_variance` (§4.2), the conditional /
 > transition density `conditional_density` / `transition_density` (§4.3), the Kramers–Moyal `drift` /
-> `diffusion` (§4.4), and global `bandwidth` selection (§4.5) are implemented and tested — Gaussian,
-> bivariate-Gaussian, and **Ornstein–Uhlenbeck** oracles, mergeability, allocation, and **GPU-vs-CPU
-> parity verified on the AMD RX 6700 XT** (ROCm). The response-aware local bandwidth and the Pawula /
-> Markov diagnostics are declared and forthcoming. See *Current state and roadmap*.
+> `diffusion` (§4.4), and global **and response-aware local** (``h^\star(x)``) `bandwidth` selection (§4.5)
+> are implemented and tested — Gaussian, bivariate-Gaussian, and **Ornstein–Uhlenbeck** oracles,
+> mergeability, allocation, and **GPU-vs-CPU parity verified on the AMD RX 6700 XT** (ROCm). The Pawula /
+> Markov diagnostics and the higher Kramers–Moyal coefficients are declared and forthcoming. See *Current
+> state and roadmap*.
 
 ## Modules and wiring
 
@@ -55,6 +57,12 @@ estimands.
   addition (and `scale!` / weighted `merge!` elementwise scaling — the cone, on the `count = Float64`
   Float-count variant); `bin_index` is the binning map (exposed for pre-quantization); global central
   moments are recovered post hoc by the **shift formula**. Owns `KernelAbstractions`, `Atomix`.
+- `src/LocalPolynomial.jl` — the shared **local-polynomial jet primitive** (lower half): `local_fit`, the
+  kernel-weighted local-polynomial design solve over a binned measure, returning the jet
+  ``(\beta_0, \dots, \beta_d)`` (value ``\beta_0``, slope ``\beta_1``, curvature ``2\beta_2``). The single
+  *linear* core on which the local smoothers are built — `conditional_mean` is its ``\beta_0``, the
+  local-likelihood `density` its IRLS inner solve (`docs/ARCHITECTURE.md` §11). Internal (not exported);
+  reached by explicit `using ..LocalPolynomial: local_fit`. Owns `LinearAlgebra`.
 - `src/DensityEstimation.jl` — §4.1 `density` ``\equiv f_X`` — one call over the binned KDE, the
   local-log-polynomial (`degree`), the Abramson variable bandwidth (`adaptive`), boundary
   renormalization (`bounds`, Jones 1993), the **parametric start** (`start`, Hjort & Glad 1995 — the
@@ -68,20 +76,28 @@ estimands.
   ``\mathrm{SE}(x) = \sqrt{R(K)\hat f_h(x)/(nh)}``). `AsymmetricKernel` and `ParametricStart` are
   exported so consumers can plug in custom kernels / parametric skeletons.
 - `src/Regression.jl` — §4.2 `conditional_mean` ``\equiv m(x)``, `conditional_variance`
-  ``\equiv \sigma^2(x)`` (local-linear, Fan & Gijbels; Nadaraya–Watson kept for reference). The
-  **estimand-first reference module** — write its docstrings to the documentation policy below.
+  ``\equiv \sigma^2(x)`` by local-polynomial fits (Fan & Gijbels) over `LocalPolynomial.local_fit`, with
+  the `degree` (0 Nadaraya–Watson / 1 local-linear default / 2 local-quadratic) and `kernel` knobs;
+  `conditional_variance` defaults to the bias-reduced **Fan & Yao** residual estimator (`method =
+  :residual`; the plug-in is `:plugin`). The **estimand-first reference module** — write its docstrings to
+  the documentation policy below.
 - `src/ConditionalDensity.jl` — §4.3 `conditional_density` ``\equiv f_{Y\mid X}``,
   `transition_density` ``\equiv p_\tau(y\mid x)`` (double-kernel, Rosenblatt).
 - `src/MarkovInference.jl` — §4.4 `increment_moment` ``\equiv M_n(x,\tau)``, `kramers_moyal`
   ``\equiv D^{(n)}``, `drift` ``\equiv D^{(1)}``, `diffusion` ``\equiv D^{(2)}``, `pawula_quotient`
   ``\equiv Q(x)``, `markov_test`. Model-neutral functionals; the SDE *reading* stays consumer-side.
-- `src/Bandwidth.jl` — §4.5 `bandwidth`: the **kernel- and degree-aware normal-reference rule** (the
-  default, Silverman the Gaussian/degree-0 case; ``h = C(K,d)\,\hat\sigma\,n^{-1/(2p+1)}``), the
-  data-driven **Sheather–Jones** plug-ins (`rule = :sj` classic, `:isj` improved-via-DCT) and the fit-based **AIC** (`rule = :aic`; leave-one-out CV a recorded binned-ties gap), the **Chen plug-in** for the asymmetric gamma/beta kernels (`rule = :plugin`, the asymmetric Silverman analog), and the
-  **response-aware local plug-in** ``h^\star(x)``; the post-hoc FFT smoothing helpers (the major
-  performance lever, amortized over bandwidth). Owns `FFTW`, `AbstractFFTs`.
-- Include order: `Accumulators → Histograms → DensityEstimation → Regression → ConditionalDensity →
-  MarkovInference → Bandwidth`. Cross-module access only through explicit `using ..Module: name, …`
+- `src/Bandwidth.jl` — §4.5 `bandwidth`: for the marginal (`Histogram1D`) the **kernel- and degree-aware
+  normal-reference rule** (the default, Silverman the Gaussian/degree-0 case;
+  ``h = C(K,d)\,\hat\sigma\,n^{-1/(2p+1)}``), the data-driven **Sheather–Jones** plug-ins (`rule = :sj`
+  classic, `:isj` improved-via-DCT) and the fit-based **AIC** (`rule = :aic`; leave-one-out CV a recorded
+  binned-ties gap), and the **Chen plug-in** for the asymmetric gamma/beta kernels (`rule = :plugin`, the
+  asymmetric Silverman analog); for the joint (`Histogram2D`) the **response-aware local plug-in**
+  ``h^\star(x)`` (`rule = :local`, composing the Fan–Yao ``\sigma^2(x)``, the degree-2 curvature
+  ``m''(x)``, and ``f_X(x)``). The post-hoc FFT smoothing helpers (the major performance lever, amortized
+  over bandwidth) are forthcoming. Owns `FFTW`, `AbstractFFTs`.
+- Include order: `Accumulators → Histograms → LocalPolynomial → DensityEstimation → Regression →
+  ConditionalDensity → MarkovInference → Bandwidth`. Cross-module access only through explicit
+  `using ..Module: name, …`
   — never a bare `using`.
 - Deferred, recorded as commented-out includes (the rule against speculative structure):
   `# CharacteristicFunctions.jl` (the ECF summary — `docs/ARCHITECTURE.md` §2, likely never built),
@@ -301,12 +317,14 @@ Mechanical bar:
    unlike the ``\\psi_4`` U-statistic); ``\\approx 1.4\\text{–}1.7\\times`` lower ISE on skewed positive data.
    Tested in `test/bandwidth.jl`; the AIC, U-statistic, and gamma-reference routes were tried and rejected
    (see the §11 decision log), and a fully-adaptive curvature pilot is a recorded refinement.
-6. **`Regression`** (§4.2) — `conditional_mean` ``\equiv m(x)`` and `conditional_variance``
-   ``\equiv \sigma^2(x)`` by local-linear regression from `Histogram2D` (the ``T_\ell``/``P_\ell``
-   recovered exactly from per-X-column counts and response totals). Tested against the bivariate-
-   Gaussian oracle (``m`` recovers ``\rho x`` to ``\lesssim 2\%``; ``\sigma^2`` recovers ``1-\rho^2``
-   to a few percent — the simple ``\hat{\mathbb E}[Y^2\mid x]-\hat m^2`` estimator carries the
-   local-linear smoothing bias, Fan–Yao refinement forthcoming).
+6. **`Regression`** (§4.2) — `conditional_mean` ``\equiv m(x)`` and `conditional_variance`
+   ``\equiv \sigma^2(x)`` by local-polynomial regression from `Histogram2D` over the shared
+   `LocalPolynomial.local_fit` (the ``T_\ell``/``P_\ell`` from per-X-column counts and response totals),
+   with the `degree` (0/1/2) and `kernel` knobs; `conditional_variance` defaults to the bias-reduced
+   **Fan & Yao** residual estimator (`method = :residual`; the plug-in is `:plugin`). Tested against the
+   bivariate-Gaussian oracle (``m`` recovers ``\rho x`` to ``\lesssim 2\%``; ``\sigma^2`` recovers
+   ``1-\rho^2``) and a heteroscedastic curved-mean oracle (Fan–Yao recovers ``\sigma^2(x)`` and beats the
+   plug-in in the curved tail).
 7. **`MarkovInference`** (§4.4 — drift & diffusion) — `increment_moment` ``\equiv M_n(x,\tau)``,
    `kramers_moyal` ``\equiv D^{(n)}``, `drift` ``\equiv D^{(1)}``, `diffusion` ``\equiv D^{(2)}`` for
    ``n \in \{1,2\}`` from the order-2 `Histogram2D` (``M_1 = \hat m_h(x) - x``,
@@ -337,12 +355,27 @@ Mechanical bar:
    oracle (a Gamma-weighted Gaussian superposition recovers the heavy ``t`` tail), exact exponential
    forgetting, the `Histogram2D` cone with `conditional_mean` scale-invariance, allocation, and GPU parity
    (incl. the atomic-**float** add of Float-count `observe!`).
+10. **`LocalPolynomial.local_fit`** (the shared jet primitive) — the kernel-weighted local-polynomial
+    design solve over a binned measure, returning the jet ``(\beta_0, \dots, \beta_d)`` (value, slope,
+    ``2\beta_2`` the curvature) by the Hankel normal equations. The single *linear* core:
+    `conditional_mean` is its ``\beta_0``, the local-likelihood `density` its IRLS inner solve, and it gave
+    `Regression` the `degree` / `kernel` knobs and the degree-2 curvature ``m''`` (the §11 architecture
+    decision, landed). Tested (`test/localpolynomial.jl`): exact jet recovery on a polynomial mean (value
+    / slope / curvature), the degree-0 Nadaraya–Watson ratio, degenerate ``\to`` NaN, kernel-normalization
+    cancellation.
+11. **The response-aware local bandwidth ``h^\star(x)``** (§4.5) — `bandwidth(::Histogram2D, x;
+    rule = :local)` ``= [R(K)\sigma^2(x)/(\mu_2(K)^2 m''(x)^2 f_X(x) n)]^{1/5}``, composing the Fan–Yao
+    ``\sigma^2(x)``, the degree-2 curvature ``m''(x) = 2\beta_2``, and the X-marginal ``f_X(x)`` from the
+    one joint summary at a curvature-rate pilot ``\hat\sigma_X n^{-1/9}``. Tested (`test/localbandwidth.jl`):
+    the quadratic-mean Gaussian oracle (closed-form ``h^\star``) recovered near the centre, NaN off
+    support, scalar ``=`` vector, mergeability.
 
 **Next, in dependency order:**
 
-1. **The response-aware local bandwidth** ``h^\\star(x)`` (§4.5) — estimand-first, OU-oracle-tested,
-   with its `FORMALIZATION.md` entry, from the `Histogram2D` joint summary. Plus the Fan–Yao
-   conditional-variance refinement and the FFT-amortized smoothing (§4.5).
+1. **The FFT-amortized smoothing** (§4.5) — the post-hoc convolution of the binned summary with the
+   kernel in ``O(B\\log B)``, amortized over bandwidth (transform the counts once; each ``h`` a multiply
+   by the kernel's transform — the major performance lever, decisive for the ``h^\\star(x)`` bandwidth
+   *grid*). `FFTW` / `AbstractFFTs` are already dependencies.
 2. **Scheduled — the conditional convergence-rate tests** (the one characteristic not yet uniform across
    the testing contract; `docs/TESTING.md`, the coverage matrix). `conditional_mean` at the ``n^{-2/5}``
    ``L^2``-projection rate and `conditional_density` at the ``n^{-2/3}`` rate, each mirroring the

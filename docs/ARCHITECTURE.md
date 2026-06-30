@@ -121,10 +121,10 @@ The lens also fixes the shape of the estimators. Every estimand is a degree-zero
 returning the local Taylor coefficients ``(\beta_0, \beta_1, \dots)`` at the query point — consumed in
 one of three ways: a **ratio** of two smoothings (conditioning, the disintegration of the joint —
 `conditional_density`), a **link-capped intercept** (the density's local-likelihood ``e^{\beta_0}``), or
-a **higher jet component** (the derivative functionals `drift`, `diffusion`, and the forthcoming
-``h^\star(x)``). The package's one nonlinearity — the density's log link, and normalization — lives in
-the readout, exactly where the cone homomorphism already breaks. The shared primitive that realizes this
-in code is a §11 decision, forthcoming.
+a **higher jet component** (the derivative functionals `drift`, `diffusion`, and the response-aware local
+bandwidth ``h^\star(x)``). The package's one nonlinearity — the density's log link, and normalization —
+lives in the readout, exactly where the cone homomorphism already breaks. The shared primitive that
+realizes this in code is `LocalPolynomial.local_fit` (§11).
 
 ### Why a fine histogram is the canonical ``T`` (and the honest caveat)
 
@@ -154,7 +154,7 @@ detailed in §4:
 - **Conditional increment moments and their functionals** — Kramers–Moyal coefficients,
   drift/diffusion, Pawula / Q diagnostics — domain-neutral functionals of the above; the SDE
   *reading* stays consumer-side.
-- **Bandwidth selection** (cross-cutting) — global (built) and **response-aware local** (forthcoming).
+- **Bandwidth selection** (cross-cutting) — global and the **response-aware local** ``h^\star(x)`` (both built).
 - **[OPEN]** a streaming **projection road** (basis projection à la Stochastic Force Inference /
   ULI) as an alternative accumulator.
 
@@ -362,10 +362,12 @@ and ``P_\ell(x) = \sum_i K_h(X_i-x)(X_i-x)^\ell Y_i``, then
 ```
 Nadaraya–Watson is the local-constant (degree-0) fit ``\hat m_h = P_0/T_0`` (kept for reference, but
 local-linear is the default — it removes the design-density bias term ``2 m'(x) f'(x)/f(x)``).
-Conditional variance by the same fit applied to ``Y^2`` — the plug-in ``\hat{\mathbb E}[Y^2\mid x] - \hat m^2``,
-which carries the local-linear smoothing bias of the curved ``\mathbb E[Y^2\mid x]``. The bias-reducing
-**residual-based** estimator (Fan & Yao 1998) and, for heavy-tailed channels (e.g. ``(\Delta X)^6``), a
-**one-step robust local M-estimator** (Fan & Jiang 2000) are forthcoming.
+Conditional variance is the bias-reduced **residual-based** estimator (Fan & Yao 1998, the default
+`method = :residual`): a second local fit of the squared residuals
+``\widehat{\mathbb E}[(Y-\hat m)^2\mid x]``, which removes the curved-``\mathbb E[Y^2\mid x]`` smoothing
+bias that the simple plug-in ``\hat{\mathbb E}[Y^2\mid x] - \hat m^2`` (`method = :plugin`) carries. A
+**one-step robust local M-estimator** for heavy-tailed channels (e.g. ``(\Delta X)^6``; Fan & Jiang 2000)
+is forthcoming.
 
 ### 4.3 Conditional and transition density
 
@@ -402,7 +404,7 @@ moment (``\mu_n`` central, about the conditional mean), ``= 1`` for the Gaussian
 
 **Estimand.** the MSE-optimal (AMISE) bandwidth for the requested channel — the ``h`` minimising ``\int \mathbb{E}[(\hat f_h - f_X)^2]`` for a kernel ``K`` and local-polynomial degree ``d``.
 
-For marginals, `bandwidth` (§4.1) defaults to the **kernel- and degree-aware normal-reference rule** ``h = C(K,d)\,\hat\sigma\,n^{-1/(2p+1)}``: the bias order is ``p = 2`` at degree 0/1 (rate ``n^{-1/5}``) and ``p = 4`` at degree 2/3 (a higher-order ``O(h^4)`` fit, so the wider rate ``n^{-1/9}``), and the kernel enters only through the canonical factor ``C(K,d) = (8\sqrt{\pi}/3)^{1/5}[R(K)/\mu_2(K)^2]^{1/5}`` at degree 0/1 (the fourth-order equivalent-kernel analog at degree 2/3; Loader 1996) — reducing to Silverman ``(4/3)^{1/5}\hat\sigma\,n^{-1/5}`` for the Gaussian at degree 0 and ``\approx 2.34\,\hat\sigma\,n^{-1/5}`` for the Epanechnikov. All kernel and degree dependence is thus one post-hoc factor (locfit's `Wikk` discipline), with ``R(K)`` and ``\mu_2(K)`` computed by quadrature so any kernel works. The data-driven **Sheather–Jones** plug-in (`rule = :sj`, degree 0/1) adds the solve-the-equation bandwidth — the curvature ``\psi_4 = R(f'')`` and its ``\psi_6`` pilot estimated as Hermite-weighted, **mergeable** reductions of the bin counts (Sheather & Jones 1991), the eval kernel a clean ``\delta(K)`` rescale — so it adapts to the true shape (much tighter than the normal reference on a bimodal sample); its **improved** variant (`rule = :isj`, Botev, Grotowski & Kroese 2010) reads the curvature off the **DCT** of the bin counts instead of a normal-reference pilot, staying reliable on strongly multimodal data. The fit-based **AIC** (`rule = :aic`) adds an information criterion of the binned KDE minimised over an ``h``-grid — a mergeable functional of the counts, the eval kernel a ``\delta(K)`` rescale, with a stable interior optimum (Loader's preferred route is fit-based selection). Its leave-one-out **cross-validation** cousins (likelihood-CV, least-squares LSCV) are a deliberate coverage gap: a binned summary's ties drive their objective to ``h \to 0``. The **asymmetric** kernels take their own scale ``b`` (rate ``n^{-2/5}``); for them `bandwidth` offers the ``\hat\sigma\,n^{-2/5}`` rule of thumb (`rule = :normal`) and the **Chen plug-in** (`rule = :plugin`), the asymmetric analog of Silverman's — ``b^\star = [\mathbb{E}[w(X)^{-1/2}]/(2\sqrt{\pi}\,n\int w^2 (f'')^2)]^{2/5}`` with local-scale weight ``w(x) = x`` (gamma) / ``x(1-x)`` (beta), the curvature ``\int w^2 (f'')^2`` a grid quadrature of the pilot ``\hat f''`` (boundary-valid because ``w \to 0`` there, unlike the ``\psi_4`` U-statistic which assumes ``f`` vanishes at the edge). It lowers the ISE ``\approx 1.4\text{–}1.7\times`` on skewed positive data. The load-bearing one for conditional moments is the **response-aware *local* plug-in** (forthcoming, `CLAUDE.md` roadmap) that the design anticipates:
+For marginals, `bandwidth` (§4.1) defaults to the **kernel- and degree-aware normal-reference rule** ``h = C(K,d)\,\hat\sigma\,n^{-1/(2p+1)}``: the bias order is ``p = 2`` at degree 0/1 (rate ``n^{-1/5}``) and ``p = 4`` at degree 2/3 (a higher-order ``O(h^4)`` fit, so the wider rate ``n^{-1/9}``), and the kernel enters only through the canonical factor ``C(K,d) = (8\sqrt{\pi}/3)^{1/5}[R(K)/\mu_2(K)^2]^{1/5}`` at degree 0/1 (the fourth-order equivalent-kernel analog at degree 2/3; Loader 1996) — reducing to Silverman ``(4/3)^{1/5}\hat\sigma\,n^{-1/5}`` for the Gaussian at degree 0 and ``\approx 2.34\,\hat\sigma\,n^{-1/5}`` for the Epanechnikov. All kernel and degree dependence is thus one post-hoc factor (locfit's `Wikk` discipline), with ``R(K)`` and ``\mu_2(K)`` computed by quadrature so any kernel works. The data-driven **Sheather–Jones** plug-in (`rule = :sj`, degree 0/1) adds the solve-the-equation bandwidth — the curvature ``\psi_4 = R(f'')`` and its ``\psi_6`` pilot estimated as Hermite-weighted, **mergeable** reductions of the bin counts (Sheather & Jones 1991), the eval kernel a clean ``\delta(K)`` rescale — so it adapts to the true shape (much tighter than the normal reference on a bimodal sample); its **improved** variant (`rule = :isj`, Botev, Grotowski & Kroese 2010) reads the curvature off the **DCT** of the bin counts instead of a normal-reference pilot, staying reliable on strongly multimodal data. The fit-based **AIC** (`rule = :aic`) adds an information criterion of the binned KDE minimised over an ``h``-grid — a mergeable functional of the counts, the eval kernel a ``\delta(K)`` rescale, with a stable interior optimum (Loader's preferred route is fit-based selection). Its leave-one-out **cross-validation** cousins (likelihood-CV, least-squares LSCV) are a deliberate coverage gap: a binned summary's ties drive their objective to ``h \to 0``. The **asymmetric** kernels take their own scale ``b`` (rate ``n^{-2/5}``); for them `bandwidth` offers the ``\hat\sigma\,n^{-2/5}`` rule of thumb (`rule = :normal`) and the **Chen plug-in** (`rule = :plugin`), the asymmetric analog of Silverman's — ``b^\star = [\mathbb{E}[w(X)^{-1/2}]/(2\sqrt{\pi}\,n\int w^2 (f'')^2)]^{2/5}`` with local-scale weight ``w(x) = x`` (gamma) / ``x(1-x)`` (beta), the curvature ``\int w^2 (f'')^2`` a grid quadrature of the pilot ``\hat f''`` (boundary-valid because ``w \to 0`` there, unlike the ``\psi_4`` U-statistic which assumes ``f`` vanishes at the edge). It lowers the ISE ``\approx 1.4\text{–}1.7\times`` on skewed positive data. The load-bearing one for conditional moments is the **response-aware *local* plug-in** `bandwidth(summary::Histogram2D, x; rule = :local)`:
 ```math
 h^\star(x) \;=\; \left[\frac{R(K)\,\sigma^2(x)}{\mu_2(K)^2\,m''(x)^2\,f_X(x)\,n}\right]^{1/5}.
 ```
@@ -541,6 +543,7 @@ GBGStreamingStatistics/
     Accumulators.jl              # foundation: AbstractAccumulator, observe!/merge! monoid interface
     Histograms.jl                # Histogram1D / Histogram2D, WARP binning, power-sums about the bin
                                  #   center, the KA/Atomix scatter kernel, shift-formula recovery
+    LocalPolynomial.jl           # the shared local-polynomial jet primitive (local_fit) — §2, §11
     DensityEstimation.jl         # §4.1   f_X
     Regression.jl                # §4.2   m(x), σ²(x)  [estimand-first reference module]
     ConditionalDensity.jl        # §4.3   f_{Y|X}, transition p_τ
@@ -780,7 +783,7 @@ intentional — do not dedupe it).
   is conceivable but not built.
 
 - **Estimator architecture — the linear jet-smoother is the primitive, local likelihood a consumer;
-  and the measure-algebra lens** (§2, §4). *A framing decision; the code form forthcoming.* Two
+  and the measure-algebra lens** (§2, §4). *A framing decision, landed in the code over Stages 1–3.* Two
   settlements taken together. **(1) The lens.** The spine is given an algebraic reading (§2): the
   summaries are the **cone of measures**, ``T`` is the linear cone homomorphism (so `merge!` is
   addition), and every reported estimand is **homogeneous of degree zero in the measure**, descending
@@ -800,18 +803,16 @@ intentional — do not dedupe it).
   density's ``e^{\beta_0}``, the IRLS loop at degree ``\ge 1``), a **ratio** (conditioning —
   `conditional_density`, the disintegration of the joint), and a **jet component** (the derivative
   functionals `drift`, `diffusion`, and ``h^\star(x)``). This keeps the lone nonlinearity on one call
-  site and the hot, allocation-free, GPU-portable path linear. *Current state:* the linear solve is
-  realized twice — `Regression._local_linear` (hardcoded degree 1, a private `_gaussian`, no
-  `binning` or `kernel` knobs) and the Newton step inside `DensityEstimation._local_log` — and
-  `_local_linear` returns only the intercept ``\beta_0 = \hat m(x)``, discarding the rest of the jet.
-  *Forcing function:* the primitive is extracted when the response-aware local bandwidth ``h^\star(x)``
-  lands (§4.5) — its AMISE form needs the regression curvature ``m''(x)`` (twice the degree-2 jet
-  coefficient ``\beta_2``), the conditional variance ``\sigma^2(x)``, and the marginal density
-  ``f_X(x)``, and the degree-2 regression jet is exactly what the hardcoded-degree-1 `_local_linear`
-  cannot form. Returning the whole jet ``(\beta_0, \beta_1, \beta_2)`` and admitting `degree = 2` in
-  regression unblocks ``h^\star(x)``, the Fan & Yao conditional-variance refinement, and regression
-  knob-parity (`degree`, `kernel`, `binning`) in one move. It lands as the substrate of that required feature, **not** as a
-  standalone refactor (convenience is not a justification, §6). Settled by estimation theory
+  site and the hot, allocation-free, GPU-portable path linear. *Landed (Stages 1–3):* the shared
+  `LocalPolynomial.local_fit` (the jet-smoother, returning ``(\beta_0, \beta_1, \beta_2)``) now backs
+  `conditional_mean` (its ``\beta_0``), the local-likelihood `density` (the IRLS inner solve), and the
+  increment moments — replacing the formerly duplicated `Regression._local_linear` (degree-1, intercept
+  only) and the bespoke Newton step in `DensityEstimation._local_log`. On it: `conditional_mean` /
+  `conditional_variance` gained the `degree` (0/1/2) and `kernel` knobs; `conditional_variance` the
+  bias-reduced **Fan & Yao** default (`method = :residual`); and the response-aware local bandwidth
+  ``h^\star(x)`` = `bandwidth(::Histogram2D; rule = :local)`, which reads the curvature
+  ``m''(x) = 2\beta_2`` of a degree-2 fit together with ``\sigma^2(x)`` and ``f_X(x)``. It landed as the
+  substrate of that feature, **not** as a standalone refactor (convenience is not a justification, §6). Settled by estimation theory
   (iteratively reweighted least squares is the linear solve iterated; the smoother is linear on the
   cone), not implementation convenience.
 

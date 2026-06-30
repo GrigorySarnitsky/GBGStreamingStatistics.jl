@@ -42,9 +42,9 @@ two-time conditional densities) — but nothing in the library is specific to a 
     and the Kramers–Moyal [`drift`](@ref GBGStreamingStatistics.MarkovInference.drift) /
     [`diffusion`](@ref GBGStreamingStatistics.MarkovInference.diffusion) (§4.4) are implemented and
     tested on **CPU and GPU** (Gaussian, bivariate-Gaussian, and Ornstein–Uhlenbeck oracles,
-    mergeability, allocation, AMD-ROCm parity). The response-aware local bandwidth and the higher
-    Kramers–Moyal / Pawula / Markov diagnostics are forthcoming; see the
-    [Architecture](architecture.md) for the design and roadmap.
+    mergeability, allocation, AMD-ROCm parity), including the response-aware local bandwidth
+    ``h^\star(x)`` and the Fan–Yao conditional variance. The higher Kramers–Moyal / Pawula / Markov
+    diagnostics are forthcoming; see the [Architecture](architecture.md) for the design and roadmap.
 
 ## Installation
 
@@ -100,8 +100,8 @@ verbatim by every consumer) and an **estimator upper half** (the estimands):
   and `diffusion` ``\equiv D^{(2)}`` (with the `pawula_quotient` and `markov_test` diagnostics forthcoming).
 - [`Bandwidth`](api/Bandwidth.md): bandwidth selection — the kernel- and degree-aware normal-reference
   rule (Silverman the Gaussian/degree-0 case), the data-driven Sheather–Jones (`rule = :sj`, `:isj`),
-  fit-based AIC (`rule = :aic`), and asymmetric-kernel Chen plug-in (`rule = :plugin`) selectors, with the
-  response-aware local plug-in ``h^\star(x)`` forthcoming.
+  fit-based AIC (`rule = :aic`), and asymmetric-kernel Chen plug-in (`rule = :plugin`) selectors, and the
+  joint-summary response-aware local plug-in ``h^\star(x)`` (`rule = :local`).
 
 ## Documentation structure
 

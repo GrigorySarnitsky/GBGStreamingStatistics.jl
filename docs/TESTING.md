@@ -105,9 +105,10 @@ argument errors) plus the convergence rate:
 |---|---|---|---|---|---|---|
 | `density` | 6-PDF suite + Gaussian | yes | yes | n/a, defined everywhere | yes | yes, ``n^{-2p/(2p+1)}`` |
 | `density_standard_error` | exact SE + band coverage | yes | yes | n/a | yes | n/a, variability band |
-| `conditional_mean` / `conditional_variance` | bivariate-Gaussian | yes | yes | `NaN` | yes | **scheduled** ``n^{-2/5}`` |
+| `conditional_mean` / `conditional_variance` | bivariate-Gaussian (+ heteroscedastic curved-mean for Fan–Yao `conditional_variance`) | yes | yes | `NaN` | yes | **scheduled** ``n^{-2/5}`` |
 | `conditional_density` / `transition_density` | biv-Gaussian + OU | yes | yes | `NaN` off-support ``x`` | yes | **scheduled** ``n^{-2/3}`` |
 | `drift` / `diffusion` / `increment_moment` | Ornstein–Uhlenbeck | yes | yes | `NaN` | yes | **scheduled**, ``= conditional_mean`` |
+| `bandwidth(::Histogram2D)` ``h^\star(x)`` | quadratic-mean Gaussian (closed-form) | yes | yes | `NaN` | yes | n/a, a selector |
 
 The summaries and the selector carry a different contract:
 
@@ -116,7 +117,8 @@ The summaries and the selector carry a different contract:
 | `Histogram1D` (`observe!` / `merge!`) | Gaussian moments ``M_2``–``M_6`` | yes | yes | yes |
 | `Histogram2D` (`observe_pairs!` / `merge!`) | indep-Gaussian marginals + covariance | yes | yes | yes |
 | cone (`scale!` / weighted `merge!`) | χ²-superstatistics → Student-``t``, Gaussian mixture | cone laws | yes | yes |
-| `bandwidth` (`:normal` / `:sj` / `:isj` / `:aic` / `:plugin`) | Silverman / ``\delta(K)`` / bimodal / ISE gain | yes | n/a | via summary |
+| `bandwidth(::Histogram1D)` (`:normal` / `:sj` / `:isj` / `:aic` / `:plugin`) | Silverman / ``\delta(K)`` / bimodal / ISE gain | yes | n/a | via summary |
+| `LocalPolynomial.local_fit` (the jet primitive) | exact jet (value / slope / curvature) on a polynomial mean | n/a | n/a | via summary |
 
 `n/a` is not applicable; **scheduled** is a recorded gap with a planned test (the roadmap in `CLAUDE.md`).
 The **rate is the one characteristic not yet uniform** — `density` has it, the conditional estimators have
@@ -135,8 +137,9 @@ thumb is already near-optimal on that smooth, symmetric case, so the gain there 
 
 `test/runtests.jl` includes each module's tests in its own wrapper module so top-level helpers and
 constants do not collide; every file is also runnable on its own (`julia --project=. test/<file>.jl`).
-The per-module files are `accumulators.jl`, `histograms.jl`, `histograms2d.jl`, `densityestimation.jl`,
-`density_convergence.jl`, `bandwidth.jl`, `regression.jl`, `conditionaldensity.jl`, `markovinference.jl`;
+The per-module files are `accumulators.jl`, `histograms.jl`, `histograms2d.jl`, `localpolynomial.jl`,
+`densityestimation.jl`, `density_convergence.jl`, `bandwidth.jl`, `localbandwidth.jl`, `regression.jl`,
+`conditionaldensity.jl`, `markovinference.jl`;
 the cross-cutting files are `oracles.jl` (the Gaussian / OU end-to-end oracles), `mergeability.jl`,
 `hyperstatistics.jl` (the cone laws and the superstatistics / forgetting oracles), `allocations.jl`,
 `testoracles.jl` (the shared `TestOracles` analytic library — the closed forms), and
@@ -148,12 +151,14 @@ compat pin JET needs).
 !!! note "Status"
     The summary suites (`Histogram1D`, `Histogram2D`), `density` (with the asymmetric kernels, the
     parametric `start`, and `normalize`), `bandwidth` (the normal-reference, Sheather–Jones `:sj` / `:isj`,
-    `:aic`, and the asymmetric Chen `:plugin`), the §4.2 regression, the §4.3
+    `:aic`, the asymmetric Chen `:plugin`, and the joint-summary response-aware local `:local`
+    ``h^\star(x)``), the shared `LocalPolynomial.local_fit` jet primitive, the §4.2 regression (with the
+    `degree` / `kernel` knobs and the Fan–Yao `conditional_variance`), the §4.3
     `conditional_density` / `transition_density`, and the §4.4 `drift` / `diffusion` / `increment_moment`
-    are real — the Gaussian and analytic-PDF oracles, the bivariate-Gaussian and **Ornstein–Uhlenbeck**
-    oracles, mergeability, the uniform `check_point_estimator` contract, `density`'s exact affine
-    equivariance, the Marron–Wand claw stress, the bounded `@allocated` audit, and **CPU-vs-AMD-GPU
-    parity** (`test/gpu/`, ROCm); `Aqua.test_all` and JET run for real throughout. The response-aware local
-    bandwidth and the Pawula / Markov diagnostics remain placeholders until those land; the conditional-mean
-    ``n^{-2/5}`` and conditional-density ``n^{-2/3}`` rate tests are **scheduled** (`CLAUDE.md` roadmap; the
-    **density** rate test is implemented — `test/density_convergence.jl`).
+    are real — the Gaussian and analytic-PDF oracles, the bivariate-Gaussian, **heteroscedastic
+    curved-mean**, quadratic-mean, and **Ornstein–Uhlenbeck** oracles, mergeability, the uniform
+    `check_point_estimator` contract, `density`'s exact affine equivariance, the Marron–Wand claw stress,
+    the bounded `@allocated` audit, and **CPU-vs-AMD-GPU parity** (`test/gpu/`, ROCm); `Aqua.test_all` and
+    JET run for real throughout. The Pawula / Markov diagnostics remain placeholders until those land; the
+    conditional-mean ``n^{-2/5}`` and conditional-density ``n^{-2/3}`` rate tests are **scheduled**
+    (`CLAUDE.md` roadmap; the **density** rate test is implemented — `test/density_convergence.jl`).

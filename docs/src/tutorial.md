@@ -9,7 +9,7 @@ and the API follows it directly.
 !!! note "Status"
     Everything in this tour is implemented and runnable today, single-node on CPU or GPU. See the
     [Architecture](architecture.md) for the design and the roadmap of what is still forthcoming (the
-    response-aware local bandwidth and the Pawula / Markov diagnostics).
+    Pawula / Markov diagnostics and the higher Kramers–Moyal coefficients).
 
 ## The workflow
 

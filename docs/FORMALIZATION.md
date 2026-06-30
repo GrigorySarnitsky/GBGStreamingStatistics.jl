@@ -15,8 +15,7 @@ number of samples, ``f_X`` the marginal density of the conditioning variable.
 
 The implemented entries are test-linked; a forthcoming operation gets its entry — in the same shape
 (estimand / estimator / consistency / test) — when it lands, its estimand recorded in `ARCHITECTURE.md`
-§4 meanwhile (the response-aware ``h^\star(x)``, the Pawula / Markov diagnostics, the Fan–Yao
-conditional-variance refinement).
+§4 meanwhile (the Pawula / Markov diagnostics and the higher Kramers–Moyal coefficients).
 
 ## Per-bin power-sums about the bin center (`Histograms`, the summaries)
 
@@ -190,6 +189,26 @@ conditional-variance refinement).
 - **Consistency claim.** with ``\hat\sigma \to \sigma`` and the Gaussian reference ``R(f^{(p)}) = (2p-1)!!/(2^{p+1}\sqrt{\pi}\,\sigma^{2p+1})``, ``C(K,d)`` is the exact AMISE-optimal constant: degree 0/1 gives ``h \sim n^{-1/5}`` (MISE ``\sim n^{-4/5}``), degree 2 the higher-order ``h \sim n^{-1/9}`` (MISE ``\sim n^{-8/9}``); the Gaussian/degree-0 case is Silverman ``(4/3)^{1/5}``, the Epanechnikov ``\approx 2.34``.
 - **Test.** `test/bandwidth.jl` (Gaussian degree 0 reproduces Silverman, degree 1 equals degree 0, the Epanechnikov ``h`` is ``2.214\times`` the Gaussian, degree 2 matches the closed-form ``n^{-1/9}`` rule and exceeds degree 0; coverage-gap and sample-size errors; plus the Sheather–Jones tests — SJ ``\approx`` the normal reference on Gaussian data, much tighter on a bimodal mixture, the exact ``\delta(K)`` kernel ratio, mergeability, the degree ``\ge 2`` gap; and the AIC tests — a stable optimum below the normal reference on Gaussian data, far smaller on a bimodal mixture, the exact ``\delta(K)`` ratio, mergeability, and the deliberately-absent CV rules erroring; and the asymmetric Chen plug-in — `:normal` reproduces the ``\hat\sigma\,n^{-2/5}`` rule of thumb, `:plugin` lowers the ISE (``\ge 1.25\times`` on log-normal, ``\ge 1.11\times`` on gamma; ``\approx 1.4\text{–}1.7\times`` typically, seed-audited) and stays ``\approx`` neutral on the near-exponential boundary case, gamma and beta kernels, mergeability, and the inapplicable `:sj`/`:isj`/`:aic` and `degree` ``\ge 1`` rules erroring; the Improved Sheather–Jones tests (`:isj` ``\approx`` the normal reference on Gaussian, ``< 0.5\times`` it on a bimodal mixture, the exact ``\delta(K)`` ratio, mergeability); and the **Marron–Wand claw** stress, where the data-driven `:sj` / `:isj` resolve the five spikes the normal reference oversmooths — ``\approx`` an order of magnitude lower ISE) and `test/oracles.jl` (the kernel-aware ratio on the ``N(0,1)`` oracle).
 
+## Local-polynomial jet primitive (`LocalPolynomial`)
+
+- **Object.** the kernel-weighted local-polynomial **jet** at a query point ``x``: the degree-``d``
+  weighted-least-squares fit of a polynomial in ``u = \ell_j - x`` to a binned 1-D measure (locations
+  ``\ell_j``, design weights ``w_j``, response totals ``r_j``), returning ``\beta = (\beta_0, \dots,
+  \beta_d)`` — ``\beta_0`` the fitted value, ``\beta_1`` the slope, ``2\beta_2`` the curvature. A
+  deterministic primitive, not a population estimand; it is the shared linear core of the local smoothers
+  (`docs/ARCHITECTURE.md` §11).
+- **Computation.** form the design and response moments ``T_\ell = \sum_j K_h(\ell_j - x)\,w_j\,(\ell_j -
+  x)^\ell`` (``\ell = 0 \dots 2d``) and ``P_\ell = \sum_j K_h(\ell_j - x)\,r_j\,(\ell_j - x)^\ell``
+  (``\ell = 0 \dots d``), and solve the ``(d+1)\times(d+1)`` Hankel normal equations
+  ``[\,T_{i+\ell}\,]\,\beta = (P_0, \dots, P_d)`` (a small linear solve, never an explicit inverse). The
+  kernel normalization cancels in the solve; a degenerate (singular) design returns an all-NaN jet.
+  `conditional_mean` is ``\beta_0`` of one fit; the local-likelihood `density` reuses the same solve as
+  its iteratively reweighted (IRLS) inner step.
+- **Test.** `test/localpolynomial.jl` — on a binned measure whose per-bin response mean is exactly a
+  polynomial ``P``, the jet recovers ``(P(x),\,P'(x),\,P''(x)/2)`` to ``10^{-6}`` (degree 2) and
+  ``(P,\,P')`` (degree 1); degree 0 is the Nadaraya–Watson ratio ``P_0/T_0``; a degenerate design gives an
+  all-NaN jet; the kernel normalization cancels (Gaussian vs unnormalized agree).
+
 ## Local-linear conditional mean (§4.2) — `conditional_mean`
 
 - **Estimand.** ``m(x) = \mathbb{E}[Y \mid X = x] = \int y\, f_{Y\mid X}(y \mid x)\,\mathrm{d}y``,
@@ -209,24 +228,53 @@ conditional-variance refinement).
   giving the optimal rate ``\hat m_{h^\star}(x) - m(x) = O_p(n^{-2/5})`` at ``h^\star \sim n^{-1/5}``.
 - **Test.** `test/regression.jl` — the bivariate-Gaussian oracle ``Y = \rho X + \sqrt{1-\rho^2}\,
   \varepsilon`` (so ``\mathbb{E}[Y\mid X=x] = \rho x``): `conditional_mean` recovers the slope to
-  ``\lesssim 2\times10^{-2}``; `conditional_variance` recovers ``1-\rho^2`` to a few percent (the
-  simple ``\hat{\mathbb E}[Y^2\mid x]-\hat m^2`` estimator carries the local-linear smoothing bias of
-  the curved ``E[Y^2\mid x]``; the Fan–Yao residual refinement is forthcoming). The ``n^{-2/5}`` rate
-  test is scheduled.
+  ``\lesssim 2\times10^{-2}``, with the `degree` (0/1/2) and `kernel` knobs exercised (degree-2 and
+  Epanechnikov both recover the linear mean). The ``n^{-2/5}`` rate test is scheduled.
 
-## Local-linear conditional variance (§4.2) — `conditional_variance`
+## Conditional variance (§4.2) — `conditional_variance`
 
 - **Estimand.** ``\sigma^2(x) = \operatorname{Var}(Y \mid X = x) = \mathbb{E}[Y^2 \mid X = x] - m(x)^2``,
   with ``m(x)`` the conditional mean above.
-- **Estimator.** the plug-in ``\hat\sigma^2_h(x) = \widehat{\mathbb{E}}[Y^2 \mid x] - \hat m_h(x)^2`` — the
-  §4.2 local-linear fit applied to ``Y`` and ``Y^2`` (per-X-column totals ``\sum Y``, ``\sum Y^2``, exact
-  from the per-cell power-sums), clamped to be non-negative.
-- **Consistency claim.** consistent for ``\sigma^2(x)``, but the simple difference carries the
-  local-linear smoothing bias of the curved ``\mathbb{E}[Y^2\mid x]`` (an ``O(h^2)`` term, a few percent at
-  a modest ``h``) — the bias-reducing residual-based estimator (Fan & Yao 1998) is forthcoming.
-- **Test.** `test/regression.jl` (recovers ``1-\rho^2`` on the bivariate-Gaussian oracle to a few percent;
-  the universal contract via `check_point_estimator` — scalar ``=`` vector, functional of the merged
-  summary, ``\mathrm{NaN}`` off-support). The ``n^{-2/5}`` rate test is scheduled.
+- **Estimator** (`method = :residual`, the default; Fan & Yao 1998). The **two-stage residual-based**
+  estimator: fit ``\hat m`` at each X-column center ``c^x_j``, form the per-column squared-residual total
+  ``\sum (Y - \hat m_j)^2 = \sum Y^2 - 2\hat m_j \sum Y + \hat m_j^2 N`` (``\hat m_j = \hat m(c^x_j)``,
+  exact from the stored column sums), and take a second local fit of it,
+  ``\hat\sigma^2(x) = \widehat{\mathbb{E}}[(Y - \hat m(X))^2 \mid x]``. The `:plugin` alternative is the
+  simple difference ``\widehat{\mathbb{E}}[Y^2 \mid x] - \hat m_h(x)^2``; both clamped non-negative.
+- **Consistency claim.** both are consistent for ``\sigma^2(x)``. The plug-in carries the local-polynomial
+  smoothing bias of the curved ``\mathbb{E}[Y^2\mid x]`` — an ``O(h^2)`` term driven by ``m''`` and the
+  curvature of ``\mathbb{E}[Y^2\mid x]``, large where ``m`` curves. The residual-based estimator fits the
+  far flatter ``\mathbb{E}[(Y - m)^2\mid x] = \sigma^2(x)``, whose ``O(h^2)`` bias ``\propto (\sigma^2)''``
+  is much smaller, so it removes the ``m''``-driven bias.
+- **Test.** `test/regression.jl` — recovers ``1-\rho^2`` on the (linear-mean) bivariate-Gaussian oracle to
+  a few percent, and on a **heteroscedastic curved-mean** oracle (``X\sim N(0,1)``, ``m(x)=x^2``,
+  ``\sigma^2(x)=0.2+0.1x^2``) the residual estimator recovers ``\sigma^2(x)`` (degree 2) and beats the
+  plug-in in the curved tail (the plug-in inflated ``>1.5\times`` by the ``m''`` curvature); the universal
+  contract via `check_point_estimator` (scalar ``=`` vector, functional of the merged summary,
+  ``\mathrm{NaN}`` off-support). The ``n^{-2/5}`` rate test is scheduled.
+
+## Response-aware local bandwidth (§4.5) — `bandwidth(::Histogram2D, x; rule = :local)`
+
+- **Estimand.** the AMISE-optimal **local** bandwidth for the conditional mean, balancing the local-linear
+  squared bias against the variance at each ``x``:
+
+  ```math
+  h^\star(x) = \left[\frac{R(K)\,\sigma^2(x)}{\mu_2(K)^2\,m''(x)^2\,f_X(x)\,n}\right]^{1/5}.
+  ```
+
+- **Estimator.** plug in the three ``x``-local quantities from the one joint summary, each at a pilot
+  bandwidth: ``\hat\sigma^2(x)`` (the Fan–Yao `conditional_variance`), the curvature
+  ``\hat m''(x) = 2\beta_2`` (the degree-2 `LocalPolynomial` jet), and ``\hat f_X(x)`` (the X-marginal
+  KDE); ``R(K)``, ``\mu_2(K)`` by quadrature. The default pilot is the curvature-rate rule of thumb
+  ``\hat\sigma_X\,n^{-1/9}`` (wider than ``h^\star``, so the second derivative is stable); where the
+  regression is locally linear (``m'' \to 0``) the optimal ``h`` is unbounded, capped at the X-range.
+- **Consistency claim.** with consistent pilots ``\hat\sigma^2 \to \sigma^2``, ``\hat m'' \to m''``,
+  ``\hat f_X \to f_X``, the plug-in is consistent for ``h^\star(x) \sim n^{-1/5}``; each pilot enters
+  through a weak (``1/5``-power) factor, so ``h^\star`` is robust to pilot error.
+- **Test.** `test/localbandwidth.jl` — the quadratic-mean Gaussian oracle (``X\sim N(0,1)``,
+  ``Y = X^2 + \sigma\varepsilon``: ``m''=2``, ``\sigma^2`` constant, ``f_X = \varphi``) where
+  ``h^\star(x)`` is closed-form: recovered near the centre to ``\lesssim 12\%``, positive/finite on
+  support, ``\mathrm{NaN}`` off it, scalar ``=`` vector, default-pilot sanity, and mergeability.
 
 ## Conditional increment moments, drift & diffusion (§4.4) — `increment_moment`, `kramers_moyal`, `drift`, `diffusion`
 
@@ -253,16 +301,20 @@ conditional-variance refinement).
   ``Y`` power-sums.
 - **Consistency claim.** ``\widehat D^{(1)}`` is consistent for the finite-``\tau`` drift at the
   `conditional_mean` rate, with no smoothing bias where ``m(x)`` is linear in ``x``; ``\widehat D^{(2)}``
-  carries the local-linear bias from the curvature of ``\mathbb{E}[Y^2\mid x]`` (the Fan–Yao residual
-  refinement removes it). The finite-``\tau`` coefficients approach ``D^{(n)}(x)`` as ``\tau\to0`` up to
-  the ``O(\tau)`` finite-time bias (the Bell-polynomial correction, forthcoming).
+  carries the local-polynomial bias from the curvature of the **raw** moment
+  ``\mathbb{E}[(\Delta X)^2\mid x]`` (a higher `degree` reduces it; the Fan–Yao *variance* refinement does
+  not apply — ``D^{(2)}`` is the raw increment moment, not the conditional variance). The finite-``\tau``
+  coefficients approach ``D^{(n)}(x)`` as ``\tau\to0`` up to the ``O(\tau)`` finite-time bias (the
+  Bell-polynomial correction, forthcoming).
 - **Test.** `test/oracles.jl` — the Ornstein–Uhlenbeck oracle (exact stationary lagged pairs from
   ``\mathrm dX = -\theta X\,\mathrm dt + \sigma\,\mathrm dW``): `drift` recovers
   ``x(e^{-\theta\tau}-1)/\tau`` to ``\le 2\times10^{-2}`` and `diffusion` recovers the closed-form
   ``[s^2(1-e^{-2\theta\tau}) + x^2(e^{-\theta\tau}-1)^2]/(2\tau)`` (``s^2 = \sigma^2/2\theta``) to
   ``8\%``. `test/markovinference.jl` — the variance decomposition
-  ``M_2 = \operatorname{Var}(Y\mid x) + M_1^2``, the ``1/(n!\,\tau)`` scaling, the ``n\ge3`` and
-  static-lag coverage-gap errors, and mergeability. The ``n^{-2/5}`` rate test is forthcoming.
+  ``M_2 = \operatorname{Var}(Y\mid x) + M_1^2`` (against the matching `:plugin` variance — the exact
+  algebraic identity ``M_2 - M_1^2 = \widehat{\mathbb{E}}[Y^2\mid x] - \hat m^2``), the ``1/(n!\,\tau)``
+  scaling, the ``n\ge3`` and static-lag coverage-gap errors, and mergeability. The ``n^{-2/5}`` rate test
+  is forthcoming.
 
 ## Conditional & transition density (§4.3) — `conditional_density`, `transition_density`
 
