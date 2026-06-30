@@ -39,8 +39,8 @@ two-time conditional densities) — but nothing in the library is specific to a 
     `conditional_variance`, §4.2), the conditional and transition densities
     ([`conditional_density`](@ref GBGStreamingStatistics.ConditionalDensity.conditional_density),
     [`transition_density`](@ref GBGStreamingStatistics.ConditionalDensity.transition_density), §4.3),
-    and the Kramers–Moyal [`drift`](@ref GBGStreamingStatistics.MarkovInference.drift) /
-    [`diffusion`](@ref GBGStreamingStatistics.MarkovInference.diffusion) (§4.4) are implemented and
+    and the Kramers–Moyal [`drift`](@ref GBGStreamingStatistics.IncrementMoments.drift) /
+    [`diffusion`](@ref GBGStreamingStatistics.IncrementMoments.diffusion) (§4.4) are implemented and
     tested on **CPU and GPU** (Gaussian, bivariate-Gaussian, and Ornstein–Uhlenbeck oracles,
     mergeability, allocation, AMD-ROCm parity), including the response-aware local bandwidth
     ``h^\star(x)`` and the Fan–Yao conditional variance. The higher Kramers–Moyal / Pawula / Markov
@@ -95,7 +95,7 @@ verbatim by every consumer) and an **estimator upper half** (the estimands):
 - [`ConditionalDensity`](api/ConditionalDensity.md): the conditional density `conditional_density`
   ``\equiv f_{Y\mid X}`` and two-time transition density `transition_density`
   ``\equiv p_\tau(y\mid x)`` (double-kernel).
-- [`MarkovInference`](api/MarkovInference.md): conditional increment moments and their functionals —
+- [`IncrementMoments`](api/IncrementMoments.md): conditional increment moments and their functionals —
   `increment_moment` ``\equiv M_n(x,\tau)``, `kramers_moyal` ``\equiv D^{(n)}``, `drift` ``\equiv D^{(1)}``,
   and `diffusion` ``\equiv D^{(2)}`` (with the `pawula_quotient` and `markov_test` diagnostics forthcoming).
 - [`Bandwidth`](api/Bandwidth.md): bandwidth selection — the kernel- and degree-aware normal-reference
@@ -116,7 +116,7 @@ Pages = [
   "api/MarginalDensity.md",
   "api/Regression.md",
   "api/ConditionalDensity.md",
-  "api/MarkovInference.md",
+  "api/IncrementMoments.md",
   "api/Bandwidth.md",
 ]
 ```

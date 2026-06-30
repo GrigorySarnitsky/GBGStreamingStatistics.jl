@@ -12,7 +12,7 @@ module MarginalDensityTests;  include("marginaldensity.jl");  end
 module DensityConvergenceTests; include("density_convergence.jl"); end
 module RegressionTests;         include("regression.jl");         end
 module ConditionalDensityTests; include("conditionaldensity.jl"); end
-module MarkovInferenceTests;    include("markovinference.jl");    end
+module IncrementMomentsTests;    include("incrementmoments.jl");    end
 module BandwidthTests;          include("bandwidth.jl");          end
 module LocalBandwidthTests;     include("localbandwidth.jl");     end
 module OraclesTests;            include("oracles.jl");            end

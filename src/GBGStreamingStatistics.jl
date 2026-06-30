@@ -40,7 +40,7 @@ include("LocalPolynomial.jl")
 include("MarginalDensity.jl")
 include("Regression.jl")
 include("ConditionalDensity.jl")
-include("MarkovInference.jl")
+include("IncrementMoments.jl")
 include("Bandwidth.jl")
 # include("CharacteristicFunctions.jl")  # [deferred] the empirical-characteristic-function summary
 # include("ProjectionInference.jl")      # [deferred] the SFI / ULI projection road
@@ -93,7 +93,7 @@ using .ConditionalDensity:
   transition_density
 
 
-using .MarkovInference:
+using .IncrementMoments:
   increment_moment,
   kramers_moyal,
   drift,

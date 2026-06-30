@@ -3,7 +3,7 @@ using GBGStreamingStatistics
 using Random
 include("testcontracts.jl"); using .TestContracts
 
-@testset "MarkovInference (increment moments, drift, diffusion §4.4)" begin
+@testset "IncrementMoments (increment moments, drift, diffusion §4.4)" begin
   # A bivariate-Gaussian fixture (Y = bX + noise standing in for the lagged response) suffices to
   # check the API contract, the algebraic identities, and mergeability; the analytic correctness of
   # drift/diffusion against the Ornstein–Uhlenbeck closed forms lives in test/oracles.jl.

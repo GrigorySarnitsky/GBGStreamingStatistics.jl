@@ -76,7 +76,7 @@ makedocs(
                GBGStreamingStatistics.MarginalDensity,
                GBGStreamingStatistics.Regression,
                GBGStreamingStatistics.ConditionalDensity,
-               GBGStreamingStatistics.MarkovInference,
+               GBGStreamingStatistics.IncrementMoments,
                GBGStreamingStatistics.Bandwidth],
   format    = Documenter.HTML(
     canonical     = "https://grigorysarnitsky.github.io/GBGStreamingStatistics.jl/stable",
@@ -96,7 +96,7 @@ makedocs(
       "MarginalDensity"        => "api/MarginalDensity.md",
       "Regression"             => "api/Regression.md",
       "ConditionalDensity"     => "api/ConditionalDensity.md",
-      "MarkovInference"        => "api/MarkovInference.md",
+      "IncrementMoments"       => "api/IncrementMoments.md",
       "Bandwidth"              => "api/Bandwidth.md",
     ],
     "Design & Internals" => Any[

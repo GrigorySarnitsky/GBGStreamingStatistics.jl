@@ -1,9 +1,9 @@
-# MarkovInference — §4.4: conditional increment moments and their standard functionals
+# IncrementMoments — §4.4: conditional increment moments and their standard functionals
 # (Kramers–Moyal coefficients, drift, diffusion, the Pawula/Q diagnostic, the Markov test). Defined
 # and estimated WITHOUT assuming the data is a diffusion — model-neutrality is the invariant here;
 # the SDE reading stays consumer-side (`docs/ARCHITECTURE.md` §4.4).
 
-module MarkovInference
+module IncrementMoments
 
 using ..Histograms: Histogram2D, _column_sums
 using ..LocalPolynomial: local_fit
@@ -87,24 +87,24 @@ end
 
 **Estimand.** the ``n``-th Kramers–Moyal coefficient
 ``D^{(n)}(x) = \\dfrac{1}{n!}\\,\\lim_{\\tau \\to 0} \\dfrac{M_n(x, \\tau)}{\\tau}``, with ``M_n`` the
-conditional [`increment_moment`](@ref GBGStreamingStatistics.MarkovInference.increment_moment).
+conditional [`increment_moment`](@ref GBGStreamingStatistics.IncrementMoments.increment_moment).
 
 **Estimator.** the finite-``\\tau`` ratio
 ``\\widehat{D}^{(n)}(x) = \\widehat{M}_n(x, \\tau)\\,/\\,(n!\\,\\tau)`` at the summary's lag ``\\tau``.
 The keyword `τ` is the **physical lag time**; it defaults to the integer `lag` label of the summary
 (exact when the sampling interval is the time unit); the smoothing bandwidth `h` is passed to the
-underlying [`increment_moment`](@ref GBGStreamingStatistics.MarkovInference.increment_moment) local-linear
+underlying [`increment_moment`](@ref GBGStreamingStatistics.IncrementMoments.increment_moment) local-linear
 fit. For small ``\\tau`` this approximates ``D^{(n)}``
 to ``O(\\tau)``; the all-orders finite-time (Bell-polynomial) correction that inverts the
 ``\\tau``-expansion rather than extrapolating (Rydin Gorjão et al. 2021) is forthcoming. Supports
-``n \\in \\{1, 2\\}`` — see [`drift`](@ref GBGStreamingStatistics.MarkovInference.drift) and
-[`diffusion`](@ref GBGStreamingStatistics.MarkovInference.diffusion).
+``n \\in \\{1, 2\\}`` — see [`drift`](@ref GBGStreamingStatistics.IncrementMoments.drift) and
+[`diffusion`](@ref GBGStreamingStatistics.IncrementMoments.diffusion).
 
 > **Model-neutral.** ``D^{(n)}`` is defined and estimated without assuming the data *is* a diffusion.
 > That ``D^{(1)}`` "is" drift, that the ``D^{(n)}`` are coefficients of a Fokker–Planck operator —
 > these are the *consumer's* interpretation; the package supplies the estimator and the tests of the
-> hypothesis (see [`pawula_quotient`](@ref GBGStreamingStatistics.MarkovInference.pawula_quotient),
-> [`markov_test`](@ref GBGStreamingStatistics.MarkovInference.markov_test)).
+> hypothesis (see [`pawula_quotient`](@ref GBGStreamingStatistics.IncrementMoments.pawula_quotient),
+> [`markov_test`](@ref GBGStreamingStatistics.IncrementMoments.markov_test)).
 
 Reference: A. Rydin Gorjão et al. (2021), [*Arbitrary-Order Finite-Time Corrections for the Kramers–Moyal Operator*](https://doi.org/10.3390/e23050517), Entropy 23(5).
 """
@@ -121,7 +121,7 @@ end
 
 **Estimand.** the first Kramers–Moyal coefficient
 ``D^{(1)}(x) = \\lim_{\\tau \\to 0} M_1(x, \\tau)/\\tau`` — the ``n = 1``
-[`kramers_moyal`](@ref GBGStreamingStatistics.MarkovInference.kramers_moyal) coefficient. For an Itô SDE
+[`kramers_moyal`](@ref GBGStreamingStatistics.IncrementMoments.kramers_moyal) coefficient. For an Itô SDE
 ``\\mathrm{d}X = D^{(1)}(X)\\,\\mathrm{d}t + \\sqrt{2 D^{(2)}(X)}\\,\\mathrm{d}W`` a consumer reads it
 as the drift; the package asserts no such model.
 
@@ -138,14 +138,14 @@ drift(summary::Histogram2D, x; h::Real, τ::Real = summary.lag) =
 
 **Estimand.** the second Kramers–Moyal coefficient
 ``D^{(2)}(x) = \\tfrac{1}{2}\\lim_{\\tau \\to 0} M_2(x, \\tau)/\\tau`` — the ``n = 2``
-[`kramers_moyal`](@ref GBGStreamingStatistics.MarkovInference.kramers_moyal) coefficient (the
+[`kramers_moyal`](@ref GBGStreamingStatistics.IncrementMoments.kramers_moyal) coefficient (the
 ``\\tfrac{1}{2} = 1/2!`` is the Kramers–Moyal normalization). For the SDE
 ``\\mathrm{d}X = D^{(1)}\\,\\mathrm{d}t + \\sqrt{2 D^{(2)}}\\,\\mathrm{d}W`` a consumer reads
 ``\\sqrt{2 D^{(2)}}`` as the noise amplitude (so ``D^{(2)} = \\sigma^2/2`` for additive
 ``\\sigma\\,\\mathrm{d}W``); the package asserts no such model.
 
 **Estimator.** ``\\widehat{D}^{(2)}(x) = M_2(x, \\tau)/(2\\tau)`` with ``M_2`` the conditional
-[`increment_moment`](@ref GBGStreamingStatistics.MarkovInference.increment_moment). `h` is the supplied
+[`increment_moment`](@ref GBGStreamingStatistics.IncrementMoments.increment_moment). `h` is the supplied
 bandwidth; a vector `x` returns a vector.
 """
 diffusion(summary::Histogram2D, x; h::Real, τ::Real = summary.lag) =
@@ -158,7 +158,7 @@ diffusion(summary::Histogram2D, x; h::Real, τ::Real = summary.lag) =
 **Estimand.** the Pawula / ``Q`` diagnostic — the standardized fourth conditional-increment moment
 ``Q(x) = \\mu_4(x,\\tau) / \\bigl(3\\,\\mu_2(x,\\tau)^2\\bigr)``, with ``\\mu_n`` the *central* conditional
 increment moments (about the conditional mean increment ``M_1``, so the drift does not contaminate the
-ratio; recovered from the [`increment_moment`](@ref GBGStreamingStatistics.MarkovInference.increment_moment)
+ratio; recovered from the [`increment_moment`](@ref GBGStreamingStatistics.IncrementMoments.increment_moment)
 ``M_n`` by the shift formula). A diffusion has Gaussian conditional increments, for which
 ``\\mu_4 = 3\\mu_2^2``, so ``Q(x) \\to 1`` — a *test* of whether the higher Kramers–Moyal coefficients
 vanish (Pawula's theorem), not a premise: ``Q \\approx 1`` supports a diffusion reading, while the excess
@@ -187,4 +187,4 @@ Intrinsically finite-sample — a test, not an estimand.
 """
 function markov_test end
 
-end # module MarkovInference
+end # module IncrementMoments

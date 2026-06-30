@@ -310,7 +310,7 @@ The implemented entries are test-linked; a forthcoming operation gets its entry 
   ``\mathrm dX = -\theta X\,\mathrm dt + \sigma\,\mathrm dW``): `drift` recovers
   ``x(e^{-\theta\tau}-1)/\tau`` to ``\le 2\times10^{-2}`` and `diffusion` recovers the closed-form
   ``[s^2(1-e^{-2\theta\tau}) + x^2(e^{-\theta\tau}-1)^2]/(2\tau)`` (``s^2 = \sigma^2/2\theta``) to
-  ``8\%``. `test/markovinference.jl` — the variance decomposition
+  ``8\%``. `test/incrementmoments.jl` — the variance decomposition
   ``M_2 = \operatorname{Var}(Y\mid x) + M_1^2`` (against the matching `:plugin` variance — the exact
   algebraic identity ``M_2 - M_1^2 = \widehat{\mathbb{E}}[Y^2\mid x] - \hat m^2``), the ``1/(n!\,\tau)``
   scaling, the ``n\ge3`` and static-lag coverage-gap errors, and mergeability. The ``n^{-2/5}`` rate test

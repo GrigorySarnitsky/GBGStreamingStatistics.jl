@@ -89,7 +89,7 @@ estimands.
   the documentation policy below.
 - `src/ConditionalDensity.jl` — §4.3 `conditional_density` ``\equiv f_{Y\mid X}``,
   `transition_density` ``\equiv p_\tau(y\mid x)`` (double-kernel with a `kernel` knob, Rosenblatt).
-- `src/MarkovInference.jl` — §4.4 `increment_moment` ``\equiv M_n(x,\tau)``, `kramers_moyal`
+- `src/IncrementMoments.jl` — §4.4 `increment_moment` ``\equiv M_n(x,\tau)``, `kramers_moyal`
   ``\equiv D^{(n)}``, `drift` ``\equiv D^{(1)}``, `diffusion` ``\equiv D^{(2)}``, `pawula_quotient`
   ``\equiv Q(x)``, `markov_test`. Model-neutral functionals; the SDE *reading* stays consumer-side.
 - `src/Bandwidth.jl` — §4.5 `bandwidth`: for the marginal (`Histogram1D`) the **kernel- and degree-aware
@@ -102,7 +102,7 @@ estimands.
   ``m''(x)``, and ``f_X(x)``). The post-hoc FFT smoothing helpers (the major performance lever, amortized
   over bandwidth) are forthcoming. Owns `FFTW`, `AbstractFFTs`.
 - Include order: `Accumulators → Histograms → Kernels → LocalPolynomial → MarginalDensity → Regression →
-  ConditionalDensity → MarkovInference → Bandwidth`. Cross-module access only through explicit
+  ConditionalDensity → IncrementMoments → Bandwidth`. Cross-module access only through explicit
   `using ..Module: name, …`
   — never a bare `using`.
 - Deferred, recorded as commented-out includes (the rule against speculative structure):
@@ -331,7 +331,7 @@ Mechanical bar:
    bivariate-Gaussian oracle (``m`` recovers ``\rho x`` to ``\lesssim 2\%``; ``\sigma^2`` recovers
    ``1-\rho^2``) and a heteroscedastic curved-mean oracle (Fan–Yao recovers ``\sigma^2(x)`` and beats the
    plug-in in the curved tail).
-7. **`MarkovInference`** (§4.4 — drift & diffusion) — `increment_moment` ``\equiv M_n(x,\tau)``,
+7. **`IncrementMoments`** (§4.4 — drift & diffusion) — `increment_moment` ``\equiv M_n(x,\tau)``,
    `kramers_moyal` ``\equiv D^{(n)}``, `drift` ``\equiv D^{(1)}``, `diffusion` ``\equiv D^{(2)}`` for
    ``n \in \{1,2\}`` from the order-2 `Histogram2D` (``M_1 = \hat m_h(x) - x``,
    ``M_2 = \hat{\mathbb E}[Y^2\mid x] - 2x\hat m_h + x^2``), reusing the §4.2 local-linear primitives;
@@ -391,7 +391,7 @@ Mechanical bar:
    `diffusion` inherit `conditional_mean`'s rate (they are linear functionals of it); the `bandwidth`
    selectors and `density_standard_error` need none (a selector and a variability band, not function
    estimators). This closes the rate column of the matrix.
-3. **The rest of `MarkovInference` §4.4** — `kramers_moyal` for ``n \ge 3``, the **Pawula `Q`**
+3. **The rest of `IncrementMoments` §4.4** — `kramers_moyal` for ``n \ge 3``, the **Pawula `Q`**
    diagnostic (``M_4``, ``M_6``) and the all-orders Bell-polynomial finite-time correction, and
    `markov_test` (now unblocked — it composes the §4.3 transition density). The higher moments need the
    `Histogram2D` order-raise (Deferred, below).

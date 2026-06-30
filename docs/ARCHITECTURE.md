@@ -548,7 +548,7 @@ GBGStreamingStatistics/
     MarginalDensity.jl         # §4.1   f_X
     Regression.jl                # §4.2   m(x), σ²(x)  [estimand-first reference module]
     ConditionalDensity.jl        # §4.3   f_{Y|X}, transition p_τ
-    MarkovInference.jl           # §4.4   increment moments, KM/drift/diffusion, Pawula/Q, Markov test
+    IncrementMoments.jl           # §4.4   increment moments, KM/drift/diffusion, Pawula/Q, Markov test
     Bandwidth.jl                 # §4.5   global + response-aware local plug-in
     # CharacteristicFunctions.jl # [OPEN, secondary] ECF summary
     # ProjectionInference.jl     # [OPEN] SFI / ULI road

@@ -12,7 +12,7 @@ one pass, rebuild, and report the matrix.
 1. `docs/ARCHITECTURE.md` — every section §0–§11 and §References.
 2. `docs/FORMALIZATION.md`, `docs/TESTING.md`, `docs/PERFORMANCE.md`.
 3. Every docstring in `src/*.jl` — `Accumulators`, `Histograms`, `MarginalDensity`, `Regression`,
-   `ConditionalDensity`, `MarkovInference`, `Bandwidth`, and the umbrella `GBGStreamingStatistics.jl`
+   `ConditionalDensity`, `IncrementMoments`, `Bandwidth`, and the umbrella `GBGStreamingStatistics.jl`
    (Public **and** Internal docstrings; `#` comments are exempt — not rendered).
 4. Every page in `docs/src/` — `index.md`, `tutorial.md`, `api.md`, and all `docs/src/api/*.md`
    (hand-written prose; skip `@autodocs` / `@index` / `@contents` blocks).
