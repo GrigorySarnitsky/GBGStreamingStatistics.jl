@@ -12,7 +12,7 @@ using FFTW
 using ..Histograms: Histogram1D, Histogram2D, _total, _sample_std, _bincenter
 using ..LocalPolynomial: local_fit
 using ..Regression: _column_sums, _residual_response
-using ..DensityEstimation: gaussian_kernel, _normal_reference_h, _quad,
+using ..DensityEstimation: gaussian_kernel, _normal_reference_h, _quad, _kde_h,
   AsymmetricKernel, _asymmetric_default_b
 
 export bandwidth
@@ -435,17 +435,6 @@ end
 # the second derivative is stable). Where the regression is locally linear (m'' → 0) the optimal h is
 # unbounded, so it is capped at the X-range.
 
-# f_X(x): the binned KDE of the X-marginal column counts.
-function _marginal_density(cx, N, n, x, h, kernel)
-  invh = inv(h)
-  acc = 0.0
-  @inbounds for j in eachindex(cx)
-    acc += N[j] * kernel((cx[j] - x) * invh)
-  end
-  return acc * invh / n
-end
-
-
 # The default pilot: σ̂_X n^(−1/9), the rule-of-thumb scale at the second-derivative (curvature) rate —
 # wider than the final h⋆ ∝ n^(−1/5), since estimating m'' needs a more stable (wider) window. σ̂_X is
 # the binned X-marginal standard deviation (the column centers, adequate for a pilot).
@@ -464,7 +453,7 @@ end
 
 
 function _hstar_at(cx, N, sumY, SR2, n, x, kernel, hpilot, RK, mu2, xrange)
-  fX = _marginal_density(cx, N, n, x, hpilot, kernel)
+  fX = _kde_h(N, cx, n, x, hpilot, kernel)
   fX > 0 || return oftype(fX, NaN)                       # x outside the data's support
   sigma2 = local_fit(cx, N, SR2, x, hpilot, kernel, 1)[1]      # Fan–Yao conditional variance σ²(x)
   mpp = 2 * local_fit(cx, N, sumY, x, hpilot, kernel, 2)[3]    # m''(x) = 2 β₂

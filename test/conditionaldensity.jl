@@ -32,6 +32,22 @@ include("testcontracts.jl"); using .TestContracts
     end
   end
 
+  @testset "the kernel knob (parity): Epanechnikov normalizes and recovers" begin
+    # The double-kernel now takes any symmetric ∫K=1 kernel; Epanechnikov still integrates to 1 (the
+    # ∫K=1 normalization is what guarantees it) and recovers the conditional to a few percent.
+    ys = collect(-6.0:0.02:6.0)
+    for x in (-0.5, 0.0, 0.5)
+      fy = conditional_density(g, x, ys; hx = hx, hy = hy, kernel = epanechnikov_kernel)
+      @test sum(fy) * 0.02 ≈ 1 atol = 1e-2
+    end
+    for x in (-0.5, 0.0, 0.5), y in (-0.5, 0.0, 0.5)
+      @test conditional_density(g, x, y; hx = hx, hy = hy, kernel = epanechnikov_kernel) ≈
+            cond_pdf(y, x) atol = 0.05
+      @test transition_density(g, x, y; hx = hx, hy = hy, kernel = epanechnikov_kernel) ≈
+            conditional_density(g, x, y; hx = hx, hy = hy, kernel = epanechnikov_kernel)
+    end
+  end
+
   @testset "estimand-specific API: transition_density alias, NaN off the conditioning support, bandwidth errors" begin
     ys = [-0.5, 0.0, 0.5]
     fv = conditional_density(g, 0.0, ys; hx = hx, hy = hy)

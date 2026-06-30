@@ -82,7 +82,7 @@ estimands.
   :residual`; the plug-in is `:plugin`). The **estimand-first reference module** — write its docstrings to
   the documentation policy below.
 - `src/ConditionalDensity.jl` — §4.3 `conditional_density` ``\equiv f_{Y\mid X}``,
-  `transition_density` ``\equiv p_\tau(y\mid x)`` (double-kernel, Rosenblatt).
+  `transition_density` ``\equiv p_\tau(y\mid x)`` (double-kernel with a `kernel` knob, Rosenblatt).
 - `src/MarkovInference.jl` — §4.4 `increment_moment` ``\equiv M_n(x,\tau)``, `kramers_moyal`
   ``\equiv D^{(n)}``, `drift` ``\equiv D^{(1)}``, `diffusion` ``\equiv D^{(2)}``, `pawula_quotient`
   ``\equiv Q(x)``, `markov_test`. Model-neutral functionals; the SDE *reading* stays consumer-side.
@@ -337,8 +337,9 @@ Mechanical bar:
 8. **`ConditionalDensity`** (§4.3) — `conditional_density` ``\equiv f_{Y\mid X}`` and `transition_density`
    ``\equiv p_\tau(y\mid x)`` by the binned double-kernel (Rosenblatt) from the `Histogram2D` cell
    counts: the joint is reduced at ``x`` to an X-kernel-weighted Y-profile, then smoothed in ``y`` with
-   the surviving ``1/(\sqrt{2\pi}\,h_2)`` normalization (``\int \hat f\,\mathrm dy = 1`` exactly). Two
-   supplied bandwidths `hx`, `hy`. Tested: the bivariate-Gaussian conditional ``N(\rho x, 1-\rho^2)``
+   the surviving ``1/h_2`` normalization (``\int \hat f\,\mathrm dy = 1`` exactly, since ``\int K = 1``).
+   Two supplied bandwidths `hx`, `hy` and a symmetric `kernel` knob (default Gaussian). Tested: the
+   bivariate-Gaussian conditional ``N(\rho x, 1-\rho^2)``
    (normalization + pointwise) and the **Ornstein–Uhlenbeck** transition density
    ``N(x e^{-\theta\tau}, s^2(1-e^{-2\theta\tau}))``; scalar/vector forms, `transition_density`
    equivalence, off-support NaN, and mergeability.

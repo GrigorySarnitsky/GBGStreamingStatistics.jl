@@ -320,8 +320,9 @@ The implemented entries are test-linked; a forthcoming operation gets its entry 
 
 - **Estimand.** ``f_{Y\mid X}(y\mid x) = f_{X,Y}(x,y)/f_X(x)``, and the two-time transition density
   ``p_\tau(y\mid x) = f_{X_{t+\tau}\mid X_t}(y\mid x)`` (the same object on a lag-``\tau`` joint).
-- **Estimator.** the binned double-kernel (Rosenblatt 1969; Hyndman, Bashtannyk & Grunwald 1996), with
-  the (Gaussian) conditioning bandwidth ``h_1 =`` `hx` and response bandwidth ``h_2 =`` `hy`: from
+- **Estimator.** the binned double-kernel (Rosenblatt 1969; Hyndman, Bashtannyk & Grunwald 1996), with a
+  symmetric `kernel` ``K`` (``\int K = 1``, default `gaussian_kernel`), conditioning bandwidth
+  ``h_1 =`` `hx` and response bandwidth ``h_2 =`` `hy`: from
   the cell counts ``n_{jk}`` at centers ``(c^x_j, c^y_k)`` with ``N_j = \sum_k n_{jk}``,
 
   ```math
@@ -331,7 +332,7 @@ The implemented entries are test-linked; a forthcoming operation gets its entry 
 
   computed as ``\hat f(y\mid x) = \big(\sum_k P_k\, K_{h_2}(c^y_k - y)\big) / (\sqrt{2\pi}\,h_2 D)`` with
   the X-kernel-weighted profile ``P_k = \sum_j n_{jk} K_{h_1}(c^x_j - x)`` and ``D = \sum_k P_k``. The
-  X-kernel normalization cancels in the ratio; the surviving ``1/(\sqrt{2\pi}\,h_2)`` makes ``\int \hat f(y\mid x)\,\mathrm dy = 1`` exactly.
+  X-kernel weighting cancels in the ratio; the surviving ``1/h_2`` makes ``\int \hat f(y\mid x)\,\mathrm dy = 1`` exactly (``\int K = 1``).
 - **Consistency claim** (``h_1, h_2 \to 0``, ``n h_1 h_2 \to \infty``): the pointwise bias is ``\tfrac12 h_1^2 \mu_2(K)\big[\partial_{xx} f_{Y\mid X} + 2\,\partial_x f_{Y\mid X}\,\partial_x f_X / f_X\big] + \tfrac12 h_2^2 \mu_2(K)\,\partial_{yy} f_{Y\mid X}`` and the variance ``R(K)^2 f_{Y\mid X}/(n h_1 h_2 f_X)``, giving the slower conditional rate ``O(n^{-2/3})`` at the optimal ``h \sim n^{-1/6}`` (the bias is worst at the conditional mode).
 - **Test.** `test/conditionaldensity.jl` — the bivariate-Gaussian fixture ``Y\mid X=x \sim N(\rho x, 1-\rho^2)``: ``\int \hat f\,\mathrm dy \approx 1`` and pointwise recovery to ``3\times10^{-2}``; the
   scalar/vector forms, the `transition_density` equivalence, off-support `NaN`, bandwidth checks, and

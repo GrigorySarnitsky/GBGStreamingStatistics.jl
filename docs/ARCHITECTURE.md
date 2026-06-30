@@ -670,11 +670,12 @@ intentional — do not dedupe it).
   Rosenblatt double-kernel estimator (§4.3) is evaluated from the `Histogram2D` **cell counts** (no
   power-sums needed): at the conditioning value ``x`` the joint is reduced to an ``x``-kernel-weighted
   Y-profile ``P_k = \sum_j n_{jk} K_{h_1}(c^x_j - x)`` with ``D = \sum_k P_k``, and then
-  ``\hat f(y\mid x) = \sum_k P_k K_{h_2}(c^y_k - y) / (\sqrt{2\pi}\,h_2 D)``. The ``x``-kernel
-  normalization cancels in the conditional ratio — only the ``1/(\sqrt{2\pi}\,h_2)`` survives, giving
-  ``\int \hat f(y\mid x)\,\mathrm dy = 1`` exactly. `transition_density` is the same computation on a
-  lag-``\tau`` joint (the two-time reading). The two bandwidths ``h_1`` (`hx`, conditioning) and
-  ``h_2`` (`hy`, response) are supplied; the conditional MISE rate is the slower ``O(n^{-2/3})``.
+  ``\hat f(y\mid x) = \sum_k P_k K_{h_2}(c^y_k - y) / (h_2 D)`` for a symmetric `kernel` ``K`` (any
+  ``\int K = 1``, default Gaussian). The ``x``-kernel weighting cancels in the conditional ratio — only
+  the ``1/h_2`` survives, and ``\int K = 1`` gives ``\int \hat f(y\mid x)\,\mathrm dy = 1`` exactly.
+  `transition_density` is the same computation on a lag-``\tau`` joint (the two-time reading). The two
+  bandwidths ``h_1`` (`hx`, conditioning) and ``h_2`` (`hy`, response) and the `kernel` are supplied; the
+  conditional MISE rate is the slower ``O(n^{-2/3})``.
   OU-oracle-tested against the closed-form Gaussian ``p_\tau(y\mid x)``.
 
 - **Bandwidth §4.5 — the marginal `bandwidth` made kernel- and degree-aware** (§4.5). *Generalised the
