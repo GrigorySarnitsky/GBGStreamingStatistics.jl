@@ -26,12 +26,11 @@ include("testoracles.jl"); using .TestOracles
     @test sum(density(h, xs; h = bw)) * 0.01 ≈ 1 atol = 1e-2
   end
 
-  @testset "Ornstein–Uhlenbeck oracle: drift, diffusion & transition density (§4.3–4.4)" begin
+  @testset "Ornstein–Uhlenbeck oracle: transition density (§4.3)" begin
     # OU process  dX = −θ X dt + σ dW : stationary N(0, s²) with s² = σ²/(2θ); the lag-τ transition is
     # exactly  X_{t+τ} | X_t = x ∼ N(x e^{−θτ}, s²(1 − e^{−2θτ})), so exact stationary lagged pairs are
-    # sampled directly (no Euler discretization). The finite-τ Kramers–Moyal coefficients are known:
-    #   drift     D⁽¹⁾(x,τ) = x (e^{−θτ} − 1)/τ                          → −θx    as τ → 0,
-    #   diffusion D⁽²⁾(x,τ) = [s²(1 − e^{−2θτ}) + x²(e^{−θτ} − 1)²]/(2τ)  → σ²/2  as τ → 0.
+    # sampled directly (no Euler discretization). (The §4.4 Kramers–Moyal drift/diffusion reading of the
+    # same pairs is archived — see archive/.)
     Random.seed!(2025)
     θ = 0.8; σ = 1.2; τ = 0.5
     s = ou_stationary_std(theta = θ, sigma = σ)
@@ -41,23 +40,7 @@ include("testoracles.jl"); using .TestOracles
     g = Histogram2D(-5s, 5s, 300, -5s, 5s, 300; lag = 1)
     observe_pairs!(g, x0, xτ)
 
-    D1(x) = ou_drift(x; theta = θ, tau = τ)
-    D2(x) = ou_diffusion(x; theta = θ, sigma = σ, tau = τ)
-    hh = 0.2
-    for x in (-1.0, -0.5, 0.0, 0.5, 1.0)
-      # drift is essentially unbiased — the OU conditional mean E[Y|x] = x e^{−θτ} is linear, so the
-      # local-linear fit has no smoothing bias.
-      @test drift(g, x; h = hh, τ = τ) ≈ D1(x) atol = 0.02
-      # diffusion carries the local-linear smoothing bias of the curved E[(ΔX)²|x] (quadratic in x) — a
-      # few percent at this bandwidth. It is the raw increment moment, so the conditional-variance
-      # Fan–Yao refinement does not apply; the all-orders finite-τ correction is the planned refinement.
-      @test diffusion(g, x; h = hh, τ = τ) ≈ D2(x) rtol = 0.08
-    end
-    # the increment moments line up: M_1 = τ D⁽¹⁾, M_2 = 2τ D⁽²⁾
-    @test increment_moment(g, 0.5, 1; h = hh) ≈ τ * D1(0.5)  atol = 0.02
-    @test increment_moment(g, 0.5, 2; h = hh) ≈ 2τ * D2(0.5) rtol = 0.08
-
-    # transition density (§4.3): p_τ(y∣x) = N(x e^{−θτ}, s²(1−e^{−2θτ})), from the same OU pairs. The
+    # transition density (§4.3): p_τ(y∣x) = N(x e^{−θτ}, s²(1−e^{−2θτ})), from the OU pairs. The
     # double-kernel estimate carries the usual O(h²) KDE bias, worst at the mode; atol reflects it.
     ptrans(y, x) = ou_transition(y, x; theta = θ, sigma = σ, tau = τ)
     for x in (-0.5, 0.0, 0.5)

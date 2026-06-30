@@ -38,13 +38,12 @@ two-time conditional densities) — but nothing in the library is specific to a 
     and variance ([`conditional_mean`](@ref GBGStreamingStatistics.Regression.conditional_mean),
     `conditional_variance`, §4.2), the conditional and transition densities
     ([`conditional_density`](@ref GBGStreamingStatistics.ConditionalDensity.conditional_density),
-    [`transition_density`](@ref GBGStreamingStatistics.ConditionalDensity.transition_density), §4.3),
-    and the Kramers–Moyal [`drift`](@ref GBGStreamingStatistics.IncrementMoments.drift) /
-    [`diffusion`](@ref GBGStreamingStatistics.IncrementMoments.diffusion) (§4.4) are implemented and
-    tested on **CPU and GPU** (Gaussian, bivariate-Gaussian, and Ornstein–Uhlenbeck oracles,
-    mergeability, allocation, AMD-ROCm parity), including the response-aware local bandwidth
-    ``h^\star(x)`` and the Fan–Yao conditional variance. The higher Kramers–Moyal / Pawula / Markov
-    diagnostics are forthcoming; see the [Architecture](architecture.md) for the design and roadmap.
+    [`transition_density`](@ref GBGStreamingStatistics.ConditionalDensity.transition_density), §4.3)
+    are implemented and tested on **CPU and GPU** (Gaussian, bivariate-Gaussian, and Ornstein–Uhlenbeck
+    oracles, mergeability, allocation, AMD-ROCm parity), including the asymmetric bounded/positive-support
+    kernels, the response-aware local bandwidth ``h^\star(x)``, and the Fan–Yao conditional variance. The
+    Kramers–Moyal / SDE-reading functionals (drift, diffusion, …) are archived for now; see the
+    [Architecture](architecture.md) for the design and roadmap.
 
 ## Installation
 
@@ -98,9 +97,6 @@ verbatim by every consumer) and an **estimator upper half** (the estimands):
 - [`ConditionalDensity`](api/ConditionalDensity.md): the conditional density `conditional_density`
   ``\equiv f_{Y\mid X}`` and two-time transition density `transition_density`
   ``\equiv p_\tau(y\mid x)`` (double-kernel).
-- [`IncrementMoments`](api/IncrementMoments.md): conditional increment moments and their functionals —
-  `increment_moment` ``\equiv M_n(x,\tau)``, `kramers_moyal` ``\equiv D^{(n)}``, `drift` ``\equiv D^{(1)}``,
-  and `diffusion` ``\equiv D^{(2)}`` (with the `pawula_quotient` and `markov_test` diagnostics forthcoming).
 - [`Bandwidth`](api/Bandwidth.md): bandwidth selection — the kernel- and degree-aware normal-reference
   rule (Silverman the Gaussian/degree-0 case), the data-driven Sheather–Jones (`rule = :sj`, `:isj`),
   fit-based AIC (`rule = :aic`), and asymmetric-kernel Chen plug-in (`rule = :plugin`) selectors, and the
@@ -120,7 +116,6 @@ Pages = [
   "api/MarginalDensity.md",
   "api/Regression.md",
   "api/ConditionalDensity.md",
-  "api/IncrementMoments.md",
   "api/Bandwidth.md",
 ]
 ```

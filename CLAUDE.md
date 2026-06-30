@@ -92,9 +92,6 @@ estimands.
   `transition_density` ``\equiv p_\tau(y\mid x)`` (binned double-kernel, Rosenblatt) — a separate
   `kernelx` / `kernely`, with an **asymmetric** `kernely` (`gamma_kernel` / `beta_kernel`) for a
   bounded/positive response and `normalize` for exact ``\int\hat f\,\mathrm dy = 1``.
-- `src/IncrementMoments.jl` — §4.4 `increment_moment` ``\equiv M_n(x,\tau)``, `kramers_moyal`
-  ``\equiv D^{(n)}``, `drift` ``\equiv D^{(1)}``, `diffusion` ``\equiv D^{(2)}``, `pawula_quotient`
-  ``\equiv Q(x)``, `markov_test`. Model-neutral functionals; the SDE *reading* stays consumer-side.
 - `src/Bandwidth.jl` — §4.5 `bandwidth`: for the marginal (`Histogram1D`) the **kernel- and degree-aware
   normal-reference rule** (the default, Silverman the Gaussian/degree-0 case;
   ``h = C(K,d)\,\hat\sigma\,n^{-1/(2p+1)}``), the data-driven **Sheather–Jones** plug-ins (`rule = :sj`
@@ -105,10 +102,12 @@ estimands.
   ``m''(x)``, and ``f_X(x)``). The post-hoc FFT smoothing helpers (the major performance lever, amortized
   over bandwidth) are forthcoming. Owns `FFTW`, `AbstractFFTs`.
 - Include order: `Accumulators → Histograms → Kernels → LocalPolynomial → MarginalDensity → Regression →
-  ConditionalDensity → IncrementMoments → Bandwidth`. Cross-module access only through explicit
-  `using ..Module: name, …`
+  ConditionalDensity → Bandwidth`. Cross-module access only through explicit `using ..Module: name, …`
   — never a bare `using`.
-- Deferred, recorded as commented-out includes (the rule against speculative structure):
+- Deferred / archived, recorded as commented-out includes (the rule against speculative structure):
+  `# IncrementMoments.jl` (the §4.4 SDE-reading `drift` / `diffusion` / Kramers–Moyal functionals —
+  **archived** to `archive/`, working and OU-tested; restore when a consumer needs them and `Histogram2D`
+  raises its order for ``n \ge 3``),
   `# CharacteristicFunctions.jl` (the ECF summary — `docs/ARCHITECTURE.md` §2, likely never built),
   `# ProjectionInference.jl` (the SFI / ULI projection road — §4.6).
 
@@ -346,15 +345,11 @@ Mechanical bar:
    bivariate-Gaussian oracle (``m`` recovers ``\rho x`` to ``\lesssim 2\%``; ``\sigma^2`` recovers
    ``1-\rho^2``) and a heteroscedastic curved-mean oracle (Fan–Yao recovers ``\sigma^2(x)`` and beats the
    plug-in in the curved tail).
-7. **`IncrementMoments`** (§4.4 — drift & diffusion) — `increment_moment` ``\equiv M_n(x,\tau)``,
-   `kramers_moyal` ``\equiv D^{(n)}``, `drift` ``\equiv D^{(1)}``, `diffusion` ``\equiv D^{(2)}`` for
-   ``n \in \{1,2\}`` from the order-2 `Histogram2D` (``M_1 = \hat m_h(x) - x``,
-   ``M_2 = \hat{\mathbb E}[Y^2\mid x] - 2x\hat m_h + x^2``), reusing the §4.2 local-linear primitives;
-   reported as the finite-``\tau`` ratio ``M_n/(n!\tau)``. Tested against the **Ornstein–Uhlenbeck**
-   oracle (exact stationary lagged pairs): `drift` recovers ``x(e^{-\theta\tau}-1)/\tau`` exactly
-   (linear OU mean ⇒ no smoothing bias); `diffusion` recovers the closed-form ``D^{(2)}`` to ``8\%``
-   (the curved-``\mathbb E[Y^2\mid x]`` local-linear bias); plus the variance decomposition, the
-   ``1/(n!\tau)`` scaling, coverage-gap errors (``n\ge3``, static lag), and mergeability.
+7. **`IncrementMoments` — archived** (§4.4). The conditional increment moments and Kramers–Moyal
+   functionals (`increment_moment`, `kramers_moyal`, `drift`, `diffusion`; `pawula_quotient` / `markov_test`
+   were stubs) were built and OU-tested, then **moved to `archive/`** to focus the core on the
+   summary-as-measure and its two readout families. Restore when a consumer needs them and `Histogram2D`
+   raises its per-cell order for ``n \ge 3``.
 8. **`ConditionalDensity`** (§4.3) — `conditional_density` ``\equiv f_{Y\mid X}`` and `transition_density`
    ``\equiv p_\tau(y\mid x)`` by the binned double-kernel (Rosenblatt) from the `Histogram2D` cell
    counts: the joint is reduced at ``x`` to a `kernelx`-weighted Y-profile, then smoothed in ``y`` by
@@ -411,11 +406,7 @@ Mechanical bar:
    kernel in ``O(B\\log B)``, amortized over bandwidth (transform the counts once; each ``h`` a multiply
    by the kernel's transform — the major performance lever, decisive for the ``h^\\star(x)`` bandwidth
    *grid*). `FFTW` / `AbstractFFTs` are already dependencies.
-2. **The rest of `IncrementMoments` §4.4** — `kramers_moyal` for ``n \ge 3``, the **Pawula `Q`**
-   diagnostic (``M_4``, ``M_6``) and the all-orders Bell-polynomial finite-time correction, and
-   `markov_test` (now unblocked — it composes the §4.3 transition density). The higher moments need the
-   `Histogram2D` order-raise (Deferred, below).
-3. **Density-estimation methods from the prior-art survey** (`inspiration/density-software/ALGORITHMS.md`),
+2. **Density-estimation methods from the prior-art survey** (`inspiration/density-software/ALGORITHMS.md`),
    in priority order — all mergeable functionals of the summary: the **POT–GPD heavy-tail splice**
    (domain-critical for intermittent tails; a binned GPD-MLE on the tail bin counts that extrapolates
    beyond the histogram's `[lower, upper)` range, plus an optional mergeable top-k max-heap for exact

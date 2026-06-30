@@ -27,9 +27,7 @@ cone variant for hyperstatistics / forgetting) with their recovered marginal mom
 `var`, `std`, `central_moment`), the marginal density (`density` and its variability band
 `density_standard_error`, with `gaussian_kernel` / `epanechnikov_kernel`, the half-line `gamma_kernel` and bounded `beta_kernel`, and the parametric starts `normal_start` / `lognormal_start` / `gamma_start` / `exponential_start` / `inverse_gaussian_start` — both the asymmetric kernels and the starts extensible through the exported `AsymmetricKernel` / `ParametricStart` constructors), conditional moments
 (`conditional_mean`, `conditional_variance`), conditional and transition densities
-(`conditional_density`, `transition_density`), the Kramers–Moyal functionals (`increment_moment`,
-`kramers_moyal`, `drift`, `diffusion`, with the `pawula_quotient` and `markov_test` diagnostics
-forthcoming), and bandwidth selection (`bandwidth`).
+(`conditional_density`, `transition_density`), and bandwidth selection (`bandwidth`).
 """
 module GBGStreamingStatistics
 
@@ -41,8 +39,8 @@ include("LocalPolynomial.jl")
 include("MarginalDensity.jl")
 include("Regression.jl")
 include("ConditionalDensity.jl")
-include("IncrementMoments.jl")
 include("Bandwidth.jl")
+# include("IncrementMoments.jl")         # [archived] the §4.4 SDE-reading functionals — see archive/
 # include("CharacteristicFunctions.jl")  # [deferred] the empirical-characteristic-function summary
 # include("ProjectionInference.jl")      # [deferred] the SFI / ULI projection road
 
@@ -94,15 +92,6 @@ using .ConditionalDensity:
   transition_density
 
 
-using .IncrementMoments:
-  increment_moment,
-  kramers_moyal,
-  drift,
-  diffusion,
-  pawula_quotient,
-  markov_test
-
-
 using .Bandwidth:
   bandwidth
 
@@ -136,12 +125,6 @@ export AbstractAccumulator,
        conditional_variance,
        conditional_density,
        transition_density,
-       increment_moment,
-       kramers_moyal,
-       drift,
-       diffusion,
-       pawula_quotient,
-       markov_test,
        bandwidth
 
 

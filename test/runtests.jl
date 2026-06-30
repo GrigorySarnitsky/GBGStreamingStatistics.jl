@@ -14,7 +14,6 @@ module DensityConvergenceTests; include("density_convergence.jl"); end
 module RegressionTests;         include("regression.jl");         end
 module ConditionalDensityTests; include("conditionaldensity.jl"); end
 module ConditionalConvergenceTests; include("conditional_convergence.jl"); end
-module IncrementMomentsTests;    include("incrementmoments.jl");    end
 module BandwidthTests;          include("bandwidth.jl");          end
 module LocalBandwidthTests;     include("localbandwidth.jl");     end
 module OraclesTests;            include("oracles.jl");            end

@@ -1,16 +1,14 @@
 using Test
 using JET
 using GBGStreamingStatistics
-using GBGStreamingStatistics: Histograms, MarginalDensity, Bandwidth, Regression, IncrementMoments,
-                              ConditionalDensity
+using GBGStreamingStatistics: Histograms, MarginalDensity, Bandwidth, Regression, ConditionalDensity
 
 @testset "JET" begin
   # Static analysis of the public operations on concrete CPU summaries, with reports filtered to the
   # package's own code. Concrete summaries ⇒ `get_backend` is concretely `CPU()`, so the GPU branch of
   # the scatter kernel (only reachable with a GPU backend loaded — exercised in test/gpu/) is not part
   # of the analyzed call; the KernelAbstractions/Atomix internals are excluded by `target_modules`.
-  mods = (GBGStreamingStatistics, Histograms, MarginalDensity, Bandwidth, Regression, IncrementMoments,
-          ConditionalDensity)
+  mods = (GBGStreamingStatistics, Histograms, MarginalDensity, Bandwidth, Regression, ConditionalDensity)
   h = Histogram1D(-5.0, 5.0, 100; order = 4)
   h2 = Histogram1D(-5.0, 5.0, 100; order = 4)
   samples = randn(1000)
@@ -42,9 +40,6 @@ using GBGStreamingStatistics: Histograms, MarginalDensity, Bandwidth, Regression
 
   glag = Histogram2D(-5.0, 5.0, 50, -5.0, 5.0, 50; lag = 1)
   observe_pairs!(glag, xs, ys)
-  @test_call target_modules = mods increment_moment(glag, 0.0, 1; h = 0.5)
-  @test_call target_modules = mods drift(glag, 0.0; h = 0.5)
-  @test_call target_modules = mods diffusion(glag, 0.0; h = 0.5)
   @test_call target_modules = mods conditional_density(glag, 0.0, 0.0; hx = 0.5, hy = 0.5)
   # the asymmetric-response path (gamma kernely + normalize) — its own specialization / branch
   @test_call target_modules = mods conditional_density(glag, 0.0, 0.0; hx = 0.5, hy = 0.5, kernely = gamma_kernel, normalize = true)
