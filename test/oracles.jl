@@ -48,8 +48,9 @@ include("testoracles.jl"); using .TestOracles
       # drift is essentially unbiased — the OU conditional mean E[Y|x] = x e^{−θτ} is linear, so the
       # local-linear fit has no smoothing bias.
       @test drift(g, x; h = hh, τ = τ) ≈ D1(x) atol = 0.02
-      # diffusion carries the local-linear smoothing bias of the curved E[Y²|x] (quadratic in x), as
-      # for conditional_variance — a few percent at this bandwidth (Fan–Yao refinement forthcoming).
+      # diffusion carries the local-linear smoothing bias of the curved E[(ΔX)²|x] (quadratic in x) — a
+      # few percent at this bandwidth. It is the raw increment moment, so the conditional-variance
+      # Fan–Yao refinement does not apply; the all-orders finite-τ correction is the planned refinement.
       @test diffusion(g, x; h = hh, τ = τ) ≈ D2(x) rtol = 0.08
     end
     # the increment moments line up: M_1 = τ D⁽¹⁾, M_2 = 2τ D⁽²⁾

@@ -11,7 +11,7 @@ using FFTW
 
 using ..Histograms: Histogram1D, Histogram2D, _total, _sample_std, _bincenter
 using ..LocalPolynomial: local_fit
-using ..Regression: _column_sums
+using ..Regression: _column_sums, _residual_response
 using ..DensityEstimation: gaussian_kernel, _normal_reference_h, _quad,
   AsymmetricKernel, _asymmetric_default_b
 
@@ -463,14 +463,13 @@ function _local_pilot(cx, N, n)
 end
 
 
-function _hstar_at(cx, N, sumY, sumY2, n, x, kernel, hpilot, RK, mu2, xrange)
+function _hstar_at(cx, N, sumY, SR2, n, x, kernel, hpilot, RK, mu2, xrange)
   fX = _marginal_density(cx, N, n, x, hpilot, kernel)
   fX > 0 || return oftype(fX, NaN)                       # x outside the data's support
-  m = local_fit(cx, N, sumY, x, hpilot, kernel, 1)[1]
-  ey2 = local_fit(cx, N, sumY2, x, hpilot, kernel, 1)[1]
+  sigma2 = local_fit(cx, N, SR2, x, hpilot, kernel, 1)[1]      # Fan–Yao conditional variance σ²(x)
   mpp = 2 * local_fit(cx, N, sumY, x, hpilot, kernel, 2)[3]    # m''(x) = 2 β₂
-  (isfinite(m) && isfinite(ey2) && isfinite(mpp)) || return oftype(fX, NaN)
-  sigma2 = max(ey2 - m^2, 0.0)
+  (isfinite(sigma2) && isfinite(mpp)) || return oftype(fX, NaN)
+  sigma2 = max(sigma2, 0.0)
   denom = mu2^2 * mpp^2 * fX * n
   denom > 0 || return oftype(fX, xrange)                 # locally linear (m'' ≈ 0) ⇒ h unbounded; cap
   return min((RK * sigma2 / denom)^(1 / 5), xrange)
@@ -486,7 +485,8 @@ function _local_setup(summary::Histogram2D, kernel, hpilot)
   RK = _quad(v -> kernel(v)^2)
   mu2 = _quad(v -> v^2 * kernel(v))
   xrange = summary.xupper - summary.xlower
-  return cx, N, sumY, sumY2, n, hp, RK, mu2, xrange
+  SR2 = _residual_response(cx, N, sumY, sumY2, hp, kernel, 1)   # Fan–Yao residual response for σ²(x)
+  return cx, N, sumY, SR2, n, hp, RK, mu2, xrange
 end
 
 
@@ -537,8 +537,8 @@ function bandwidth(summary::Histogram2D, x::Real; rule::Symbol = :local,
   rule === :local ||
     throw(ArgumentError("a joint summary supports only rule = :local (the response-aware local " *
                         "plug-in); got :$rule"))
-  cx, N, sumY, sumY2, n, hp, RK, mu2, xrange = _local_setup(summary, kernel, hpilot)
-  return _hstar_at(cx, N, sumY, sumY2, n, x, kernel, hp, RK, mu2, xrange)
+  cx, N, sumY, SR2, n, hp, RK, mu2, xrange = _local_setup(summary, kernel, hpilot)
+  return _hstar_at(cx, N, sumY, SR2, n, x, kernel, hp, RK, mu2, xrange)
 end
 
 function bandwidth(summary::Histogram2D, xs::AbstractVector; rule::Symbol = :local,
@@ -546,8 +546,8 @@ function bandwidth(summary::Histogram2D, xs::AbstractVector; rule::Symbol = :loc
   rule === :local ||
     throw(ArgumentError("a joint summary supports only rule = :local (the response-aware local " *
                         "plug-in); got :$rule"))
-  cx, N, sumY, sumY2, n, hp, RK, mu2, xrange = _local_setup(summary, kernel, hpilot)
-  return [_hstar_at(cx, N, sumY, sumY2, n, x, kernel, hp, RK, mu2, xrange) for x in xs]
+  cx, N, sumY, SR2, n, hp, RK, mu2, xrange = _local_setup(summary, kernel, hpilot)
+  return [_hstar_at(cx, N, sumY, SR2, n, x, kernel, hp, RK, mu2, xrange) for x in xs]
 end
 
 end # module Bandwidth

@@ -22,8 +22,10 @@ include("testcontracts.jl"); using .TestContracts
     M2 = increment_moment(g, x, 2; h = hh)
     # M_1(x) = E[Y|x] − x
     @test M1 ≈ conditional_mean(g, x; h = hh) - x atol = 1e-9
-    # M_2(x) = E[(Y−x)²|x] = Var(Y|x) + M_1²   (the variance decomposition)
-    @test M2 ≈ conditional_variance(g, x; h = hh) + M1^2 rtol = 1e-6
+    # M_2(x) = E[(Y−x)²|x] = Var(Y|x) + M_1². The increment moment is plug-in-based, so M_2 − M_1² is
+    # exactly Ê[Y²|x] − m̂² — the identity holds against the matching :plugin conditional variance (the
+    # default is now the bias-reduced Fan–Yao estimator: the same σ²(x), but not the algebraic identity).
+    @test M2 ≈ conditional_variance(g, x; h = hh, method = :plugin) + M1^2 rtol = 1e-6
   end
 
   @testset "Kramers–Moyal scaling: drift = D⁽¹⁾, diffusion = D⁽²⁾" begin

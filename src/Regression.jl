@@ -110,20 +110,66 @@ function conditional_mean(summary::Histogram2D, xs::AbstractVector; h::Real,
 end
 
 
+# Clamp a variance estimate to be non-negative; preserve NaN (off-support / degenerate design).
+@inline _clamp_var(v) = v > 0 ? v : oftype(v, isnan(v) ? NaN : 0.0)
+
+
+# Fan & Yao (1998) residual response for the bias-reduced conditional variance: per X-column, the total
+# of squared residuals Σ(Y − m̂(X))², with m̂(X) approximated by the column-center fit μ_j = m̂(c^x_j)
+# (exact to O(Δ), the bin width). The column total is then ΣY² − 2 μ_j ΣY + μ_j² N from the stored column
+# sums. A second local fit of this response (≡ Ê[(Y−m̂)²|x]) estimates σ²(x) with the curved-E[Y²|x] bias
+# of the plug-in removed — E[(Y−m)²|x] = σ²(x) is far flatter than E[Y²|x].
+function _residual_response(cx, N, sumY, sumY2, h, kernel, degree)
+  SR2 = similar(sumY2)
+  @inbounds for j in eachindex(cx)
+    if N[j] > 0
+      μj = local_fit(cx, N, sumY, cx[j], h, kernel, degree)[1]
+      SR2[j] = sumY2[j] - 2 * μj * sumY[j] + μj^2 * N[j]
+    else
+      SR2[j] = zero(eltype(SR2))
+    end
+  end
+  return SR2
+end
+
+
+# σ²(x) at a single point by the chosen method, from the pre-reduced column sums.
+function _conditional_variance(cx, N, sumY, sumY2, x, h, kernel, degree, method)
+  if method === :residual
+    SR2 = _residual_response(cx, N, sumY, sumY2, h, kernel, degree)
+    return _clamp_var(local_fit(cx, N, SR2, x, h, kernel, degree)[1])
+  elseif method === :plugin
+    m = local_fit(cx, N, sumY, x, h, kernel, degree)[1]
+    ey2 = local_fit(cx, N, sumY2, x, h, kernel, degree)[1]
+    return _clamp_var(ey2 - m^2)
+  end
+  throw(ArgumentError("conditional_variance `method` must be :residual (Fan–Yao, default) or " *
+                      ":plugin (got :$method)"))
+end
+
+
 """
     conditional_variance(summary::Histogram2D, x;
-                         h, kernel = gaussian_kernel, degree = 1)   # ≡ σ²(x)
+                         h, kernel = gaussian_kernel, degree = 1, method = :residual)   # ≡ σ²(x)
 
 **Estimand.** the conditional variance
 ``\\sigma^2(x) = \\operatorname{Var}(Y \\mid X = x) = \\mathbb{E}[Y^2 \\mid X = x] - m(x)^2``, with
 ``m(x)`` the [`conditional_mean`](@ref GBGStreamingStatistics.Regression.conditional_mean).
 
-**Estimator.** the same local-polynomial fit applied to the response ``Y^2`` (its per-X-column totals
-``\\sum Y^2``, exact from the per-cell power-sums), as the plug-in ``\\widehat{\\mathbb{E}}[Y^2\\mid x] -
-\\hat m_h(x)^2`` clamped to be non-negative. This simple difference carries the local-polynomial
-smoothing bias of the curved ``\\mathbb{E}[Y^2\\mid x]``; the bias-reducing **residual-based** estimator
-(a second local fit to the squared residuals; Fan & Yao 1998) and a one-step robust local M-estimator
-for heavy-tailed channels (e.g. ``(\\Delta X)^6``; Fan & Jiang 2000) are forthcoming.
+**Estimator** (`method = :residual`, the default — Fan & Yao 1998). The **two-stage residual-based**
+estimator: fit ``\\hat m`` at each X-column center, then take a second local fit of the per-column
+squared residuals, ``\\hat\\sigma^2(x) = \\widehat{\\mathbb{E}}\\bigl[(Y - \\hat m(X))^2 \\mid x\\bigr]``.
+Because ``\\mathbb{E}[(Y - m(X))^2 \\mid x] = \\sigma^2(x)`` is far flatter than
+``\\mathbb{E}[Y^2 \\mid x]``, its local fit is much less biased — it removes the local-polynomial
+smoothing bias of the curved ``\\mathbb{E}[Y^2 \\mid x]`` that the plug-in carries. The per-column
+squared-residual total is recovered exactly from the stored column sums,
+``\\sum Y^2 - 2\\hat m \\sum Y + \\hat m^2 N``.
+
+**Estimator** (`method = :plugin`). The simple difference ``\\widehat{\\mathbb{E}}[Y^2 \\mid x] -
+\\hat m_h(x)^2`` (the same local fit applied to the ``Y^2`` response), clamped non-negative — cheaper
+(no first stage), but it carries the curved-``\\mathbb{E}[Y^2 \\mid x]`` smoothing bias. A one-step
+robust local M-estimator for heavy-tailed channels (e.g. ``(\\Delta X)^6``; Fan & Jiang 2000) is
+forthcoming.
 
 Arguments:
 
@@ -132,7 +178,9 @@ Arguments:
 - `x` — the conditioning value(s) at which ``\\sigma^2`` is evaluated (scalar or vector).
 - `h` — the smoothing bandwidth (``h > 0``), supplied.
 - `kernel` — the smoothing kernel ``K`` (any callable with ``\\int K = 1``; default `gaussian_kernel`).
-- `degree` — the local-polynomial order for the two underlying fits: `0`, `1` (the default), or `2`.
+- `degree` — the local-polynomial order for the underlying fits: `0`, `1` (the default), or `2`.
+- `method` — `:residual` (the default, the bias-reduced Fan & Yao two-stage estimator) or `:plugin`
+  (the simple ``\\widehat{\\mathbb{E}}[Y^2 \\mid x] - \\hat m^2`` difference).
 
 References:
 
@@ -140,19 +188,27 @@ References:
 - J. Fan & J. Jiang (2000), [*Variable bandwidth and one-step local M-estimator*](https://doi.org/10.1007/BF02903849), Sci. China Ser. A 43 (the robust refinement).
 """
 function conditional_variance(summary::Histogram2D, x::Real; h::Real,
-                              kernel = gaussian_kernel, degree::Integer = 1)
+                              kernel = gaussian_kernel, degree::Integer = 1, method::Symbol = :residual)
   h > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
   _check_degree(degree)
   cx, N, sumY, sumY2 = _column_sums(summary)
-  m = local_fit(cx, N, sumY, x, h, kernel, degree)[1]
-  ey2 = local_fit(cx, N, sumY2, x, h, kernel, degree)[1]
-  v = ey2 - m^2
-  return v > 0 ? v : oftype(v, isnan(v) ? NaN : 0.0)
+  return _conditional_variance(cx, N, sumY, sumY2, x, h, kernel, degree, method)
 end
 
 function conditional_variance(summary::Histogram2D, xs::AbstractVector; h::Real,
-                              kernel = gaussian_kernel, degree::Integer = 1)
-  return [conditional_variance(summary, x; h = h, kernel = kernel, degree = degree) for x in xs]
+                              kernel = gaussian_kernel, degree::Integer = 1, method::Symbol = :residual)
+  h > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
+  _check_degree(degree)
+  cx, N, sumY, sumY2 = _column_sums(summary)
+  if method === :residual
+    SR2 = _residual_response(cx, N, sumY, sumY2, h, kernel, degree)
+    return [_clamp_var(local_fit(cx, N, SR2, x, h, kernel, degree)[1]) for x in xs]
+  elseif method === :plugin
+    return [_clamp_var(local_fit(cx, N, sumY2, x, h, kernel, degree)[1] -
+                       local_fit(cx, N, sumY, x, h, kernel, degree)[1]^2) for x in xs]
+  end
+  throw(ArgumentError("conditional_variance `method` must be :residual (Fan–Yao, default) or " *
+                      ":plugin (got :$method)"))
 end
 
 end # module Regression

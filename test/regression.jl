@@ -21,8 +21,8 @@ include("testcontracts.jl"); using .TestContracts
   end
 
   @testset "conditional_variance recovers 1−ρ² (const)" begin    # estimand-specific: the analytic oracle
-    # The simple Ê[Y²|x]−m̂² estimator carries the local-linear smoothing bias of the curved
-    # E[Y²|x]; at a modest bandwidth it is within a few percent (Fan–Yao refinement forthcoming).
+    # The default residual-based (Fan–Yao) estimator fits E[(Y−m̂)²|x] = σ²(x) directly, removing the
+    # curved-E[Y²|x] bias the plug-in carries; for this linear-mean oracle it recovers the constant.
     for x in (-1.0, 0.0, 1.0)
       @test conditional_variance(hist, x; h = 0.2) ≈ 1 - ρ^2 rtol = 0.1
     end
@@ -54,4 +54,36 @@ include("testcontracts.jl"); using .TestContracts
   merge!(a, b)
   check_point_estimator((s, x) -> conditional_mean(s, x; h = 0.4),     a, hist; points = [-1.0, 0.0, 1.0], outside = 100.0)
   check_point_estimator((s, x) -> conditional_variance(s, x; h = 0.2), a, hist; points = [-1.0, 0.0, 1.0], outside = 100.0)
+end
+
+
+@testset "Fan–Yao conditional variance vs the plug-in (curved mean, §4.2)" begin
+  # Heteroscedastic, curved-mean oracle: X ~ N(0,1), m(x) = x² (so m'' = 2), σ²(x) = 0.2 + 0.1x². The
+  # plug-in Ê[Y²|x] − m̂² fits the quartic E[Y²|x] = x⁴ + σ²(x) with a local polynomial, so it is badly
+  # biased away from the centre; the residual-based estimator fits E[(Y−m̂)²|x] = σ²(x) (far flatter).
+  Random.seed!(2025)
+  M = 3_000_000
+  Xh = randn(M)
+  σ2(x) = 0.2 + 0.1 * x^2
+  Yh = Xh .^ 2 .+ sqrt.(σ2.(Xh)) .* randn(M)
+  hh = Histogram2D(-6.0, 6.0, 240, -8.0, 45.0, 240)
+  observe_pairs!(hh, Xh, Yh)
+
+  @testset "degree-2 recovers the heteroscedastic σ²(x)" begin
+    # degree 2 matches the quadratic mean (first-stage m̂ unbiased) and the quadratic σ²(x).
+    for x in (-1.0, -0.5, 0.0, 0.5, 1.0)
+      @test conditional_variance(hh, x; h = 0.3, degree = 2) ≈ σ2(x) rtol = 0.12
+    end
+  end
+
+  @testset "residual-based beats the plug-in in the curved tail" begin
+    for x in (-1.5, 1.5)
+      fy = conditional_variance(hh, x; h = 0.3, method = :residual)   # the default
+      pl = conditional_variance(hh, x; h = 0.3, method = :plugin)
+      @test abs(fy - σ2(x)) < abs(pl - σ2(x))      # Fan–Yao closer to the truth
+      @test pl > 1.5 * σ2(x)                        # the plug-in is badly inflated by the m'' curvature
+    end
+  end
+
+  @test_throws ArgumentError conditional_variance(hh, 0.0; h = 0.3, method = :bogus)
 end
