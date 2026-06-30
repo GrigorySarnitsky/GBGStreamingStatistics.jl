@@ -8,7 +8,7 @@ module TestOracles
 using SpecialFunctions: loggamma, logbeta
 
 export gaussian_pdf, exponential_pdf, lognormal_pdf, gamma_pdf, beta_pdf, student_t_pdf, uniform_pdf,
-       claw_pdf,
+       inverse_gaussian_pdf, claw_pdf,
        ou_stationary_std, ou_drift, ou_diffusion, ou_transition,
        trapz, ise
 
@@ -32,6 +32,10 @@ gamma_pdf(x; shape, scale = 1.0) =
 "Beta density with shape parameters ``a, b`` (support ``(0, 1)``)."
 beta_pdf(x; a, b) =
   (0 < x < 1) ? exp((a - 1) * log(x) + (b - 1) * log1p(-x) - logbeta(a, b)) : 0.0
+
+"Inverse-Gaussian density, mean ``\\mu`` and shape ``\\lambda`` (support ``(0,\\infty)``)."
+inverse_gaussian_pdf(x; mu, lambda) =
+  x > 0 ? sqrt(lambda / (2π * x^3)) * exp(-lambda * (x - mu)^2 / (2 * mu^2 * x)) : 0.0
 
 "Student-``t`` density with ``\\nu`` degrees of freedom."
 student_t_pdf(x; nu) =

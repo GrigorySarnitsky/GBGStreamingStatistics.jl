@@ -376,6 +376,16 @@ Mechanical bar:
     one joint summary at a curvature-rate pilot ``\hat\sigma_X n^{-1/9}``. Tested (`test/localbandwidth.jl`):
     the quadratic-mean Gaussian oracle (closed-form ``h^\star``) recovered near the centre, NaN off
     support, scalar ``=`` vector, mergeability.
+12. **The conditional convergence-rate tests + foundation coverage** — `conditional_mean` at the
+    ``n^{-2/5}`` ``L^2``-projection rate (ISE ``\\propto n^{-4/5}``; curved ``m(x) = \\sin x``, so the
+    local-linear fit carries a genuine ``O(h^2)`` bias) and `conditional_density` at the slower 2-D
+    ``n^{-2/3}`` rate (`test/conditional_convergence.jl`) — closing the rate column of the coverage matrix;
+    `drift` / `diffusion` / `conditional_variance` inherit `conditional_mean`'s rate (affine and
+    second-stage functionals of the same fit), so they need no separate slope test. Plus the direct
+    kernel-constant oracle (`test/kernels.jl` — ``\\int K = 1``, ``\\mu_2(K)``, ``R(K)`` for the Gaussian /
+    Epanechnikov kernels, by an independent quadrature) and the two remaining parametric starts
+    (`exponential_start`, `inverse_gaussian_start`, under matching-distribution oracles in
+    `test/marginaldensity.jl`).
 
 **Next, in dependency order:**
 
@@ -383,19 +393,11 @@ Mechanical bar:
    kernel in ``O(B\\log B)``, amortized over bandwidth (transform the counts once; each ``h`` a multiply
    by the kernel's transform — the major performance lever, decisive for the ``h^\\star(x)`` bandwidth
    *grid*). `FFTW` / `AbstractFFTs` are already dependencies.
-2. **Scheduled — the conditional convergence-rate tests** (the one characteristic not yet uniform across
-   the testing contract; `docs/TESTING.md`, the coverage matrix). `conditional_mean` at the ``n^{-2/5}``
-   ``L^2``-projection rate and `conditional_density` at the ``n^{-2/3}`` rate, each mirroring the
-   implemented `density` ISE-slope test (`test/density_convergence.jl`) — accumulate the bivariate-Gaussian
-   / OU oracle at growing ``n``, fit the log–log error slope, check it against the exponent. `drift` /
-   `diffusion` inherit `conditional_mean`'s rate (they are linear functionals of it); the `bandwidth`
-   selectors and `density_standard_error` need none (a selector and a variability band, not function
-   estimators). This closes the rate column of the matrix.
-3. **The rest of `IncrementMoments` §4.4** — `kramers_moyal` for ``n \ge 3``, the **Pawula `Q`**
+2. **The rest of `IncrementMoments` §4.4** — `kramers_moyal` for ``n \ge 3``, the **Pawula `Q`**
    diagnostic (``M_4``, ``M_6``) and the all-orders Bell-polynomial finite-time correction, and
    `markov_test` (now unblocked — it composes the §4.3 transition density). The higher moments need the
    `Histogram2D` order-raise (Deferred, below).
-4. **Density-estimation methods from the prior-art survey** (`inspiration/density-software/ALGORITHMS.md`),
+3. **Density-estimation methods from the prior-art survey** (`inspiration/density-software/ALGORITHMS.md`),
    in priority order — all mergeable functionals of the summary: the **POT–GPD heavy-tail splice**
    (domain-critical for intermittent tails; a binned GPD-MLE on the tail bin counts that extrapolates
    beyond the histogram's `[lower, upper)` range, plus an optional mergeable top-k max-heap for exact

@@ -229,7 +229,10 @@ The implemented entries are test-linked; a forthcoming operation gets its entry 
 - **Test.** `test/regression.jl` — the bivariate-Gaussian oracle ``Y = \rho X + \sqrt{1-\rho^2}\,
   \varepsilon`` (so ``\mathbb{E}[Y\mid X=x] = \rho x``): `conditional_mean` recovers the slope to
   ``\lesssim 2\times10^{-2}``, with the `degree` (0/1/2) and `kernel` knobs exercised (degree-2 and
-  Epanechnikov both recover the linear mean). The ``n^{-2/5}`` rate test is scheduled.
+  Epanechnikov both recover the linear mean). `test/conditional_convergence.jl` — the ``n^{-2/5}`` rate:
+  on a curved-mean oracle (``m(x) = \sin x``, so the local-linear fit carries a genuine ``O(h^2)`` bias)
+  at ``h \propto n^{-1/5}`` the integrated squared error falls at ``n^{-4/5}`` (the ``n^{-2/5}`` RMSE), the
+  fitted log–log slope ``\approx -0.80``.
 
 ## Conditional variance (§4.2) — `conditional_variance`
 
@@ -251,7 +254,9 @@ The implemented entries are test-linked; a forthcoming operation gets its entry 
   ``\sigma^2(x)=0.2+0.1x^2``) the residual estimator recovers ``\sigma^2(x)`` (degree 2) and beats the
   plug-in in the curved tail (the plug-in inflated ``>1.5\times`` by the ``m''`` curvature); the universal
   contract via `check_point_estimator` (scalar ``=`` vector, functional of the merged summary,
-  ``\mathrm{NaN}`` off-support). The ``n^{-2/5}`` rate test is scheduled.
+  ``\mathrm{NaN}`` off-support). Its rate is the same ``n^{-2/5}`` local-regression rate (a second
+  local-polynomial fit, of the squared residuals); it shares the `conditional_mean` slope test
+  (`test/conditional_convergence.jl`) rather than carrying a separate one.
 
 ## Response-aware local bandwidth (§4.5) — `bandwidth(::Histogram2D, x; rule = :local)`
 
@@ -313,8 +318,10 @@ The implemented entries are test-linked; a forthcoming operation gets its entry 
   ``8\%``. `test/incrementmoments.jl` — the variance decomposition
   ``M_2 = \operatorname{Var}(Y\mid x) + M_1^2`` (against the matching `:plugin` variance — the exact
   algebraic identity ``M_2 - M_1^2 = \widehat{\mathbb{E}}[Y^2\mid x] - \hat m^2``), the ``1/(n!\,\tau)``
-  scaling, the ``n\ge3`` and static-lag coverage-gap errors, and mergeability. The ``n^{-2/5}`` rate test
-  is forthcoming.
+  scaling, the ``n\ge3`` and static-lag coverage-gap errors, and mergeability. `drift` and `diffusion`
+  inherit the `conditional_mean` ``n^{-2/5}`` rate exactly — ``\widehat D^{(1)} = (\hat m(x) - x)/\tau`` is
+  an affine functional of the same local-linear fit — so the rate is established by the `conditional_mean`
+  slope test (`test/conditional_convergence.jl`), with no separate test.
 
 ## Conditional & transition density (§4.3) — `conditional_density`, `transition_density`
 
@@ -338,4 +345,7 @@ The implemented entries are test-linked; a forthcoming operation gets its entry 
   scalar/vector forms, the `transition_density` equivalence, off-support `NaN`, bandwidth checks, and
   mergeability. `test/oracles.jl` — the Ornstein–Uhlenbeck oracle: `transition_density` recovers the
   closed-form ``p_\tau(y\mid x) = N(x e^{-\theta\tau},\, s^2(1-e^{-2\theta\tau}))`` to ``4\times10^{-2}``
-  (the ``O(h^2)`` mode bias). The ``n^{-2/3}`` rate test is forthcoming.
+  (the ``O(h^2)`` mode bias). `test/conditional_convergence.jl` — the ``n^{-2/3}`` rate: on the
+  bivariate-Gaussian oracle, with ``h_1 = h_2 \propto n^{-1/6}``, the ISE in ``y`` at ``x_0 = 0`` falls
+  with fitted log–log slope ``\approx -2/3`` (reaching the 2-D asymptotic regime needs ``n \gtrsim 10^5``,
+  so the n-range starts higher than the 1-D density test).

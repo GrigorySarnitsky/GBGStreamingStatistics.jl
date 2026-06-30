@@ -242,6 +242,38 @@ end
     @test density(hln, x; start = lognormal_start) ≈ lognormal_pdf(x; sigma = σln)  rtol = 0.1
   end
 
+  # exponential_start on Exponential(1): the one-parameter start (rate λ̂ = 1/μ̂, from the mean alone)
+  # removes the smoothing bias the symmetric KDE carries at a wide bandwidth (it rounds off the convex
+  # e^{−x}), and recovers the density in the interior
+  Random.seed!(54)
+  hexp = Histogram1D(-1.0, 16.0, 1700); observe!(hexp, -log.(rand(200_000)))
+  gexp = collect(0.5:0.05:8.0)
+  texp = exponential_pdf.(gexp)
+  @test ise(density(hexp, gexp; h = 0.5, start = exponential_start), texp, 0.05) <
+        0.55 * ise(density(hexp, gexp; h = 0.5), texp, 0.05)              # the start removes the wide-h bias
+  for x in (1.0, 2.0, 3.0)
+    @test density(hexp, x; h = 0.5, start = exponential_start) ≈ exponential_pdf(x)  rtol = 0.1
+  end
+
+  # inverse_gaussian_start on IG(μ, λ): the moment-fitted start (mean μ̂, shape λ̂ = μ̂³/σ̂²) recovers a
+  # positive density with a sharp peak and an exponentially-decaying right tail; sampled via the
+  # Michael–Schucany–Haas (1976) transformation
+  rand_ig(μ, λ) = let y = randn()^2
+    x = μ + μ^2 * y / (2λ) - (μ / (2λ)) * sqrt(4μ * λ * y + μ^2 * y^2)
+    rand() ≤ μ / (μ + x) ? x : μ^2 / x
+  end
+  Random.seed!(55)
+  μig, λig = 1.0, 3.0
+  hig = Histogram1D(-0.5, 10.0, 1050); observe!(hig, [rand_ig(μig, λig) for _ in 1:200_000])
+  gig = collect(0.2:0.05:5.0)
+  tig = inverse_gaussian_pdf.(gig; mu = μig, lambda = λig)
+  @test ise(density(hig, gig; start = inverse_gaussian_start), tig, 0.05) <
+        ise(density(hig, gig), tig, 0.05)
+  for x in (0.6, 1.0, 1.5, 2.0)
+    @test density(hig, x; start = inverse_gaussian_start) ≈
+          inverse_gaussian_pdf(x; mu = μig, lambda = λig)  rtol = 0.12
+  end
+
   # `normalize` makes ∫f̂ = 1 EXACTLY over the support — a parametric start (and an asymmetric kernel) is
   # not self-normalizing
   fine = collect(range(0.0, 25.0; length = 5001)); Δ = 25.0 / 5000

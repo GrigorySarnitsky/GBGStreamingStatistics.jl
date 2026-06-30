@@ -43,7 +43,15 @@ analytic round-trips: estimators are checked against distributions with closed f
   for the default linear/centroid `binning` (mass at the recovered within-bin centroid, via the stored
   ``S_1``) and at ``O(\Delta)`` for `binning = :simple` (mass at the bin center), the two slopes checked
   against ``2`` and ``1``.
-  The conditional-mean ``n^{-2/5}`` and conditional-density ``n^{-2/3}`` rate tests are scheduled.
+  The conditional-mean ``n^{-2/5}`` and conditional-density ``n^{-2/3}`` rates are likewise implemented
+  (`test/conditional_convergence.jl`): a curved-mean (``m(x) = \sin x``) local-linear fit at
+  ``h \propto n^{-1/5}`` gives ISE ``\propto n^{-4/5}`` (slope ``\approx -0.80``), and the
+  bivariate-Gaussian double-kernel at ``h \propto n^{-1/6}`` gives the slower **2-D** rate ISE
+  ``\propto n^{-2/3}`` (slope ``\approx -2/3``, measured in ``y`` at ``x_0 = 0``, the n-range starting
+  higher than the 1-D test since the 2-D asymptotic regime is reached later — below ``\sim 10^5`` the
+  measured slope runs shallow, the conditional analog of the density test's non-Gaussian muddying).
+  `drift` / `diffusion` inherit `conditional_mean`'s rate (affine functionals of the same fit) — no
+  separate test.
 - **Mergeability tests.** For every summary, *accumulate-then-merge ``=`` accumulate-together* (to
   round-off), plus the incompatible-summary rejection — the monoid laws of invariant 3
   (`test/mergeability.jl` for `Histogram1D`, `test/histograms2d.jl` for `Histogram2D`). The **cone laws**
@@ -107,9 +115,9 @@ argument errors) plus the convergence rate:
 |---|---|---|---|---|---|---|
 | `density` | 6-PDF suite + Gaussian | yes | yes | n/a, defined everywhere | yes | yes, ``n^{-2p/(2p+1)}`` |
 | `density_standard_error` | exact SE + band coverage | yes | yes | n/a | yes | n/a, variability band |
-| `conditional_mean` / `conditional_variance` | bivariate-Gaussian (+ heteroscedastic curved-mean for Fan–Yao `conditional_variance`) | yes | yes | `NaN` | yes | **scheduled** ``n^{-2/5}`` |
-| `conditional_density` / `transition_density` | biv-Gaussian + OU | yes | yes | `NaN` off-support ``x`` | yes | **scheduled** ``n^{-2/3}`` |
-| `drift` / `diffusion` / `increment_moment` | Ornstein–Uhlenbeck | yes | yes | `NaN` | yes | **scheduled**, ``= conditional_mean`` |
+| `conditional_mean` / `conditional_variance` | bivariate-Gaussian (+ heteroscedastic curved-mean for Fan–Yao `conditional_variance`) | yes | yes | `NaN` | yes | yes, ``n^{-4/5}`` ISE |
+| `conditional_density` / `transition_density` | biv-Gaussian + OU | yes | yes | `NaN` off-support ``x`` | yes | yes, ``n^{-2/3}`` |
+| `drift` / `diffusion` / `increment_moment` | Ornstein–Uhlenbeck | yes | yes | `NaN` | yes | yes (inherited), ``= conditional_mean`` |
 | `bandwidth(::Histogram2D)` ``h^\star(x)`` | quadratic-mean Gaussian (closed-form) | yes | yes | `NaN` | yes | n/a, a selector |
 
 The summaries and the selector carry a different contract:
@@ -122,11 +130,12 @@ The summaries and the selector carry a different contract:
 | `bandwidth(::Histogram1D)` (`:normal` / `:sj` / `:isj` / `:aic` / `:plugin`) | Silverman / ``\delta(K)`` / bimodal / ISE gain | yes | n/a | via summary |
 | `LocalPolynomial.local_fit` (the jet primitive) | exact jet (value / slope / curvature) on a polynomial mean | n/a | n/a | via summary |
 
-`n/a` is not applicable; **scheduled** is a recorded gap with a planned test (the roadmap in `CLAUDE.md`).
-The **rate is the one characteristic not yet uniform** — `density` has it, the conditional estimators have
-it scheduled, and `drift` / `diffusion` inherit `conditional_mean`'s rate (they are linear functionals of
-it). "via summary" means a host-side functional of the summary, so the device coverage is the summary's
-row.
+`n/a` is not applicable. The **rate column is now uniform** — `density` (`test/density_convergence.jl`),
+`conditional_mean` (``n^{-4/5}`` ISE), and `conditional_density` (the slower 2-D ``n^{-2/3}``) each carry a
+log–log ISE-slope test (the conditional pair in `test/conditional_convergence.jl`), and `drift` /
+`diffusion` / `conditional_variance` inherit `conditional_mean`'s rate (affine and second-stage functionals
+of the same local fit), so they need no separate test. "via summary" means a host-side functional of the
+summary, so the device coverage is the summary's row.
 
 **Tolerances are seed-robust.** The ISE-comparison thresholds (the `:plugin` gains, the parametric-start
 gains, the convergence-rate slopes) are not cherry-picked to a fixed seed: they are audited across many
@@ -139,9 +148,9 @@ thumb is already near-optimal on that smooth, symmetric case, so the gain there 
 
 `test/runtests.jl` includes each module's tests in its own wrapper module so top-level helpers and
 constants do not collide; every file is also runnable on its own (`julia --project=. test/<file>.jl`).
-The per-module files are `accumulators.jl`, `histograms.jl`, `histograms2d.jl`, `localpolynomial.jl`,
-`marginaldensity.jl`, `density_convergence.jl`, `bandwidth.jl`, `localbandwidth.jl`, `regression.jl`,
-`conditionaldensity.jl`, `incrementmoments.jl`;
+The per-module files are `accumulators.jl`, `histograms.jl`, `histograms2d.jl`, `kernels.jl`,
+`localpolynomial.jl`, `marginaldensity.jl`, `density_convergence.jl`, `bandwidth.jl`, `localbandwidth.jl`,
+`regression.jl`, `conditionaldensity.jl`, `conditional_convergence.jl`, `incrementmoments.jl`;
 the cross-cutting files are `oracles.jl` (the Gaussian / OU end-to-end oracles), `mergeability.jl`,
 `hyperstatistics.jl` (the cone laws and the superstatistics / forgetting oracles), `allocations.jl`,
 `testoracles.jl` (the shared `TestOracles` analytic library — the closed forms), and
@@ -161,6 +170,7 @@ compat pin JET needs).
     curved-mean**, quadratic-mean, and **Ornstein–Uhlenbeck** oracles, mergeability, the uniform
     `check_point_estimator` contract, `density`'s exact affine equivariance, the Marron–Wand claw stress,
     the bounded `@allocated` audit, and **CPU-vs-AMD-GPU parity** (`test/gpu/`, ROCm); `Aqua.test_all` and
-    JET run for real throughout. The Pawula / Markov diagnostics remain placeholders until those land; the
-    conditional-mean ``n^{-2/5}`` and conditional-density ``n^{-2/3}`` rate tests are **scheduled**
-    (`CLAUDE.md` roadmap; the **density** rate test is implemented — `test/density_convergence.jl`).
+    JET run for real throughout. The Pawula / Markov diagnostics remain placeholders until those land. The
+    conditional-mean ``n^{-2/5}`` and conditional-density ``n^{-2/3}`` rate tests are now implemented
+    (`test/conditional_convergence.jl`), alongside the **density** rate test (`test/density_convergence.jl`)
+    and the direct kernel-constant oracle (`test/kernels.jl`) — closing the rate column of the matrix.
