@@ -331,119 +331,121 @@ alongside** the summary — never something the package's vocabulary depends on.
 
 ## 4. Estimand families (estimators — the exportable upper half)
 
-Each entry is written **estimand first** (per §2). These are the **two readout families** of the §2 lens.
-The **kernel-weighting** family (the local / smoothing readouts through `Kernels._kernel_weight`): the
-marginal density (§4.1), the conditional mean and variance (§4.2), the conditional / transition density
-(§4.3), and bandwidth selection (§4.5). The **power-sum quadrature** family (the global moment readouts):
-the recovered `mean` / `var` / `central_moment` (§3) and — forthcoming — the general smooth functional
-``\mathbb{E}[g(X)]`` and pushforward density ``f_{g(X)}`` (the Taylor contraction of the stored ``S_p``, a
-post-hoc functional the summary already supports). The §4.4 Kramers–Moyal / SDE-reading functionals are
-**archived** (`archive/`, restore when a consumer needs them and `Histogram2D` raises its per-cell order);
-§4.6 stays [OPEN].
+Each estimand is written **estimand first** (per §2), grouped by the **two readout families** of the lens:
+**§4.A kernel-weighting** (the local / smoothing readouts through `Kernels._kernel_weight` — the marginal
+density §4.1, the conditional mean and variance §4.2, the conditional / transition density §4.3, and
+bandwidth selection §4.5) and **§4.B power-sum quadrature** (the global moment readouts off the stored
+``S_p`` — `mean` / `var` / `central_moment`, §3, with ``\mathbb{E}[g(X)]`` and the pushforward density
+forthcoming). The §4.4 Kramers–Moyal / SDE-reading functionals are **archived** (`archive/`, restore when a
+consumer needs them and `Histogram2D` raises its per-cell order); §4.6 is an [OPEN] alternative.
 
-### 4.1 Marginal density ``f_X``
+### 4.A Kernel-weighting readouts
+
+The local / smoothing readouts: each a degree-zero readout of the kernel-weighted measure through the
+`Kernels._kernel_weight` atom (§2), written estimand-first.
+
+#### 4.1 Marginal density ``f_X``
 
 **Estimand.** ``f_X = \mathrm{d}\mu_X/\mathrm{d}\lambda``, the Lebesgue density:
 ``P(X \in A) = \int_A f_X\,\mathrm{d}\lambda``.
-**Estimator** (binned KDE / WARPing): from bin counts ``n_j`` at bin locations ``\ell_j``,
-```math
-\hat f_h(x) \;=\; \frac{1}{n\,h}\sum_{j} n_j\, K\!\Big(\frac{x - \ell_j}{h}\Big), \qquad \int K = 1,
-```
-the binned approximation to ``\frac{1}{nh}\sum_i K(\frac{x-X_i}{h})``. The location ``\ell_j`` is the
-recovered within-bin **centroid** ``c_j + S_1^{(j)}/n_j`` (linear binning, the default — matching the
-bin's first moment, so the discretization error is ``O(\Delta^2)`` in the bin width ``\Delta``) or the
-geometric center ``c_j`` (`binning = :simple`, ``O(\Delta)``); the centroid is read from the already-stored
-``S_1``, so the higher-order accuracy is free. Bandwidth from §4.5.
+**Estimator** (binned KDE / WARPing): ``\hat f_h(x) = \frac1{nh}\sum_j n_j K((x-\ell_j)/h)`` (``\int K = 1``)
+from counts ``n_j`` at the within-bin **centroid** ``\ell_j = c_j + S_1^{(j)}/n_j`` (`binning = :linear`,
+the default — matching the bin's first moment, so the discretization is ``O(\Delta^2)`` in the bin width
+``\Delta``; ``\ell_j = c_j`` is `binning = :simple`, ``O(\Delta)``), the centroid free from the stored
+``S_1``. Bandwidth from §4.5; kernel pluggable (`gaussian_kernel` default; `epanechnikov_kernel`, the
+MSE-optimal ``\tfrac34(1-u^2)``, wants a matched ``h \approx 2.21\times`` the Gaussian's). Tail and shape
+options, all post-hoc on the one summary: the **adaptive** variable bandwidth (`adaptive`; Abramson
+``h_j \propto \tilde f(c_j)^{-1/2}``, cutting tail *variance*), the **local-log-polynomial** (`degree = d`;
+fit ``\log f`` by a binned local-Poisson likelihood — degree 1 exact for exponential tails, 2 for Gaussians
+— cutting tail *bias*), a **bounded support** (`bounds`, the Jones-1993 renormalization, or an
+**asymmetric** `gamma_kernel` / `beta_kernel`, Chen 1999/2000, boundary-bias-free by construction), a
+**parametric start** (`start`; Hjort & Glad 1995, a moment-fitted model times a KDE of its correction
+``f_X/p`` — bias-reducing where the model fits), and exact `normalize`; `density_standard_error` is the
+pointwise ``\sqrt{R(K)\,f_X/(nh)}`` band. Caveats: the fixed range ``[\texttt{lower}, \texttt{upper})``
+drops events beyond it (set it ``\approx \pm 10\text{–}15\sigma`` wide), and uniform bins under-resolve
+power-law tails (the variable bandwidth is the preferred fix — it stays post-hoc, mergeable, and
+estimand-agnostic, which non-uniform bins would not).
 
-**Kernels.** ``K`` is pluggable (any ``\int K = 1``); two ship — `gaussian_kernel` (default) and
-`epanechnikov_kernel` (the MSE-optimal ``\tfrac34(1-u^2)`` on ``|u| \le 1``). `bandwidth` (§4.5) is
-Gaussian-tuned, so a non-Gaussian kernel wants a matched ``h`` (Epanechnikov's AMISE-optimal ``h`` is
-``\approx 2.21\times`` the Gaussian's).
+#### 4.2 Conditional expectation ``m(x)`` and variance ``\sigma^2(x)``
 
-**Tail-aware density.** Fixed-``h`` KDE is poor in sparse tails; both fixes are `density` options. The
-**adaptive (variable-bandwidth)** estimator `density(…; adaptive=true)` (Abramson's
-``h_j \propto \tilde f(c_j)^{-1/2}``, widening the kernel where data is thin) cuts the tail *variance*;
-the **local-log-polynomial** estimator `density(…; degree=d)` (fit ``\log f`` by a binned local Poisson
-likelihood — degree 1 exact for exponential tails, degree 2 for Gaussians) cuts the tail *bias*,
-capturing the decay shape a flat KDE smears. They compose. On a **bounded support** (a positive quantity such as a droplet radius), `density(…; bounds=(a,b))` renormalizes the degree-0 KDE by the kernel mass inside ``[a,b]`` (Jones 1993), removing the edge bias that otherwise halves the estimate at the boundary; or pass an **asymmetric kernel** (`gamma_kernel` for ``[0,\infty)``, `beta_kernel` for ``[0,1]``; Chen 1999, 2000) whose support matches the data and so eliminates the boundary bias by construction (usually sharper than the renormalization). For a shape with a known parametric skeleton, a **parametric start** `density(…; start=…)` (Hjort & Glad 1995) multiplies a moment-fitted model (`normal_start`, `lognormal_start`, `gamma_start`, `exponential_start`, `inverse_gaussian_start`) by a KDE of its *correction* ``f_X/p`` — near-exact where the model fits (the bias is driven by ``(f_X/p)''``, not ``f_X''``) and a tail-friendly bias reduction otherwise; `normalize=true` rescales any estimate to ``\int\hat f = 1`` exactly (the asymmetric kernels and a start are not self-normalizing). Finally, `density_standard_error` returns the pointwise ``\sqrt{R(K)\,f_X/(nh)}`` variability band. Two consumer caveats remain: the fixed range
-``[\texttt{lower}, \texttt{upper})`` drops events beyond it (set it wide, ``\approx \pm 10\text{–}15\sigma``,
-to keep the tail), and uniform bins under-resolve power-law tails (bin a transform such as ``\log|X|``
-and change variables back; the ``O(1)`` GPU scatter does not log-bin) — though **variable bandwidth is
-the preferred fix** except for genuine multi-decade power laws (it stays post-hoc, mergeable, and
-estimand-agnostic; non-uniform bins would break all three).
-
-### 4.2 Conditional expectation ``m(x)`` and variance ``\sigma^2(x)``
-
-**Estimand.** ``m(x) = \mathbb{E}[Y\mid X=x]`` (the ``L^2(\sigma(X))`` projection; §2 reference) and
+**Estimand.** ``m(x) = \mathbb{E}[Y\mid X=x]`` (the ``L^2(\sigma(X))`` projection; §2) and
 ``\sigma^2(x) = \mathrm{Var}(Y\mid X=x) = \mathbb{E}[Y^2\mid X=x] - m(x)^2``.
-**Estimator** (local-linear; Fan & Gijbels), with ``K_h(u) = h^{-1}K(u/h)`` the bandwidth-scaled
-kernel: from the per-bin power-sums form the kernel-weighted sums ``T_\ell(x) = \sum_i K_h(X_i-x)(X_i-x)^\ell``
-and ``P_\ell(x) = \sum_i K_h(X_i-x)(X_i-x)^\ell Y_i``, then
+**Estimator** (local-linear; Fan & Gijbels): from the joint `Histogram2D`'s kernel-weighted power-sums
+``T_\ell = \sum_i K_h(X_i-x)(X_i-x)^\ell`` and ``P_\ell = \sum_i K_h(X_i-x)(X_i-x)^\ell Y_i``,
 ```math
-\hat m_h(x) \;=\; \frac{T_2 P_0 - T_1 P_1}{T_0 T_2 - T_1^{2}}.
+\hat m_h(x) \;=\; \frac{T_2 P_0 - T_1 P_1}{T_0 T_2 - T_1^{2}}
 ```
-Nadaraya–Watson is the local-constant (degree-0) fit ``\hat m_h = P_0/T_0`` (kept for reference, but
-local-linear is the default — it removes the design-density bias term ``2 m'(x) f'(x)/f(x)``).
-Conditional variance is the bias-reduced **residual-based** estimator (Fan & Yao 1998, the default
-`method = :residual`): a second local fit of the squared residuals
-``\widehat{\mathbb E}[(Y-\hat m)^2\mid x]``, which removes the curved-``\mathbb E[Y^2\mid x]`` smoothing
-bias that the simple plug-in ``\hat{\mathbb E}[Y^2\mid x] - \hat m^2`` (`method = :plugin`) carries. A
-**one-step robust local M-estimator** for heavy-tailed channels (e.g. ``(\Delta X)^6``; Fan & Jiang 2000)
-is forthcoming.
+— the ``\beta_0`` of one `LocalPolynomial.local_fit` (§4.A atom); local-linear removes the design-density
+bias ``2 m'(x) f'(x)/f(x)`` that the degree-0 Nadaraya–Watson ``P_0/T_0`` carries. The variance is the
+bias-reduced **residual-based** Fan & Yao (1998) estimator (`method = :residual`, the default — a second
+local fit of the squared residuals ``\widehat{\mathbb E}[(Y-\hat m)^2\mid x]``, removing the
+curved-``\mathbb E[Y^2\mid x]`` smoothing bias the `:plugin` ``\hat{\mathbb E}[Y^2\mid x] - \hat m^2``
+carries). A one-step robust local M-estimator for heavy-tailed channels (Fan & Jiang 2000) is forthcoming.
 
-### 4.3 Conditional and transition density
+#### 4.3 Conditional and transition density
 
-**Estimand.** ``f_{Y\mid X}(y\mid x) = f_{X,Y}(x,y)/f_X(x)``; the **two-time transition density**
+**Estimand.** ``f_{Y\mid X}(y\mid x) = f_{X,Y}(x,y)/f_X(x)``, and the two-time transition density
 ``p_\tau(y\mid x) = f_{X_{t+\tau}\mid X_t}(y\mid x)`` (nonstationary: ``p_{t,\tau}``).
-**Estimator** (double-kernel; Rosenblatt 1969; Hyndman, Bashtannyk & Grunwald 1996): from the joint histogram,
+**Estimator** (double-kernel; Rosenblatt 1969; Hyndman, Bashtannyk & Grunwald 1996):
 ```math
-\hat f(y\mid x) \;=\; \frac{\sum_i K_{h_1}(X_i-x)\,K_{h_2}(Y_i-y)}{\sum_i K_{h_1}(X_i-x)}.
+\hat f(y\mid x) \;=\; \frac{\sum_i K_{h_1}(X_i-x)\,K_{h_2}(Y_i-y)}{\sum_i K_{h_1}(X_i-x)},
 ```
-
 with a separate conditioning kernel `kernelx` (in ``x``) and response kernel `kernely` (in ``y``). For a
-**bounded / positive response** — a droplet radius as ``Y`` — `kernely` may be **asymmetric** (gamma /
-beta; Chen 1999, 2000), boundary-bias-free in ``y``, the conditional analog of the marginal density's
-asymmetric kernels, with `normalize` restoring the exact ``\int\hat f\,\mathrm dy = 1``. The conditioning
-kernel cancels in the ``f_{X,Y}/f_X`` ratio, so it stays symmetric (and a bounded *conditioning* variable
-needs no asymmetric kernel — the local-linear `conditional_mean` is boundary-adaptive, §4.2).
+**bounded / positive response** — a droplet radius as ``Y`` — `kernely` may be **asymmetric** (gamma / beta;
+Chen 1999, 2000), boundary-bias-free in ``y``, with `normalize` restoring ``\int\hat f\,\mathrm dy = 1`` —
+the conditional analog of the marginal density's asymmetric kernels. The conditioning kernel cancels in the
+``f_{X,Y}/f_X`` ratio, so it stays symmetric (a bounded *conditioning* variable needs none — the
+local-linear `conditional_mean` is boundary-adaptive, §4.2).
 
-### 4.5 Bandwidth selection (cross-cutting)
+#### 4.5 Bandwidth selection (cross-cutting)
 
-**Estimand.** the MSE-optimal (AMISE) bandwidth for the requested channel — the ``h`` minimising ``\int \mathbb{E}[(\hat f_h - f_X)^2]`` for a kernel ``K`` and local-polynomial degree ``d``.
-
-For marginals, `bandwidth` (§4.1) defaults to the **kernel- and degree-aware normal-reference rule** ``h = C(K,d)\,\hat\sigma\,n^{-1/(2p+1)}``: the bias order is ``p = 2`` at degree 0/1 (rate ``n^{-1/5}``) and ``p = 4`` at degree 2/3 (a higher-order ``O(h^4)`` fit, so the wider rate ``n^{-1/9}``), and the kernel enters only through the canonical factor ``C(K,d) = (8\sqrt{\pi}/3)^{1/5}[R(K)/\mu_2(K)^2]^{1/5}`` at degree 0/1 (the fourth-order equivalent-kernel analog at degree 2/3; Loader 1996) — reducing to Silverman ``(4/3)^{1/5}\hat\sigma\,n^{-1/5}`` for the Gaussian at degree 0 and ``\approx 2.34\,\hat\sigma\,n^{-1/5}`` for the Epanechnikov. All kernel and degree dependence is thus one post-hoc factor (locfit's `Wikk` discipline), with ``R(K)`` and ``\mu_2(K)`` computed by quadrature so any kernel works. The data-driven **Sheather–Jones** plug-in (`rule = :sj`, degree 0/1) adds the solve-the-equation bandwidth — the curvature ``\psi_4 = R(f'')`` and its ``\psi_6`` pilot estimated as Hermite-weighted, **mergeable** reductions of the bin counts (Sheather & Jones 1991), the eval kernel a clean ``\delta(K)`` rescale — so it adapts to the true shape (much tighter than the normal reference on a bimodal sample); its **improved** variant (`rule = :isj`, Botev, Grotowski & Kroese 2010) reads the curvature off the **DCT** of the bin counts instead of a normal-reference pilot, staying reliable on strongly multimodal data. The fit-based **AIC** (`rule = :aic`) adds an information criterion of the binned KDE minimised over an ``h``-grid — a mergeable functional of the counts, the eval kernel a ``\delta(K)`` rescale, with a stable interior optimum (Loader's preferred route is fit-based selection). Its leave-one-out **cross-validation** cousins (likelihood-CV, least-squares LSCV) are a deliberate coverage gap: a binned summary's ties drive their objective to ``h \to 0``. The **asymmetric** kernels take their own scale ``b`` (rate ``n^{-2/5}``); for them `bandwidth` offers the ``\hat\sigma\,n^{-2/5}`` rule of thumb (`rule = :normal`) and the **Chen plug-in** (`rule = :plugin`), the asymmetric analog of Silverman's — ``b^\star = [\mathbb{E}[w(X)^{-1/2}]/(2\sqrt{\pi}\,n\int w^2 (f'')^2)]^{2/5}`` with local-scale weight ``w(x) = x`` (gamma) / ``x(1-x)`` (beta), the curvature ``\int w^2 (f'')^2`` a grid quadrature of the pilot ``\hat f''`` (boundary-valid because ``w \to 0`` there, unlike the ``\psi_4`` U-statistic which assumes ``f`` vanishes at the edge). It lowers the ISE ``\approx 1.4\text{–}1.7\times`` on skewed positive data. The load-bearing one for conditional moments is the **response-aware *local* plug-in** `bandwidth(summary::Histogram2D, x; rule = :local)`:
+**Estimand.** the AMISE-optimal bandwidth — the ``h`` minimising ``\int \mathbb{E}[(\hat f_h - f_X)^2]``
+for a kernel ``K`` and local-polynomial degree ``d``.
+**Estimator.** for a marginal, the **kernel- and degree-aware normal-reference rule**
+``h = C(K,d)\,\hat\sigma\,n^{-1/(2p+1)}`` (bias order ``p = 2`` at degree 0/1, ``p = 4`` at degree 2/3; the
+kernel enters through one canonical factor ``[R(K)/\mu_2(K)^2]^{1/5}`` by quadrature — Silverman
+``(4/3)^{1/5}`` the Gaussian/degree-0 case, Epanechnikov ``\approx 2.34``), plus the data-driven
+**Sheather–Jones** `:sj` and DCT-based `:isj` (Botev, Grotowski & Kroese 2010) plug-ins, the fit-based
+`:aic`, and the asymmetric-kernel Chen `:plugin` (scale ``b \sim n^{-2/5}``) — each a mergeable functional
+of the counts (the eval kernel a clean ``\delta(K)`` rescale); leave-one-out CV is a recorded gap (binned
+ties drive ``h \to 0``). The load-bearing one for conditional moments is the **response-aware *local*
+plug-in** `bandwidth(::Histogram2D, x; rule = :local)`,
 ```math
-h^\star(x) \;=\; \left[\frac{R(K)\,\sigma^2(x)}{\mu_2(K)^2\,m''(x)^2\,f_X(x)\,n}\right]^{1/5}.
+h^\star(x) \;=\; \left[\frac{R(K)\,\sigma^2(x)}{\mu_2(K)^2\,m''(x)^2\,f_X(x)\,n}\right]^{1/5},
 ```
-It depends on the **response's** conditional variance ``\sigma^2(x)`` **and** regression curvature
-``m''(x)``, so **each response channel (``\Delta X, \dots, (\Delta X)^6``, the acceleration ``A``) gets
-its own ``h^\star``** — a single shared bandwidth is provably suboptimal. This is why accumulation
-must be estimand-agnostic and rich (per-bin moments to high order): ``\sigma^2(x)``, ``m''(x)``, and
-``f_X(x)`` are all recoverable from the *one* stored summary, per channel, post hoc.
+which depends on the response's variance ``\sigma^2(x)`` **and** curvature ``m''(x)`` — so **each response
+channel gets its own ``h^\star``** (a single shared bandwidth is provably suboptimal), all three of
+``\sigma^2(x)``, ``m''(x)``, ``f_X(x)`` recovered from the *one* summary, post hoc. *(Performance: every
+smoother here is a convolution of bin arrays with the kernel, so an FFT computes it in ``O(B\log B)``
+amortized over the bandwidth grid the ``h^\star(x)`` sweep needs — Silverman 1982; Wand 1994 — forthcoming,
+and dwarfed by the per-sample accumulation hot loop, §5.)*
 
-**Fast smoothing (FFT). [performance]** Because the data is binned on a regular grid, every smoother
-here — the binned KDE (§4.1) and the local-polynomial sums ``T_\ell, P_\ell`` (§4.2) — is a
-**convolution** of bin arrays with the kernel. The FFT computes it in ``O(B\log B)`` (Silverman 1982;
-Wand 1994; Fan & Marron 1994 for the binned local-poly form), and the decisive gain is
-**amortization over bandwidth**: transform the bin counts once, then each ``h`` — and the bandwidth
-*grid* the local ``h^\star(x)`` sweep needs — is a multiply by the kernel's transform
-(``e^{-h^2\omega^2/2}`` for the Gaussian) and an inverse FFT, no re-convolution. On the GPU the
-transforms are tiny (``B\sim10^3``) and **batched** across all channels / lags / ``t``-windows in one
-plan. Lead with direct compact-kernel convolution (simple, exact); switch to batched FFT when the
-sweep is large; a recursive Gaussian (Deriche) is the ``O(B)``-per-channel alternative for the
-fixed-bandwidth Gaussian. **Priority:** this smoothing is post-hoc on a small grid and is dwarfed —
-by ``\sim10^3`` in total work — by the per-sample accumulation over ``N^3\times``steps (§5), so the
-dominant performance lever is the accumulation hot loop, *not* the smoother. This is the FFT use the
-deferred ECF summary (§2) does **not** preclude.
+### 4.B Power-sum quadrature readouts
+
+The global (non-local) readouts: a smooth functional of ``X`` read straight off the stored power-sums — no
+kernel, no query point. Within a bin, ``S_p^{(j)} = \sum_{i\in\text{bin}}(X_i - c_j)^p`` is the within-bin
+``p``-th moment, so Taylor-expanding any smooth ``g`` about the center,
+```math
+\mathbb{E}[g(X)] \;=\; \frac1n \sum_j \sum_{p=0}^{\texttt{order}} \frac{g^{(p)}(c_j)}{p!}\, S_p^{(j)}
+\;+\; O\!\big(\Delta^{\,\texttt{order}+1}\big),
+```
+**exact** for polynomials of degree ``\le \texttt{order}`` (the remainder terminates) — this is the
+recovered `mean` / `var` / `central_moment` (§3, the shift formula, the ``g = x^p`` case) — and
+``O(\Delta^{\,\texttt{order}+1})`` for general smooth ``g``. The general ``\mathbb{E}[g(X)]`` and the
+**pushforward density** ``f_{g(X)}`` (the binned measure mapped through ``g`` — analytically
+``f_X(g^{-1}(y))/|g'|`` over the preimages, or by re-binning ``g(c_j)`` and smoothing) are **forthcoming**:
+a post-hoc functional the summary already supports, no new accumulation. Limits: ``g`` smooth on the bin
+scale, mass inside the range, and — for the density — the Jacobian modulates the ``y``-resolution while
+``g' = 0`` makes an (integrable) caustic.
 
 ### 4.6 Projection road [OPEN, alternative]
 
-An alternative to bin-and-smooth: estimate drift/diffusion by **projecting onto a function basis**
-using running inner-product accumulators (the Gram matrix and projection vector are themselves a
-mergeable summary) — Stochastic Force Inference (Frishman & Ronceray 2020) and the underdamped ULI
-(Brückner, Ronceray & Broedersz 2020), which fits on ``(X, \dot X)`` data exactly as tracer sampling provides. Shares
-the lower-half monoid foundation. Include if a consumer wants parametric-in-basis drift fields;
-otherwise defer.
+An alternative to bin-and-smooth for the conditional-functional / SDE-inference channels (the archived §4.4
+road, or general regression fields): estimate by **projecting onto a function basis** with running
+inner-product accumulators (the Gram matrix and projection vector themselves a mergeable summary) —
+Stochastic Force Inference (Frishman & Ronceray 2020) and the underdamped ULI (Brückner, Ronceray &
+Broedersz 2020), fitting on ``(X, \dot X)`` data. Shares the lower-half monoid foundation; deferred until a
+consumer wants parametric-in-basis fields.
 
 ---
 
@@ -555,8 +557,8 @@ GBGStreamingStatistics/
     MarginalDensity.jl         # §4.1   f_X
     Regression.jl                # §4.2   m(x), σ²(x)  [estimand-first reference module]
     ConditionalDensity.jl        # §4.3   f_{Y|X}, transition p_τ
-    IncrementMoments.jl           # §4.4   increment moments, KM/drift/diffusion, Pawula/Q, Markov test
     Bandwidth.jl                 # §4.5   global + response-aware local plug-in
+    # IncrementMoments.jl        # [archived → archive/] §4.4 increment moments, KM/drift/diffusion
     # CharacteristicFunctions.jl # [OPEN, secondary] ECF summary
     # ProjectionInference.jl     # [OPEN] SFI / ULI road
   docs/   ARCHITECTURE.md  FORMALIZATION.md  TESTING.md  PERFORMANCE.md  src/…  make.jl

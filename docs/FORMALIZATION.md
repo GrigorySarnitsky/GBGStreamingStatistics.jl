@@ -13,9 +13,11 @@ Throughout, ``K`` is the smoothing kernel with ``\int K = 1``, ``\mu_2(K) = \int
 du`` its second moment, and ``R(K) = \int K^2`` its roughness; ``h`` is the bandwidth, ``n`` the
 number of samples, ``f_X`` the marginal density of the conditioning variable.
 
-The implemented entries are test-linked; a forthcoming operation gets its entry — in the same shape
-(estimand / estimator / consistency / test) — when it lands, its estimand recorded in `ARCHITECTURE.md`
-§4 meanwhile (the Pawula / Markov diagnostics and the higher Kramers–Moyal coefficients).
+The entries are grouped by the lens of `ARCHITECTURE.md` §2: the **atoms** (the power-sums summary, the
+cone, the kernel-weighting atom & jet) first, then the **kernel-weighting readouts**. A forthcoming
+operation gets its entry — in the same shape (estimand / estimator / consistency / test) — when it lands,
+its estimand recorded in `ARCHITECTURE.md` §4 meanwhile (the power-sum-quadrature ``\mathbb{E}[g(X)]`` /
+pushforward density, §4.B).
 
 ## Per-bin power-sums about the bin center (`Histograms`, the summaries)
 
@@ -63,6 +65,12 @@ The implemented entries are test-linked; a forthcoming operation gets its entry 
   the even ``p`` the consumers need; the recovered moments are exposed publicly as `mean`, `var`,
   `std`, and `central_moment` — `var` and `std` apply Bessel's ``n-1`` correction by default (matching
   `Statistics`), `corrected = false` the ``1/n`` form.
+- **Quadrature readout (the power-sum atom; §4.B).** the same power-sums give any smooth functional by
+  Taylor contraction about the bin centers, ``\mathbb{E}[g(X)] = \tfrac1n \sum_j \sum_{p=0}^{\texttt{order}}
+  g^{(p)}(c_j)/p!\,S_p^{(j)} + O(\Delta^{\texttt{order}+1})`` — **exact** for polynomials of degree
+  ``\le \texttt{order}`` (the moment recovery above is the ``g = x^p`` case), ``O(\Delta^{\texttt{order}+1})``
+  for general smooth ``g``. The general ``\mathbb{E}[g(X)]`` and pushforward density ``f_{g(X)}`` are
+  forthcoming (a post-hoc functional of these power-sums, no new accumulation).
 - **Test.** `test/histograms.jl` (recovered ``M_2 \dots M_6`` match the direct sum to ``10^{-8}`` and
   the true Gaussian moments to sampling error); `test/histograms2d.jl` (2D marginals + covariance);
   `test/mergeability.jl` (merge ``=`` together); `test/allocations.jl` (bounded `observe!` / `merge!`);
@@ -113,6 +121,33 @@ The implemented entries are test-linked; a forthcoming operation gets its entry 
   `Histogram2D` cone with `conditional_mean` scale-invariance. `test/allocations.jl` (allocation-free
   `scale!` / weighted `merge!`); `test/gpu/suite.jl` (CPU-vs-GPU parity, incl. the atomic-float add of
   Float-count `observe!`).
+
+## The kernel-weighting atom & local-polynomial jet (`Kernels._kernel_weight`, `LocalPolynomial.local_fit`)
+
+- **Kernel-weighting atom (`_kernel_weight`).** the single per-bin weight ``w_j`` at a query point ``x``
+  and bandwidth ``h``, in one of two protocols: **symmetric** ``w_j = K((c_j - x)/h)/h`` (the ``1/h``
+  folded in, normalized), or **asymmetric** ``w_j = K(c_j;\,x,\,h)`` (a varying-shape density in the data
+  argument, its own normalization). Every smoothing readout consumes ``w_j`` — a count sum (`density`), a
+  ratio (the jet below), a ratio of ratios (`conditional_density`) — so the two protocols live in exactly
+  one place. Folding the ``1/h`` into the weight is ``\beta``-invariant for the local-polynomial solve
+  (both the design matrix and the right-hand side scale by ``1/h``), so it leaves every symmetric estimate
+  unchanged.
+- **Jet (`local_fit`).** the kernel-weighted local-polynomial **jet** at ``x``: the degree-``d``
+  weighted-least-squares fit of a polynomial in ``u = \ell_j - x`` to a binned 1-D measure (locations
+  ``\ell_j``, design weights ``w_j``, response totals ``r_j``), returning ``\beta = (\beta_0, \dots,
+  \beta_d)`` — ``\beta_0`` the value, ``\beta_1`` the slope, ``2\beta_2`` the curvature. Form the design and
+  response moments ``T_\ell = \sum_j w_j\,(\ell_j - x)^\ell`` (``\ell = 0 \dots 2d``) and
+  ``P_\ell = \sum_j w_j\,r_j\,(\ell_j - x)^\ell`` (``\ell = 0 \dots d``), the ``w_j`` from `_kernel_weight`,
+  and solve the ``(d+1)\times(d+1)`` Hankel normal equations ``[\,T_{i+\ell}\,]\,\beta = (P_0, \dots, P_d)``
+  (a small solve, never an explicit inverse); a degenerate (singular) design returns an all-NaN jet.
+  `conditional_mean` is ``\beta_0`` of one fit; the local-likelihood `density` reuses the solve as its IRLS
+  inner step. **An asymmetric kernel has no jet** (it is not a translation kernel), so `local_fit` admits
+  it at `degree = 0` only — the one guard, a clean error above it.
+- **Test.** `test/localpolynomial.jl` — on a binned measure whose per-bin response mean is exactly a
+  polynomial ``P``, the jet recovers ``(P(x),\,P'(x),\,P''(x)/2)`` to ``10^{-6}`` (degree 2) and
+  ``(P,\,P')`` (degree 1); degree 0 is the Nadaraya–Watson ratio ``P_0/T_0``; a degenerate design gives an
+  all-NaN jet; the kernel normalization cancels. The ``\beta``-invariance of the ``1/h`` fold and the
+  asymmetric-degree-0 admission ride on the unchanged `density` and `conditional_mean` oracle / rate tests.
 
 ## Marginal density (§4.1) — `density`
 
@@ -188,26 +223,6 @@ The implemented entries are test-linked; a forthcoming operation gets its entry 
 - **Estimator** (`rule = :plugin`, the **asymmetric-kernel** Chen plug-in; `gamma_kernel` / `beta_kernel`). The gamma / beta estimators take a scale ``b`` (rate ``n^{-2/5}``), not ``h``; their AMISE (Chen 1999, 2000; modified ``f_2``) is ``A b^2 + C b^{-1/2}/n`` with ``A = \tfrac14\int w^2 (f'')^2``, ``C = (2\sqrt\pi)^{-1}\mathbb{E}[w(X)^{-1/2}]`` and local-scale weight ``w(x) = x`` (gamma) or ``x(1-x)`` (beta), giving ``b^\star = [\mathbb{E}[w(X)^{-1/2}]/(2\sqrt\pi\,n\int w^2 (f'')^2)]^{2/5}``. ``\mathbb{E}[w(X)^{-1/2}]`` is an exact count moment; the curvature ``\int w^2 (f'')^2`` is a grid quadrature of the pilot KDE's ``\hat f''_g`` (pilot ``g = 1.3\,s\,n^{-1/9}`` at the robust scale ``s = \min(\hat\sigma,\,\mathrm{IQR}/1.349)``, the variance inflation ``R(\varphi'')\,\mathbb{E}[w^2]/(n g^5)`` removed), which — unlike the integration-by-parts ``\psi_4`` U-statistic — stays valid where ``f(0) > 0`` (the ``w \to 0`` boundary weight suppresses the pilot's edge leakage). A deterministic functional of the counts (mergeable). The symmetric `:sj` / `:isj` / `:aic` do not apply; a fully data-adaptive curvature pilot is a recorded refinement.
 - **Consistency claim.** with ``\hat\sigma \to \sigma`` and the Gaussian reference ``R(f^{(p)}) = (2p-1)!!/(2^{p+1}\sqrt{\pi}\,\sigma^{2p+1})``, ``C(K,d)`` is the exact AMISE-optimal constant: degree 0/1 gives ``h \sim n^{-1/5}`` (MISE ``\sim n^{-4/5}``), degree 2 the higher-order ``h \sim n^{-1/9}`` (MISE ``\sim n^{-8/9}``); the Gaussian/degree-0 case is Silverman ``(4/3)^{1/5}``, the Epanechnikov ``\approx 2.34``.
 - **Test.** `test/bandwidth.jl` (Gaussian degree 0 reproduces Silverman, degree 1 equals degree 0, the Epanechnikov ``h`` is ``2.214\times`` the Gaussian, degree 2 matches the closed-form ``n^{-1/9}`` rule and exceeds degree 0; coverage-gap and sample-size errors; plus the Sheather–Jones tests — SJ ``\approx`` the normal reference on Gaussian data, much tighter on a bimodal mixture, the exact ``\delta(K)`` kernel ratio, mergeability, the degree ``\ge 2`` gap; and the AIC tests — a stable optimum below the normal reference on Gaussian data, far smaller on a bimodal mixture, the exact ``\delta(K)`` ratio, mergeability, and the deliberately-absent CV rules erroring; and the asymmetric Chen plug-in — `:normal` reproduces the ``\hat\sigma\,n^{-2/5}`` rule of thumb, `:plugin` lowers the ISE (``\ge 1.25\times`` on log-normal, ``\ge 1.11\times`` on gamma; ``\approx 1.4\text{–}1.7\times`` typically, seed-audited) and stays ``\approx`` neutral on the near-exponential boundary case, gamma and beta kernels, mergeability, and the inapplicable `:sj`/`:isj`/`:aic` and `degree` ``\ge 1`` rules erroring; the Improved Sheather–Jones tests (`:isj` ``\approx`` the normal reference on Gaussian, ``< 0.5\times`` it on a bimodal mixture, the exact ``\delta(K)`` ratio, mergeability); and the **Marron–Wand claw** stress, where the data-driven `:sj` / `:isj` resolve the five spikes the normal reference oversmooths — ``\approx`` an order of magnitude lower ISE) and `test/oracles.jl` (the kernel-aware ratio on the ``N(0,1)`` oracle).
-
-## Local-polynomial jet primitive (`LocalPolynomial`)
-
-- **Object.** the kernel-weighted local-polynomial **jet** at a query point ``x``: the degree-``d``
-  weighted-least-squares fit of a polynomial in ``u = \ell_j - x`` to a binned 1-D measure (locations
-  ``\ell_j``, design weights ``w_j``, response totals ``r_j``), returning ``\beta = (\beta_0, \dots,
-  \beta_d)`` — ``\beta_0`` the fitted value, ``\beta_1`` the slope, ``2\beta_2`` the curvature. A
-  deterministic primitive, not a population estimand; it is the shared linear core of the local smoothers
-  (`docs/ARCHITECTURE.md` §11).
-- **Computation.** form the design and response moments ``T_\ell = \sum_j K_h(\ell_j - x)\,w_j\,(\ell_j -
-  x)^\ell`` (``\ell = 0 \dots 2d``) and ``P_\ell = \sum_j K_h(\ell_j - x)\,r_j\,(\ell_j - x)^\ell``
-  (``\ell = 0 \dots d``), and solve the ``(d+1)\times(d+1)`` Hankel normal equations
-  ``[\,T_{i+\ell}\,]\,\beta = (P_0, \dots, P_d)`` (a small linear solve, never an explicit inverse). The
-  kernel normalization cancels in the solve; a degenerate (singular) design returns an all-NaN jet.
-  `conditional_mean` is ``\beta_0`` of one fit; the local-likelihood `density` reuses the same solve as
-  its iteratively reweighted (IRLS) inner step.
-- **Test.** `test/localpolynomial.jl` — on a binned measure whose per-bin response mean is exactly a
-  polynomial ``P``, the jet recovers ``(P(x),\,P'(x),\,P''(x)/2)`` to ``10^{-6}`` (degree 2) and
-  ``(P,\,P')`` (degree 1); degree 0 is the Nadaraya–Watson ratio ``P_0/T_0``; a degenerate design gives an
-  all-NaN jet; the kernel normalization cancels (Gaussian vs unnormalized agree).
 
 ## Local-linear conditional mean (§4.2) — `conditional_mean`
 
