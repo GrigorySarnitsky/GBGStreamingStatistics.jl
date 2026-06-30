@@ -91,6 +91,41 @@ secondary smoothing). The load-bearing decision:
 > *no state storage* (only ``T`` survives a step) and *no reruns* (every ``h``, every channel, every
 > secondary smoothing is computed from the one stored ``T``).
 
+### The algebra of measures — a structural lens
+
+The spine has a compact algebraic reading, offered as a **structural lens, not a second motivation**:
+the package is and remains **mathematical statistics grounded in practice** — its targets are
+consistency, the ``n^{-2/5}`` convergence rates, the analytic oracles, honest bandwidth selection. The
+lens only names *why* the spine takes the shape it does (established structure read back onto the code,
+as in PF), and settles nothing the statistics does not already settle.
+
+Read the summaries as living in the **cone of (unnormalized) measures**: a commutative monoid under
+`merge!`, closed under nonnegative scaling by `scale!` (the cone of §10). The binning map ``T`` is then
+**linear**, ``T(\mu + \nu) = T\mu + T\nu`` — a cone homomorphism — and accumulation is the monoid
+homomorphism from the multiset of samples (the free commutative monoid; `observe!` folds a batch,
+`merge!` unions two summaries). *This is why* `merge!` is elementwise addition and accumulate-then-merge
+equals accumulate-together: not a convenience, but linearity of ``T``.
+
+The estimands sit one level up. Every **reported** quantity — the normalized density ``f_X``, the
+conditional mean ``m(x) = \mathbb{E}[Y \mid X = x]``, the conditional density ``f_{Y\mid X}`` — is
+**homogeneous of degree zero in the measure**: rescale ``\mu \mapsto \lambda\mu`` and it is unchanged, so
+it lives not on the cone but on its **projectivization**, the probability measures. The
+`scale!`-invariance §10 verifies (a `conditional_mean` unmoved by reweighting) *is* this degree-zero
+homogeneity. And because the readout ``S_h`` is degree zero while the cone operations are linear, ``S_h``
+is **not** a cone homomorphism — the estimand-agnostic-accumulation / post-hoc-smoothing split restated:
+pooling must happen on the cone (linear, mergeable), and the degree-zero readout must stay post hoc. That
+is *why* "no reruns" forces the smoothing post hoc.
+
+The lens also fixes the shape of the estimators. Every estimand is a degree-zero readout of one
+**linear** object — the kernel-weighted local-polynomial **jet-smoother** of the binned measure,
+returning the local Taylor coefficients ``(\beta_0, \beta_1, \dots)`` at the query point — consumed in
+one of three ways: a **ratio** of two smoothings (conditioning, the disintegration of the joint —
+`conditional_density`), a **link-capped intercept** (the density's local-likelihood ``e^{\beta_0}``), or
+a **higher jet component** (the derivative functionals `drift`, `diffusion`, and the forthcoming
+``h^\star(x)``). The package's one nonlinearity — the density's log link, and normalization — lives in
+the readout, exactly where the cone homomorphism already breaks. The shared primitive that realizes this
+in code is a §11 decision, forthcoming.
+
 ### Why a fine histogram is the canonical ``T`` (and the honest caveat)
 
 The canonical summary is a **finely binned empirical measure** — a histogram, the *fine-grained
@@ -743,6 +778,39 @@ intentional — do not dedupe it).
   log–log slope ``\approx 2`` in ``\Delta`` for `:linear` against ``\approx 1`` for `:simple`, the linear
   estimate an order of magnitude tighter at a fine grid). A higher-order correction using the stored ``S_2``
   is conceivable but not built.
+
+- **Estimator architecture — the linear jet-smoother is the primitive, local likelihood a consumer;
+  and the measure-algebra lens** (§2, §4). *A framing decision; the code form forthcoming.* Two
+  settlements taken together. **(1) The lens.** The spine is given an algebraic reading (§2): the
+  summaries are the **cone of measures**, ``T`` is the linear cone homomorphism (so `merge!` is
+  addition), and every reported estimand is **homogeneous of degree zero in the measure**, descending
+  to the projectivization (the probability measures) — exactly the `scale!`-invariance §10 tests, and
+  exactly why the post-hoc readout is not a homomorphism. Adopted as a *structural lens only*; the
+  motivation stays mathematical statistics grounded in practice (consistency, rates, oracles).
+  **(2) The primitive.** Two abstractions were weighed for sharing code between `density` and
+  `conditional_mean`: a **local generalized linear model** (local likelihood — `density` at degree
+  ``\ge 1`` is a local Poisson/log fit, `conditional_mean` a local Gaussian/identity fit; Loader 1996,
+  Fan & Gijbels 1996), versus a **linear local-polynomial jet-smoother** (smooth the binned measure,
+  return the local Taylor coefficients ``(\beta_0, \beta_1, \dots)``; conditioning a ratio of two such).
+  They are not competitors: a local GLM is fit by **iteratively reweighted least squares**, so *each*
+  Newton step is itself a kernel-weighted local-polynomial solve, and the identity-link case
+  (regression) converges in **one** step to the plain solve. The GLM is therefore *built from* the
+  linear solve, not parallel to it. So the **linear jet-smoother is the irreducible primitive**
+  (provisionally `local_fit`), and the GLM is one of three thin consumers: a **link-cap** (the
+  density's ``e^{\beta_0}``, the IRLS loop at degree ``\ge 1``), a **ratio** (conditioning —
+  `conditional_density`, the disintegration of the joint), and a **jet component** (the derivative
+  functionals `drift`, `diffusion`, and ``h^\star(x)``). This keeps the lone nonlinearity on one call
+  site and the hot, allocation-free, GPU-portable path linear. *Current state:* the linear solve is
+  realized twice — `Regression._local_linear` (degree-1, a private `_gaussian`, no `binning` or
+  `kernel` knobs) and the Newton step inside `DensityEstimation._local_log` — and `_local_linear`
+  discards ``\beta_1``. *Forcing function:* the primitive is extracted when the response-aware local
+  bandwidth ``h^\star(x)`` lands (§4.5), which needs the curvature ``\beta_2`` of a density fit and the
+  slope ``\beta_1 = m'(x)`` of a regression fit, both discarded today; returning the whole jet unblocks
+  ``h^\star(x)``, the Fan & Yao conditional-variance refinement, and regression knob-parity (`degree`,
+  `kernel`, `binning`) in one move. It lands as the substrate of that required feature, **not** as a
+  standalone refactor (convenience is not a justification, §6). Settled by estimation theory
+  (iteratively reweighted least squares is the linear solve iterated; the smoother is linear on the
+  cone), not implementation convenience.
 
 Open decisions still flagged **[OPEN]** in §10 (the projection road, `HistogramND`, vector-valued
 conditioning, prior-art mirroring) graduate to entries here when they are settled.
