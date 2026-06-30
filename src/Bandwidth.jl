@@ -1,6 +1,6 @@
 # Bandwidth — §4.5: bandwidth selection (the kernel/degree normal-reference, Sheather–Jones — classic
-# and improved (DCT) — fit-based AIC, and the Chen asymmetric-kernel plug-in rules now; the response-aware
-# local plug-in and the FFT-amortized smoothing are forthcoming). The smoothing is a convolution of the binned summary with the kernel; the
+# and improved (DCT) — fit-based AIC, the Chen asymmetric-kernel plug-in, and the response-aware local
+# plug-in (rule = :local) now; the FFT-amortized smoothing is forthcoming). The smoothing is a convolution of the binned summary with the kernel; the
 # FFT computes it in O(B log B) and amortizes over bandwidth (`docs/ARCHITECTURE.md` §4.5) — hence the
 # FFTW dependency, used once that lands.
 
@@ -497,8 +497,8 @@ marginal density of the conditioning variable ``X``, ``n`` the sample size, and 
 ``R(K) = \\int K^2``, ``\\mu_2(K) = \\int u^2 K(u)\\,\\mathrm{d}u``.
 
 **Estimator** (`rule = :local`). The three ``x``-local quantities are read from the one joint `summary`,
-each at a single pilot bandwidth: the conditional variance ``\\sigma^2(x)`` from the plug-in
-``\\widehat{\\mathbb{E}}[Y^2\\mid x] - \\hat m(x)^2``, the curvature ``m''(x) = 2\\beta_2`` from the
+each at a single pilot bandwidth: the conditional variance ``\\sigma^2(x)`` from the bias-reduced Fan &
+Yao `conditional_variance` (its default residual estimator), the curvature ``m''(x) = 2\\beta_2`` from the
 degree-2 local-polynomial fit, and ``f_X(x)`` from the binned KDE of the X-marginal. ``R(K)`` and
 ``\\mu_2(K)`` are computed by quadrature, so any `kernel` works. Because estimating a second derivative
 needs a wider window than the final fit, the default pilot is the curvature-rate rule of thumb

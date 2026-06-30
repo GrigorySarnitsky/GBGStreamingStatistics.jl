@@ -59,7 +59,8 @@ end
 
 
 """
-    conditional_density(summary::Histogram2D, x, y; hx, hy, kernel = gaussian_kernel)   # ≡ f_{Y|X}
+    conditional_density(summary::Histogram2D, x, y;
+                        hx, hy, kernel = gaussian_kernel)   # ≡ f_{Y|X}
 
 **Estimand.** the conditional density
 ``f_{Y\\mid X}(y \\mid x) = f_{X,Y}(x, y) / f_X(x)``.
@@ -129,7 +130,8 @@ end
 
 
 """
-    transition_density(summary::Histogram2D, x, y; hx, hy, kernel = gaussian_kernel)   # ≡ p_τ(y|x)
+    transition_density(summary::Histogram2D, x, y;
+                       hx, hy, kernel = gaussian_kernel)   # ≡ p_τ(y|x)
 
 **Estimand.** the **two-time transition density**
 ``p_\\tau(y \\mid x) = f_{X_{t+\\tau} \\mid X_t}(y \\mid x)`` — the conditional density of the state a

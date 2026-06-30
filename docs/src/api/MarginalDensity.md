@@ -13,7 +13,7 @@ density_standard_error
 ## Asymmetric kernels
 
 The smoothing kernel passed as `density(…; kernel = …)`. The **symmetric** kernels (`gaussian_kernel` /
-`epanechnikov_kernel`, or any callable with ``\int K = 1``) live on the Kernels page. The
+`epanechnikov_kernel`, or any callable with ``\int K = 1``) live on the [Kernels](Kernels.md) page. The
 bounded/positive-support **asymmetric** kernels are [`AsymmetricKernel`](@ref) values — `gamma_kernel`
 for ``[0,\infty)``, `beta_kernel` for ``[0,1]``, or a custom one — boundary-bias-free by construction.
 

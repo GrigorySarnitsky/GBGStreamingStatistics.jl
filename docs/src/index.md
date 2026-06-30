@@ -85,6 +85,9 @@ verbatim by every consumer) and an **estimator upper half** (the estimands):
   that post-hoc smoothing later coarse-grains — holding per-bin counts and power-sums about the bin
   center; accumulation runs on **CPU or GPU**, and summaries combine with `merge!`. With `bin_index`
   and `observe_pairs!` for two-time statistics.
+- [`Kernels`](api/Kernels.md): the shared symmetric smoothing kernels — `gaussian_kernel` /
+  `epanechnikov_kernel` (any callable with ``\int K = 1``), used by `density`, the regression fits, the
+  double-kernel conditional density, and the bandwidth rules.
 - [`MarginalDensity`](api/MarginalDensity.md): the marginal density `density` ``\equiv f_X`` — one
   call over the binned KDE, the local-log-polynomial (`degree`), and the Abramson variable bandwidth
   (`adaptive`, for tails), the asymmetric `gamma_kernel` / `beta_kernel` for bounded/positive support,
@@ -113,6 +116,7 @@ Pages = [
   "api/GBGStreamingStatistics.md",
   "api/Accumulators.md",
   "api/Histograms.md",
+  "api/Kernels.md",
   "api/MarginalDensity.md",
   "api/Regression.md",
   "api/ConditionalDensity.md",

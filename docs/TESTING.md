@@ -62,7 +62,7 @@ analytic round-trips: estimators are checked against distributions with closed f
   the CPU result — counts exactly, power-sums to round-off, including heavy atomic contention. Verified on
   the AMD RX 6700 XT (ROCm); the vendor stacks (CUDA / AMDGPU) stay test-only dependencies.
 - **Package-quality checks.** `test/aqua.jl` (`Aqua.test_all`: ambiguities, piracy, stale deps, compat
-  bounds, undefined exports) and `test/jet.jl` (JET static analysis of every public operation — including
+  bounds, undefined exports) and `test/jet.jl` (JET static analysis of every public estimator path — including
   the asymmetric-kernel, parametric-start, `normalize`, and bandwidth-selector paths, whose function-typed
   fields are the type-stability risk) run against the loaded package.
 
@@ -93,8 +93,10 @@ decomposition, the ``1/(n!\tau)`` scaling — `drift` / `diffusion` / `increment
 
 **Class variations.** The **summaries** (`Histogram1D` / `Histogram2D`) are accumulators, not query-point
 estimators: their contract is the moment-recovery oracle, mergeability, the `@allocated` audit, and GPU
-parity. The **selector** `bandwidth` has no query point: oracle (per rule), mergeability, and argument
-errors — no scalar/vector or off-support.
+parity. The **marginal selector** `bandwidth(::Histogram1D)` has no query point: oracle (per rule),
+mergeability, and argument errors — no scalar/vector or off-support. The **local selector**
+`bandwidth(::Histogram2D, x)` (``h^\star``) *is* a query-point estimator, so it carries the universal
+contract (scalar ``=`` vector, merged-summary functional, off-support `NaN`; `test/localbandwidth.jl`).
 
 ## Coverage matrix
 

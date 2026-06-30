@@ -42,9 +42,9 @@ normal equations of order `degree` for the jet; the estimate is the fitted value
 ```
 
 which removes the design-density bias ``2 m'(x) f'(x)/f(x)`` of the Nadaraya–Watson reduction
-``\\hat m_h = P_0/T_0`` (the `degree = 0` local-constant fit). The bandwidth ``h`` is supplied (the
-response-aware local plug-in ``h^\\star(x)`` is forthcoming, §4.5); `degree = 2` (local-quadratic)
-additionally exposes the curvature ``m''(x)`` that ``h^\\star(x)`` needs. A vector of query points
+``\\hat m_h = P_0/T_0`` (the `degree = 0` local-constant fit). The bandwidth ``h`` is supplied (or the
+response-aware local plug-in ``h^\\star(x)`` from `bandwidth(summary, x; rule = :local)`, §4.5);
+`degree = 2` (local-quadratic) additionally exposes the curvature ``m''(x)`` that ``h^\\star(x)`` needs. A vector of query points
 returns a vector. Consistency (`docs/FORMALIZATION.md`): ``\\operatorname{bias}\\hat m_h(x) \\approx
 \\tfrac12 h^2 \\mu_2(K)\\, m''(x)``, ``\\operatorname{Var}\\hat m_h(x) \\approx
 R(K)\\,\\sigma^2(x)/(n\\,h\\,f_X(x))``.
@@ -120,7 +120,8 @@ end
 
 """
     conditional_variance(summary::Histogram2D, x;
-                         h, kernel = gaussian_kernel, degree = 1, method = :residual)   # ≡ σ²(x)
+                         h, kernel = gaussian_kernel,
+                         degree = 1, method = :residual)   # ≡ σ²(x)
 
 **Estimand.** the conditional variance
 ``\\sigma^2(x) = \\operatorname{Var}(Y \\mid X = x) = \\mathbb{E}[Y^2 \\mid X = x] - m(x)^2``, with

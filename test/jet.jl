@@ -38,6 +38,7 @@ using GBGStreamingStatistics: Histograms, MarginalDensity, Bandwidth, Regression
   @test_call target_modules = mods merge!(g, g2)
   @test_call target_modules = mods conditional_mean(g, 0.0; h = 0.5)
   @test_call target_modules = mods conditional_variance(g, 0.0; h = 0.5)
+  @test_call target_modules = mods bandwidth(g, 0.0; rule = :local)   # the response-aware local h⋆(x)
 
   glag = Histogram2D(-5.0, 5.0, 50, -5.0, 5.0, 50; lag = 1)
   observe_pairs!(glag, xs, ys)

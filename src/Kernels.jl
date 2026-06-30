@@ -13,7 +13,7 @@ export gaussian_kernel, epanechnikov_kernel
     gaussian_kernel(u)
 
 The standard Gaussian smoothing kernel ``K(u) = e^{-u^2/2}/\\sqrt{2\\pi}`` (``\\int K = 1``,
-``\\mu_2(K) = 1``, roughness ``R(K) = 1/(2\\sqrt{\\pi})``) — the
+second moment ``\\mu_2(K) = 1``, roughness ``R(K) = 1/(2\\sqrt{\\pi})``) — the
 [`density`](@ref GBGStreamingStatistics.MarginalDensity.density) default.
 """
 @inline gaussian_kernel(u) = exp(-u^2 / 2) / sqrt(2π)
@@ -23,7 +23,7 @@ The standard Gaussian smoothing kernel ``K(u) = e^{-u^2/2}/\\sqrt{2\\pi}`` (``\\
     epanechnikov_kernel(u)
 
 The **Epanechnikov** kernel ``K(u) = \\tfrac{3}{4}(1 - u^2)`` for ``|u| \\le 1`` (zero outside) — the
-MSE-optimal second-order kernel (``\\int K = 1``, ``\\mu_2(K) = 1/5``, roughness ``R(K) = 3/5``). Pass
+MSE-optimal second-order kernel (``\\int K = 1``, second moment ``\\mu_2(K) = 1/5``, roughness ``R(K) = 3/5``). Pass
 it as `kernel = epanechnikov_kernel`; its compact support touches only the bins within ``h`` of the
 query point. [`bandwidth`](@ref GBGStreamingStatistics.Bandwidth.bandwidth) is **kernel-aware**, so it
 returns the matched Epanechnikov ``h \\approx 2.34\\,\\hat\\sigma\\,n^{-1/5}`` (``2.21\\times`` the

@@ -288,14 +288,15 @@ Float64 power-sums — kilobytes per channel, versus a gigabyte field), and on t
 arithmetic is hidden behind the memory- and atomic-bound accumulation (§5), not FP64 throughput.
 
 **Two-time samples / lag handling — settled: the package bins pairs; the consumer produces them.**
-For a two-time quantity like ``m_\tau(u) = \langle Y_{t+\tau}\mid X_t = u\rangle`` the conditioning
+For a two-time quantity like ``m_\tau(u) = \mathbb{E}[Y_{t+\tau}\mid X_t = u]`` the conditioning
 value ``X(t)`` and the response ``Y(t+\tau)`` must be paired **per source** — two separate marginal
 histograms cannot recover the joint (for the OU oracle both marginals are the *same* stationary
 Gaussian; the entire ``\tau``-dependence lives in the pair). The one histogram entry is made at the
 response step, into the bin of ``X(t)``. The package surface for this is just:
 
-- the **memoryless** `observe_pairs!(stat, x_past, y_now; lag)` — bins a batch of pre-formed,
-  lag-labelled pairs into the per-lag summary (§4.2 / §4.3); and
+- the **memoryless** `observe_pairs!(stat, x_past, y_now)` — bins a batch of pre-formed pairs into the
+  per-lag summary (the lag is the summary's `Histogram2D(…; lag)` label, not an argument here; §4.2 /
+  §4.3); and
 - the **binning map** `bin_index(stat, x)` — exposed so a caller can pre-quantize.
 
 Everything that *produces* the pairs is the **consumer's**, being sample-source policy a
@@ -801,7 +802,7 @@ intentional — do not dedupe it).
   Newton step is itself a kernel-weighted local-polynomial solve, and the identity-link case
   (regression) converges in **one** step to the plain solve. The GLM is therefore *built from* the
   linear solve, not parallel to it. So the **linear jet-smoother is the irreducible primitive**
-  (provisionally `local_fit`), and the GLM is one of three thin consumers: a **link-cap** (the
+  (`local_fit`), and the GLM is one of three thin consumers: a **link-cap** (the
   density's ``e^{\beta_0}``, the IRLS loop at degree ``\ge 1``), a **ratio** (conditioning —
   `conditional_density`, the disintegration of the joint), and a **jet component** (the derivative
   functionals `drift`, `diffusion`, and ``h^\star(x)``). This keeps the lone nonlinearity on one call
@@ -812,7 +813,7 @@ intentional — do not dedupe it).
   only) and the bespoke Newton step in `MarginalDensity._local_log`. On it: `conditional_mean` /
   `conditional_variance` gained the `degree` (0/1/2) and `kernel` knobs; `conditional_variance` the
   bias-reduced **Fan & Yao** default (`method = :residual`); and the response-aware local bandwidth
-  ``h^\star(x)`` = `bandwidth(::Histogram2D; rule = :local)`, which reads the curvature
+  ``h^\star(x)`` = `bandwidth(::Histogram2D, x; rule = :local)`, which reads the curvature
   ``m''(x) = 2\beta_2`` of a degree-2 fit together with ``\sigma^2(x)`` and ``f_X(x)``. It landed as the
   substrate of that feature, **not** as a standalone refactor (convenience is not a justification, §6). Settled by estimation theory
   (iteratively reweighted least squares is the linear solve iterated; the smoother is linear on the
