@@ -71,6 +71,7 @@ makedocs(
   modules   = [GBGStreamingStatistics,
                GBGStreamingStatistics.Accumulators,
                GBGStreamingStatistics.Histograms,
+               GBGStreamingStatistics.LocalPolynomial,
                GBGStreamingStatistics.DensityEstimation,
                GBGStreamingStatistics.Regression,
                GBGStreamingStatistics.ConditionalDensity,
@@ -101,6 +102,7 @@ makedocs(
       "Formalization" => "formalization.md",
       "Testing"       => "testing.md",
       "Performance"   => "performance.md",
+      "Internals"     => "internals.md",
     ],
   ]
 )
