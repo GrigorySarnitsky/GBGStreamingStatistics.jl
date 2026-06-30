@@ -26,7 +26,7 @@ function _y_profile(summary::Histogram2D, x::Real, hx::Real, kernelx)
   ny = summary.ny
   gx = Vector{Float64}(undef, nx)
   @inbounds for j in 1:nx
-    gx[j] = _kernel_weight(kernelx, _xbincenter(summary, j), x, hx)
+    gx[j] = _kernel_weight(_xbincenter(summary, j), x, hx, kernelx)
   end
   P = zeros(Float64, ny)
   @inbounds for k in 1:ny
@@ -54,7 +54,7 @@ function _density_at(summary::Histogram2D, P, D, y::Real, hy::Real, kernely)
   @inbounds for k in 1:summary.ny
     Pk = P[k]
     iszero(Pk) && continue
-    acc += Pk * _kernel_weight(kernely, _ybincenter(summary, k), y, hy)
+    acc += Pk * _kernel_weight(_ybincenter(summary, k), y, hy, kernely)
   end
   return acc / D
 end

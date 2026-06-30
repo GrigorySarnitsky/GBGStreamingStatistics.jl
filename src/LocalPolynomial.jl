@@ -19,7 +19,7 @@ using ..Kernels: _kernel_weight, AsymmetricKernel
 
 
 # Kernel-weighted design moments of a binned measure about the query point `x`:
-#   moments[k+1] = Σ_j _kernel_weight(kernel, loc_j, x, h) * weights_j * (loc_j - x)^k,   k = 0 … maxorder.
+#   moments[k+1] = Σ_j _kernel_weight(loc_j, x, h, kernel) * weights_j * (loc_j - x)^k,   k = 0 … maxorder.
 # `weights` is the per-bin weight — the bin counts for the design Gram, a response total for the
 # right-hand side, or the IRLS working weight (μ, or the residual count n - μ) for local likelihood.
 # The weight comes from the shared `_kernel_weight` atom (the 1/h it folds in cancels in the solve);
@@ -28,7 +28,7 @@ function _design_moments(locations, weights, x, h, kernel, maxorder)
   moments = zeros(Float64, maxorder + 1)
   @inbounds for j in eachindex(locations)
     d = locations[j] - x
-    w = _kernel_weight(kernel, locations[j], x, h) * weights[j]
+    w = _kernel_weight(locations[j], x, h, kernel) * weights[j]
     p = w
     moments[1] += p
     for k in 1:maxorder

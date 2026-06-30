@@ -153,6 +153,21 @@ Base/stdlib/package behavior, check official docs — don't guess. For a linear 
 are a 2×2/3×3 solve). Operators and extended Base/`Statistics` functions are imported before being
 extended (`import Base: merge!`); no type piracy.
 
+**Argument order — one convention, everywhere (internal and exported).** Every function orders its
+arguments **object → query point(s) → smoothing controls → modifiers**: (1) the data operated on (the
+`summary`, or the binned arrays — `counts` / `centers` / `locations` / `mass` / `response` / `P` / `D` /
+`n` — in their natural order); (2) the **query point(s)** `x` (then `y` / the response point) where the
+estimand is evaluated; (3) the smoothing controls — a **primary algorithm-selector** first where the function has one (`rule`,
+which picks the whole estimator), then the fixed sub-order **bandwidth → kernel → degree** (`h` / `hx` /
+`hy` / `b`, then `kernel` / `kernelx` / `kernely`, then `degree`); (4) the **secondary** modifiers and
+refinements (`method`, `adaptive`, `bounds`, `start`, `normalize`, `binning`, `maxorder`, IRLS scratch, …)
+in a stable order — a `method`-style refinement (it tweaks *how*, not *which* estimator) trails, unlike a
+primary `rule`-style selector, which leads. For an exported function, (1)–(2) are positional and (3)–(4) keyword — the
+keyword block follows the same bandwidth → kernel → degree → modifiers order. Read it as *what → where →
+how* (the bandwidth is the primary scale, the kernel the weight, the degree the polynomial order). A
+docstring's argument bullets then follow **signature order** — the natural consequence, and what
+`/check-docs` checks.
+
 **Docstrings vs comments.** Prefer docstrings; reserve plain comments for non-intuitive *why*
 (the atomic scatter-add, the shift-formula recovery, the power-sums-about-the-bin-center choice,
 "wider-than-data because this is a reduction"). One docstring per operation, on the bare binding:

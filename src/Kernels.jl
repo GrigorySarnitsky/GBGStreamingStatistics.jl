@@ -176,8 +176,8 @@ const beta_kernel = AsymmetricKernel(_beta_pdf, (0.0, 1.0), x -> x * (1 - x))
 # ratio, the local-polynomial jet — is uniform, and the symmetric/asymmetric split never re-appears).
 # A symmetric kernel is the scaled difference (1/h)K((c−x)/h); an asymmetric kernel is already a normalized
 # density in its data argument, K(c; x, h) (no 1/h). Internal (reached by explicit `using`).
-@inline _kernel_weight(kernel, c, x, h) = kernel((c - x) / h) / h
-@inline _kernel_weight(kernel::AsymmetricKernel, c, x, h) = kernel(c, x, h)
+@inline _kernel_weight(c, x, h, kernel) = kernel((c - x) / h) / h
+@inline _kernel_weight(c, x, h, kernel::AsymmetricKernel) = kernel(c, x, h)
 
 
 end # module Kernels

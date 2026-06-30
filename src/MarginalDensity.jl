@@ -174,7 +174,7 @@ function _parametric_start_eval(counts, centers, n, x, h, kernel, start, params)
     iszero(cj) && continue
     logpj = start.logpdf(centers[j], params)
     isfinite(logpj) || continue
-    acc += cj * exp(-logpj) * _kernel_weight(kernel, centers[j], x, h)
+    acc += cj * exp(-logpj) * _kernel_weight(centers[j], x, h, kernel)
   end
   return exp(logpx) * acc / n
 end
@@ -253,7 +253,7 @@ function _kde_h(counts, centers, n, x, h, kernel)
   @inbounds for j in eachindex(centers)
     cj = counts[j]
     iszero(cj) && continue
-    acc += cj * _kernel_weight(kernel, centers[j], x, h)
+    acc += cj * _kernel_weight(centers[j], x, h, kernel)
   end
   return acc / n
 end
@@ -281,12 +281,12 @@ end
 
 
 # Degree-0 adaptive KDE at x with per-bin (sample-point) bandwidths ``h_j``.
-function _kde_adaptive(counts, centers, hj, n, x, kernel)
+function _kde_adaptive(counts, centers, n, x, hj, kernel)
   acc = 0.0
   @inbounds for j in eachindex(centers)
     cj = counts[j]
     iszero(cj) && continue
-    acc += cj * _kernel_weight(kernel, centers[j], x, hj[j])
+    acc += cj * _kernel_weight(centers[j], x, hj[j], kernel)
   end
   return acc / n
 end
@@ -300,7 +300,7 @@ end
 # moments) — a local GLM is the linear solve iterated (`docs/ARCHITECTURE.md` §11). Warm-started from
 # the KDE value `f0`; falls back to it where the local design can't support degree d (singular) or the
 # fit diverges.
-function _local_log(counts, centers, hx, n, b, x, degree, kernel, f0)
+function _local_log(counts, centers, n, x, hx, kernel, degree, b, f0)
   (f0 > 0 && isfinite(f0)) || return f0
   p = degree + 1
   β = zeros(p)
@@ -313,7 +313,7 @@ function _local_log(counts, centers, hx, n, b, x, degree, kernel, f0)
     fill!(momμ, 0.0)
     @inbounds for j in eachindex(centers)
       d = centers[j] - x
-      w = _kernel_weight(kernel, centers[j], x, hx)
+      w = _kernel_weight(centers[j], x, hx, kernel)
       w * hx < 1e-10 && continue        # cut on the raw kernel value (scale-free), not the 1/hx-folded weight
       η = β[1]
       dl = 1.0
@@ -393,9 +393,9 @@ end
 
 
 """
-    density(summary::Histogram1D, x; degree = 0, h = nothing, adaptive = false,
-            kernel = gaussian_kernel, bounds = nothing, start = nothing,
-            normalize = false, binning = :linear)   # ≡ f_X
+    density(summary::Histogram1D, x; h = nothing, kernel = gaussian_kernel, degree = 0,
+            adaptive = false, bounds = nothing, start = nothing, normalize = false,
+            binning = :linear)   # ≡ f_X
 
 **Estimand.** the marginal (Lebesgue) density ``f_X = \\mathrm{d}\\mu_X/\\mathrm{d}\\lambda`` of the
 conditioning variable ``X``, defined by ``P(X \\in A) = \\int_A f_X\\,\\mathrm{d}\\lambda``.
@@ -404,14 +404,6 @@ conditioning variable ``X``, defined by ``P(X \\in A) = \\int_A f_X\\,\\mathrm{d
 to get the density at one point, or a vector to get the whole curve — from the accumulated `summary`. It
 is a binned local smoother of the `summary` counts ``n_j`` at bin centers ``c_j``, shaped by these options:
 
-- **`degree`** — the local-polynomial order. `degree = 0` (default) is the binned KDE / WARPing
-  ``\\hat f(x) = \\frac1n \\sum_j (n_j/h_j)\\, K((x-c_j)/h_j)`` (``\\int K = 1``). `degree` ``\\ge 1`` is the
-  **local-log-polynomial** (local-likelihood) estimator (Loader 1996): fit ``\\log f`` by a
-  degree-`degree` polynomial through a binned **local Poisson** likelihood and report
-  ``\\hat f(x) = e^{\\hat\\beta_0}``. `degree = 1` (log-linear) is **exact for an exponential density**,
-  so it tracks the exponential / stretched-exponential **tails** a flat KDE smears; `degree = 2`
-  (log-quadratic) is exact for a Gaussian. It falls back to the KDE where the local fit is degenerate or
-  runs away in a sparse tail.
 - **`h`** — the **smoothing bandwidth**: the kernel scale, the one option that sets the bias–variance
   trade-off (larger `h` smooths more — less variance, more bias). Pass a positive number, or leave it
   `nothing` (default) to select one from the data by the kernel- and degree-aware **normal-reference
@@ -422,6 +414,24 @@ is a binned local smoother of the `summary` counts ``n_j`` at bin centers ``c_j`
   [`gamma_kernel`](@ref GBGStreamingStatistics.Kernels.gamma_kernel) /
   [`beta_kernel`](@ref GBGStreamingStatistics.Kernels.beta_kernel) take their own scale ``b``
   here (rate ``n^{-2/5}``) in place of the symmetric `h`.
+- **`kernel`** — the smoothing weight ``K`` (any callable with ``\\int K = 1``). Default the **symmetric**
+  [`gaussian_kernel`](@ref GBGStreamingStatistics.Kernels.gaussian_kernel)
+  ([`epanechnikov_kernel`](@ref GBGStreamingStatistics.Kernels.epanechnikov_kernel) the compact-support
+  alternative). For **bounded / positive support** pass an **asymmetric** kernel —
+  [`gamma_kernel`](@ref GBGStreamingStatistics.Kernels.gamma_kernel) for ``[0,\\infty)`` (e.g. a droplet
+  radius), [`beta_kernel`](@ref GBGStreamingStatistics.Kernels.beta_kernel) for ``[0,1]``, or a custom
+  [`AsymmetricKernel`](@ref GBGStreamingStatistics.Kernels.AsymmetricKernel) — boundary-bias-free by
+  construction. An asymmetric kernel is its own degree-0, boundary-free estimator, so `degree`, `adaptive`,
+  `bounds`, and a parametric `start` do not combine with it, and it takes its own scale ``b`` in place of
+  `h` (the `h` entry).
+- **`degree`** — the local-polynomial order. `degree = 0` (default) is the binned KDE / WARPing
+  ``\\hat f(x) = \\frac1n \\sum_j (n_j/h_j)\\, K((x-c_j)/h_j)`` (``\\int K = 1``). `degree` ``\\ge 1`` is the
+  **local-log-polynomial** (local-likelihood) estimator (Loader 1996): fit ``\\log f`` by a
+  degree-`degree` polynomial through a binned **local Poisson** likelihood and report
+  ``\\hat f(x) = e^{\\hat\\beta_0}``. `degree = 1` (log-linear) is **exact for an exponential density**,
+  so it tracks the exponential / stretched-exponential **tails** a flat KDE smears; `degree = 2`
+  (log-quadratic) is exact for a Gaussian. It falls back to the KDE where the local fit is degenerate or
+  runs away in a sparse tail.
 - **`adaptive`** — whether the bandwidth **varies with the local density**. `false` (default) holds `h`
   fixed everywhere; `true` uses the **Abramson** variable bandwidth — the kernel width scales by
   ``(\\tilde f/g)^{-1/2}`` (a pilot ``\\tilde f`` at the bandwidth `h`, ``g`` its geometric mean), widening
@@ -459,16 +469,6 @@ is a binned local smoother of the `summary` counts ``n_j`` at bin centers ``c_j`
   ``O(\\Delta^2)`` in the bin width ``\\Delta``; `:simple` places it at the geometric bin center ``c_j``,
   the ``O(\\Delta)`` mass-at-center approximation. The centroid is read from data already in the summary, so
   the higher-order accuracy is free; it applies to every path (KDE, local-log, start, asymmetric kernel).
-- **`kernel`** — the smoothing weight ``K`` (any callable with ``\\int K = 1``). Default the **symmetric**
-  [`gaussian_kernel`](@ref GBGStreamingStatistics.Kernels.gaussian_kernel)
-  ([`epanechnikov_kernel`](@ref GBGStreamingStatistics.Kernels.epanechnikov_kernel) the compact-support
-  alternative). For **bounded / positive support** pass an **asymmetric** kernel —
-  [`gamma_kernel`](@ref GBGStreamingStatistics.Kernels.gamma_kernel) for ``[0,\\infty)`` (e.g. a droplet
-  radius), [`beta_kernel`](@ref GBGStreamingStatistics.Kernels.beta_kernel) for ``[0,1]``, or a custom
-  [`AsymmetricKernel`](@ref GBGStreamingStatistics.Kernels.AsymmetricKernel) — boundary-bias-free by
-  construction. An asymmetric kernel is its own degree-0, boundary-free estimator, so `degree`, `adaptive`,
-  `bounds`, and a parametric `start` do not combine with it, and it takes its own scale ``b`` in place of
-  `h` (the `h` entry).
 
 The four corners (fixed/variable ``\\times`` KDE/local-log) and everything between are one call. A vector
 of query points returns a vector. The FFT amortization of the `degree = 0`, fixed-`h` convolution over a
@@ -490,8 +490,8 @@ References:
 - M. C. Jones (1993), [*Simple boundary correction for kernel density estimation*](https://doi.org/10.1007/BF00147776), Statist. Comput. 3(3) (the `bounds` renormalization).
 - N. L. Hjort & I. K. Glad (1995), [*Nonparametric density estimation with a parametric start*](https://doi.org/10.1214/aos/1176324627), Ann. Statist. 23(3) (the `start` estimator).
 """
-function density(summary::Histogram1D, x::Real; degree::Integer = 0, h = nothing,
-                 adaptive::Bool = false, kernel = gaussian_kernel, bounds = nothing,
+function density(summary::Histogram1D, x::Real; h = nothing, kernel = gaussian_kernel,
+                 degree::Integer = 0, adaptive::Bool = false, bounds = nothing,
                  start = nothing, normalize::Bool = false, binning::Symbol = :linear)
   if normalize
     Z = _normalization_constant(summary; degree = degree, h = h, adaptive = adaptive,
@@ -538,18 +538,19 @@ function density(summary::Histogram1D, x::Real; degree::Integer = 0, h = nothing
     return bounds === nothing ? fx : fx / _kernel_mass(kernel, x, hh, bounds[1], bounds[2])
   elseif degree == 0
     hj, _ = _abramson(counts, centers, n, hh, kernel)
-    fx = _kde_adaptive(counts, centers, hj, n, x, kernel)
+    fx = _kde_adaptive(counts, centers, n, x, hj, kernel)
     return bounds === nothing ? fx : fx / _kernel_mass(kernel, x, hh, bounds[1], bounds[2])
   end
   g = adaptive ? _abramson(counts, centers, n, hh, kernel)[2] : 1.0
   f0 = _kde_h(counts, centers, n, x, hh, kernel)
-  return _local_log(counts, centers, _balloon(hh, g, f0, adaptive), n, inv(summary.scale),
-                    x, degree, kernel, f0)
+  return _local_log(counts, centers, n, x, _balloon(hh, g, f0, adaptive), kernel, degree,
+                    inv(summary.scale), f0)
 end
 
-function density(summary::Histogram1D, xs::AbstractVector; degree::Integer = 0, h = nothing,
-                 adaptive::Bool = false, kernel = gaussian_kernel, bounds = nothing,
-                 start = nothing, normalize::Bool = false, binning::Symbol = :linear)
+function density(summary::Histogram1D, xs::AbstractVector; h = nothing,
+                 kernel = gaussian_kernel, degree::Integer = 0, adaptive::Bool = false,
+                 bounds = nothing, start = nothing, normalize::Bool = false,
+                 binning::Symbol = :linear)
   if normalize
     Z = _normalization_constant(summary; degree = degree, h = h, adaptive = adaptive,
                                 kernel = kernel, bounds = bounds, start = start, binning = binning)
@@ -595,14 +596,14 @@ function density(summary::Histogram1D, xs::AbstractVector; degree::Integer = 0, 
     return bounds === nothing ? fxs : [f / _kernel_mass(kernel, x, hh, bounds[1], bounds[2]) for (f, x) in zip(fxs, xs)]
   elseif degree == 0
     hj, _ = _abramson(counts, centers, n, hh, kernel)
-    fxs = [_kde_adaptive(counts, centers, hj, n, x, kernel) for x in xs]
+    fxs = [_kde_adaptive(counts, centers, n, x, hj, kernel) for x in xs]
     return bounds === nothing ? fxs : [f / _kernel_mass(kernel, x, hh, bounds[1], bounds[2]) for (f, x) in zip(fxs, xs)]
   end
   b = inv(summary.scale)
   g = adaptive ? _abramson(counts, centers, n, hh, kernel)[2] : 1.0
   return [begin
             f0 = _kde_h(counts, centers, n, x, hh, kernel)
-            _local_log(counts, centers, _balloon(hh, g, f0, adaptive), n, b, x, degree, kernel, f0)
+            _local_log(counts, centers, n, x, _balloon(hh, g, f0, adaptive), kernel, degree, b, f0)
           end for x in xs]
 end
 
