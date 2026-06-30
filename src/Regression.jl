@@ -43,9 +43,9 @@ normal equations of order `degree` for the jet; the estimate is the fitted value
 
 which removes the design-density bias ``2 m'(x) f'(x)/f(x)`` of the Nadaraya–Watson reduction
 ``\\hat m_h = P_0/T_0`` (the `degree = 0` local-constant fit). The bandwidth ``h`` is supplied (or the
-response-aware local plug-in ``h^\\star(x)`` from `bandwidth(summary, x; rule = :local)`, §4.5);
+response-aware local plug-in ``h^\\star(x)`` from `bandwidth(summary, x; rule = :local)`);
 `degree = 2` (local-quadratic) additionally exposes the curvature ``m''(x)`` that ``h^\\star(x)`` needs. A vector of query points
-returns a vector. Consistency (`docs/FORMALIZATION.md`): ``\\operatorname{bias}\\hat m_h(x) \\approx
+returns a vector. Consistency: ``\\operatorname{bias}\\hat m_h(x) \\approx
 \\tfrac12 h^2 \\mu_2(K)\\, m''(x)``, ``\\operatorname{Var}\\hat m_h(x) \\approx
 R(K)\\,\\sigma^2(x)/(n\\,h\\,f_X(x))``.
 

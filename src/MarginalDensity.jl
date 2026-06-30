@@ -547,7 +547,7 @@ is a binned local smoother of the `summary` counts ``n_j`` at bin centers ``c_j`
 - **`h`** — the **smoothing bandwidth**: the kernel scale, the one option that sets the bias–variance
   trade-off (larger `h` smooths more — less variance, more bias). Pass a positive number, or leave it
   `nothing` (default) to select one from the data by the kernel- and degree-aware **normal-reference
-  rule** ([`bandwidth`](@ref GBGStreamingStatistics.Bandwidth.bandwidth), §4.5 — Silverman's
+  rule** ([`bandwidth`](@ref GBGStreamingStatistics.Bandwidth.bandwidth) — Silverman's
   ``(4/3)^{1/5}\\hat\\sigma\\,n^{-1/5}`` for the Gaussian kernel at degree 0/1, wider at the ``n^{-1/9}``
   rate for degree 2). For a shape-adaptive choice, compute `bandwidth(summary; rule = :sj)` (or `:isj` /
   `:aic`) yourself and pass the number. The asymmetric
@@ -749,7 +749,7 @@ end
 ```
 
 **Estimator.** ``\\sqrt{R(K)\\,\\hat f_h(x)/(n h)}`` from the recovered ``\\hat f_h(x)``, the count
-``n``, the bandwidth `h` (default the §4.5 normal reference), and the roughness ``R(K) = \\int K^2`` of the
+``n``, the bandwidth `h` (default the normal reference), and the roughness ``R(K) = \\int K^2`` of the
 smoothing `kernel` ``K`` — any with ``\\int K = 1``, default
 [`gaussian_kernel`](@ref GBGStreamingStatistics.Kernels.gaussian_kernel) — by quadrature. The
 pointwise **variability band** is ``\\hat f_h(x) \\pm z\\,\\mathrm{SE}(x)`` (``z = 1.96`` for 95\\%) — a

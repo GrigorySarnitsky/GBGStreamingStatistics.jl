@@ -112,7 +112,12 @@ definitions; this command runs all of them.
   `grep -rniE '\bknobs?\b' src docs CLAUDE.md test` (the regenerated `docs/build/` and the
   `docs/src/{architecture,formalization,testing,performance}.md` build copies excluded) flags the
   colloquial "knob": a tunable argument is an **option** / *setting* / post-hoc *choice*, never a "knob"
-  (`CLAUDE.md` *Neutral reference register*), on every authored surface.
+  (`CLAUDE.md` *Neutral reference register*), on every authored surface; a **user-facing-cross-ref scan**
+  — `grep -rnE '§[0-9]|docs/[A-Za-z]|inspiration/|ARCHITECTURE\.md|FORMALIZATION\.md' src/*.jl` then drop
+  the `#`-comment hits (internal, exempt) and keep any survivor inside a `"""`docstring`"""` or a
+  `throw(...)` string — a design-doc section number (`§4.5`) or repo path on the **user-facing** surface
+  (a rendered docstring or a thrown error), which `CLAUDE.md` *No internal cross-references…* bans: delete
+  it or name the published page in prose.
 - Triage (drop false positives — universally standard math; kwarg names correctly backticked), then fix
   EVERY genuine finding in one pass. A flagged instance is a sample of a class — fix the class, not the line.
 - Rebuild: `julia --project=docs docs/make.jl` (the inline-math lint + doctests + cross-references +

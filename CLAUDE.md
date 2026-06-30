@@ -201,6 +201,12 @@ the estimand whenever a clean population definition exists; for an intrinsically
   better, a *keyword argument*, a *setting*, or a post-hoc *choice* — e.g. the bandwidth), never a "knob":
   the reference docs keep a strict, neutral tone, not a colloquial one. Applies to every authored surface —
   docstrings, the four rationale docs, the doc pages, `#` comments, and `@testset` names.
+- **No internal cross-references on the user-facing surface.** A rendered **docstring** or a **thrown
+  error message** is user-facing: it must not cite a design-doc **section number** (`§4.5`) or a **repo
+  path** (`docs/ARCHITECTURE.md`, `inspiration/…`) — those are dangling, unnavigable, and they renumber.
+  Keep it self-contained; where a rationale pointer earns its place, name the published page in prose
+  ("the Architecture page"), never a `§`-number or path. The `§4.x` estimator map stays in its developer
+  home — `#` comments, `CLAUDE.md`, and the design docs (which cite each other by section freely).
 - **Correctness is its own check, distinct from formatting.** Verify the estimator is **consistent
   for the stated estimand** under the stated assumptions, and that **every normalization is exact**:
   the ``1/n``, ``1/(nh)``, ``\int K = 1``, kernel moments ``\mu_2(K) = \int u^2 K``, roughness

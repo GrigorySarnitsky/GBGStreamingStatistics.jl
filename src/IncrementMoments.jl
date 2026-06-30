@@ -32,7 +32,7 @@ function _check_order(n::Integer)
   1 ≤ n ≤ 2 || throw(ArgumentError(
     "increment-moment order n = $n is outside {1, 2}: the order-2 Histogram2D resolves only M_1 " *
     "(drift) and M_2 (diffusion). Higher n (the higher KM coefficients, and the Pawula Q's M_4) needs the joint summary raised to " *
-    "per-cell Y power-sums of order n — a recorded coverage gap (docs/ARCHITECTURE.md §4.4)."))
+    "per-cell Y power-sums of order n — a recorded coverage gap."))
   return nothing
 end
 
@@ -182,7 +182,7 @@ one-step densities (see
 Intrinsically finite-sample — a test, not an estimand.
 
 !!! note "Forthcoming"
-    Declared; not yet implemented — it composes the now-available §4.3
+    Declared; not yet implemented — it composes the now-available
     [`transition_density`](@ref GBGStreamingStatistics.ConditionalDensity.transition_density).
 """
 function markov_test end

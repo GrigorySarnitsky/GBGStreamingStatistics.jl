@@ -79,7 +79,7 @@ jet is the local Taylor expansion: ``\\beta_0`` is the fitted value, ``\\beta_1`
 ``\\hat m''(x) = 2\\beta_2``. The kernel normalization cancels in the solve, so any callable `kernel`
 works; a degenerate local design (too little data near `x`) returns an all-NaN jet.
 
-This is the shared linear primitive of the local smoothers (`docs/ARCHITECTURE.md` §11):
+This is the shared linear primitive of the local smoothers:
 ``\\hat m(x)`` is ``\\beta_0`` of one `local_fit`, and the local-likelihood density reuses the same
 kernel-weighted-moment solve as the iteratively reweighted (IRLS) inner step of its local-Poisson fit.
 
