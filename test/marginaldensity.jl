@@ -89,7 +89,7 @@ end
   end
 end
 
-@testset "density knobs: degree × fixed/variable bandwidth (§4.1)" begin
+@testset "density options: degree × fixed/variable bandwidth (§4.1)" begin
   Random.seed!(13)
   ha = Histogram1D(-8.0, 8.0, 1600); observe!(ha, randn(500_000))
 
@@ -293,7 +293,7 @@ end
           density(both, x; start = lognormal_start, normalize = true)  rtol = 1e-9
   end
 
-  # a parametric start is the degree-0, fixed-h, symmetric-kernel estimator — the other knobs are rejected
+  # a parametric start is the degree-0, fixed-h, symmetric-kernel estimator — the other options are rejected
   @test_throws ArgumentError density(hg, 0.0; start = normal_start, degree = 1)
   @test_throws ArgumentError density(hg, 0.0; start = normal_start, adaptive = true)
   @test_throws ArgumentError density(hg, 0.0; start = normal_start, bounds = (0.0, Inf))

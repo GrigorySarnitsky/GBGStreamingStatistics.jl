@@ -130,7 +130,7 @@ The **beta kernel** (Chen 1999) for a density on the unit interval ``[0,1]`` —
 analog of [`gamma_kernel`](@ref GBGStreamingStatistics.MarginalDensity.gamma_kernel): at ``x`` it is
 the modified (bias-reduced) ``\\mathrm{Beta}`` density in the data argument (Chen's ``f_2``: interior
 shapes ``(x/b,\\,(1-x)/b)``, with a ``\\sqrt{\\,\\cdot\\,}`` correction within ``2b`` of an edge),
-boundary-bias-free at **both** edges. Pass `kernel = beta_kernel` with data scaled to ``[0,1]``; the bandwidth default, the knob
+boundary-bias-free at **both** edges. Pass `kernel = beta_kernel` with data scaled to ``[0,1]``; the bandwidth default, the option
 restrictions, and the ``n^{-2/5}`` rate are as for `gamma_kernel`.
 
 Reference: S. X. Chen (1999), [*Beta kernel estimators for density
@@ -273,7 +273,7 @@ function _start_params(summary::Histogram1D, start::ParametricStart)
 end
 
 
-# Reject the knobs that do not combine with a parametric start (it is the degree-0, fixed-h, symmetric-
+# Reject the options that do not combine with a parametric start (it is the degree-0, fixed-h, symmetric-
 # kernel local-constant estimator of Hjort & Glad; `normalize` is its renormalization, `bounds` its rival).
 function _check_start(kernel, degree, adaptive, bounds)
   kernel isa AsymmetricKernel &&
@@ -534,7 +534,7 @@ conditioning variable ``X``, defined by ``P(X \\in A) = \\int_A f_X\\,\\mathrm{d
 
 **Estimator.** the smoothed estimate ``\\hat f_h(x)``, evaluated at the **query point(s)** `x` — a scalar
 to get the density at one point, or a vector to get the whole curve — from the accumulated `summary`. It
-is a binned local smoother of the `summary` counts ``n_j`` at bin centers ``c_j``, shaped by these knobs:
+is a binned local smoother of the `summary` counts ``n_j`` at bin centers ``c_j``, shaped by these options:
 
 - **`degree`** — the local-polynomial order. `degree = 0` (default) is the binned KDE / WARPing
   ``\\hat f(x) = \\frac1n \\sum_j (n_j/h_j)\\, K((x-c_j)/h_j)`` (``\\int K = 1``). `degree` ``\\ge 1`` is the
@@ -544,7 +544,7 @@ is a binned local smoother of the `summary` counts ``n_j`` at bin centers ``c_j`
   so it tracks the exponential / stretched-exponential **tails** a flat KDE smears; `degree = 2`
   (log-quadratic) is exact for a Gaussian. It falls back to the KDE where the local fit is degenerate or
   runs away in a sparse tail.
-- **`h`** — the **smoothing bandwidth**: the kernel scale, the one knob that sets the bias–variance
+- **`h`** — the **smoothing bandwidth**: the kernel scale, the one option that sets the bias–variance
   trade-off (larger `h` smooths more — less variance, more bias). Pass a positive number, or leave it
   `nothing` (default) to select one from the data by the kernel- and degree-aware **normal-reference
   rule** ([`bandwidth`](@ref GBGStreamingStatistics.Bandwidth.bandwidth), §4.5 — Silverman's

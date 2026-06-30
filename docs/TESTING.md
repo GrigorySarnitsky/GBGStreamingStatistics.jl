@@ -12,7 +12,7 @@ analytic round-trips: estimators are checked against distributions with closed f
   `ou_transition`, and the `trapz` / `ise` helpers), `include`d by every file that needs one. The marginal density `density` is checked across a
   **representative analytic-PDF suite** — Gaussian, uniform (bounded support), exponential, Student-``t``
   ``\nu = 3`` (heavy tail), log-normal (skew), and a bimodal mixture (`test/density_convergence.jl`) — and
-  across its full knob grid (KDE / local-log `degree`, fixed / Abramson `adaptive`, the `bounds` boundary
+  across its full option grid (KDE / local-log `degree`, fixed / Abramson `adaptive`, the `bounds` boundary
   correction, the asymmetric `gamma_kernel` / `beta_kernel`, the parametric `start`, and `normalize`) in
   `test/marginaldensity.jl`. The conditional / transition estimators use **Gaussian** marginals
   (``f_X``, conditional moments) and an **Ornstein–Uhlenbeck** process, whose drift, diffusion, and
@@ -89,7 +89,7 @@ check (the failure mode that once left `conditional_mean` without a mergeability
 3. **Functional of the merged summary** — `f`(merge) ``=`` `f`(accumulate-together) — mergeability.
 4. **Off-support sentinel** — `NaN` where the estimand is undefined off the data's support (the conditional
    estimators); a marginal density is defined everywhere and is exempt.
-5. **Argument-domain errors** — a non-positive bandwidth, and any rejected knob combination, throws.
+5. **Argument-domain errors** — a non-positive bandwidth, and any rejected option combination, throws.
 
 Characteristics 2–4 are the `check_point_estimator` battery; 1 and 5 are per-estimator (the oracle, the
 `@test_throws`).
@@ -164,7 +164,7 @@ compat pin JET needs).
     parametric `start`, and `normalize`), `bandwidth` (the normal-reference, Sheather–Jones `:sj` / `:isj`,
     `:aic`, the asymmetric Chen `:plugin`, and the joint-summary response-aware local `:local`
     ``h^\star(x)``), the shared `LocalPolynomial.local_fit` jet primitive, the §4.2 regression (with the
-    `degree` / `kernel` knobs and the Fan–Yao `conditional_variance`), the §4.3
+    `degree` / `kernel` options and the Fan–Yao `conditional_variance`), the §4.3
     `conditional_density` / `transition_density`, and the §4.4 `drift` / `diffusion` / `increment_moment`
     are real — the Gaussian and analytic-PDF oracles, the bivariate-Gaussian, **heteroscedastic
     curved-mean**, quadratic-mean, and **Ornstein–Uhlenbeck** oracles, mergeability, the uniform

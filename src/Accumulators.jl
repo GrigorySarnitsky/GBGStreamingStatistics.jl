@@ -83,7 +83,7 @@ a superposition over a slowly varying parameter ``\\beta`` with mixing law ``f(\
 assemble ``\\sum_k (w_k / N_k)\\,T_k`` by weighted `merge!` (``N_k = \\texttt{sum(T\\_k.counts)}`` normalizes
 each component to a probability measure; the conditional / transition estimators then carry the local
 mixing weight automatically, being ratios of linear functionals). This is **post hoc** — re-weight without
-re-accumulating, exactly as bandwidth is a post-hoc knob. A weighted merge (``\\texttt{weight} \\ne 1``)
+re-accumulating, exactly as bandwidth is a post-hoc choice. A weighted merge (``\\texttt{weight} \\ne 1``)
 requires a Float-count `into` (`count = Float64`).
 
 `merge!` is intrinsically a finite-sample operation, so it has no population estimand of its own; its

@@ -339,7 +339,7 @@ geometric center ``c_j`` (`binning = :simple`, ``O(\Delta)``); the centroid is r
 Gaussian-tuned, so a non-Gaussian kernel wants a matched ``h`` (Epanechnikov's AMISE-optimal ``h`` is
 ``\approx 2.21\times`` the Gaussian's).
 
-**Tail-aware density.** Fixed-``h`` KDE is poor in sparse tails; both fixes are `density` knobs. The
+**Tail-aware density.** Fixed-``h`` KDE is poor in sparse tails; both fixes are `density` options. The
 **adaptive (variable-bandwidth)** estimator `density(…; adaptive=true)` (Abramson's
 ``h_j \propto \tilde f(c_j)^{-1/2}``, widening the kernel where data is thin) cuts the tail *variance*;
 the **local-log-polynomial** estimator `density(…; degree=d)` (fit ``\log f`` by a binned local Poisson
@@ -619,7 +619,7 @@ mergeable streaming-moment design is, however, worth mirroring — §10).
   (`count = Float64`; a weighted count ``w\,n`` is not an integer); the conditional / transition estimators
   carry the correct local mixing weight ``w_k f_k(x)`` automatically, being ratios of linear functionals of
   the summary. It fits the post-hoc rule: keep one summary per ``\beta`` and choose ``f(\beta)`` after the
-  runs, re-weighting without re-accumulating, just as bandwidth is a post-hoc knob. `scale!` also gives
+  runs, re-weighting without re-accumulating, just as bandwidth is a post-hoc choice. `scale!` also gives
   **exponential forgetting** (`scale!(s, λ)` with ``0 < \lambda < 1`` before the next block) for a
   non-stationary stream. See the §11 decision-log entry.
 
@@ -811,7 +811,7 @@ intentional — do not dedupe it).
   `conditional_mean` (its ``\beta_0``), the local-likelihood `density` (the IRLS inner solve), and the
   increment moments — replacing the formerly duplicated `Regression._local_linear` (degree-1, intercept
   only) and the bespoke Newton step in `MarginalDensity._local_log`. On it: `conditional_mean` /
-  `conditional_variance` gained the `degree` (0/1/2) and `kernel` knobs; `conditional_variance` the
+  `conditional_variance` gained the `degree` (0/1/2) and `kernel` options; `conditional_variance` the
   bias-reduced **Fan & Yao** default (`method = :residual`); and the response-aware local bandwidth
   ``h^\star(x)`` = `bandwidth(::Histogram2D, x; rule = :local)`, which reads the curvature
   ``m''(x) = 2\beta_2`` of a degree-2 fit together with ``\sigma^2(x)`` and ``f_X(x)``. It landed as the

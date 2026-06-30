@@ -32,7 +32,7 @@ include("testcontracts.jl"); using .TestContracts
     end
   end
 
-  @testset "the kernel knob (parity): Epanechnikov normalizes and recovers" begin
+  @testset "the kernel option (parity): Epanechnikov normalizes and recovers" begin
     # The double-kernel now takes any symmetric ∫K=1 kernel; Epanechnikov still integrates to 1 (the
     # ∫K=1 normalization is what guarantees it) and recovers the conditional to a few percent.
     ys = collect(-6.0:0.02:6.0)

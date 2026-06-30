@@ -141,7 +141,7 @@ The implemented entries are test-linked; a forthcoming operation gets its entry 
 
 ## Local-log-polynomial & adaptive density (§4.1) — `density`'s `degree` / `adaptive`
 
-- **Estimand.** ``f_X``, exactly as for the degree-0 `density` above; the knobs change the *estimator*,
+- **Estimand.** ``f_X``, exactly as for the degree-0 `density` above; the options change the *estimator*,
   not the target.
 - **`adaptive` (Abramson variable bandwidth).** A fixed-bandwidth pilot ``\tilde f`` at ``h`` sets
   per-bin bandwidths ``h_j = h\,(\tilde f(c_j)/g)^{-1/2}`` (``g`` the geometric mean of ``\tilde f`` over
@@ -151,7 +151,7 @@ The implemented entries are test-linked; a forthcoming operation gets its entry 
   **local Poisson** likelihood — ``\log \mathbb{E}[n_j] = \log(nb) + \sum_{l \le d} \beta_l (c_j-x)^l``,
   weights ``K((c_j-x)/h_j)``, by Newton/IRLS — and report ``\hat f(x) = e^{\hat\beta_0}`` (Loader 1996).
   Degree 1 is exact for an exponential density (tracks exponential tails), degree 2 for a Gaussian. The
-  two knobs compose. On a **bounded support** the degree-0 KDE accepts `bounds = (a, b)`, renormalizing
+  two options compose. On a **bounded support** the degree-0 KDE accepts `bounds = (a, b)`, renormalizing
   by the kernel mass ``\int_a^b K_h(x-u)\,\mathrm{d}u`` inside the support (Jones 1993) to remove the
   ``O(1)`` boundary bias that otherwise halves the estimate at the edge.
 - **Test.** `test/marginaldensity.jl` (every grid corner recovers the ``N(0,1)`` pdf into the tail and
@@ -171,7 +171,7 @@ The implemented entries are test-linked; a forthcoming operation gets its entry 
 - **Estimator (`start`, Hjort & Glad 1995).** The semiparametric estimate ``\hat f(x) = p(x;\hat\theta)\,\hat r_h(x)``, where ``p(\cdot;\hat\theta)`` is a parametric *start* fit by **method of moments** from the recovered ``\hat\mu``, ``\hat\sigma^2``, and ``\hat r_h(x) = \tfrac1{nh}\sum_j (n_j/p(c_j;\hat\theta))\,K((x-c_j)/h)`` is a KDE of the *correction* ``r = f_X/p`` (the start's local relative error). Five starts are provided — `normal_start`, `lognormal_start`, `gamma_start`, `exponential_start`, `inverse_gaussian_start` — each a density whose parameters are fixed by the first two moments, so ``\hat\theta`` is itself a post-hoc functional of the summary and the whole estimate is **mergeable** (``\hat\theta`` merges through the moments; the reweighted counts add). Degree-0, fixed-``h``, symmetric kernel.
 - **Consistency claim.** For a fixed start with bounded, twice-differentiable correction ``r``, consistent for ``f_X`` at ``\operatorname{bias} = O(h^2)``, ``\operatorname{var} = O(1/(nh))`` (MISE ``\sim n^{-4/5}``), but with the **leading bias governed by ``r'' = (f_X/p)''`` in place of ``f_X''``** and the variance ``R(K)f_X(x)/(nh)`` unchanged to leading order. When the start is correct ``r \equiv 1``, ``r'' \equiv 0``: the leading bias vanishes and the estimate collapses to the parametric fit. So the start is a **bias reduction** that pays in the bias-dominated regime (skewed / heavy-tailed shapes, oversmoothed ``h``), not in the large-``n`` limit where the KDE is already nearly unbiased.
 - **Estimator (`normalize`).** ``\hat f / Z`` with ``Z = \int \hat f`` over the summary's range intersected with the estimator's support, by the trapezoidal rule on a fine grid — a deterministic, mergeable functional of the estimate making ``\int \hat f = 1`` **exactly** (the asymmetric kernels and a parametric start are not self-normalizing; the symmetric KDE already is, to the grid's ``O(\Delta^2)``).
-- **Test.** `test/marginaldensity.jl` (a normal start at a wide ``h`` recovers the Gaussian peak the plain KDE flattens by ``\approx 10\%``, ISE ``> 20\times`` smaller; a log-normal start tracks log-normal data ``> 3\times`` better than the symmetric KDE, and pointwise into the right tail; `normalize` drives ``\int\hat f`` to ``1`` for a start and for the gamma kernel; mergeability; the rejected knob combinations).
+- **Test.** `test/marginaldensity.jl` (a normal start at a wide ``h`` recovers the Gaussian peak the plain KDE flattens by ``\approx 10\%``, ISE ``> 20\times`` smaller; a log-normal start tracks log-normal data ``> 3\times`` better than the symmetric KDE, and pointwise into the right tail; `normalize` drives ``\int\hat f`` to ``1`` for a start and for the gamma kernel; mergeability; the rejected option combinations).
 
 ## Pointwise standard error (§4.1) — `density_standard_error`
 
@@ -228,7 +228,7 @@ The implemented entries are test-linked; a forthcoming operation gets its entry 
   giving the optimal rate ``\hat m_{h^\star}(x) - m(x) = O_p(n^{-2/5})`` at ``h^\star \sim n^{-1/5}``.
 - **Test.** `test/regression.jl` — the bivariate-Gaussian oracle ``Y = \rho X + \sqrt{1-\rho^2}\,
   \varepsilon`` (so ``\mathbb{E}[Y\mid X=x] = \rho x``): `conditional_mean` recovers the slope to
-  ``\lesssim 2\times10^{-2}``, with the `degree` (0/1/2) and `kernel` knobs exercised (degree-2 and
+  ``\lesssim 2\times10^{-2}``, with the `degree` (0/1/2) and `kernel` options exercised (degree-2 and
   Epanechnikov both recover the linear mean). `test/conditional_convergence.jl` — the ``n^{-2/5}`` rate:
   on a curved-mean oracle (``m(x) = \sin x``, so the local-linear fit carries a genuine ``O(h^2)`` bias)
   at ``h \propto n^{-1/5}`` the integrated squared error falls at ``n^{-4/5}`` (the ``n^{-2/5}`` RMSE), the

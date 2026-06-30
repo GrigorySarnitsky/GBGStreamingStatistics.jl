@@ -4,7 +4,7 @@ using Random, Statistics
 include("testoracles.jl"); using .TestOracles
 
 # A representative set of analytic PDFs (accuracy) and the n^{-2p/(2p+1)} convergence rate of the binned
-# density across its knobs. The estimand is f_X (§4.1); each PDF is an independent analytic oracle
+# density across its options. The estimand is f_X (§4.1); each PDF is an independent analytic oracle
 # (`TestOracles`).
 @testset "density: analytic-PDF accuracy & convergence rate (§4.1)" begin
   @testset "representative analytic PDFs" begin

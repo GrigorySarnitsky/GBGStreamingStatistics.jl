@@ -108,7 +108,11 @@ definitions; this command runs all of them.
   parameters (positional + keyword), and flags any never mentioned as a backticked `` `arg` `` in the
   body, then triage the false positives (an arg bound by `::Type`, by the estimand `m(x)`/`D(x)`, by an
   `arg = value` mention, or by a `` `arg(…)` `` field bullet) and document the genuine misses — the
-  deterministic backstop for check (2)'s signature-driven argument coverage.
+  deterministic backstop for check (2)'s signature-driven argument coverage; a **register scan** —
+  `grep -rniE '\bknobs?\b' src docs CLAUDE.md test` (the regenerated `docs/build/` and the
+  `docs/src/{architecture,formalization,testing,performance}.md` build copies excluded) flags the
+  colloquial "knob": a tunable argument is an **option** / *setting* / post-hoc *choice*, never a "knob"
+  (`CLAUDE.md` *Neutral reference register*), on every authored surface.
 - Triage (drop false positives — universally standard math; kwarg names correctly backticked), then fix
   EVERY genuine finding in one pass. A flagged instance is a sample of a class — fix the class, not the line.
 - Rebuild: `julia --project=docs docs/make.jl` (the inline-math lint + doctests + cross-references +

@@ -29,7 +29,7 @@ include("testcontracts.jl"); using .TestContracts
     @test conditional_variance(hist, 0.0; h = 0.2) > 0
   end
 
-  @testset "degree and kernel knobs (parity with density)" begin   # the new local_fit-backed knobs
+  @testset "degree and kernel options (parity with density)" begin   # the new local_fit-backed options
     # The bivariate-Gaussian mean is linear, so local-quadratic (degree 2) recovers it, and a second
     # kernel (Epanechnikov) agrees with the Gaussian default. Nadaraya–Watson (degree 0) carries the
     # design-density bias 2 m' f'/f away from the centre, so it is checked only where that vanishes

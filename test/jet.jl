@@ -20,7 +20,7 @@ using GBGStreamingStatistics: Histograms, MarginalDensity, Bandwidth, Regression
   @test_call target_modules = mods merge!(h, h2)
   @test_call target_modules = mods bandwidth(h)
   @test_call target_modules = mods density(h, 0.0; h = 0.5)
-  # the density knobs and asymmetric kernels (closures in the kernel/start fields are the type-stability
+  # the density options and asymmetric kernels (closures in the kernel/start fields are the type-stability
   # risk these guard) and the bandwidth-selector ladder
   @test_call target_modules = mods density(h, 0.0; h = 0.5, kernel = gamma_kernel)
   @test_call target_modules = mods density(h, 0.0; h = 0.5, start = normal_start)

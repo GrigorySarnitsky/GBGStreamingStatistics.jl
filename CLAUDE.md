@@ -83,12 +83,12 @@ estimands.
   exported so consumers can plug in custom kernels / parametric skeletons.
 - `src/Regression.jl` — §4.2 `conditional_mean` ``\equiv m(x)``, `conditional_variance`
   ``\equiv \sigma^2(x)`` by local-polynomial fits (Fan & Gijbels) over `LocalPolynomial.local_fit`, with
-  the `degree` (0 Nadaraya–Watson / 1 local-linear default / 2 local-quadratic) and `kernel` knobs;
+  the `degree` (0 Nadaraya–Watson / 1 local-linear default / 2 local-quadratic) and `kernel` options;
   `conditional_variance` defaults to the bias-reduced **Fan & Yao** residual estimator (`method =
   :residual`; the plug-in is `:plugin`). The **estimand-first reference module** — write its docstrings to
   the documentation policy below.
 - `src/ConditionalDensity.jl` — §4.3 `conditional_density` ``\equiv f_{Y\mid X}``,
-  `transition_density` ``\equiv p_\tau(y\mid x)`` (double-kernel with a `kernel` knob, Rosenblatt).
+  `transition_density` ``\equiv p_\tau(y\mid x)`` (double-kernel with a `kernel` option, Rosenblatt).
 - `src/IncrementMoments.jl` — §4.4 `increment_moment` ``\equiv M_n(x,\tau)``, `kramers_moyal`
   ``\equiv D^{(n)}``, `drift` ``\equiv D^{(1)}``, `diffusion` ``\equiv D^{(2)}``, `pawula_quotient`
   ``\equiv Q(x)``, `markov_test`. Model-neutral functionals; the SDE *reading* stays consumer-side.
@@ -197,6 +197,10 @@ the estimand whenever a clean population definition exists; for an intrinsically
   ≈ 88 source characters). **Display formulas:** break a wide one with a multi-line LaTeX environment —
   `aligned` (align on `=`), `gathered`, or `split` — never one line packing several equations behind
   `\qquad`/`\quad`. Inline math reflows with the prose, so it is exempt.
+- **Neutral reference register — never "knob".** A tunable argument is an **option** (or, where it reads
+  better, a *keyword argument*, a *setting*, or a post-hoc *choice* — e.g. the bandwidth), never a "knob":
+  the reference docs keep a strict, neutral tone, not a colloquial one. Applies to every authored surface —
+  docstrings, the four rationale docs, the doc pages, `#` comments, and `@testset` names.
 - **Correctness is its own check, distinct from formatting.** Verify the estimator is **consistent
   for the stated estimand** under the stated assumptions, and that **every normalization is exact**:
   the ``1/n``, ``1/(nh)``, ``\int K = 1``, kernel moments ``\mu_2(K) = \int u^2 K``, roughness
@@ -216,7 +220,7 @@ its estimand, run as a *positive* per-formula verification, not a read-through; 
 — every symbol *bound* to its meaning in plain language at first use (enumerate symbols, cite the
 binding clause), **and every signature argument documented** — positional and keyword alike, enumerated
 *from the signature* (not the prose) so an "obvious" `x` or `h` cannot be skipped: each says what it is
-(and for a knob, how to set it); an argument that surfaces only inside a formula, or not at all, is the
+(and for an option, how to set it); an argument that surfaces only inside a formula, or not at all, is the
 defect — this is how `density`'s query point `x` and bandwidth `h` slipped past a symbol-only sweep;
 **(3) Notation** — one symbol per concept and one concept per symbol; standard
 notation; **(4) Formatted (bidirectional)** — math is LaTeX never backticks, every code identifier
@@ -300,7 +304,7 @@ Mechanical bar:
    1995 — five moment-fitted starts; a bias reduction, near-exact where the model fits, ``>3\times``
    better than the KDE on log-normal data), and exact **`normalize`** (``\int\hat f = 1``); tested in
    `test/marginaldensity.jl` (oracle recovery, the start's wide-``h`` bias removal, normalization,
-   mergeability, rejected knob combinations).
+   mergeability, rejected option combinations).
 5. **`Bandwidth.bandwidth`** (§4.5) — the **kernel- and degree-aware normal-reference** rule
    ``h = C(K,d)\\,\\hat\\sigma\\,n^{-1/(2p+1)}`` from the recovered ``\\hat\\sigma``: the kernel enters
    through the canonical factor ``[R(K)/\\mu_2(K)^2]^{1/5}`` (by quadrature), the degree through the
@@ -326,7 +330,7 @@ Mechanical bar:
 6. **`Regression`** (§4.2) — `conditional_mean` ``\equiv m(x)`` and `conditional_variance`
    ``\equiv \sigma^2(x)`` by local-polynomial regression from `Histogram2D` over the shared
    `LocalPolynomial.local_fit` (the ``T_\ell``/``P_\ell`` from per-X-column counts and response totals),
-   with the `degree` (0/1/2) and `kernel` knobs; `conditional_variance` defaults to the bias-reduced
+   with the `degree` (0/1/2) and `kernel` options; `conditional_variance` defaults to the bias-reduced
    **Fan & Yao** residual estimator (`method = :residual`; the plug-in is `:plugin`). Tested against the
    bivariate-Gaussian oracle (``m`` recovers ``\rho x`` to ``\lesssim 2\%``; ``\sigma^2`` recovers
    ``1-\rho^2``) and a heteroscedastic curved-mean oracle (Fan–Yao recovers ``\sigma^2(x)`` and beats the
@@ -344,7 +348,7 @@ Mechanical bar:
    ``\equiv p_\tau(y\mid x)`` by the binned double-kernel (Rosenblatt) from the `Histogram2D` cell
    counts: the joint is reduced at ``x`` to an X-kernel-weighted Y-profile, then smoothed in ``y`` with
    the surviving ``1/h_2`` normalization (``\int \hat f\,\mathrm dy = 1`` exactly, since ``\int K = 1``).
-   Two supplied bandwidths `hx`, `hy` and a symmetric `kernel` knob (default Gaussian). Tested: the
+   Two supplied bandwidths `hx`, `hy` and a symmetric `kernel` option (default Gaussian). Tested: the
    bivariate-Gaussian conditional ``N(\rho x, 1-\rho^2)``
    (normalization + pointwise) and the **Ornstein–Uhlenbeck** transition density
    ``N(x e^{-\theta\tau}, s^2(1-e^{-2\theta\tau}))``; scalar/vector forms, `transition_density`
@@ -366,7 +370,7 @@ Mechanical bar:
     design solve over a binned measure, returning the jet ``(\beta_0, \dots, \beta_d)`` (value, slope,
     ``2\beta_2`` the curvature) by the Hankel normal equations. The single *linear* core:
     `conditional_mean` is its ``\beta_0``, the local-likelihood `density` its IRLS inner solve, and it gave
-    `Regression` the `degree` / `kernel` knobs and the degree-2 curvature ``m''`` (the §11 architecture
+    `Regression` the `degree` / `kernel` options and the degree-2 curvature ``m''`` (the §11 architecture
     decision, landed). Tested (`test/localpolynomial.jl`): exact jet recovery on a polynomial mean (value
     / slope / curvature), the degree-0 Nadaraya–Watson ratio, degenerate ``\to`` NaN, kernel-normalization
     cancellation.
