@@ -1,12 +1,16 @@
-# Kernels — the symmetric smoothing kernels and the kernel-moment quadrature: the cross-cutting
-# weighting primitives shared by every estimator (the `density` KDE, the local-polynomial fits, the
-# double-kernel conditional density, the bandwidth rules). A kernel is any callable with ``\int K = 1``;
-# its constants (roughness ``R(K) = \int K^2``, second moment ``\mu_2(K) = \int u^2 K``, …) follow by
-# quadrature (`_quad`), so a user-supplied kernel needs no hand-coded constants.
+# Kernels — the smoothing kernels and the kernel-moment quadrature: the cross-cutting weighting
+# primitives shared by every estimator (the `density` KDE, the local-polynomial fits, the double-kernel
+# conditional density, the bandwidth rules). Two families: the **symmetric** kernels (`gaussian_kernel` /
+# `epanechnikov_kernel`, any callable with ``\int K = 1``; their constants — roughness ``R(K) = \int K^2``,
+# second moment ``\mu_2(K) = \int u^2 K``, … — follow by quadrature `_quad`, so a user kernel needs no
+# hand-coded constants) and the **asymmetric** varying-shape boundary kernels (`gamma_kernel` /
+# `beta_kernel`, the `AsymmetricKernel` type) for bounded / positive support (Chen 1999, 2000).
 
 module Kernels
 
-export gaussian_kernel, epanechnikov_kernel
+using SpecialFunctions: loggamma, logbeta
+
+export gaussian_kernel, epanechnikov_kernel, AsymmetricKernel, gamma_kernel, beta_kernel
 
 
 """
@@ -45,5 +49,124 @@ function _quad(g, L::Float64 = 16.0, npts::Int = 32_769)
   return acc * Δ
 end
 
+
+# --- asymmetric (varying-shape) kernels for bounded / positive support (Chen 1999, 2000) ---
+# An asymmetric kernel is a density in the DATA argument whose shape depends on the query point x and
+# bandwidth b, with support matching the data domain — so no mass leaks past the boundary and the estimate
+# f̂(x) = (1/n) Σ_j n_j K(c_j; x, b) is boundary-bias-free by construction (O(b) bias uniformly, vs a
+# symmetric kernel's O(h) inconsistency at an endpoint). Still a reduction over the bin counts (post-hoc,
+# mergeable). The marker type routes these to the asymmetric estimator in `density`.
+"""
+    AsymmetricKernel(pdf, support)
+    AsymmetricKernel(pdf, support, weight)
+
+A varying-shape **asymmetric kernel** for
+[`density`](@ref GBGStreamingStatistics.MarginalDensity.density) on a bounded or half-line support —
+the boundary-bias-free analog of a symmetric smoothing kernel (Chen 1999, 2000). The built-ins are
+[`gamma_kernel`](@ref GBGStreamingStatistics.Kernels.gamma_kernel) for ``[0,\\infty)`` and
+[`beta_kernel`](@ref GBGStreamingStatistics.Kernels.beta_kernel) for ``[0,1]``; construct one
+directly to plug in a custom boundary kernel. The three fields are the construction contract:
+
+- `pdf(c, x, b)` — the kernel as a **density in the data argument** ``c``, whose shape is set by the
+  evaluation point ``x`` and bandwidth ``b`` (normalized: ``\\int \\texttt{pdf}(c, x, b)\\,\\mathrm{d}c = 1``
+  over the support, for each ``x`` and ``b``). The estimate is the binned reduction
+  ``\\hat f(x) = \\tfrac1n \\sum_j n_j\\,\\texttt{pdf}(c_j, x, b)`` over the bin counts ``n_j`` at centers
+  ``c_j`` — post hoc and mergeable.
+- `support` — the data domain the kernel covers, as a `(lower, upper)` tuple (e.g. `(0.0, Inf)`).
+- `weight(x)` — the AMISE **local-scale weight** ``w(x)``: the leading bias is
+  ``\\tfrac12 b\\,w(x)\\,f''(x)`` and the variance ``\\propto w(x)^{-1/2}`` (``w(x) = x`` for the gamma
+  kernel, ``x(1-x)`` for the beta). It is used **only** by
+  [`bandwidth`](@ref GBGStreamingStatistics.Bandwidth.bandwidth)`(…; rule = :plugin)`. The two-argument
+  constructor leaves it unset (`nothing`): `rule = :plugin` then errors rather than silently use a wrong
+  weight, while the ``\\hat\\sigma\\,n^{-2/5}`` rule of thumb (`rule = :normal`) needs no weight and still
+  applies.
+
+```julia
+using SpecialFunctions: loggamma
+# the built-in gamma kernel, as a template (Chen's modified f₂ shape):
+mygamma = AsymmetricKernel(
+    (c, x, b) -> c > 0 ? (ρ = x < 2b ? (x / b)^2 / 4 + 1 : x / b;
+                          exp((ρ - 1) * log(c) - c / b - ρ * log(b) - loggamma(ρ))) : 0.0,
+    (0.0, Inf),
+    x -> x)                       # the AMISE weight w(x) = x, for rule = :plugin
+density(summary, 1.0; kernel = mygamma)
+```
+
+References:
+
+- S. X. Chen (1999), [*Beta kernel estimators for density functions*](https://doi.org/10.1016/S0167-9473(99)00010-9), Comput. Statist. Data Anal. 31(2).
+- S. X. Chen (2000), [*Probability density function estimation using gamma kernels*](https://doi.org/10.1023/A:1004165218295), Ann. Inst. Statist. Math. 52(3).
+"""
+struct AsymmetricKernel{F,W}
+  pdf::F                            # (c, x, b) → a density in the data argument c
+  support::Tuple{Float64,Float64}   # the data domain the kernel covers
+  weight::W                         # the AMISE local-scale weight w(x) (x for the gamma kernel, x(1−x)
+                                    # for the beta): both the leading bias ½b·w(x)f''(x) and the variance
+                                    # ∝ w(x)^{-1/2} carry it. Used by the §4.5 plug-in bandwidth.
+                                    # `nothing` (the 2-arg constructor) ⇒ rule=:plugin is unavailable.
+end
+
+# A custom kernel that only needs the rule-of-thumb bandwidth can omit the plug-in weight.
+AsymmetricKernel(pdf, support) = AsymmetricKernel(pdf, support, nothing)
+
+@inline (k::AsymmetricKernel)(c, x, b) = k.pdf(c, x, b)
+
+
+# Chen's **modified** gamma kernel (f̂₂): shape ρ(x) = x/b in the interior (so the kernel mean is exactly
+# x, removing the f' bias term of the naive x/b+1 form) and ρ(x) = (x/b)²/4 + 1 within 2b of the edge.
+function _gamma_pdf(c, x, b)
+  c > 0 || return 0.0
+  ρ = x < 2b ? (x / b)^2 / 4 + 1 : x / b
+  return exp((ρ - 1) * log(c) - c / b - ρ * log(b) - loggamma(ρ))
+end
+
+"""
+    gamma_kernel
+
+The **gamma kernel** (Chen 2000) for a density on the half-line ``[0,\\infty)`` — a varying-shape
+*asymmetric* kernel: at the query point ``x`` it is the modified (bias-reduced) ``\\mathrm{Gamma}(\\rho(x),\\,b)``
+density in the data argument (Chen's ``f_2``: shape ``\\rho(x) = x/b`` in the interior — so the kernel mean
+is exactly ``x``, removing the ``f'`` bias of the naive ``x/b+1`` form — and ``(x/b)^2/4 + 1`` within ``2b``
+of the edge), so its support matches the data and **no mass leaks past 0**. Passed as
+`kernel = gamma_kernel`, [`density`](@ref GBGStreamingStatistics.MarginalDensity.density) returns the
+boundary-bias-free estimate ``\\hat f(x) = \\tfrac1n \\sum_j n_j\\,\\mathrm{Gamma}(c_j;\\,\\rho(x),\\,b)``
+(``O(b)`` bias uniformly, including at the boundary where a symmetric kernel is inconsistent; the variance
+self-adapts, tightening toward the edge). Use it for non-negative quantities such as droplet radii — an
+alternative to (and usually sharper than) the `bounds` renormalization. The bandwidth defaults to
+``\\hat\\sigma\\,n^{-2/5}`` (the gamma-kernel rate; pass `h` to override, or the data-driven Chen plug-in
+[`bandwidth`](@ref GBGStreamingStatistics.Bandwidth.bandwidth)`(summary; rule = :plugin, kernel = gamma_kernel)`,
+``\\approx 1.4\\text{–}1.7\\times`` lower ISE on skewed data). `degree`, `adaptive`, and `bounds` do not
+apply — the kernel is its own degree-0, boundary-free estimator.
+
+Reference: S. X. Chen (2000), [*Probability density function estimation using gamma
+kernels*](https://doi.org/10.1023/A:1004165218295), Ann. Inst. Statist. Math. 52(3).
+"""
+const gamma_kernel = AsymmetricKernel(_gamma_pdf, (0.0, Inf), x -> x)
+
+
+# Chen's modified beta shape: interior (x/b, (1-x)/b); a √-correction within 2b of an edge (mean ≈ x).
+_beta_rho(x, b) = 2b^2 + 2.5 - sqrt(4b^4 + 6b^2 + 2.25 - x^2 - x / b)
+
+function _beta_pdf(c, x, b)
+  (0 < c < 1) || return 0.0
+  p = x < 2b ? _beta_rho(x, b) : x / b
+  q = x > 1 - 2b ? _beta_rho(1 - x, b) : (1 - x) / b
+  return exp((p - 1) * log(c) + (q - 1) * log1p(-c) - logbeta(p, q))
+end
+
+"""
+    beta_kernel
+
+The **beta kernel** (Chen 1999) for a density on the unit interval ``[0,1]`` — the bounded-interval
+analog of [`gamma_kernel`](@ref GBGStreamingStatistics.Kernels.gamma_kernel): at ``x`` it is
+the modified (bias-reduced) ``\\mathrm{Beta}`` density in the data argument (Chen's ``f_2``: interior
+shapes ``(x/b,\\,(1-x)/b)``, with a ``\\sqrt{\\,\\cdot\\,}`` correction within ``2b`` of an edge),
+boundary-bias-free at **both** edges. Pass `kernel = beta_kernel` with data scaled to ``[0,1]``; the bandwidth default, the option
+restrictions, and the ``n^{-2/5}`` rate are as for `gamma_kernel`.
+
+Reference: S. X. Chen (1999), [*Beta kernel estimators for density
+functions*](https://doi.org/10.1016/S0167-9473(99)00010-9), Comput. Statist. Data Anal. 31(2).
+"""
+const beta_kernel = AsymmetricKernel(_beta_pdf, (0.0, 1.0), x -> x * (1 - x))
 
 end # module Kernels

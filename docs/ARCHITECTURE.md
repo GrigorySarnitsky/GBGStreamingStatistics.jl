@@ -544,7 +544,7 @@ GBGStreamingStatistics/
     Accumulators.jl              # foundation: AbstractAccumulator, observe!/merge! monoid interface
     Histograms.jl                # Histogram1D / Histogram2D, WARP binning, power-sums about the bin
                                  #   center, the KA/Atomix scatter kernel, shift-formula recovery
-    Kernels.jl                   # the symmetric smoothing kernels + the kernel-moment quadrature (_quad)
+    Kernels.jl                   # all the smoothing kernels (symmetric + asymmetric) + _quad quadrature
     LocalPolynomial.jl           # the shared local-polynomial jet primitive (local_fit) — §2, §11
     MarginalDensity.jl         # §4.1   f_X
     Regression.jl                # §4.2   m(x), σ²(x)  [estimand-first reference module]
@@ -818,6 +818,21 @@ intentional — do not dedupe it).
   substrate of that feature, **not** as a standalone refactor (convenience is not a justification, §6). Settled by estimation theory
   (iteratively reweighted least squares is the linear solve iterated; the smoother is linear on the
   cone), not implementation convenience.
+
+- **Kernels — the asymmetric kernels consolidated into the foundation module** (§4.1, §4.3). The
+  varying-shape boundary kernels (`gamma_kernel`, `beta_kernel`, the `AsymmetricKernel` type; Chen 1999,
+  2000) moved from `MarginalDensity` to `Kernels`, joining the symmetric `gaussian_kernel` /
+  `epanechnikov_kernel`. They had stayed in `MarginalDensity` only because, when `Kernels` was first
+  extracted, `density` was their sole consumer — a historical artifact, not a design boundary. **A kernel
+  is a kernel**: an asymmetric boundary kernel is a smoothing kernel for bounded / positive support, so it
+  belongs in the shared foundation, where any density estimator — marginal or conditional — can reach it.
+  This gives the `kernel` argument one documented home (no cross-module split) and is the prerequisite for
+  an asymmetric-kernel **conditional density** (a bounded *response* — e.g. a droplet radius as ``Y`` —
+  wants a boundary-free ``y``-kernel, the same first-order boundary-bias fix the marginal density already
+  has). It does **not** motivate asymmetric *conditioning* in `conditional_mean`: local-linear regression
+  is boundary-adaptive (Fan 1992), already correcting the ``O(h)`` boundary bias to ``O(h^2)`` with a
+  symmetric kernel, so an asymmetric conditioning kernel would be a boundary-*variance* refinement only,
+  not a correctness fix — a recorded possibility, not built (convenience / parity is not a justification, §6).
 
 Open decisions still flagged **[OPEN]** in §10 (the projection road, `HistogramND`, vector-valued
 conditioning, prior-art mirroring) graduate to entries here when they are settled.

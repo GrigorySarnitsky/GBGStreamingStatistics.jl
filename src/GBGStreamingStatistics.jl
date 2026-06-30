@@ -67,15 +67,15 @@ using .Histograms:
 
 using .Kernels:
   gaussian_kernel,
-  epanechnikov_kernel
+  epanechnikov_kernel,
+  AsymmetricKernel,
+  gamma_kernel,
+  beta_kernel
 
 
 using .MarginalDensity:
   density,
   density_standard_error,
-  AsymmetricKernel,
-  gamma_kernel,
-  beta_kernel,
   ParametricStart,
   normal_start,
   lognormal_start,

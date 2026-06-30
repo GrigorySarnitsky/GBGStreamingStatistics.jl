@@ -107,8 +107,10 @@ definitions; this command runs all of them.
   **argument-coverage scan** — a short Julia helper that splits each `"""…"""`, parses the signature
   parameters (positional + keyword), and flags any never mentioned as a backticked `` `arg` `` in the
   body, then triage the false positives (an arg bound by `::Type`, by the estimand `m(x)`/`D(x)`, by an
-  `arg = value` mention, or by a `` `arg(…)` `` field bullet) and document the genuine misses — the
-  deterministic backstop for check (2)'s signature-driven argument coverage; a **register scan** —
+  `arg = value` mention, or by a `` `arg(…)` `` field bullet) and document the genuine misses; and — when
+  the docstring lists its arguments as bullets — flag any arg documented only in prose rather than as its
+  own `` - **`arg`** `` entry (the `density` `kernel`-in-a-closing-paragraph defect) — the deterministic
+  backstop for check (2)'s signature-driven argument coverage; a **register scan** —
   `grep -rniE '\bknobs?\b' src docs CLAUDE.md test` (the regenerated `docs/build/` and the
   `docs/src/{architecture,formalization,testing,performance}.md` build copies excluded) flags the
   colloquial "knob": a tunable argument is an **option** / *setting* / post-hoc *choice*, never a "knob"

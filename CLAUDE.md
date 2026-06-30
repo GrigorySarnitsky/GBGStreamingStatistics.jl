@@ -57,11 +57,13 @@ estimands.
   addition (and `scale!` / weighted `merge!` elementwise scaling — the cone, on the `count = Float64`
   Float-count variant); `bin_index` is the binning map (exposed for pre-quantization); global central
   moments are recovered post hoc by the **shift formula**. Owns `KernelAbstractions`, `Atomix`.
-- `src/Kernels.jl` — the **symmetric smoothing kernels** and the kernel-moment quadrature (lower half):
-  `gaussian_kernel` / `epanechnikov_kernel` (any callable with ``\int K = 1``) and the internal `_quad`
-  (``R(K)``, ``\mu_2(K)``, … by quadrature, so any kernel works). The cross-cutting weighting primitives —
-  shared by `density`, the local-polynomial fits, the double-kernel `conditional_density`, and the
-  `bandwidth` rules.
+- `src/Kernels.jl` — **all the smoothing kernels** and the kernel-moment quadrature (lower half): the
+  **symmetric** `gaussian_kernel` / `epanechnikov_kernel` (any callable with ``\int K = 1``) with the
+  internal `_quad` (``R(K)``, ``\mu_2(K)``, … by quadrature, so any kernel works), and the **asymmetric**
+  varying-shape boundary kernels `gamma_kernel` (``[0,\infty)``) / `beta_kernel` (``[0,1]``) plus the
+  `AsymmetricKernel` type for bounded/positive support (boundary-bias-free; Chen 1999/2000, or a
+  user-supplied one). The cross-cutting weighting primitives — shared by `density`, the local-polynomial
+  fits, the double-kernel `conditional_density`, and the `bandwidth` rules. Owns `SpecialFunctions`.
 - `src/LocalPolynomial.jl` — the shared **local-polynomial jet primitive** (lower half): `local_fit`, the
   kernel-weighted local-polynomial design solve over a binned measure, returning the jet
   ``(\beta_0, \dots, \beta_d)`` (value ``\beta_0``, slope ``\beta_1``, curvature ``2\beta_2``). The single
@@ -74,13 +76,12 @@ estimands.
   moment-fitted `normal_start` / `lognormal_start` / `gamma_start` / `exponential_start` /
   `inverse_gaussian_start`, or a user-supplied `ParametricStart`), exact `normalize`
   (``\int\hat f = 1``), and the **`binning`** location rule (`:linear` centroid default — ``O(\Delta^2)``
-  via the stored ``S_1``; `:simple` bin-center, ``O(\Delta)``) — accepting any symmetric `kernel` (the
-  shared `gaussian_kernel` / `epanechnikov_kernel` from `Kernels`, or any ``\int K = 1`` callable) and
-  owning the **asymmetric** `gamma_kernel` / `beta_kernel` for bounded/positive support
-  (boundary-bias-free; Chen 1999/2000, or a user-supplied `AsymmetricKernel`), and
-  `density_standard_error` (the pointwise variability band
-  ``\mathrm{SE}(x) = \sqrt{R(K)\hat f_h(x)/(nh)}``). `AsymmetricKernel` and `ParametricStart` are
-  exported so consumers can plug in custom kernels / parametric skeletons.
+  via the stored ``S_1``; `:simple` bin-center, ``O(\Delta)``) — accepting any `kernel` from `Kernels`
+  (the symmetric `gaussian_kernel` / `epanechnikov_kernel`, or the asymmetric `gamma_kernel` /
+  `beta_kernel` for bounded/positive support), and `density_standard_error` (the pointwise variability
+  band ``\mathrm{SE}(x) = \sqrt{R(K)\hat f_h(x)/(nh)}``). `ParametricStart` is exported so consumers can
+  plug in custom parametric skeletons (the `AsymmetricKernel` constructor for custom boundary kernels
+  lives in `Kernels`).
 - `src/Regression.jl` — §4.2 `conditional_mean` ``\equiv m(x)``, `conditional_variance`
   ``\equiv \sigma^2(x)`` by local-polynomial fits (Fan & Gijbels) over `LocalPolynomial.local_fit`, with
   the `degree` (0 Nadaraya–Watson / 1 local-linear default / 2 local-quadratic) and `kernel` options;
@@ -226,8 +227,10 @@ its estimand, run as a *positive* per-formula verification, not a read-through; 
 — every symbol *bound* to its meaning in plain language at first use (enumerate symbols, cite the
 binding clause), **and every signature argument documented** — positional and keyword alike, enumerated
 *from the signature* (not the prose) so an "obvious" `x` or `h` cannot be skipped: each says what it is
-(and for an option, how to set it); an argument that surfaces only inside a formula, or not at all, is the
-defect — this is how `density`'s query point `x` and bandwidth `h` slipped past a symbol-only sweep;
+(and for an option, how to set it), and each as its **own entry in the arguments list** — never relegated
+to surrounding prose while its siblings are bulleted; an argument that surfaces only inside a formula, in a
+trailing paragraph, or not at all, is the defect — this is how `density`'s query point `x` and bandwidth
+`h` slipped past a symbol-only sweep, and its `kernel` sat in a closing paragraph instead of a bullet;
 **(3) Notation** — one symbol per concept and one concept per symbol; standard
 notation; **(4) Formatted (bidirectional)** — math is LaTeX never backticks, every code identifier
 backticked never bare, and inline ``math`` stays on **one source line** (a wrapped continuation that
