@@ -6,7 +6,9 @@
 module MarkovInference
 
 using ..Histograms: Histogram2D
-using ..Regression: _column_sums, _local_linear
+using ..LocalPolynomial: local_fit
+using ..DensityEstimation: gaussian_kernel
+using ..Regression: _column_sums
 
 export increment_moment, kramers_moyal, drift, diffusion, pawula_quotient, markov_test
 
@@ -16,9 +18,9 @@ export increment_moment, kramers_moyal, drift, diffusion, pawula_quotient, marko
 #   M_1(x) = E[Y|x] − x,   M_2(x) = E[(Y−x)²|x] = E[Y²|x] − 2x E[Y|x] + x².
 # E[Y|x] and E[Y²|x] are the local-linear fits already used by `Regression` (E[Y²|x] is the fit of the
 # Y² response). One per-column reduction feeds both. Returns (M_1, M_2) at a single x.
-@inline function _increment_moments(cx, N, sumY, sumY2, x, invh)
-  m = _local_linear(cx, N, sumY, x, invh)       # Ê[Y | X = x]
-  ey2 = _local_linear(cx, N, sumY2, x, invh)    # Ê[Y² | X = x]
+@inline function _increment_moments(cx, N, sumY, sumY2, x, h, kernel)
+  m = local_fit(cx, N, sumY, x, h, kernel, 1)[1]       # Ê[Y | X = x]
+  ey2 = local_fit(cx, N, sumY2, x, h, kernel, 1)[1]    # Ê[Y² | X = x]
   return (m - x), (ey2 - 2 * x * m + x^2)
 end
 
@@ -69,7 +71,7 @@ function increment_moment(summary::Histogram2D, x::Real, n::Integer; h::Real)
   _check_order(n)
   _check_bandwidth(h)
   cx, N, sumY, sumY2 = _column_sums(summary)
-  M1, M2 = _increment_moments(cx, N, sumY, sumY2, x, inv(float(h)))
+  M1, M2 = _increment_moments(cx, N, sumY, sumY2, x, h, gaussian_kernel)
   return _select_moment(M1, M2, n)
 end
 
@@ -77,8 +79,7 @@ function increment_moment(summary::Histogram2D, xs::AbstractVector, n::Integer; 
   _check_order(n)
   _check_bandwidth(h)
   cx, N, sumY, sumY2 = _column_sums(summary)
-  invh = inv(float(h))
-  return [_select_moment(_increment_moments(cx, N, sumY, sumY2, x, invh)..., n) for x in xs]
+  return [_select_moment(_increment_moments(cx, N, sumY, sumY2, x, h, gaussian_kernel)..., n) for x in xs]
 end
 
 

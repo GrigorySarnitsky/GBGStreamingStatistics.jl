@@ -35,6 +35,7 @@ module GBGStreamingStatistics
 
 include("Accumulators.jl")
 include("Histograms.jl")
+include("LocalPolynomial.jl")
 include("DensityEstimation.jl")
 include("Regression.jl")
 include("ConditionalDensity.jl")

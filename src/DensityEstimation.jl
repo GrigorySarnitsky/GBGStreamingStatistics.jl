@@ -8,10 +8,10 @@
 
 module DensityEstimation
 
-using LinearAlgebra
 using SpecialFunctions: loggamma, logbeta
 
 using ..Histograms: Histogram1D, _nbins, _bincenter, _total, _sample_mean, _sample_variance, _sample_std
+using ..LocalPolynomial: _hankel_solve
 
 export density, density_standard_error, gaussian_kernel, epanechnikov_kernel,
        AsymmetricKernel, gamma_kernel, beta_kernel,
@@ -446,8 +446,11 @@ end
 # Degree ≥ 1 — local-log-polynomial density by binned **local Poisson likelihood** (Loader 1996), at a
 # single point-wise (balloon) bandwidth ``h_x``. Model the bin counts ``n_j`` as Poisson with
 # ``\log \mathbb{E}[n_j] = \log(nb) + \sum_{l=0}^{d}\beta_l (c_j-x)^l`` and weights ``K((c_j-x)/h_x)``;
-# Newton/IRLS (concave) gives ``\hat f(x) = e^{\beta_0}``. Warm-started from the KDE value `f0`; falls
-# back to it where the local design can't support degree d (singular info matrix) or the fit diverges.
+# Newton/IRLS (concave) gives ``\hat f(x) = e^{\beta_0}``. Each Newton step is the shared
+# kernel-weighted local-polynomial solve (`LocalPolynomial._hankel_solve` of the μ-weighted design
+# moments) — a local GLM is the linear solve iterated (`docs/ARCHITECTURE.md` §11). Warm-started from
+# the KDE value `f0`; falls back to it where the local design can't support degree d (singular) or the
+# fit diverges.
 function _local_log(counts, centers, hx, n, b, x, degree, kernel, f0)
   (f0 > 0 && isfinite(f0)) || return f0
   invhx = inv(hx)
@@ -455,39 +458,34 @@ function _local_log(counts, centers, hx, n, b, x, degree, kernel, f0)
   β = zeros(p)
   β[1] = log(f0)
   nb_off = n * b
-  grad = zeros(p)
-  H = zeros(p, p)
-  pw = zeros(p)
+  grad = zeros(p)               # the score ∑ w (n_j − μ_j)(c_j − x)^l, l = 0 … degree
+  momμ = zeros(2 * degree + 1)  # the μ-weighted design moments ∑ w μ_j (c_j − x)^k; the Gram is their Hankel
   for _ in 1:25
     fill!(grad, 0.0)
-    fill!(H, 0.0)
+    fill!(momμ, 0.0)
     @inbounds for j in eachindex(centers)
       d = centers[j] - x
       w = kernel(d * invhx)
       w < 1e-10 && continue
-      pw[1] = 1.0
       η = β[1]
-      acc = 1.0
+      dl = 1.0
       for l in 2:p
-        acc *= d
-        pw[l] = acc
-        η += β[l] * acc
+        dl *= d
+        η += β[l] * dl
       end
       μ = nb_off * exp(η)
-      r = counts[j] - μ
-      for l in 1:p
-        grad[l] += w * r * pw[l]
-        wμpl = w * μ * pw[l]
-        for m in 1:p
-          H[l, m] += wμpl * pw[m]
-        end
+      wr = w * (counts[j] - μ)
+      wμ = w * μ
+      grad[1] += wr
+      momμ[1] += wμ
+      dk = 1.0
+      for k in 1:(2 * degree)
+        dk *= d
+        momμ[k + 1] += wμ * dk
+        k ≤ degree && (grad[k + 1] += wr * dk)
       end
     end
-    δ = try
-      H \ grad
-    catch
-      return f0
-    end
+    δ = _hankel_solve(momμ, grad)
     all(isfinite, δ) || return f0
     β .+= δ
     maximum(abs, δ) < 1e-8 && break

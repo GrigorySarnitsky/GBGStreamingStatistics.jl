@@ -29,6 +29,21 @@ include("testcontracts.jl"); using .TestContracts
     @test conditional_variance(hist, 0.0; h = 0.2) > 0
   end
 
+  @testset "degree and kernel knobs (parity with density)" begin   # the new local_fit-backed knobs
+    # The bivariate-Gaussian mean is linear, so local-quadratic (degree 2) recovers it, and a second
+    # kernel (Epanechnikov) agrees with the Gaussian default. Nadaraya–Watson (degree 0) carries the
+    # design-density bias 2 m' f'/f away from the centre, so it is checked only where that vanishes
+    # (x = 0); degree outside {0, 1, 2} is rejected.
+    for x in (-1.0, 0.0, 1.0)
+      @test conditional_mean(hist, x; h = 0.5, degree = 2) ≈ ρ * x atol = 0.03
+      @test conditional_mean(hist, x; h = 0.4, kernel = epanechnikov_kernel) ≈ ρ * x atol = 0.03
+      @test isfinite(conditional_mean(hist, x; h = 0.4, degree = 0))
+    end
+    @test conditional_mean(hist, 0.0; h = 0.4, degree = 0) ≈ 0.0 atol = 0.02   # NW unbiased at the centre
+    @test_throws ArgumentError conditional_mean(hist, 0.0; h = 0.4, degree = 3)
+    @test_throws ArgumentError conditional_variance(hist, 0.0; h = 0.2, degree = 3)
+  end
+
   # the universal query-point contract (scalar==vector, a functional of the merged summary, NaN off the
   # data's support), applied by construction to both conditional moments — see test/testcontracts.jl
   half = N ÷ 2
