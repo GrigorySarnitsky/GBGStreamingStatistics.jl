@@ -57,6 +57,11 @@ estimands.
   addition (and `scale!` / weighted `merge!` elementwise scaling — the cone, on the `count = Float64`
   Float-count variant); `bin_index` is the binning map (exposed for pre-quantization); global central
   moments are recovered post hoc by the **shift formula**. Owns `KernelAbstractions`, `Atomix`.
+- `src/Kernels.jl` — the **symmetric smoothing kernels** and the kernel-moment quadrature (lower half):
+  `gaussian_kernel` / `epanechnikov_kernel` (any callable with ``\int K = 1``) and the internal `_quad`
+  (``R(K)``, ``\mu_2(K)``, … by quadrature, so any kernel works). The cross-cutting weighting primitives —
+  shared by `density`, the local-polynomial fits, the double-kernel `conditional_density`, and the
+  `bandwidth` rules.
 - `src/LocalPolynomial.jl` — the shared **local-polynomial jet primitive** (lower half): `local_fit`, the
   kernel-weighted local-polynomial design solve over a binned measure, returning the jet
   ``(\beta_0, \dots, \beta_d)`` (value ``\beta_0``, slope ``\beta_1``, curvature ``2\beta_2``). The single
@@ -69,8 +74,9 @@ estimands.
   moment-fitted `normal_start` / `lognormal_start` / `gamma_start` / `exponential_start` /
   `inverse_gaussian_start`, or a user-supplied `ParametricStart`), exact `normalize`
   (``\int\hat f = 1``), and the **`binning`** location rule (`:linear` centroid default — ``O(\Delta^2)``
-  via the stored ``S_1``; `:simple` bin-center, ``O(\Delta)``) — plus the symmetric `gaussian_kernel` / `epanechnikov_kernel` (or any callable
-  with ``\int K = 1``), the **asymmetric** `gamma_kernel` / `beta_kernel` for bounded/positive support
+  via the stored ``S_1``; `:simple` bin-center, ``O(\Delta)``) — accepting any symmetric `kernel` (the
+  shared `gaussian_kernel` / `epanechnikov_kernel` from `Kernels`, or any ``\int K = 1`` callable) and
+  owning the **asymmetric** `gamma_kernel` / `beta_kernel` for bounded/positive support
   (boundary-bias-free; Chen 1999/2000, or a user-supplied `AsymmetricKernel`), and
   `density_standard_error` (the pointwise variability band
   ``\mathrm{SE}(x) = \sqrt{R(K)\hat f_h(x)/(nh)}``). `AsymmetricKernel` and `ParametricStart` are
@@ -95,7 +101,7 @@ estimands.
   ``h^\star(x)`` (`rule = :local`, composing the Fan–Yao ``\sigma^2(x)``, the degree-2 curvature
   ``m''(x)``, and ``f_X(x)``). The post-hoc FFT smoothing helpers (the major performance lever, amortized
   over bandwidth) are forthcoming. Owns `FFTW`, `AbstractFFTs`.
-- Include order: `Accumulators → Histograms → LocalPolynomial → DensityEstimation → Regression →
+- Include order: `Accumulators → Histograms → Kernels → LocalPolynomial → DensityEstimation → Regression →
   ConditionalDensity → MarkovInference → Bandwidth`. Cross-module access only through explicit
   `using ..Module: name, …`
   — never a bare `using`.

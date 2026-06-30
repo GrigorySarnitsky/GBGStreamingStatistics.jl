@@ -5,8 +5,9 @@ The complete public API, grouped by module on the pages that follow. Every estim
 that approximates it from the accumulated summary.
 
 The lower half ([`Accumulators`](api/Accumulators.md), [`Histograms`](api/Histograms.md)) holds the
-summaries and the accumulation primitives; the upper half ([`DensityEstimation`](api/DensityEstimation.md)
-through [`Bandwidth`](api/Bandwidth.md)) holds the estimands.
+summaries and the accumulation primitives, with the shared smoothing kernels in
+[`Kernels`](api/Kernels.md); the upper half ([`DensityEstimation`](api/DensityEstimation.md) through
+[`Bandwidth`](api/Bandwidth.md)) holds the estimands.
 
 ```@index
 ```

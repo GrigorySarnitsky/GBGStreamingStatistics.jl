@@ -7,7 +7,7 @@ module Regression
 
 using ..Histograms: Histogram2D, _xbincenter, _ybincenter
 using ..LocalPolynomial: local_fit
-using ..DensityEstimation: gaussian_kernel
+using ..Kernels: gaussian_kernel
 
 export conditional_mean, conditional_variance
 

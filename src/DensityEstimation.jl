@@ -12,33 +12,11 @@ using SpecialFunctions: loggamma, logbeta
 
 using ..Histograms: Histogram1D, _nbins, _bincenter, _total, _sample_mean, _sample_variance, _sample_std
 using ..LocalPolynomial: _hankel_solve
+using ..Kernels: gaussian_kernel, epanechnikov_kernel, _quad
 
-export density, density_standard_error, gaussian_kernel, epanechnikov_kernel,
+export density, density_standard_error,
        AsymmetricKernel, gamma_kernel, beta_kernel,
        ParametricStart, normal_start, lognormal_start, gamma_start, exponential_start, inverse_gaussian_start
-
-
-"""
-    gaussian_kernel(u)
-
-The standard Gaussian smoothing kernel ``K(u) = e^{-u^2/2}/\\sqrt{2\\pi}`` (``\\int K = 1``,
-``\\mu_2(K) = 1``, roughness ``R(K) = 1/(2\\sqrt{\\pi})``) — the
-[`density`](@ref GBGStreamingStatistics.DensityEstimation.density) default.
-"""
-@inline gaussian_kernel(u) = exp(-u^2 / 2) / sqrt(2π)
-
-
-"""
-    epanechnikov_kernel(u)
-
-The **Epanechnikov** kernel ``K(u) = \\tfrac{3}{4}(1 - u^2)`` for ``|u| \\le 1`` (zero outside) — the
-MSE-optimal second-order kernel (``\\int K = 1``, ``\\mu_2(K) = 1/5``, roughness ``R(K) = 3/5``). Pass
-it as `kernel = epanechnikov_kernel`; its compact support touches only the bins within ``h`` of the
-query point. [`bandwidth`](@ref GBGStreamingStatistics.Bandwidth.bandwidth) is **kernel-aware**, so it
-returns the matched Epanechnikov ``h \\approx 2.34\\,\\hat\\sigma\\,n^{-1/5}`` (``2.21\\times`` the
-Gaussian ``h``) automatically — no manual rescaling.
-"""
-@inline epanechnikov_kernel(u) = abs(u) < 1 ? 0.75 * (1 - u^2) : 0.0
 
 
 # --- asymmetric (varying-shape) kernels for bounded / positive support (Chen 1999, 2000) ---
@@ -351,17 +329,8 @@ end
 
 
 # --- default bandwidth: the kernel- and degree-aware normal-reference rule (§4.5) ---
-# Kernel constants come from numerical quadrature of K, so any user-supplied `kernel` works: integrate
-# g over [−L, L] by the trapezoidal rule on a fixed fine grid. The shipped kernels sit well inside it
-# (Gaussian ≈ ±8, Epanechnikov ±1); this runs once per `density`/`bandwidth` call, off the hot path.
-function _quad(g, L::Float64 = 16.0, npts::Int = 32_769)
-  Δ = 2L / (npts - 1)
-  acc = 0.5 * (g(-L) + g(L))
-  @inbounds for i in 1:npts-2
-    acc += g(-L + i * Δ)
-  end
-  return acc * Δ
-end
+# Kernel constants (``R(K)``, ``\mu_2(K)``, ``\mu_4(K)``) come from the shared `Kernels._quad` quadrature
+# of K, so any user-supplied `kernel` works with no hand-coded constants.
 
 
 _doublefactorial(k::Integer) = k ≤ 1 ? 1.0 : k * _doublefactorial(k - 2)
@@ -624,8 +593,8 @@ is a binned local smoother of the `summary` counts ``n_j`` at bin centers ``c_j`
   the higher-order accuracy is free; it applies to every path (KDE, local-log, start, asymmetric kernel).
 
 The four corners (fixed/variable ``\\times`` KDE/local-log) and everything between are one call. `kernel`
-is any ``K`` with ``\\int K = 1`` ([`gaussian_kernel`](@ref GBGStreamingStatistics.DensityEstimation.gaussian_kernel)
-default, [`epanechnikov_kernel`](@ref GBGStreamingStatistics.DensityEstimation.epanechnikov_kernel)); for
+is any ``K`` with ``\\int K = 1`` ([`gaussian_kernel`](@ref GBGStreamingStatistics.Kernels.gaussian_kernel)
+default, [`epanechnikov_kernel`](@ref GBGStreamingStatistics.Kernels.epanechnikov_kernel)); for
 **bounded / positive support** pass the asymmetric
 [`gamma_kernel`](@ref GBGStreamingStatistics.DensityEstimation.gamma_kernel) (half-line) or
 [`beta_kernel`](@ref GBGStreamingStatistics.DensityEstimation.beta_kernel) (unit interval), which are
@@ -782,7 +751,7 @@ end
 **Estimator.** ``\\sqrt{R(K)\\,\\hat f_h(x)/(n h)}`` from the recovered ``\\hat f_h(x)``, the count
 ``n``, the bandwidth `h` (default the §4.5 normal reference), and the roughness ``R(K) = \\int K^2`` of the
 smoothing `kernel` ``K`` — any with ``\\int K = 1``, default
-[`gaussian_kernel`](@ref GBGStreamingStatistics.DensityEstimation.gaussian_kernel) — by quadrature. The
+[`gaussian_kernel`](@ref GBGStreamingStatistics.Kernels.gaussian_kernel) — by quadrature. The
 pointwise **variability band** is ``\\hat f_h(x) \\pm z\\,\\mathrm{SE}(x)`` (``z = 1.96`` for 95\\%) — a
 band about ``\\mathbb{E}\\hat f_h``, so it covers ``f_X`` where the ``O(h^2)`` smoothing bias is small
 and narrows that coverage at a sharp mode or in a tail. `degree` 0/1 (the KDE variance; `degree` ``\\ge 2``

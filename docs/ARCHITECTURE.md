@@ -543,6 +543,7 @@ GBGStreamingStatistics/
     Accumulators.jl              # foundation: AbstractAccumulator, observe!/merge! monoid interface
     Histograms.jl                # Histogram1D / Histogram2D, WARP binning, power-sums about the bin
                                  #   center, the KA/Atomix scatter kernel, shift-formula recovery
+    Kernels.jl                   # the symmetric smoothing kernels + the kernel-moment quadrature (_quad)
     LocalPolynomial.jl           # the shared local-polynomial jet primitive (local_fit) — §2, §11
     DensityEstimation.jl         # §4.1   f_X
     Regression.jl                # §4.2   m(x), σ²(x)  [estimand-first reference module]

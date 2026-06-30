@@ -35,6 +35,7 @@ module GBGStreamingStatistics
 
 include("Accumulators.jl")
 include("Histograms.jl")
+include("Kernels.jl")
 include("LocalPolynomial.jl")
 include("DensityEstimation.jl")
 include("Regression.jl")
@@ -63,11 +64,14 @@ using .Histograms:
   central_moment
 
 
+using .Kernels:
+  gaussian_kernel,
+  epanechnikov_kernel
+
+
 using .DensityEstimation:
   density,
   density_standard_error,
-  gaussian_kernel,
-  epanechnikov_kernel,
   AsymmetricKernel,
   gamma_kernel,
   beta_kernel,

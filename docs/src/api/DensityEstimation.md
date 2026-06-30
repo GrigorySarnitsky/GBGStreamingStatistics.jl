@@ -10,18 +10,14 @@ density
 density_standard_error
 ```
 
-## Kernels
+## Asymmetric kernels
 
-The smoothing kernel passed as `density(…; kernel = …)`. The **symmetric** kernel is any callable with
-``\int K = 1`` — the built-in `gaussian_kernel` / `epanechnikov_kernel`, or a custom one (the kernel-aware
-[`bandwidth`](@ref) computes its roughness ``R(K)`` and second moment ``\mu_2(K)`` by quadrature, so a
-custom symmetric kernel needs no manual constants). The bounded/positive-support **asymmetric** kernels are
-[`AsymmetricKernel`](@ref) values — `gamma_kernel` for ``[0,\infty)``, `beta_kernel` for ``[0,1]``, or a
-custom one — boundary-bias-free by construction.
+The smoothing kernel passed as `density(…; kernel = …)`. The **symmetric** kernels (`gaussian_kernel` /
+`epanechnikov_kernel`, or any callable with ``\int K = 1``) live on the Kernels page. The
+bounded/positive-support **asymmetric** kernels are [`AsymmetricKernel`](@ref) values — `gamma_kernel`
+for ``[0,\infty)``, `beta_kernel` for ``[0,1]``, or a custom one — boundary-bias-free by construction.
 
 ```@docs
-gaussian_kernel
-epanechnikov_kernel
 gamma_kernel
 beta_kernel
 AsymmetricKernel

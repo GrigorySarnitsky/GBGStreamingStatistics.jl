@@ -7,7 +7,7 @@ module MarkovInference
 
 using ..Histograms: Histogram2D
 using ..LocalPolynomial: local_fit
-using ..DensityEstimation: gaussian_kernel
+using ..Kernels: gaussian_kernel
 using ..Regression: _column_sums
 
 export increment_moment, kramers_moyal, drift, diffusion, pawula_quotient, markov_test

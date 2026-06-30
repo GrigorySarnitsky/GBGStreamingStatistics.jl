@@ -4,7 +4,7 @@
 module ConditionalDensity
 
 using ..Histograms: Histogram2D, _xbincenter, _ybincenter
-using ..DensityEstimation: gaussian_kernel
+using ..Kernels: gaussian_kernel
 
 export conditional_density, transition_density
 
