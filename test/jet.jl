@@ -35,6 +35,7 @@ using GBGStreamingStatistics: Histograms, MarginalDensity, Bandwidth, Regression
   @test_call target_modules = mods observe_pairs!(g, xs, ys)
   @test_call target_modules = mods merge!(g, g2)
   @test_call target_modules = mods conditional_mean(g, 0.0; h = 0.5)
+  @test_call target_modules = mods conditional_mean(g, 0.0; h = 0.5, degree = 0, kernel = gamma_kernel)   # asym degree-0
   @test_call target_modules = mods conditional_variance(g, 0.0; h = 0.5)
   @test_call target_modules = mods bandwidth(g, 0.0; rule = :local)   # the response-aware local h⋆(x)
 

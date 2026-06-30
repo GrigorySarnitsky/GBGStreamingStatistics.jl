@@ -12,7 +12,8 @@ using SpecialFunctions: loggamma
 
 using ..Histograms: Histogram1D, _nbins, _bincenter, _total, _sample_mean, _sample_variance, _sample_std
 using ..LocalPolynomial: _hankel_solve
-using ..Kernels: gaussian_kernel, epanechnikov_kernel, _quad, AsymmetricKernel, gamma_kernel, beta_kernel
+using ..Kernels: gaussian_kernel, epanechnikov_kernel, _quad, _kernel_weight, AsymmetricKernel,
+                 gamma_kernel, beta_kernel
 
 export density, density_standard_error,
        ParametricStart, normal_start, lognormal_start, gamma_start, exponential_start, inverse_gaussian_start
@@ -167,16 +168,15 @@ end
 function _parametric_start_eval(counts, centers, n, x, h, kernel, start, params)
   logpx = start.logpdf(x, params)
   isfinite(logpx) || return 0.0
-  invh = inv(h)
   acc = 0.0
   @inbounds for j in eachindex(centers)
     cj = counts[j]
     iszero(cj) && continue
     logpj = start.logpdf(centers[j], params)
     isfinite(logpj) || continue
-    acc += cj * exp(-logpj) * kernel((x - centers[j]) * invh)
+    acc += cj * exp(-logpj) * _kernel_weight(kernel, centers[j], x, h)
   end
-  return exp(logpx) * acc / (n * h)
+  return exp(logpx) * acc / n
 end
 
 
@@ -245,16 +245,17 @@ function _normal_reference_h(summary::Histogram1D, kernel, degree::Integer)
 end
 
 
-# Fixed-bandwidth binned KDE at x (single h) — the degree-0 fixed estimator and the adaptive pilot.
+# Fixed-bandwidth binned degree-0 density at x (single h): f̂ = (1/n) Σ_j n_j w_j with w_j the shared
+# `_kernel_weight` (the 1/h folded in) — so this one evaluator serves both the symmetric KDE and the
+# asymmetric (gamma/beta) boundary kernel, and is the adaptive pilot. The degree-0 readout of the atom.
 function _kde_h(counts, centers, n, x, h, kernel)
-  invh = inv(h)
   acc = 0.0
   @inbounds for j in eachindex(centers)
     cj = counts[j]
     iszero(cj) && continue
-    acc += cj * kernel((x - centers[j]) * invh)
+    acc += cj * _kernel_weight(kernel, centers[j], x, h)
   end
-  return acc / (n * h)
+  return acc / n
 end
 
 
@@ -285,7 +286,7 @@ function _kde_adaptive(counts, centers, hj, n, x, kernel)
   @inbounds for j in eachindex(centers)
     cj = counts[j]
     iszero(cj) && continue
-    acc += cj * kernel((x - centers[j]) / hj[j]) / hj[j]
+    acc += cj * _kernel_weight(kernel, centers[j], x, hj[j])
   end
   return acc / n
 end
@@ -301,7 +302,6 @@ end
 # fit diverges.
 function _local_log(counts, centers, hx, n, b, x, degree, kernel, f0)
   (f0 > 0 && isfinite(f0)) || return f0
-  invhx = inv(hx)
   p = degree + 1
   β = zeros(p)
   β[1] = log(f0)
@@ -313,8 +313,8 @@ function _local_log(counts, centers, hx, n, b, x, degree, kernel, f0)
     fill!(momμ, 0.0)
     @inbounds for j in eachindex(centers)
       d = centers[j] - x
-      w = kernel(d * invhx)
-      w < 1e-10 && continue
+      w = _kernel_weight(kernel, centers[j], x, hx)
+      w * hx < 1e-10 && continue        # cut on the raw kernel value (scale-free), not the 1/hx-folded weight
       η = β[1]
       dl = 1.0
       for l in 2:p
@@ -367,17 +367,6 @@ function _kernel_mass(kernel, x, h, a, b)
   return upper - lower
 end
 
-
-# Asymmetric-kernel estimate f̂(x) = (1/n) Σ_j n_j K(c_j; x, b) — a reduction over the bin counts.
-function _asymmetric_eval(counts, centers, n, kernel, x, b)
-  acc = 0.0
-  @inbounds for j in eachindex(centers)
-    cj = counts[j]
-    iszero(cj) && continue
-    acc += cj * kernel(centers[j], x, b)
-  end
-  return acc / n
-end
 
 # Default bandwidth for an asymmetric kernel: the gamma/beta-kernel rate b ∝ n^(−2/5) (Chen 1999/2000),
 # scaled by σ̂ so the kernel's width at a typical point matches the symmetric optimum.
@@ -532,7 +521,7 @@ function density(summary::Histogram1D, x::Real; degree::Integer = 0, h = nothing
     bb > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
     counts = Array(summary.counts)
     centers = _bin_locations(summary, counts, binning)
-    return _asymmetric_eval(counts, centers, n, kernel, x, bb)
+    return _kde_h(counts, centers, n, x, bb, kernel)   # one degree-0 evaluator, any kernel protocol
   end
   degree ≥ 0 || throw(ArgumentError("degree must be ≥ 0 (got $degree)"))
   (bounds === nothing || degree == 0) ||
@@ -589,7 +578,7 @@ function density(summary::Histogram1D, xs::AbstractVector; degree::Integer = 0, 
     bb > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
     counts = Array(summary.counts)
     centers = _bin_locations(summary, counts, binning)
-    return [_asymmetric_eval(counts, centers, n, kernel, x, bb) for x in xs]
+    return [_kde_h(counts, centers, n, x, bb, kernel) for x in xs]
   end
   degree ≥ 0 || throw(ArgumentError("degree must be ≥ 0 (got $degree)"))
   (bounds === nothing || degree == 0) ||

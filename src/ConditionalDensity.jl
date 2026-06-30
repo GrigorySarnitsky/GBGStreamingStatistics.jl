@@ -4,7 +4,7 @@
 module ConditionalDensity
 
 using ..Histograms: Histogram2D, _xbincenter, _ybincenter
-using ..Kernels: gaussian_kernel, AsymmetricKernel
+using ..Kernels: gaussian_kernel, _kernel_weight, AsymmetricKernel
 
 export conditional_density, transition_density
 
@@ -17,24 +17,16 @@ _check_bandwidths(hx::Real, hy::Real) =
 # Reduce the joint histogram at conditioning value `x` to a 1-D X-kernel-weighted Y-profile:
 # `P[k] = Σ_j n_{jk} K_hx(c^x_j, x)` (the gx-weighted count in Y-row k) and `D = Σ_k P[k] = Σ_j N_j
 # K_hx(c^x_j, x)` (the marginal-X KDE numerator). The conditional distribution over Y-cells is P/D;
-# smoothing it in y gives the density. A symmetric `kernelx` weights by K((c^x_j − x)/hx); an asymmetric
-# one by K(c^x_j; x, hx) (a density in the data argument). Either way the x-weighting cancels in the
-# f_{X,Y}/f_X ratio, so its normalization is irrelevant here. Host-side (`Array` is a no-op for CPU
-# summaries).
+# smoothing it in y gives the density. The per-column weight is the shared `_kernel_weight` atom (symmetric
+# or asymmetric `kernelx` alike); the x-weighting cancels in the f_{X,Y}/f_X ratio, so its normalization is
+# irrelevant here. Host-side (`Array` is a no-op for CPU summaries).
 function _y_profile(summary::Histogram2D, x::Real, hx::Real, kernelx)
   counts = Array(summary.counts)
   nx = summary.nx
   ny = summary.ny
   gx = Vector{Float64}(undef, nx)
-  if kernelx isa AsymmetricKernel
-    @inbounds for j in 1:nx
-      gx[j] = kernelx(_xbincenter(summary, j), x, hx)
-    end
-  else
-    invhx = inv(float(hx))
-    @inbounds for j in 1:nx
-      gx[j] = kernelx((_xbincenter(summary, j) - x) * invhx)
-    end
+  @inbounds for j in 1:nx
+    gx[j] = _kernel_weight(kernelx, _xbincenter(summary, j), x, hx)
   end
   P = zeros(Float64, ny)
   @inbounds for k in 1:ny
@@ -53,28 +45,18 @@ end
 
 # Smooth the Y-profile to the density at `y`. The double-kernel ratio f_{X,Y}/f_X cancels the X-kernel
 # weighting (it appears in both the profile P and its total D); only the y-direction normalization
-# survives. A symmetric `kernely` carries the 1/hy of K_hy(c^y_k − y), and because ∫K = 1 that makes
-# ∫ f̂(y∣x) dy = 1 exactly. An asymmetric `kernely` is already a normalized density in its data argument
-# c^y_k (no 1/hy), so ∫ f̂ dy ≈ 1 — exact only after `_response_normalizer` (as for the marginal `density`).
+# survives, carried by the shared `_kernel_weight` atom (its 1/hy folded in). For a symmetric `kernely`,
+# ∫K = 1 makes ∫ f̂(y∣x) dy = 1 exactly; an asymmetric `kernely` (a normalized density in its data argument)
+# gives ∫ f̂ dy ≈ 1 — exact only after `_response_normalizer` (as for the marginal `density`).
 function _density_at(summary::Histogram2D, P, D, y::Real, hy::Real, kernely)
   D > 0 || return oftype(D, NaN)
   acc = 0.0
-  if kernely isa AsymmetricKernel
-    @inbounds for k in 1:summary.ny
-      Pk = P[k]
-      iszero(Pk) && continue
-      acc += Pk * kernely(_ybincenter(summary, k), y, hy)
-    end
-    return acc / D
-  else
-    invhy = inv(float(hy))
-    @inbounds for k in 1:summary.ny
-      Pk = P[k]
-      iszero(Pk) && continue
-      acc += Pk * kernely((_ybincenter(summary, k) - y) * invhy)
-    end
-    return acc / (hy * D)
+  @inbounds for k in 1:summary.ny
+    Pk = P[k]
+    iszero(Pk) && continue
+    acc += Pk * _kernel_weight(kernely, _ybincenter(summary, k), y, hy)
   end
+  return acc / D
 end
 
 

@@ -169,4 +169,15 @@ functions*](https://doi.org/10.1016/S0167-9473(99)00010-9), Comput. Statist. Dat
 """
 const beta_kernel = AsymmetricKernel(_beta_pdf, (0.0, 1.0), x -> x * (1 - x))
 
+
+# The kernel-weighting atom — the one place the two kernel protocols live. Given a bin/data location `c`,
+# a query point `x`, and a bandwidth `h`, return the per-location smoothing weight, **normalized** (the
+# 1/h is folded in for a symmetric kernel, so every downstream readout — a count sum, a Nadaraya–Watson
+# ratio, the local-polynomial jet — is uniform, and the symmetric/asymmetric split never re-appears).
+# A symmetric kernel is the scaled difference (1/h)K((c−x)/h); an asymmetric kernel is already a normalized
+# density in its data argument, K(c; x, h) (no 1/h). Internal (reached by explicit `using`).
+@inline _kernel_weight(kernel, c, x, h) = kernel((c - x) / h) / h
+@inline _kernel_weight(kernel::AsymmetricKernel, c, x, h) = kernel(c, x, h)
+
+
 end # module Kernels

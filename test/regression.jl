@@ -87,3 +87,28 @@ end
 
   @test_throws ArgumentError conditional_variance(hh, 0.0; h = 0.3, method = :bogus)
 end
+
+
+@testset "asymmetric kernel at degree 0 — admitted by the unified weighting (§4.2)" begin
+  # The shared kernel-weighting atom admits an asymmetric kernel at degree 0 (a Nadaraya–Watson ratio with a
+  # boundary kernel) — what the old symmetric-only local_fit rejected with a MethodError. This is the
+  # lens-consistency unlock (every degree-0 readout takes any kernel), NOT a recommended regression
+  # estimator: the Chen gamma/beta kernels are a *density* boundary tool, and their asymmetry interacts with
+  # the regression design density, so for a bounded conditioning variable degree-1 local-linear — which is
+  # boundary-adaptive AND unbiased for a linear mean — is the tool. An asymmetric kernel has no jet, so
+  # degree ≥ 1 with one is a clean ArgumentError.
+  Random.seed!(77)
+  M = 1_000_000
+  Xb = -log.(rand(M)); Yb = Xb .+ 0.3 .* randn(M)              # X ~ Exp(1) ≥ 0, E[Y|X=x] = x
+  gb = Histogram2D(0.0, 12.0, 240, -2.0, 14.0, 240); observe_pairs!(gb, Xb, Yb)
+
+  # admitted and finite (was a MethodError), interior and at the bounded edge
+  @test isfinite(conditional_mean(gb, 2.0; h = 0.4, degree = 0, kernel = gamma_kernel))
+  @test isfinite(conditional_mean(gb, 0.2; h = 0.4, degree = 0, kernel = gamma_kernel))
+  # degree-1 local-linear is the right tool for the bounded edge — unbiased for the linear mean
+  @test conditional_mean(gb, 0.5; h = 0.4, degree = 1) ≈ 0.5 atol = 0.03
+
+  # the one guard: an asymmetric kernel has no jet ⇒ degree ≥ 1 throws (cleanly, not a MethodError)
+  @test_throws ArgumentError conditional_mean(gb, 1.0; h = 0.4, degree = 1, kernel = gamma_kernel)
+  @test_throws ArgumentError conditional_variance(gb, 1.0; h = 0.4, degree = 2, kernel = gamma_kernel)
+end

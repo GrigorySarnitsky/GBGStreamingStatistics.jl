@@ -52,11 +52,14 @@ R(K)\\,\\sigma^2(x)/(n\\,h\\,f_X(x))``.
 **Boundary adaptivity.** The local-linear fit (`degree = 1`, the default) is *boundary-adaptive* (Fan
 1992): conditioning on a bounded or positive quantity — a droplet radius ``X \\ge 0``, say — is
 first-order correct near the edge with the symmetric `kernel`, because the local-linear fit corrects the
-``O(h)`` boundary bias to the interior ``O(h^2)`` automatically (the `degree = 0` Nadaraya–Watson fit does
-not — it keeps the ``O(h)`` edge bias, so prefer `degree = 1` there). No asymmetric conditioning kernel is
-needed; one would only tighten the boundary *variance* of the one-sided edge window — a second-order
-refinement. (A bounded *response* is the other case: there the response kernel can be asymmetric — see
-[`conditional_density`](@ref GBGStreamingStatistics.ConditionalDensity.conditional_density).)
+``O(h)`` boundary bias to the interior ``O(h^2)`` automatically. The `degree = 0` Nadaraya–Watson fit does
+**not** — it keeps the ``O(h)`` edge bias — so near a bounded edge **use `degree = 1`** (the default; being
+local-linear it is also unbiased for a linear mean). A `degree = 0` asymmetric `kernel` (`gamma_kernel` /
+`beta_kernel`) is *admitted* too — the uniform degree-0 boundary kernel, no jet, so `degree = 0` only — but
+the Chen kernels are a **density** boundary tool whose asymmetry interacts with the regression design
+density, so they do **not** generally improve the conditional mean; prefer `degree = 1` for a bounded
+conditioning variable. A bounded *response* is the other case: there the response kernel can be asymmetric —
+see [`conditional_density`](@ref GBGStreamingStatistics.ConditionalDensity.conditional_density).
 
 Arguments:
 
@@ -65,9 +68,11 @@ Arguments:
 - `x` — the conditioning value(s) at which ``m`` is evaluated (a scalar for one point, or a vector
   for the whole curve).
 - `h` — the smoothing bandwidth (``h > 0``), supplied.
-- `kernel` — the smoothing kernel ``K`` (any callable with ``\\int K = 1``; default `gaussian_kernel`).
+- `kernel` — the smoothing kernel: a symmetric callable ``K`` (``\\int K = 1``; default `gaussian_kernel`,
+  at any `degree`), or an asymmetric `gamma_kernel` / `beta_kernel` for a bounded/positive conditioning
+  variable (`degree = 0` only).
 - `degree` — the local-polynomial order: `0` (Nadaraya–Watson), `1` (local-linear, the default), or
-  `2` (local-quadratic).
+  `2` (local-quadratic); an asymmetric `kernel` restricts it to `0`.
 
 Reference: J. Fan & I. Gijbels (1996), [*Local Polynomial Modelling and Its Applications*](https://doi.org/10.1201/9780203748725),
 Chapman & Hall.
