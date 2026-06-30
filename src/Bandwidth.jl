@@ -13,7 +13,7 @@ using ..Histograms: Histogram1D, Histogram2D, _total, _sample_std, _bincenter, _
 using ..LocalPolynomial: local_fit
 using ..Kernels: gaussian_kernel, _quad
 using ..Regression: _residual_response
-using ..DensityEstimation: _normal_reference_h, _kde_h, AsymmetricKernel, _asymmetric_default_b
+using ..MarginalDensity: _normal_reference_h, _kde_h, AsymmetricKernel, _asymmetric_default_b
 
 export bandwidth
 
@@ -312,7 +312,7 @@ end
               degree = 0) -> h
 
 **Estimand.** the AMISE-optimal smoothing bandwidth for the marginal density
-[`density`](@ref GBGStreamingStatistics.DensityEstimation.density) of `summary` — the ``h`` minimising
+[`density`](@ref GBGStreamingStatistics.MarginalDensity.density) of `summary` — the ``h`` minimising
 ``\\mathrm{MISE}(\\hat f_h) = \\int \\mathbb{E}\\bigl[(\\hat f_h(x) - f_X(x))^2\\bigr]\\,\\mathrm{d}x``
 for the smoothing `kernel` ``K`` and local-polynomial `degree` ``d``.
 
@@ -359,8 +359,8 @@ of the counts' cosine transform); the eval kernel again enters as the ``\\delta(
 **Estimator** (`rule = :aic`, the fit-based information criterion; `degree` 0/1). Over a log-spaced
 ``h``-grid around the normal reference, minimise ``\\mathrm{AIC}(h) = -2\\sum_j n_j \\log \\hat f_h(c_j) + 2\\,\\mathrm{df}(h)`` of the binned **Gaussian** KDE, with ``\\mathrm{df}(h) = (\\varphi(0)/h)\\sum_j n_j/(n\\hat f_h(c_j))`` the kernel self-influence trace (``\\varphi`` the Gaussian). Both terms diverge as ``h \\to 0``, so the optimum is a stable interior point; like `:sj` it is a deterministic functional of the counts (mergeable), and the eval kernel enters only as the canonical ``\\delta(K)`` rescale of the selected ``h``. The leave-one-out **cross-validation** selectors (likelihood-CV and least-squares LSCV) are a deliberate coverage gap — binning ties drive their optimum to ``h \\to 0`` (use `:sj` for a data-driven alternative).
 
-**Asymmetric kernels** ([`gamma_kernel`](@ref GBGStreamingStatistics.DensityEstimation.gamma_kernel),
-[`beta_kernel`](@ref GBGStreamingStatistics.DensityEstimation.beta_kernel)) carry their width in the
+**Asymmetric kernels** ([`gamma_kernel`](@ref GBGStreamingStatistics.MarginalDensity.gamma_kernel),
+[`beta_kernel`](@ref GBGStreamingStatistics.MarginalDensity.beta_kernel)) carry their width in the
 varying shape, so they take their own scale ``b`` (rate ``n^{-2/5}``), not the symmetric ``h``, and accept
 two rules. `rule = :normal` (default) is the ``\\hat\\sigma\\,n^{-2/5}`` rule of thumb. `rule = :plugin`
 is the **Chen plug-in**, the asymmetric analog of Silverman's rule: from the AMISE ``A b^2 + C b^{-1/2}/n``

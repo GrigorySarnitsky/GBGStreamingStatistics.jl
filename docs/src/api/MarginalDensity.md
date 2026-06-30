@@ -1,4 +1,4 @@
-# DensityEstimation
+# MarginalDensity
 
 The marginal density ``\equiv f_X`` (§4.1): the flagship [`density`](@ref) and its pointwise variability
 band, the smoothing kernels it accepts, and the parametric starts for its semiparametric mode.

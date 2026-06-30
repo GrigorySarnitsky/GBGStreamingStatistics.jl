@@ -8,7 +8,7 @@ solve — the architecture's shared core, [Architecture](architecture.md) §11).
     These bindings are **not exported** and **not part of the stable surface** — reach them by the
     qualified name (`GBGStreamingStatistics.LocalPolynomial.local_fit`) or an explicit
     `using ..LocalPolynomial: local_fit`, and expect signatures to change. Routine analysis uses the
-    exported estimands ([`density`](@ref GBGStreamingStatistics.DensityEstimation.density),
+    exported estimands ([`density`](@ref GBGStreamingStatistics.MarginalDensity.density),
     [`conditional_mean`](@ref GBGStreamingStatistics.Regression.conditional_mean),
     [`bandwidth`](@ref GBGStreamingStatistics.Bandwidth.bandwidth), …), which take the `Histogram` summary
     types; `local_fit` works one level lower, on raw recovered arrays.

@@ -1,7 +1,7 @@
 using Test
 using JET
 using GBGStreamingStatistics
-using GBGStreamingStatistics: Histograms, DensityEstimation, Bandwidth, Regression, MarkovInference,
+using GBGStreamingStatistics: Histograms, MarginalDensity, Bandwidth, Regression, MarkovInference,
                               ConditionalDensity
 
 @testset "JET" begin
@@ -9,7 +9,7 @@ using GBGStreamingStatistics: Histograms, DensityEstimation, Bandwidth, Regressi
   # package's own code. Concrete summaries ⇒ `get_backend` is concretely `CPU()`, so the GPU branch of
   # the scatter kernel (only reachable with a GPU backend loaded — exercised in test/gpu/) is not part
   # of the analyzed call; the KernelAbstractions/Atomix internals are excluded by `target_modules`.
-  mods = (GBGStreamingStatistics, Histograms, DensityEstimation, Bandwidth, Regression, MarkovInference,
+  mods = (GBGStreamingStatistics, Histograms, MarginalDensity, Bandwidth, Regression, MarkovInference,
           ConditionalDensity)
   h = Histogram1D(-5.0, 5.0, 100; order = 4)
   h2 = Histogram1D(-5.0, 5.0, 100; order = 4)

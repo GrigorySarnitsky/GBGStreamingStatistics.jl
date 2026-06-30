@@ -14,7 +14,7 @@ export gaussian_kernel, epanechnikov_kernel
 
 The standard Gaussian smoothing kernel ``K(u) = e^{-u^2/2}/\\sqrt{2\\pi}`` (``\\int K = 1``,
 ``\\mu_2(K) = 1``, roughness ``R(K) = 1/(2\\sqrt{\\pi})``) — the
-[`density`](@ref GBGStreamingStatistics.DensityEstimation.density) default.
+[`density`](@ref GBGStreamingStatistics.MarginalDensity.density) default.
 """
 @inline gaussian_kernel(u) = exp(-u^2 / 2) / sqrt(2π)
 

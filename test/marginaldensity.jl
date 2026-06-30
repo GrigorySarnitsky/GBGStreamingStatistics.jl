@@ -5,7 +5,7 @@ using SpecialFunctions: loggamma
 include("testoracles.jl"); using .TestOracles
 include("testcontracts.jl"); using .TestContracts
 
-@testset "DensityEstimation (density)" begin
+@testset "MarginalDensity (density)" begin
   K(u) = exp(-u^2 / 2) / sqrt(2π)
 
   # One sample → a single Gaussian bump. With linear (centroid) binning — the default — the bump sits at

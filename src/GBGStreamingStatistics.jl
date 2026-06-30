@@ -37,7 +37,7 @@ include("Accumulators.jl")
 include("Histograms.jl")
 include("Kernels.jl")
 include("LocalPolynomial.jl")
-include("DensityEstimation.jl")
+include("MarginalDensity.jl")
 include("Regression.jl")
 include("ConditionalDensity.jl")
 include("MarkovInference.jl")
@@ -69,7 +69,7 @@ using .Kernels:
   epanechnikov_kernel
 
 
-using .DensityEstimation:
+using .MarginalDensity:
   density,
   density_standard_error,
   AsymmetricKernel,

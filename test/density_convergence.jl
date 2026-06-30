@@ -29,7 +29,7 @@ include("testoracles.jl"); using .TestOracles
     recovers(n -> -log.(rand(n)), exponential_pdf, -1.0, 14.0, 1500, 0.5:0.5:4.0, 400_000, 1.2e-2, 2e-2)
     recovers(n -> -log.(rand(n)), exponential_pdf, -1.0, 14.0, 1500, 0.5:0.5:4.0, 400_000, 1.2e-2, 3.5e-2; kw = (degree = 1,))
     # (degree-1 is exact for the exponential — both degrees recover it above; the sharper degree-1 tail
-    # win is the Laplace test in `test/densityestimation.jl`, where the feature is strong enough to be
+    # win is the Laplace test in `test/marginaldensity.jl`, where the feature is strong enough to be
     # robust at every point. For the milder exponential the finite-n advantage is marginal.)
 
     # 4. Student-t (ν = 3) — heavy power-law tail (the intermittency case)

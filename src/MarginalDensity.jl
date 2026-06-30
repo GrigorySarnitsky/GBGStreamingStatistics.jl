@@ -1,4 +1,4 @@
-# DensityEstimation — §4.1: the marginal density f_X. A single `density` spans the local-log-polynomial
+# MarginalDensity — §4.1: the marginal density f_X. A single `density` spans the local-log-polynomial
 # degree (0 = KDE, ≥1 = local likelihood) crossed with a fixed or Abramson-variable bandwidth, plus
 # pluggable kernels (the symmetric gaussian/epanechnikov and the bounded-support asymmetric gamma/beta),
 # the Jones boundary `bounds` renormalization, the Hjort–Glad parametric `start`, exact `normalize`, and
@@ -6,7 +6,7 @@
 # *sample-point* (per-bin h_j) for the KDE and *balloon* (one h(x) at the query) for the local-log fit.
 # Written estimand-first (`docs/ARCHITECTURE.md` §2, §4.1).
 
-module DensityEstimation
+module MarginalDensity
 
 using SpecialFunctions: loggamma, logbeta
 
@@ -30,10 +30,10 @@ export density, density_standard_error,
     AsymmetricKernel(pdf, support, weight)
 
 A varying-shape **asymmetric kernel** for
-[`density`](@ref GBGStreamingStatistics.DensityEstimation.density) on a bounded or half-line support —
+[`density`](@ref GBGStreamingStatistics.MarginalDensity.density) on a bounded or half-line support —
 the boundary-bias-free analog of a symmetric smoothing kernel (Chen 1999, 2000). The built-ins are
-[`gamma_kernel`](@ref GBGStreamingStatistics.DensityEstimation.gamma_kernel) for ``[0,\\infty)`` and
-[`beta_kernel`](@ref GBGStreamingStatistics.DensityEstimation.beta_kernel) for ``[0,1]``; construct one
+[`gamma_kernel`](@ref GBGStreamingStatistics.MarginalDensity.gamma_kernel) for ``[0,\\infty)`` and
+[`beta_kernel`](@ref GBGStreamingStatistics.MarginalDensity.beta_kernel) for ``[0,1]``; construct one
 directly to plug in a custom boundary kernel. The three fields are the construction contract:
 
 - `pdf(c, x, b)` — the kernel as a **density in the data argument** ``c``, whose shape is set by the
@@ -97,7 +97,7 @@ The **gamma kernel** (Chen 2000) for a density on the half-line ``[0,\\infty)`` 
 density in the data argument (Chen's ``f_2``: shape ``\\rho(x) = x/b`` in the interior — so the kernel mean
 is exactly ``x``, removing the ``f'`` bias of the naive ``x/b+1`` form — and ``(x/b)^2/4 + 1`` within ``2b``
 of the edge), so its support matches the data and **no mass leaks past 0**. Passed as
-`kernel = gamma_kernel`, [`density`](@ref GBGStreamingStatistics.DensityEstimation.density) returns the
+`kernel = gamma_kernel`, [`density`](@ref GBGStreamingStatistics.MarginalDensity.density) returns the
 boundary-bias-free estimate ``\\hat f(x) = \\tfrac1n \\sum_j n_j\\,\\mathrm{Gamma}(c_j;\\,\\rho(x),\\,b)``
 (``O(b)`` bias uniformly, including at the boundary where a symmetric kernel is inconsistent; the variance
 self-adapts, tightening toward the edge). Use it for non-negative quantities such as droplet radii — an
@@ -127,7 +127,7 @@ end
     beta_kernel
 
 The **beta kernel** (Chen 1999) for a density on the unit interval ``[0,1]`` — the bounded-interval
-analog of [`gamma_kernel`](@ref GBGStreamingStatistics.DensityEstimation.gamma_kernel): at ``x`` it is
+analog of [`gamma_kernel`](@ref GBGStreamingStatistics.MarginalDensity.gamma_kernel): at ``x`` it is
 the modified (bias-reduced) ``\\mathrm{Beta}`` density in the data argument (Chen's ``f_2``: interior
 shapes ``(x/b,\\,(1-x)/b)``, with a ``\\sqrt{\\,\\cdot\\,}`` correction within ``2b`` of an edge),
 boundary-bias-free at **both** edges. Pass `kernel = beta_kernel` with data scaled to ``[0,1]``; the bandwidth default, the knob
@@ -152,15 +152,15 @@ const beta_kernel = AsymmetricKernel(_beta_pdf, (0.0, 1.0), x -> x * (1 - x))
     ParametricStart(fit, logpdf, support)
 
 A **parametric start** for the Hjort–Glad semiparametric density (Hjort & Glad 1995). Passed as
-[`density`](@ref GBGStreamingStatistics.DensityEstimation.density)`(…; start = …)`, it multiplies the
+[`density`](@ref GBGStreamingStatistics.MarginalDensity.density)`(…; start = …)`, it multiplies the
 moment-fitted model ``p(\\cdot;\\hat\\theta)`` by a kernel estimate of the **correction** ``f_X/p`` —
 near-exact where the model fits (the bias is driven by ``(f_X/p)''``, not ``f_X''``), degrading only to a
 kernel-of-the-ratio bias where it does not. The built-ins are
-[`normal_start`](@ref GBGStreamingStatistics.DensityEstimation.normal_start),
-[`lognormal_start`](@ref GBGStreamingStatistics.DensityEstimation.lognormal_start),
-[`gamma_start`](@ref GBGStreamingStatistics.DensityEstimation.gamma_start),
-[`exponential_start`](@ref GBGStreamingStatistics.DensityEstimation.exponential_start), and
-[`inverse_gaussian_start`](@ref GBGStreamingStatistics.DensityEstimation.inverse_gaussian_start);
+[`normal_start`](@ref GBGStreamingStatistics.MarginalDensity.normal_start),
+[`lognormal_start`](@ref GBGStreamingStatistics.MarginalDensity.lognormal_start),
+[`gamma_start`](@ref GBGStreamingStatistics.MarginalDensity.gamma_start),
+[`exponential_start`](@ref GBGStreamingStatistics.MarginalDensity.exponential_start), and
+[`inverse_gaussian_start`](@ref GBGStreamingStatistics.MarginalDensity.inverse_gaussian_start);
 construct one directly to plug in a custom parametric model. The three fields are the construction contract:
 
 - `fit(mean, variance)` — fit the model parameters from the **recovered moments** by method of moments,
@@ -194,10 +194,10 @@ end
 """
     normal_start
 
-A Gaussian (normal) [parametric start](@ref GBGStreamingStatistics.DensityEstimation.density) on
+A Gaussian (normal) [parametric start](@ref GBGStreamingStatistics.MarginalDensity.density) on
 ``(-\\infty,\\infty)``: ``p(x;\\hat\\mu,\\hat\\sigma^2)`` with ``\\hat\\mu``, ``\\hat\\sigma^2`` the
 recovered sample mean and variance. Pass `start = normal_start` to
-[`density`](@ref GBGStreamingStatistics.DensityEstimation.density); the estimate is then near-exact on
+[`density`](@ref GBGStreamingStatistics.MarginalDensity.density); the estimate is then near-exact on
 genuinely Gaussian data and reduces to a bias-corrected KDE otherwise.
 """
 const normal_start = ParametricStart(
@@ -209,7 +209,7 @@ const normal_start = ParametricStart(
 """
     lognormal_start
 
-A log-normal [parametric start](@ref GBGStreamingStatistics.DensityEstimation.density) on
+A log-normal [parametric start](@ref GBGStreamingStatistics.MarginalDensity.density) on
 ``(0,\\infty)``, parameters by method of moments (``s^2 = \\log(1+\\hat\\sigma^2/\\hat\\mu^2)``,
 ``m = \\log\\hat\\mu - s^2/2``). A natural start for a **positively skewed** quantity such as a droplet
 radius; pass `start = lognormal_start`.
@@ -223,7 +223,7 @@ const lognormal_start = ParametricStart(
 """
     gamma_start
 
-A gamma [parametric start](@ref GBGStreamingStatistics.DensityEstimation.density) on ``(0,\\infty)``,
+A gamma [parametric start](@ref GBGStreamingStatistics.MarginalDensity.density) on ``(0,\\infty)``,
 shape ``k = \\hat\\mu^2/\\hat\\sigma^2`` and scale ``\\theta = \\hat\\sigma^2/\\hat\\mu`` by method of
 moments. For a non-negative quantity; pass `start = gamma_start`.
 """
@@ -236,7 +236,7 @@ const gamma_start = ParametricStart(
 """
     exponential_start
 
-An exponential [parametric start](@ref GBGStreamingStatistics.DensityEstimation.density) on
+An exponential [parametric start](@ref GBGStreamingStatistics.MarginalDensity.density) on
 ``[0,\\infty)``, rate ``\\hat\\lambda = 1/\\hat\\mu`` (a one-parameter start fit from the mean alone).
 Pass `start = exponential_start`; pairs with the `degree = 1` log-linear fit as the two
 exponential-tail tools.
@@ -250,7 +250,7 @@ const exponential_start = ParametricStart(
 """
     inverse_gaussian_start
 
-An inverse-Gaussian [parametric start](@ref GBGStreamingStatistics.DensityEstimation.density) on
+An inverse-Gaussian [parametric start](@ref GBGStreamingStatistics.MarginalDensity.density) on
 ``(0,\\infty)``, mean ``\\hat\\mu`` and shape ``\\hat\\lambda = \\hat\\mu^3/\\hat\\sigma^2`` by method of
 moments — a positive start with an exponentially decaying right tail (lighter than the log-normal's).
 Pass `start = inverse_gaussian_start`.
@@ -551,8 +551,8 @@ is a binned local smoother of the `summary` counts ``n_j`` at bin centers ``c_j`
   ``(4/3)^{1/5}\\hat\\sigma\\,n^{-1/5}`` for the Gaussian kernel at degree 0/1, wider at the ``n^{-1/9}``
   rate for degree 2). For a shape-adaptive choice, compute `bandwidth(summary; rule = :sj)` (or `:isj` /
   `:aic`) yourself and pass the number. The asymmetric
-  [`gamma_kernel`](@ref GBGStreamingStatistics.DensityEstimation.gamma_kernel) /
-  [`beta_kernel`](@ref GBGStreamingStatistics.DensityEstimation.beta_kernel) take their own scale ``b``
+  [`gamma_kernel`](@ref GBGStreamingStatistics.MarginalDensity.gamma_kernel) /
+  [`beta_kernel`](@ref GBGStreamingStatistics.MarginalDensity.beta_kernel) take their own scale ``b``
   here (rate ``n^{-2/5}``) in place of the symmetric `h`.
 - **`adaptive`** — whether the bandwidth **varies with the local density**. `false` (default) holds `h`
   fixed everywhere; `true` uses the **Abramson** variable bandwidth — the kernel width scales by
@@ -574,11 +574,11 @@ is a binned local smoother of the `summary` counts ``n_j`` at bin centers ``c_j`
   ``\\hat\\mu``, ``\\hat\\sigma^2``, so the start is itself a functional of the summary. The estimate is
   **near-exact wherever the start is correct** (the correction is then ``\\equiv 1``) and degrades only to
   a bias-corrected KDE where it is not — a tail-friendly bias reduction. Pass one of
-  [`normal_start`](@ref GBGStreamingStatistics.DensityEstimation.normal_start),
-  [`lognormal_start`](@ref GBGStreamingStatistics.DensityEstimation.lognormal_start),
-  [`gamma_start`](@ref GBGStreamingStatistics.DensityEstimation.gamma_start),
-  [`exponential_start`](@ref GBGStreamingStatistics.DensityEstimation.exponential_start),
-  [`inverse_gaussian_start`](@ref GBGStreamingStatistics.DensityEstimation.inverse_gaussian_start). It is
+  [`normal_start`](@ref GBGStreamingStatistics.MarginalDensity.normal_start),
+  [`lognormal_start`](@ref GBGStreamingStatistics.MarginalDensity.lognormal_start),
+  [`gamma_start`](@ref GBGStreamingStatistics.MarginalDensity.gamma_start),
+  [`exponential_start`](@ref GBGStreamingStatistics.MarginalDensity.exponential_start),
+  [`inverse_gaussian_start`](@ref GBGStreamingStatistics.MarginalDensity.inverse_gaussian_start). It is
   a degree-0, fixed-`h`, symmetric-kernel estimator (`degree` ``\\ge 1``, `adaptive`, `bounds`, and the
   asymmetric kernels do not combine with it; use `normalize` for ``\\int\\hat f = 1``).
 - **`normalize`** — when `true`, divide the estimate by ``\\int\\hat f`` over the summary's range
@@ -596,8 +596,8 @@ The four corners (fixed/variable ``\\times`` KDE/local-log) and everything betwe
 is any ``K`` with ``\\int K = 1`` ([`gaussian_kernel`](@ref GBGStreamingStatistics.Kernels.gaussian_kernel)
 default, [`epanechnikov_kernel`](@ref GBGStreamingStatistics.Kernels.epanechnikov_kernel)); for
 **bounded / positive support** pass the asymmetric
-[`gamma_kernel`](@ref GBGStreamingStatistics.DensityEstimation.gamma_kernel) (half-line) or
-[`beta_kernel`](@ref GBGStreamingStatistics.DensityEstimation.beta_kernel) (unit interval), which are
+[`gamma_kernel`](@ref GBGStreamingStatistics.MarginalDensity.gamma_kernel) (half-line) or
+[`beta_kernel`](@ref GBGStreamingStatistics.MarginalDensity.beta_kernel) (unit interval), which are
 boundary-bias-free by construction — each is its own degree-0, boundary-free estimator, so `degree`,
 `adaptive`, and `bounds` do not apply to it (and a parametric `start` needs a symmetric kernel). A
 vector of query points returns a vector. The FFT amortization of the `degree = 0`, fixed-`h` convolution
@@ -741,7 +741,7 @@ end
                            kernel = gaussian_kernel, degree = 0)   # ≡ SE[f̂(x)]
 
 **Estimand.** the pointwise standard error of the density estimator
-[`density`](@ref GBGStreamingStatistics.DensityEstimation.density) at ``x`` — ``\\mathrm{SE}(x) =
+[`density`](@ref GBGStreamingStatistics.MarginalDensity.density) at ``x`` — ``\\mathrm{SE}(x) =
 \\sqrt{\\operatorname{Var}\\hat f_h(x)}`` with the kernel-density asymptotic variance
 
 ```math
@@ -791,4 +791,4 @@ function density_standard_error(summary::Histogram1D, xs::AbstractVector; h = no
   return [sqrt(RK * max(f, 0.0) / (n * hh)) for f in fxs]
 end
 
-end # module DensityEstimation
+end # module MarginalDensity

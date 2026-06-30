@@ -1,7 +1,7 @@
 # LocalPolynomial — the shared local-polynomial jet-smoother: the kernel-weighted local-polynomial
 # design solve over a binned 1-D measure, returning the local Taylor coefficients (the jet). This is
 # the single *linear* primitive on which the local smoothers are built — `Regression`'s local-linear
-# fit is one `local_fit` call, and `DensityEstimation`'s local-likelihood density is `local_fit`'s
+# fit is one `local_fit` call, and `MarginalDensity`'s local-likelihood density is `local_fit`'s
 # iteratively reweighted (IRLS) inner solve: a local GLM is this linear solve iterated
 # (`docs/ARCHITECTURE.md` §2, §11). Pure host-side numerics over recovered arrays; kernel-agnostic
 # (the kernel is any callable, and its normalization cancels in the solve).

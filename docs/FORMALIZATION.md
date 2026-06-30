@@ -154,7 +154,7 @@ The implemented entries are test-linked; a forthcoming operation gets its entry 
   two knobs compose. On a **bounded support** the degree-0 KDE accepts `bounds = (a, b)`, renormalizing
   by the kernel mass ``\int_a^b K_h(x-u)\,\mathrm{d}u`` inside the support (Jones 1993) to remove the
   ``O(1)`` boundary bias that otherwise halves the estimate at the edge.
-- **Test.** `test/densityestimation.jl` (every grid corner recovers the ``N(0,1)`` pdf into the tail and
+- **Test.** `test/marginaldensity.jl` (every grid corner recovers the ``N(0,1)`` pdf into the tail and
   integrates to ``\approx 1``; the variable bandwidth resolves the sharp Laplace cusp the fixed KDE
   oversmooths; degree-1 beats the KDE in a Laplace tail).
 
@@ -163,7 +163,7 @@ The implemented entries are test-linked; a forthcoming operation gets its entry 
 - **Estimand.** ``f_X`` on a bounded or positive support.
 - **Estimator.** the varying-shape estimate ``\hat f(x) = \tfrac1n \sum_j n_j K(c_j;\,x,\,b)`` with ``K(\cdot;x,b)`` the modified ``\mathrm{Gamma}(\rho(x),\,b)`` density (gamma kernel, support ``[0,\infty)``; Chen 2000) or the modified ``\mathrm{Beta}`` density (beta kernel, support ``[0,1]``; Chen 1999) — Chen's bias-reduced ``f_2`` shapes (interior shape ``x/b``, kernel mean ``\approx x``, removing the ``f'`` bias of the naive ``x/b+1`` form); the support matches the data, so no mass leaks past the boundary. A reduction over the bin counts (mergeable); default ``b = \hat\sigma\,n^{-2/5}``.
 - **Consistency claim.** bias ``O(b)`` uniformly *including at the boundary* (where a symmetric kernel is ``O(h)`` and inconsistent); interior variance ``O(n^{-1}b^{-1/2})``; optimal ``b \sim n^{-2/5}``, MISE ``\sim n^{-4/5}``. Not self-normalizing (an ``O(b)`` mass deviation). The modified ``f_2`` shape lowers the MISE constant (Chen proves ``\mathrm{MISE}(f_2) \le \mathrm{MISE}(f_1)``; only ``f_2`` ships, so the gain is the literature result, not a repo-reproducible number).
-- **Test.** `test/densityestimation.jl` (gamma recovers the exponential at the boundary, beating the symmetric KDE there; beta recovers ``\mathrm{Uniform}(0,1)`` at both edges; integrates to ``\approx 1``; mergeability; degree/adaptive/bounds rejected).
+- **Test.** `test/marginaldensity.jl` (gamma recovers the exponential at the boundary, beating the symmetric KDE there; beta recovers ``\mathrm{Uniform}(0,1)`` at both edges; integrates to ``\approx 1``; mergeability; degree/adaptive/bounds rejected).
 
 ## Parametric start & normalization (§4.1) — `density`'s `start` / `normalize`
 
@@ -171,13 +171,13 @@ The implemented entries are test-linked; a forthcoming operation gets its entry 
 - **Estimator (`start`, Hjort & Glad 1995).** The semiparametric estimate ``\hat f(x) = p(x;\hat\theta)\,\hat r_h(x)``, where ``p(\cdot;\hat\theta)`` is a parametric *start* fit by **method of moments** from the recovered ``\hat\mu``, ``\hat\sigma^2``, and ``\hat r_h(x) = \tfrac1{nh}\sum_j (n_j/p(c_j;\hat\theta))\,K((x-c_j)/h)`` is a KDE of the *correction* ``r = f_X/p`` (the start's local relative error). Five starts are provided — `normal_start`, `lognormal_start`, `gamma_start`, `exponential_start`, `inverse_gaussian_start` — each a density whose parameters are fixed by the first two moments, so ``\hat\theta`` is itself a post-hoc functional of the summary and the whole estimate is **mergeable** (``\hat\theta`` merges through the moments; the reweighted counts add). Degree-0, fixed-``h``, symmetric kernel.
 - **Consistency claim.** For a fixed start with bounded, twice-differentiable correction ``r``, consistent for ``f_X`` at ``\operatorname{bias} = O(h^2)``, ``\operatorname{var} = O(1/(nh))`` (MISE ``\sim n^{-4/5}``), but with the **leading bias governed by ``r'' = (f_X/p)''`` in place of ``f_X''``** and the variance ``R(K)f_X(x)/(nh)`` unchanged to leading order. When the start is correct ``r \equiv 1``, ``r'' \equiv 0``: the leading bias vanishes and the estimate collapses to the parametric fit. So the start is a **bias reduction** that pays in the bias-dominated regime (skewed / heavy-tailed shapes, oversmoothed ``h``), not in the large-``n`` limit where the KDE is already nearly unbiased.
 - **Estimator (`normalize`).** ``\hat f / Z`` with ``Z = \int \hat f`` over the summary's range intersected with the estimator's support, by the trapezoidal rule on a fine grid — a deterministic, mergeable functional of the estimate making ``\int \hat f = 1`` **exactly** (the asymmetric kernels and a parametric start are not self-normalizing; the symmetric KDE already is, to the grid's ``O(\Delta^2)``).
-- **Test.** `test/densityestimation.jl` (a normal start at a wide ``h`` recovers the Gaussian peak the plain KDE flattens by ``\approx 10\%``, ISE ``> 20\times`` smaller; a log-normal start tracks log-normal data ``> 3\times`` better than the symmetric KDE, and pointwise into the right tail; `normalize` drives ``\int\hat f`` to ``1`` for a start and for the gamma kernel; mergeability; the rejected knob combinations).
+- **Test.** `test/marginaldensity.jl` (a normal start at a wide ``h`` recovers the Gaussian peak the plain KDE flattens by ``\approx 10\%``, ISE ``> 20\times`` smaller; a log-normal start tracks log-normal data ``> 3\times`` better than the symmetric KDE, and pointwise into the right tail; `normalize` drives ``\int\hat f`` to ``1`` for a start and for the gamma kernel; mergeability; the rejected knob combinations).
 
 ## Pointwise standard error (§4.1) — `density_standard_error`
 
 - **Estimand.** the standard error of the density estimator, ``\mathrm{SE}(x) = \sqrt{\operatorname{Var}\hat f_h(x)}`` with the KDE asymptotic variance ``\operatorname{Var}\hat f_h(x) \approx R(K)\,f_X(x)/(nh)``.
 - **Estimator.** ``\sqrt{R(K)\,\hat f_h(x)/(nh)}`` from the recovered ``\hat f_h``, ``n``, ``h``, and ``R(K) = \int K^2`` (by quadrature). The ``z``-band ``\hat f_h(x) \pm z\,\mathrm{SE}(x)`` is a variability band about ``\mathbb{E}\hat f_h``, covering ``f_X`` where the ``O(h^2)`` smoothing bias is small. Degree 0/1 (the variable bandwidth and degree ``\ge 2`` are a coverage gap).
-- **Test.** `test/densityestimation.jl` (the SE equals ``\sqrt{R(K)\hat f/(nh)}`` exactly; the 95\% band covers the ``N(0,1)`` truth over ``\ge 75\%`` of the interior; the SE shrinks with ``n``; vector / empty / error forms).
+- **Test.** `test/marginaldensity.jl` (the SE equals ``\sqrt{R(K)\hat f/(nh)}`` exactly; the 95\% band covers the ``N(0,1)`` truth over ``\ge 75\%`` of the interior; the SE shrinks with ``n``; vector / empty / error forms).
 
 ## Bandwidth selection (§4.5) — `bandwidth`
 

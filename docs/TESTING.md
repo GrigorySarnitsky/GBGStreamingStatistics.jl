@@ -14,7 +14,7 @@ analytic round-trips: estimators are checked against distributions with closed f
   ``\nu = 3`` (heavy tail), log-normal (skew), and a bimodal mixture (`test/density_convergence.jl`) — and
   across its full knob grid (KDE / local-log `degree`, fixed / Abramson `adaptive`, the `bounds` boundary
   correction, the asymmetric `gamma_kernel` / `beta_kernel`, the parametric `start`, and `normalize`) in
-  `test/densityestimation.jl`. The conditional / transition estimators use **Gaussian** marginals
+  `test/marginaldensity.jl`. The conditional / transition estimators use **Gaussian** marginals
   (``f_X``, conditional moments) and an **Ornstein–Uhlenbeck** process, whose drift, diffusion, and
   transition density ``p_\tau(y \mid x)`` are closed-form — the end-to-end oracle for the conditional /
   transition densities (§4.3) and the Kramers–Moyal functionals (§4.4).
@@ -27,7 +27,7 @@ analytic round-trips: estimators are checked against distributions with closed f
   sharp spikes) the data-driven `:sj` / `:isj` resolve the spikes the global-``\hat\sigma`` normal
   reference oversmooths into one bump (``\approx`` an order of magnitude lower ISE).
 - **Structural invariants (property-based, oracle-free).** Beyond the mergeability monoid laws, `density`
-  satisfies **affine equivariance** exactly (`test/densityestimation.jl`): for ``Y = aX + b`` with the
+  satisfies **affine equivariance** exactly (`test/marginaldensity.jl`): for ``Y = aX + b`` with the
   range and bandwidth scaled alike, ``\hat f_Y(ax+b) = \hat f_X(x)/a`` to floating point — a guard against
   a stray normalization / ``\sigma``-scaling factor a single-scale oracle would miss, and a guarantee of
   unit-consistency (the estimate cannot depend on ``\mu``m vs m).
@@ -138,7 +138,7 @@ thumb is already near-optimal on that smooth, symmetric case, so the gain there 
 `test/runtests.jl` includes each module's tests in its own wrapper module so top-level helpers and
 constants do not collide; every file is also runnable on its own (`julia --project=. test/<file>.jl`).
 The per-module files are `accumulators.jl`, `histograms.jl`, `histograms2d.jl`, `localpolynomial.jl`,
-`densityestimation.jl`, `density_convergence.jl`, `bandwidth.jl`, `localbandwidth.jl`, `regression.jl`,
+`marginaldensity.jl`, `density_convergence.jl`, `bandwidth.jl`, `localbandwidth.jl`, `regression.jl`,
 `conditionaldensity.jl`, `markovinference.jl`;
 the cross-cutting files are `oracles.jl` (the Gaussian / OU end-to-end oracles), `mergeability.jl`,
 `hyperstatistics.jl` (the cone laws and the superstatistics / forgetting oracles), `allocations.jl`,

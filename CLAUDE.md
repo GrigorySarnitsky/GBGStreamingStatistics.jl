@@ -68,7 +68,7 @@ estimands.
   *linear* core on which the local smoothers are built — `conditional_mean` is its ``\beta_0``, the
   local-likelihood `density` its IRLS inner solve (`docs/ARCHITECTURE.md` §11). Internal (not exported);
   reached by explicit `using ..LocalPolynomial: local_fit`. Owns `LinearAlgebra`.
-- `src/DensityEstimation.jl` — §4.1 `density` ``\equiv f_X`` — one call over the binned KDE, the
+- `src/MarginalDensity.jl` — §4.1 `density` ``\equiv f_X`` — one call over the binned KDE, the
   local-log-polynomial (`degree`), the Abramson variable bandwidth (`adaptive`), boundary
   renormalization (`bounds`, Jones 1993), the **parametric start** (`start`, Hjort & Glad 1995 — the
   moment-fitted `normal_start` / `lognormal_start` / `gamma_start` / `exponential_start` /
@@ -101,7 +101,7 @@ estimands.
   ``h^\star(x)`` (`rule = :local`, composing the Fan–Yao ``\sigma^2(x)``, the degree-2 curvature
   ``m''(x)``, and ``f_X(x)``). The post-hoc FFT smoothing helpers (the major performance lever, amortized
   over bandwidth) are forthcoming. Owns `FFTW`, `AbstractFFTs`.
-- Include order: `Accumulators → Histograms → Kernels → LocalPolynomial → DensityEstimation → Regression →
+- Include order: `Accumulators → Histograms → Kernels → LocalPolynomial → MarginalDensity → Regression →
   ConditionalDensity → MarkovInference → Bandwidth`. Cross-module access only through explicit
   `using ..Module: name, …`
   — never a bare `using`.
@@ -284,7 +284,7 @@ Mechanical bar:
    atomic scatter-add (one work-item per sample), allocation-free up to the launch, **verified identical
    on CPU and the AMD RX 6700 XT** (the gated ROCm suite, `test/gpu/`, under `allowscalar(false)`,
    including heavy atomic contention).
-4. **`DensityEstimation.density`** (§4.1) — one call over the grid of **local-log-polynomial `degree`**
+4. **`MarginalDensity.density`** (§4.1) — one call over the grid of **local-log-polynomial `degree`**
    (0 = KDE; ≥1 = binned local-Poisson, Loader 1996 — degree 1 exact for exponential tails, 2 for
    Gaussians) × **fixed / Abramson-variable bandwidth** (`adaptive`), with a **pluggable kernel**
    (`gaussian_kernel` default, `epanechnikov_kernel`). The estimand-first reference; tested across the
@@ -299,7 +299,7 @@ Mechanical bar:
    `beta_kernel` `[0,1]`; Chen's bias-reduced ``f_2``), the **parametric start** (`start`, Hjort & Glad
    1995 — five moment-fitted starts; a bias reduction, near-exact where the model fits, ``>3\times``
    better than the KDE on log-normal data), and exact **`normalize`** (``\int\hat f = 1``); tested in
-   `test/densityestimation.jl` (oracle recovery, the start's wide-``h`` bias removal, normalization,
+   `test/marginaldensity.jl` (oracle recovery, the start's wide-``h`` bias removal, normalization,
    mergeability, rejected knob combinations).
 5. **`Bandwidth.bandwidth`** (§4.5) — the **kernel- and degree-aware normal-reference** rule
    ``h = C(K,d)\\,\\hat\\sigma\\,n^{-1/(2p+1)}`` from the recovered ``\\hat\\sigma``: the kernel enters

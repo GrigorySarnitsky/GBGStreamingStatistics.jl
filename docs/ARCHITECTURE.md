@@ -545,7 +545,7 @@ GBGStreamingStatistics/
                                  #   center, the KA/Atomix scatter kernel, shift-formula recovery
     Kernels.jl                   # the symmetric smoothing kernels + the kernel-moment quadrature (_quad)
     LocalPolynomial.jl           # the shared local-polynomial jet primitive (local_fit) — §2, §11
-    DensityEstimation.jl         # §4.1   f_X
+    MarginalDensity.jl         # §4.1   f_X
     Regression.jl                # §4.2   m(x), σ²(x)  [estimand-first reference module]
     ConditionalDensity.jl        # §4.3   f_{Y|X}, transition p_τ
     MarkovInference.jl           # §4.4   increment moments, KM/drift/diffusion, Pawula/Q, Markov test
@@ -561,7 +561,7 @@ GBGStreamingStatistics/
 
 Internal split, made explicit: **`Accumulators` + `Histograms` are the universal lower half**
 (every domain shares them verbatim, and they hold the hard, write-once numerics — GPU atomic
-high-order moment recursions); **`DensityEstimation` through `Bandwidth` are the estimator upper half**
+high-order moment recursions); **`MarginalDensity` through `Bandwidth` are the estimator upper half**
 (turbulence-leaning but genuinely cross-domain — MD's van Hove function is `ConditionalDensity` with
 a different sampler). Keeping the halves separable lets a consumer that only wants marginal PDFs
 avoid the SDE machinery.
@@ -809,7 +809,7 @@ intentional — do not dedupe it).
   `LocalPolynomial.local_fit` (the jet-smoother, returning ``(\beta_0, \beta_1, \beta_2)``) now backs
   `conditional_mean` (its ``\beta_0``), the local-likelihood `density` (the IRLS inner solve), and the
   increment moments — replacing the formerly duplicated `Regression._local_linear` (degree-1, intercept
-  only) and the bespoke Newton step in `DensityEstimation._local_log`. On it: `conditional_mean` /
+  only) and the bespoke Newton step in `MarginalDensity._local_log`. On it: `conditional_mean` /
   `conditional_variance` gained the `degree` (0/1/2) and `kernel` knobs; `conditional_variance` the
   bias-reduced **Fan & Yao** default (`method = :residual`); and the response-aware local bandwidth
   ``h^\star(x)`` = `bandwidth(::Histogram2D; rule = :local)`, which reads the curvature

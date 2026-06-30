@@ -33,7 +33,7 @@ two-time conditional densities) — but nothing in the library is specific to a 
     The summaries `Histogram1D` and `Histogram2D` (power-sums about the bin center, `observe!` /
     `observe_pairs!` / `merge!` / `scale!` / `bin_index`, with a Float-count cone variant for
     hyperstatistics / forgetting), the marginal
-    [`density`](@ref GBGStreamingStatistics.DensityEstimation.density) (§4.1), global
+    [`density`](@ref GBGStreamingStatistics.MarginalDensity.density) (§4.1), global
     [`bandwidth`](@ref GBGStreamingStatistics.Bandwidth.bandwidth) selection, and the conditional mean
     and variance ([`conditional_mean`](@ref GBGStreamingStatistics.Regression.conditional_mean),
     `conditional_variance`, §4.2), the conditional and transition densities
@@ -85,7 +85,7 @@ verbatim by every consumer) and an **estimator upper half** (the estimands):
   that post-hoc smoothing later coarse-grains — holding per-bin counts and power-sums about the bin
   center; accumulation runs on **CPU or GPU**, and summaries combine with `merge!`. With `bin_index`
   and `observe_pairs!` for two-time statistics.
-- [`DensityEstimation`](api/DensityEstimation.md): the marginal density `density` ``\equiv f_X`` — one
+- [`MarginalDensity`](api/MarginalDensity.md): the marginal density `density` ``\equiv f_X`` — one
   call over the binned KDE, the local-log-polynomial (`degree`), and the Abramson variable bandwidth
   (`adaptive`, for tails), the asymmetric `gamma_kernel` / `beta_kernel` for bounded/positive support,
   the parametric `start` (a moment-fitted model corrected by a KDE; Hjort & Glad 1995), and exact
@@ -113,7 +113,7 @@ Pages = [
   "api/GBGStreamingStatistics.md",
   "api/Accumulators.md",
   "api/Histograms.md",
-  "api/DensityEstimation.md",
+  "api/MarginalDensity.md",
   "api/Regression.md",
   "api/ConditionalDensity.md",
   "api/MarkovInference.md",
