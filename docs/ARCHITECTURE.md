@@ -801,13 +801,16 @@ intentional — do not dedupe it).
   `conditional_density`, the disintegration of the joint), and a **jet component** (the derivative
   functionals `drift`, `diffusion`, and ``h^\star(x)``). This keeps the lone nonlinearity on one call
   site and the hot, allocation-free, GPU-portable path linear. *Current state:* the linear solve is
-  realized twice — `Regression._local_linear` (degree-1, a private `_gaussian`, no `binning` or
-  `kernel` knobs) and the Newton step inside `DensityEstimation._local_log` — and `_local_linear`
-  discards ``\beta_1``. *Forcing function:* the primitive is extracted when the response-aware local
-  bandwidth ``h^\star(x)`` lands (§4.5), which needs the curvature ``\beta_2`` of a density fit and the
-  slope ``\beta_1 = m'(x)`` of a regression fit, both discarded today; returning the whole jet unblocks
-  ``h^\star(x)``, the Fan & Yao conditional-variance refinement, and regression knob-parity (`degree`,
-  `kernel`, `binning`) in one move. It lands as the substrate of that required feature, **not** as a
+  realized twice — `Regression._local_linear` (hardcoded degree 1, a private `_gaussian`, no
+  `binning` or `kernel` knobs) and the Newton step inside `DensityEstimation._local_log` — and
+  `_local_linear` returns only the intercept ``\beta_0 = \hat m(x)``, discarding the rest of the jet.
+  *Forcing function:* the primitive is extracted when the response-aware local bandwidth ``h^\star(x)``
+  lands (§4.5) — its AMISE form needs the regression curvature ``m''(x)`` (twice the degree-2 jet
+  coefficient ``\beta_2``), the conditional variance ``\sigma^2(x)``, and the marginal density
+  ``f_X(x)``, and the degree-2 regression jet is exactly what the hardcoded-degree-1 `_local_linear`
+  cannot form. Returning the whole jet ``(\beta_0, \beta_1, \beta_2)`` and admitting `degree = 2` in
+  regression unblocks ``h^\star(x)``, the Fan & Yao conditional-variance refinement, and regression
+  knob-parity (`degree`, `kernel`, `binning`) in one move. It lands as the substrate of that required feature, **not** as a
   standalone refactor (convenience is not a justification, §6). Settled by estimation theory
   (iteratively reweighted least squares is the linear solve iterated; the smoother is linear on the
   cone), not implementation convenience.
