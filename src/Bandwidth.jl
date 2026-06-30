@@ -9,7 +9,9 @@ module Bandwidth
 using AbstractFFTs
 using FFTW
 
-using ..Histograms: Histogram1D, _total, _sample_std, _bincenter
+using ..Histograms: Histogram1D, Histogram2D, _total, _sample_std, _bincenter
+using ..LocalPolynomial: local_fit
+using ..Regression: _column_sums
 using ..DensityEstimation: gaussian_kernel, _normal_reference_h, _quad,
   AsymmetricKernel, _asymmetric_default_b
 
@@ -378,9 +380,9 @@ it. The symmetric selectors `:sj` / `:isj` / `:aic` do not apply to an asymmetri
 data-adaptive curvature pilot is a recorded refinement.
 
 The response-aware *local* plug-in ``h^\\star(x) = \\bigl[R(K)\\,\\sigma^2(x) /
-(\\mu_2(K)^2\\, m''(x)^2\\, f_X(x)\\, n)\\bigr]^{1/5}`` — each response channel its own bandwidth from
-the conditional variance ``\\sigma^2(x)`` and regression curvature ``m''(x)`` — is forthcoming
-(`CLAUDE.md` roadmap).
+(\\mu_2(K)^2\\, m''(x)^2\\, f_X(x)\\, n)\\bigr]^{1/5}`` — each conditioning value its own bandwidth from
+the conditional variance ``\\sigma^2(x)`` and regression curvature ``m''(x)`` — is the separate
+joint-summary selector `bandwidth(summary::Histogram2D, x; rule = :local)` (below).
 
 References:
 
@@ -422,6 +424,130 @@ function bandwidth(summary::Histogram1D; rule::Symbol = :normal,
     return _aic_select(summary, kernel)
   end
   throw(ArgumentError("unknown bandwidth rule :$rule (expected :normal, :sj, :isj, or :aic)"))
+end
+
+
+# --- response-aware local plug-in (rule = :local), from the joint summary (Histogram2D) ---
+# Balancing the local-linear squared bias (∝ h⁴ m''(x)²) against the variance (∝ σ²(x)/(n h f_X(x)))
+# gives the AMISE-optimal *local* bandwidth h⋆(x) = [R(K) σ²(x) / (μ₂(K)² m''(x)² f_X(x) n)]^(1/5). The
+# three x-local pilots — σ²(x), m''(x) = 2β₂ (a degree-2 fit), f_X(x) (the X-marginal KDE) — are read
+# from the one joint summary at a single pilot bandwidth, wider than h⋆ (the n^(−1/9) curvature rate, so
+# the second derivative is stable). Where the regression is locally linear (m'' → 0) the optimal h is
+# unbounded, so it is capped at the X-range.
+
+# f_X(x): the binned KDE of the X-marginal column counts.
+function _marginal_density(cx, N, n, x, h, kernel)
+  invh = inv(h)
+  acc = 0.0
+  @inbounds for j in eachindex(cx)
+    acc += N[j] * kernel((cx[j] - x) * invh)
+  end
+  return acc * invh / n
+end
+
+
+# The default pilot: σ̂_X n^(−1/9), the rule-of-thumb scale at the second-derivative (curvature) rate —
+# wider than the final h⋆ ∝ n^(−1/5), since estimating m'' needs a more stable (wider) window. σ̂_X is
+# the binned X-marginal standard deviation (the column centers, adequate for a pilot).
+function _local_pilot(cx, N, n)
+  xbar = 0.0
+  @inbounds for j in eachindex(cx)
+    xbar += N[j] * cx[j]
+  end
+  xbar /= n
+  v = 0.0
+  @inbounds for j in eachindex(cx)
+    v += N[j] * (cx[j] - xbar)^2
+  end
+  return sqrt(v / n) * n^(-1 / 9)
+end
+
+
+function _hstar_at(cx, N, sumY, sumY2, n, x, kernel, hpilot, RK, mu2, xrange)
+  fX = _marginal_density(cx, N, n, x, hpilot, kernel)
+  fX > 0 || return oftype(fX, NaN)                       # x outside the data's support
+  m = local_fit(cx, N, sumY, x, hpilot, kernel, 1)[1]
+  ey2 = local_fit(cx, N, sumY2, x, hpilot, kernel, 1)[1]
+  mpp = 2 * local_fit(cx, N, sumY, x, hpilot, kernel, 2)[3]    # m''(x) = 2 β₂
+  (isfinite(m) && isfinite(ey2) && isfinite(mpp)) || return oftype(fX, NaN)
+  sigma2 = max(ey2 - m^2, 0.0)
+  denom = mu2^2 * mpp^2 * fX * n
+  denom > 0 || return oftype(fX, xrange)                 # locally linear (m'' ≈ 0) ⇒ h unbounded; cap
+  return min((RK * sigma2 / denom)^(1 / 5), xrange)
+end
+
+
+function _local_setup(summary::Histogram2D, kernel, hpilot)
+  cx, N, sumY, sumY2 = _column_sums(summary)
+  n = sum(N)
+  n ≥ 2 || throw(ArgumentError("bandwidth needs at least 2 samples (got n = $n)"))
+  hp = hpilot === nothing ? _local_pilot(cx, N, n) : float(hpilot)
+  hp > 0 || throw(ArgumentError("pilot bandwidth hpilot must be positive (got hpilot = $hp)"))
+  RK = _quad(v -> kernel(v)^2)
+  mu2 = _quad(v -> v^2 * kernel(v))
+  xrange = summary.xupper - summary.xlower
+  return cx, N, sumY, sumY2, n, hp, RK, mu2, xrange
+end
+
+
+"""
+    bandwidth(summary::Histogram2D, x;
+              rule = :local, kernel = gaussian_kernel, hpilot = nothing)   # ≡ h⋆(x)
+
+**Estimand.** the response-aware **local** AMISE-optimal bandwidth ``h^\\star(x)`` for the conditional
+mean [`conditional_mean`](@ref GBGStreamingStatistics.Regression.conditional_mean) ``m(x)`` — the
+bandwidth that, at each conditioning value ``x``, minimises the local mean squared error of the
+local-linear estimate ``\\hat m_h(x)`` by balancing its squared bias against its variance:
+
+```math
+h^\\star(x) = \\left[\\frac{R(K)\\,\\sigma^2(x)}{\\mu_2(K)^2\\,m''(x)^2\\,f_X(x)\\,n}\\right]^{1/5},
+```
+
+with ``\\sigma^2(x)`` the conditional variance, ``m''(x)`` the regression curvature, ``f_X(x)`` the
+marginal density of the conditioning variable ``X``, ``n`` the sample size, and the kernel constants
+``R(K) = \\int K^2``, ``\\mu_2(K) = \\int u^2 K(u)\\,\\mathrm{d}u``.
+
+**Estimator** (`rule = :local`). The three ``x``-local quantities are read from the one joint `summary`,
+each at a single pilot bandwidth: the conditional variance ``\\sigma^2(x)`` from the plug-in
+``\\widehat{\\mathbb{E}}[Y^2\\mid x] - \\hat m(x)^2``, the curvature ``m''(x) = 2\\beta_2`` from the
+degree-2 local-polynomial fit, and ``f_X(x)`` from the binned KDE of the X-marginal. ``R(K)`` and
+``\\mu_2(K)`` are computed by quadrature, so any `kernel` works. Because estimating a second derivative
+needs a wider window than the final fit, the default pilot is the curvature-rate rule of thumb
+``\\hat\\sigma_X\\, n^{-1/9}``; where the regression is locally linear (``m''(x) \\to 0``) the optimal
+bandwidth is unbounded, so it is capped at the X-range. A vector `x` returns a vector; `NaN` marks an
+``x`` off the data's support.
+
+Arguments:
+
+- `summary` — the joint [`Histogram2D`](@ref GBGStreamingStatistics.Histograms.Histogram2D) of
+  ``(X, Y)``.
+- `x` — the conditioning value(s) at which ``h^\\star`` is evaluated (a scalar, or a vector for the
+  whole bandwidth profile).
+- `rule` — the selector; only `:local` (the response-aware local plug-in) is defined for a joint
+  summary.
+- `kernel` — the smoothing kernel ``K`` (any callable with ``\\int K = 1``; default `gaussian_kernel`).
+- `hpilot` — the pilot bandwidth for the ``\\sigma^2(x)``, ``m''(x)``, ``f_X(x)`` estimates; `nothing`
+  (default) uses the curvature-rate rule of thumb ``\\hat\\sigma_X\\, n^{-1/9}``.
+
+Reference: J. Fan & I. Gijbels (1996), [*Local Polynomial Modelling and Its Applications*](https://doi.org/10.1201/9780203748725),
+Chapman & Hall.
+"""
+function bandwidth(summary::Histogram2D, x::Real; rule::Symbol = :local,
+                   kernel = gaussian_kernel, hpilot = nothing)
+  rule === :local ||
+    throw(ArgumentError("a joint summary supports only rule = :local (the response-aware local " *
+                        "plug-in); got :$rule"))
+  cx, N, sumY, sumY2, n, hp, RK, mu2, xrange = _local_setup(summary, kernel, hpilot)
+  return _hstar_at(cx, N, sumY, sumY2, n, x, kernel, hp, RK, mu2, xrange)
+end
+
+function bandwidth(summary::Histogram2D, xs::AbstractVector; rule::Symbol = :local,
+                   kernel = gaussian_kernel, hpilot = nothing)
+  rule === :local ||
+    throw(ArgumentError("a joint summary supports only rule = :local (the response-aware local " *
+                        "plug-in); got :$rule"))
+  cx, N, sumY, sumY2, n, hp, RK, mu2, xrange = _local_setup(summary, kernel, hpilot)
+  return [_hstar_at(cx, N, sumY, sumY2, n, x, kernel, hp, RK, mu2, xrange) for x in xs]
 end
 
 end # module Bandwidth

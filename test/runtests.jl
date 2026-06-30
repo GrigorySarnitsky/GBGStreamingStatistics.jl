@@ -14,6 +14,7 @@ module RegressionTests;         include("regression.jl");         end
 module ConditionalDensityTests; include("conditionaldensity.jl"); end
 module MarkovInferenceTests;    include("markovinference.jl");    end
 module BandwidthTests;          include("bandwidth.jl");          end
+module LocalBandwidthTests;     include("localbandwidth.jl");     end
 module OraclesTests;            include("oracles.jl");            end
 module MergeabilityTests;       include("mergeability.jl");       end
 module HyperstatisticsTests;    include("hyperstatistics.jl");    end
