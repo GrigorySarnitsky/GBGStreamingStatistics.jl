@@ -82,7 +82,7 @@ estimands.
   band ``\mathrm{SE}(x) = \sqrt{R(K)\hat f_h(x)/(nh)}``). `ParametricStart` is exported so consumers can
   plug in custom parametric skeletons (the `AsymmetricKernel` constructor for custom boundary kernels
   lives in `Kernels`).
-- `src/Regression.jl` — §4.2 `conditional_mean` ``\equiv m(x)``, `conditional_variance`
+- `src/ConditionalExpectations.jl` — §4.2 `conditional_mean` ``\equiv m(x)``, `conditional_variance`
   ``\equiv \sigma^2(x)`` by local-polynomial fits (Fan & Gijbels) over `LocalPolynomial.local_fit`, with
   the `degree` (0 Nadaraya–Watson / 1 local-linear default / 2 local-quadratic) and `kernel` options;
   `conditional_variance` defaults to the bias-reduced **Fan & Yao** residual estimator (`method =
@@ -110,7 +110,7 @@ estimands.
   coefficients come from a dependency-free local-polynomial interpolant (reuses `LinearAlgebra`, exact on
   monomials); the pushforward is `expectation` of the composed kernel ``K_h \circ g`` (no ``g^{-1}``,
   non-monotone `g` handled). Reached by explicit `using ..Histograms: _quadrature`.
-- Include order: `Accumulators → Histograms → Kernels → LocalPolynomial → MarginalDensity → Regression →
+- Include order: `Accumulators → Histograms → Kernels → LocalPolynomial → MarginalDensity → ConditionalExpectations →
   ConditionalDensity → Bandwidth → Expectations`. Cross-module access only through explicit `using ..Module: name, …`
   — never a bare `using`.
 - Deferred / archived, recorded as commented-out includes (the rule against speculative structure):
@@ -361,7 +361,7 @@ Mechanical bar:
    unlike the ``\\psi_4`` U-statistic); ``\\approx 1.4\\text{–}1.7\\times`` lower ISE on skewed positive data.
    Tested in `test/bandwidth.jl`; the AIC, U-statistic, and gamma-reference routes were tried and rejected
    (see the §11 decision log), and a fully-adaptive curvature pilot is a recorded refinement.
-6. **`Regression`** (§4.2) — `conditional_mean` ``\equiv m(x)`` and `conditional_variance`
+6. **`ConditionalExpectations`** (§4.2) — `conditional_mean` ``\equiv m(x)`` and `conditional_variance`
    ``\equiv \sigma^2(x)`` by local-polynomial regression from `Histogram2D` over the shared
    `LocalPolynomial.local_fit` (the ``T_\ell``/``P_\ell`` from per-X-column counts and response totals),
    with the `degree` (0/1/2) and `kernel` options; `conditional_variance` defaults to the bias-reduced
@@ -403,7 +403,7 @@ Mechanical bar:
     design solve over a binned measure, returning the jet ``(\beta_0, \dots, \beta_d)`` (value, slope,
     ``2\beta_2`` the curvature) by the Hankel normal equations. The single *linear* core:
     `conditional_mean` is its ``\beta_0``, the local-likelihood `density` its IRLS inner solve, and it gave
-    `Regression` the `degree` / `kernel` options and the degree-2 curvature ``m''`` (the §11 architecture
+    `ConditionalExpectations` the `degree` / `kernel` options and the degree-2 curvature ``m''`` (the §11 architecture
     decision, landed). Tested (`test/localpolynomial.jl`): exact jet recovery on a polynomial mean (value
     / slope / curvature), the degree-0 Nadaraya–Watson ratio, degenerate ``\to`` NaN, kernel-normalization
     cancellation.

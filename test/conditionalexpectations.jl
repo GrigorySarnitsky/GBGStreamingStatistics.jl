@@ -3,7 +3,7 @@ using GBGStreamingStatistics
 using Random
 include("testcontracts.jl"); using .TestContracts
 
-@testset "Regression (conditional_mean / conditional_variance)" begin
+@testset "ConditionalExpectations (conditional_mean / conditional_variance)" begin
   # Bivariate-Gaussian oracle: Y = ρX + √(1−ρ²)·ε ⇒ E[Y|X=x] = ρx (linear), Var(Y|X=x) = 1−ρ² (const).
   Random.seed!(2024)
   N = 2_000_000

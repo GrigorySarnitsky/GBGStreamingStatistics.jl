@@ -40,7 +40,7 @@ include("Histograms.jl")
 include("Kernels.jl")
 include("LocalPolynomial.jl")
 include("MarginalDensity.jl")
-include("Regression.jl")
+include("ConditionalExpectations.jl")
 include("ConditionalDensity.jl")
 include("Bandwidth.jl")
 include("Expectations.jl")
@@ -86,7 +86,7 @@ using .MarginalDensity:
   inverse_gaussian_start
 
 
-using .Regression:
+using .ConditionalExpectations:
   conditional_mean,
   conditional_variance
 

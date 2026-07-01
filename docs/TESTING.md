@@ -148,7 +148,7 @@ thumb is already near-optimal on that smooth, symmetric case, so the gain there 
 constants do not collide; every file is also runnable on its own (`julia --project=. test/<file>.jl`).
 The per-module files are `accumulators.jl`, `histograms.jl`, `histograms2d.jl`, `kernels.jl`,
 `localpolynomial.jl`, `marginaldensity.jl`, `density_convergence.jl`, `bandwidth.jl`, `localbandwidth.jl`,
-`regression.jl`, `conditionaldensity.jl`, `conditional_convergence.jl`, `incrementmoments.jl`;
+`conditionalexpectations.jl`, `conditionaldensity.jl`, `conditional_convergence.jl`, `incrementmoments.jl`;
 the cross-cutting files are `oracles.jl` (the Gaussian / OU end-to-end oracles), `mergeability.jl`,
 `hyperstatistics.jl` (the cone laws and the superstatistics / forgetting oracles), `allocations.jl`,
 `testoracles.jl` (the shared `TestOracles` analytic library — the closed forms), and

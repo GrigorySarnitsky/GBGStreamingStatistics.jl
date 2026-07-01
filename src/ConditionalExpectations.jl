@@ -1,9 +1,9 @@
-# Regression — §4.2: the conditional mean m(x) and conditional variance σ²(x), by local-polynomial
+# ConditionalExpectations — §4.2: the conditional mean m(x) and conditional variance σ²(x), by local-polynomial
 # regression from the joint Histogram2D. The estimand-first reference module — write every estimator
 # docstring to this pattern (`docs/ARCHITECTURE.md` §2, §4.2). The kernel-weighted local-polynomial
 # fit is the shared `LocalPolynomial.local_fit` primitive (§11); the conditional mean is its β₀.
 
-module Regression
+module ConditionalExpectations
 
 using ..Histograms: Histogram2D, _column_sums
 using ..LocalPolynomial: local_fit
@@ -139,7 +139,7 @@ end
 
 **Estimand.** the conditional variance
 ``\\sigma^2(x) = \\operatorname{Var}(Y \\mid X = x) = \\mathbb{E}[Y^2 \\mid X = x] - m(x)^2``, with
-``m(x)`` the [`conditional_mean`](@ref GBGStreamingStatistics.Regression.conditional_mean).
+``m(x)`` the [`conditional_mean`](@ref GBGStreamingStatistics.ConditionalExpectations.conditional_mean).
 
 **Estimator** (`method = :residual`, the default — Fan & Yao 1998). The **two-stage residual-based**
 estimator: fit ``\\hat m`` at each X-column center, then take a second local fit of the per-column
@@ -196,4 +196,4 @@ function conditional_variance(summary::Histogram2D, xs::AbstractVector; h::Real,
                       ":plugin (got :$method)"))
 end
 
-end # module Regression
+end # module ConditionalExpectations

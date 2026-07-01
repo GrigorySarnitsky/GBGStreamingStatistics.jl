@@ -242,7 +242,7 @@ recorded in `ARCHITECTURE.md` §4 meanwhile.
   ```
 
   giving the optimal rate ``\hat m_{h^\star}(x) - m(x) = O_p(n^{-2/5})`` at ``h^\star \sim n^{-1/5}``.
-- **Test.** `test/regression.jl` — the bivariate-Gaussian oracle ``Y = \rho X + \sqrt{1-\rho^2}\,
+- **Test.** `test/conditionalexpectations.jl` — the bivariate-Gaussian oracle ``Y = \rho X + \sqrt{1-\rho^2}\,
   \varepsilon`` (so ``\mathbb{E}[Y\mid X=x] = \rho x``): `conditional_mean` recovers the slope to
   ``\lesssim 2\times10^{-2}``, with the `degree` (0/1/2) and `kernel` options exercised (degree-2 and
   Epanechnikov both recover the linear mean). `test/conditional_convergence.jl` — the ``n^{-2/5}`` rate:
@@ -265,7 +265,7 @@ recorded in `ARCHITECTURE.md` §4 meanwhile.
   curvature of ``\mathbb{E}[Y^2\mid x]``, large where ``m`` curves. The residual-based estimator fits the
   far flatter ``\mathbb{E}[(Y - m)^2\mid x] = \sigma^2(x)``, whose ``O(h^2)`` bias ``\propto (\sigma^2)''``
   is much smaller, so it removes the ``m''``-driven bias.
-- **Test.** `test/regression.jl` — recovers ``1-\rho^2`` on the (linear-mean) bivariate-Gaussian oracle to
+- **Test.** `test/conditionalexpectations.jl` — recovers ``1-\rho^2`` on the (linear-mean) bivariate-Gaussian oracle to
   a few percent, and on a **heteroscedastic curved-mean** oracle (``X\sim N(0,1)``, ``m(x)=x^2``,
   ``\sigma^2(x)=0.2+0.1x^2``) the residual estimator recovers ``\sigma^2(x)`` (degree 2) and beats the
   plug-in in the curved tail (the plug-in inflated ``>1.5\times`` by the ``m''`` curvature); the universal

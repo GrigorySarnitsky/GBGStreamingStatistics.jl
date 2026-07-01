@@ -572,8 +572,8 @@ GBGStreamingStatistics/
                                  #   center, the KA/Atomix scatter kernel, shift-formula recovery
     Kernels.jl                   # all the smoothing kernels (symmetric + asymmetric) + _quad quadrature
     LocalPolynomial.jl           # the shared local-polynomial jet primitive (local_fit) — §2, §11
-    MarginalDensity.jl         # §4.1   f_X
-    Regression.jl                # §4.2   m(x), σ²(x)  [estimand-first reference module]
+    MarginalDensity.jl           # §4.1   f_X
+    ConditionalExpectations.jl   # §4.2   m(x), σ²(x)  [estimand-first reference module]
     ConditionalDensity.jl        # §4.3   f_{Y|X}, transition p_τ
     Bandwidth.jl                 # §4.5   global + response-aware local plug-in
     # IncrementMoments.jl        # [archived → archive/] §4.4 increment moments, KM/drift/diffusion
@@ -835,7 +835,7 @@ intentional — do not dedupe it).
   site and the hot, allocation-free, GPU-portable path linear. *Landed (Stages 1–3):* the shared
   `LocalPolynomial.local_fit` (the jet-smoother, returning ``(\beta_0, \beta_1, \beta_2)``) now backs
   `conditional_mean` (its ``\beta_0``), the local-likelihood `density` (the IRLS inner solve), and the
-  increment moments — replacing the formerly duplicated `Regression._local_linear` (degree-1, intercept
+  increment moments — replacing the formerly duplicated `ConditionalExpectations._local_linear` (degree-1, intercept
   only) and the bespoke Newton step in `MarginalDensity._local_log`. On it: `conditional_mean` /
   `conditional_variance` gained the `degree` (0/1/2) and `kernel` options; `conditional_variance` the
   bias-reduced **Fan & Yao** default (`method = :residual`); and the response-aware local bandwidth

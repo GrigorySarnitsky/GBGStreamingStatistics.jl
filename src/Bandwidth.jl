@@ -12,7 +12,7 @@ using FFTW
 using ..Histograms: Histogram1D, Histogram2D, _total, _sample_std, _bincenter, _column_sums
 using ..LocalPolynomial: local_fit
 using ..Kernels: gaussian_kernel, _quad, AsymmetricKernel
-using ..Regression: _residual_response
+using ..ConditionalExpectations: _residual_response
 using ..MarginalDensity: _normal_reference_h, _kde_h, _asymmetric_default_b
 
 export bandwidth
@@ -484,7 +484,7 @@ end
               rule = :local, kernel = gaussian_kernel, hpilot = nothing)   # ≡ h⋆(x)
 
 **Estimand.** the response-aware **local** AMISE-optimal bandwidth ``h^\\star(x)`` for the conditional
-mean [`conditional_mean`](@ref GBGStreamingStatistics.Regression.conditional_mean) ``m(x)`` — the
+mean [`conditional_mean`](@ref GBGStreamingStatistics.ConditionalExpectations.conditional_mean) ``m(x)`` — the
 bandwidth that, at each conditioning value ``x``, minimises the local mean squared error of the
 local-linear estimate ``\\hat m_h(x)`` by balancing its squared bias against its variance:
 

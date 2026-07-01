@@ -35,7 +35,7 @@ two-time conditional densities) — but nothing in the library is specific to a 
     hyperstatistics / forgetting), the marginal
     [`density`](@ref GBGStreamingStatistics.MarginalDensity.density) (§4.1), global
     [`bandwidth`](@ref GBGStreamingStatistics.Bandwidth.bandwidth) selection, and the conditional mean
-    and variance ([`conditional_mean`](@ref GBGStreamingStatistics.Regression.conditional_mean),
+    and variance ([`conditional_mean`](@ref GBGStreamingStatistics.ConditionalExpectations.conditional_mean),
     `conditional_variance`, §4.2), the conditional and transition densities
     ([`conditional_density`](@ref GBGStreamingStatistics.ConditionalDensity.conditional_density),
     [`transition_density`](@ref GBGStreamingStatistics.ConditionalDensity.transition_density), §4.3)
@@ -94,7 +94,7 @@ verbatim by every consumer) and an **estimator upper half** (the estimands):
   (`adaptive`, for tails), the asymmetric `gamma_kernel` / `beta_kernel` for bounded/positive support,
   the parametric `start` (a moment-fitted model corrected by a KDE; Hjort & Glad 1995), and exact
   `normalize` — plus `density_standard_error`, the pointwise variability band.
-- [`Regression`](api/Regression.md): the conditional mean `conditional_mean` ``\equiv m(x)`` and
+- [`ConditionalExpectations`](api/ConditionalExpectations.md): the conditional mean `conditional_mean` ``\equiv m(x)`` and
   variance `conditional_variance` ``\equiv \sigma^2(x)`` (local-linear).
 - [`ConditionalDensity`](api/ConditionalDensity.md): the conditional density `conditional_density`
   ``\equiv f_{Y\mid X}`` and two-time transition density `transition_density`
@@ -120,7 +120,7 @@ Pages = [
   "api/Histograms.md",
   "api/Kernels.md",
   "api/MarginalDensity.md",
-  "api/Regression.md",
+  "api/ConditionalExpectations.md",
   "api/ConditionalDensity.md",
   "api/Bandwidth.md",
   "api/Expectations.md",

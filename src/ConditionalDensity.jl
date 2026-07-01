@@ -117,7 +117,7 @@ fix the marginal [`density`](@ref GBGStreamingStatistics.MarginalDensity.density
 the data argument ``K_2(c^y_k;\\, y, h_2)`` (no mass leaks past the edge) but only ``\\approx`` normalized
 in ``y``, so set `normalize = true` to enforce ``\\int \\hat f\\,\\mathrm{d}y = 1`` exactly. (A bounded
 *conditioning* variable needs no asymmetric `kernelx`: see [`conditional_mean`](@ref
-GBGStreamingStatistics.Regression.conditional_mean) on the boundary-adaptivity of the local fits.) The
+GBGStreamingStatistics.ConditionalExpectations.conditional_mean) on the boundary-adaptivity of the local fits.) The
 conditional MISE rate is slower than a marginal density (``O(n^{-2/3})``). A vector `y` returns the
 density curve over those points at the fixed conditioning value `x`; where no data is local to `x` the
 estimate is `NaN`.

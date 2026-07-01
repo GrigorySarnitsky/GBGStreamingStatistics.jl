@@ -11,7 +11,7 @@ module KernelsTests;            include("kernels.jl");            end
 module LocalPolynomialTests;    include("localpolynomial.jl");    end
 module MarginalDensityTests;  include("marginaldensity.jl");  end
 module DensityConvergenceTests; include("density_convergence.jl"); end
-module RegressionTests;         include("regression.jl");         end
+module ConditionalExpectationsTests;         include("conditionalexpectations.jl");         end
 module ConditionalDensityTests; include("conditionaldensity.jl"); end
 module ConditionalConvergenceTests; include("conditional_convergence.jl"); end
 module BandwidthTests;          include("bandwidth.jl");          end
