@@ -93,7 +93,8 @@ estimands.
   ``\equiv \mathbb{E}[g(Y)\mid x]`` of a smooth response functional (the general reader), with
   `conditional_mean` ``\equiv m(x)`` and `conditional_variance` ``\equiv \sigma^2(x)`` as its
   ``g = \text{identity}`` / ``y^2`` cases, and the conditional pushforward density
-  `conditional_pushforward_density` ``\equiv f_{g(Y)\mid X}`` (the density of a transformed response), plus
+  `conditional_pushforward_density` ``\equiv f_{g(Y)\mid X}`` (the density of a transformed response, with
+  its `conditional_pushforward_density_standard_error`), plus
   the sampling `conditional_expectation_standard_error` (``= \sqrt{\ell(x)\,\mathrm{Var}(g(Y)\mid x)}``, the
   local-regression leverage ``\ell(x)`` from `LocalPolynomial._leverage` — the reference SE mechanism for
   the kernel family), and the paired `conditional_expectation_with_standard_error` (the
@@ -130,7 +131,8 @@ estimands.
   (the ``g = x^p`` case, **moved here from `Histograms`**), `expectation` ``\equiv \mathbb{E}[g(X)]`` (a
   general smooth functional of `X`), its sampling `expectation_standard_error` (with the paired
   `expectation_with_standard_error`), and `pushforward_density`
-  ``\equiv f_{g(X)}`` (the density of a transformed variable ``g(X)``). All read off the stored power-sums
+  ``\equiv f_{g(X)}`` (the density of a transformed variable ``g(X)``, with its
+  `pushforward_density_standard_error`). All read off the stored power-sums
   through the one shared contraction atom `_quadrature` (**owned here**) — the moments supplying closed-form
   binomial coefficients, the general `expectation` a dependency-free local-polynomial interpolant of `g`
   (exact on monomials); the pushforward is `expectation` of the composed kernel ``K_h \circ g`` (no
@@ -525,15 +527,14 @@ Mechanical bar:
 
 **Next, in dependency order:**
 
-1. **Standard errors for the remaining estimators** — closing the *every estimator ships a standard error*
-   requirement (the Definition of done and `docs/ARCHITECTURE.md` §7), in increasing difficulty (the
-   double-kernel `conditional_density_standard_error`, covering `transition_density`, is **done** — Done 8):
-   `pushforward_density` and `conditional_pushforward_density` standard errors — nearly free, the
-   `expectation` / `conditional_expectation` SE of the composed kernel ``K_h \\circ g``; and
-   `conditional_variance` — the
-   hard one, its ``\\mu_4``-based SE needs the 4th conditional moment the order-2 `Histogram2D` does not
-   store (waits on a `Histogram2D` order-raise or a residual-based approximation). Each with its paired
-   `*_with_standard_error` and the full `check_standard_error` contract.
+1. **`conditional_variance`'s standard error** — the last gap in the *every estimator ships a standard
+   error* requirement (the Definition of done and `docs/ARCHITECTURE.md` §7). The density-side SEs are all
+   **done**: `conditional_density_standard_error` (covering `transition_density`) and the
+   `pushforward_density` / `conditional_pushforward_density` standard errors (the densities of a transform,
+   the composed-kernel SE of `expectation` / `conditional_expectation`). `conditional_variance` is the hard
+   one — its ``\\mu_4``-based SE needs the 4th conditional moment the order-2 `Histogram2D` does not store,
+   so it waits on a `Histogram2D` order-raise or a residual-based approximation (with its paired
+   `*_with_standard_error` and the full `check_standard_error` contract).
 2. **Density-estimation methods from the prior-art survey** (`inspiration/density-software/ALGORITHMS.md`),
    in priority order — all mergeable functionals of the summary: the **POT–GPD heavy-tail splice**
    (domain-critical for intermittent tails; a binned GPD-MLE on the tail bin counts that extrapolates

@@ -43,6 +43,8 @@ using GBGStreamingStatistics: Histograms, MarginalDensity, Bandwidth, Conditiona
   @test_call target_modules = mods conditional_expectation_standard_error(g, cos, 0.0; h = 0.5)
   @test_call target_modules = mods conditional_expectation_with_standard_error(g, cos, 0.0; h = 0.5)
   @test_call target_modules = mods conditional_pushforward_density(g, exp, 0.0, 0.0; hx = 0.5, hz = 0.5)
+  @test_call target_modules = mods conditional_pushforward_density_standard_error(g, exp, 0.0, 0.0; hx = 0.5, hz = 0.5)
+  @test_call target_modules = mods conditional_pushforward_density_with_standard_error(g, exp, 0.0, 0.0; hx = 0.5, hz = 0.5)
   @test_call target_modules = mods bandwidth(g, 0.0; rule = :local)   # the response-aware local h⋆(x)
 
   glag = Histogram2D(-5.0, 5.0, 50, -5.0, 5.0, 50; lag = 1)
@@ -59,4 +61,6 @@ using GBGStreamingStatistics: Histograms, MarginalDensity, Bandwidth, Conditiona
   @test_call target_modules = mods expectation_standard_error(h, cos)
   @test_call target_modules = mods expectation_with_standard_error(h, cos)
   @test_call target_modules = mods pushforward_density(h, exp, 1.0; h = 0.5)
+  @test_call target_modules = mods pushforward_density_standard_error(h, exp, 1.0; h = 0.5)
+  @test_call target_modules = mods pushforward_density_with_standard_error(h, exp, 1.0; h = 0.5)
 end

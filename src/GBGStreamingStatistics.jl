@@ -82,7 +82,9 @@ using .ConditionalExpectations:
   conditional_expectation,
   conditional_expectation_standard_error,
   conditional_expectation_with_standard_error,
-  conditional_pushforward_density
+  conditional_pushforward_density,
+  conditional_pushforward_density_standard_error,
+  conditional_pushforward_density_with_standard_error
 
 
 using .ConditionalDensity:
@@ -106,7 +108,9 @@ using .Expectations:
   expectation,
   expectation_standard_error,
   expectation_with_standard_error,
-  pushforward_density
+  pushforward_density,
+  pushforward_density_standard_error,
+  pushforward_density_with_standard_error
 
 
 export AbstractAccumulator,
@@ -141,6 +145,8 @@ export AbstractAccumulator,
        conditional_expectation_standard_error,
        conditional_expectation_with_standard_error,
        conditional_pushforward_density,
+       conditional_pushforward_density_standard_error,
+       conditional_pushforward_density_with_standard_error,
        conditional_density,
        conditional_density_standard_error,
        conditional_density_with_standard_error,
@@ -151,7 +157,9 @@ export AbstractAccumulator,
        expectation,
        expectation_standard_error,
        expectation_with_standard_error,
-       pushforward_density
+       pushforward_density,
+       pushforward_density_standard_error,
+       pushforward_density_with_standard_error
 
 
 end # module GBGStreamingStatistics

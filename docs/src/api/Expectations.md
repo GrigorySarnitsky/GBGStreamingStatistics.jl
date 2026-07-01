@@ -14,6 +14,8 @@ expectation
 expectation_standard_error
 expectation_with_standard_error
 pushforward_density
+pushforward_density_standard_error
+pushforward_density_with_standard_error
 ```
 
 ## Recovered moments

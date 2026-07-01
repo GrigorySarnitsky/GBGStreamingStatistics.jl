@@ -194,6 +194,23 @@ end
           [conditional_pushforward_density(g, exp, x0, z; hx = hx, hz = 0.18) for z in (0.8, 1.3)]
     @test_throws ArgumentError conditional_pushforward_density(g, exp, x0, 1.0; hx = hx, hz = -0.1)
     @test_throws ArgumentError conditional_pushforward_density(g, exp, x0, 1.0; hx = -1.0, hz = 0.2)
+
+    # standard error (leverage × leading kernel variance − f̂²/n): paired consistency, MC, off-support, throws
+    rp = conditional_pushforward_density_with_standard_error(g, exp, x0, 1.0; hx = hx, hz = 0.18)
+    @test rp.value == conditional_pushforward_density(g, exp, x0, 1.0; hx = hx, hz = 0.18)
+    @test rp.standard_error == conditional_pushforward_density_standard_error(g, exp, x0, 1.0; hx = hx, hz = 0.18)
+    @test conditional_pushforward_density_with_standard_error(g, exp, x0, [0.8, 1.3]; hx = hx, hz = 0.18).standard_error ==
+          conditional_pushforward_density_standard_error(g, exp, x0, [0.8, 1.3]; hx = hx, hz = 0.18)
+    @test isnan(conditional_pushforward_density_standard_error(g, exp, 100.0, 1.0; hx = hx, hz = 0.18))
+    @test_throws ArgumentError conditional_pushforward_density_standard_error(g, exp, x0, 1.0; hx = hx, hz = -0.1)
+    @test_throws ArgumentError conditional_pushforward_density_standard_error(g, exp, x0, 1.0; hx = hx, hz = 0.18, degree = 3)
+    Random.seed!(83); chunks = Histogram2D[]; mc = Float64[]
+    for _ in 1:30
+      Xk = randn(80_000); Yk = ρ .* Xk .+ sqrt(1 - ρ^2) .* randn(80_000)
+      s = Histogram2D(-6.0, 6.0, 200, -6.0, 6.0, 200); observe_pairs!(s, Xk, Yk)
+      push!(chunks, s); push!(mc, conditional_pushforward_density(s, exp, x0, 1.0; hx = hx, hz = 0.18))
+    end
+    @test conditional_pushforward_density_standard_error(chunks[1], exp, x0, 1.0; hx = hx, hz = 0.18) ≈ std(mc) rtol = 0.2
   end
 
   @testset "coincidence: pushforward(identity, degree = 0) ≈ conditional_density" begin
@@ -203,6 +220,11 @@ end
       pf = conditional_pushforward_density(g, identity, 0.5, y; hx = hx, hz = 0.2, degree = 0)
       cd = conditional_density(g, 0.5, y; hx = hx, hy = 0.2)
       @test pf ≈ cd rtol = 0.02
+    end
+    # the standard errors coincide too at degree 0 (the pushforward SE reduces to the conditional-density SE)
+    for y in (-0.5, 0.3, 1.0)
+      @test conditional_pushforward_density_standard_error(g, identity, 0.5, y; hx = hx, hz = 0.2, degree = 0) ≈
+            conditional_density_standard_error(g, 0.5, y; hx = hx, hy = 0.2) rtol = 0.03
     end
   end
 end

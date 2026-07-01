@@ -306,7 +306,11 @@ recorded in `ARCHITECTURE.md` §4 meanwhile.
   of the composed test function ``y\mapsto K_{h_z}(g(y)-z)``, no ``g^{-1}`` and no explicit Jacobian; a
   non-monotone ``g`` contributes from every preimage, ``g'=0`` is an integrable caustic. Two smoothing
   directions: the ``x``-conditioning regression (`hx`, `kernelx`, `degree`) and the ``z`` smoothing (`hz`,
-  `kernelz`).
+  `kernelz`). Its standard error `conditional_pushforward_density_standard_error` (with the paired
+  `conditional_pushforward_density_with_standard_error`) is the two-term
+  ``\sqrt{\ell(x)\,R(K_z)\hat f/h_z - \hat f^2/n}`` — the local-fit leverage ``\ell(x)`` times the leading
+  kernel variance (analytic ``R(K_z)``, since the order-2 ``Y``-quadrature cannot resolve ``K_{h_z}^2``) —
+  coinciding with `conditional_density_standard_error` at ``g = \mathrm{identity}``, `degree = 0`.
 - **Consistency claim.** the standard KDE bias–variance in ``z`` (over the ``y``-quadrature), with a
   symmetric ``K_z`` giving ``\int\hat f\,\mathrm dz = 1`` exactly; needs ``g`` smooth on the ``Y``-bin scale
   and ``h_z \gtrsim |g'|\,\Delta_y``. At ``g = \mathrm{identity}``, `degree = 0` it coincides with the
@@ -453,7 +457,10 @@ recorded in `ARCHITECTURE.md` §4 meanwhile.
   `expectation` of the composed test function ``x \mapsto K_h(g(x) - y)`` — no ``g^{-1}`` and no explicit
   Jacobian. A non-monotone ``g`` contributes from every preimage automatically; ``g' = 0`` is an integrable
   caustic. For a symmetric ``K`` (``\int K = 1``) the surviving ``1/h`` gives ``\int \hat f\,\mathrm dy = 1``
-  exactly.
+  exactly. Its standard error `pushforward_density_standard_error` (with the paired
+  `pushforward_density_with_standard_error`) is the `expectation_standard_error` of that same integrand —
+  the two-term ``\sqrt{R(K)\hat f/(nh) - \hat f^2/n}``, coinciding with `density_standard_error` at
+  ``g = \mathrm{identity}``.
 - **Consistency claim.** the standard KDE bias–variance in ``y`` (bias ``\tfrac12 h^2 \mu_2(K) f_{g(X)}''``,
   variance ``R(K) f_{g(X)}/(nh)``), provided ``g`` is smooth on the bin scale and ``h \gtrsim |g'|\,\Delta``
   (so ``K_h\circ g`` is resolved across a bin).

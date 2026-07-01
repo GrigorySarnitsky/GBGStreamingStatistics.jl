@@ -111,6 +111,23 @@ end
 
   @test_throws ArgumentError pushforward_density(h, exp, 1.0; h = -0.1)
   @test_throws ArgumentError pushforward_density(h, exp, [0.5, 1.0]; h = -0.1)   # vector-method guard
+
+  # standard error: the pushforward of the identity IS the marginal density, so its SE = density_standard_error
+  @test pushforward_density_standard_error(h, identity, 1.0; h = 0.12) ≈
+        density_standard_error(h, 1.0; h = 0.12) rtol = 0.06
+  r = pushforward_density_with_standard_error(h, exp, 1.0; h = 0.12)
+  @test r.value == pushforward_density(h, exp, 1.0; h = 0.12)
+  @test r.standard_error == pushforward_density_standard_error(h, exp, 1.0; h = 0.12)
+  @test pushforward_density_with_standard_error(h, exp, [0.8, 1.2]; h = 0.12).standard_error ==
+        pushforward_density_standard_error(h, exp, [0.8, 1.2]; h = 0.12)
+  @test_throws ArgumentError pushforward_density_standard_error(h, exp, 1.0; h = -0.1)
+  # Monte-Carlo: the SE predicts the empirical spread of f̂_{exp(X)}(1) across independent datasets
+  Random.seed!(77); chunks = Histogram1D[]; mc = Float64[]
+  for _ in 1:30
+    s = Histogram1D(-8.0, 8.0, 1600); observe!(s, randn(40_000)); push!(chunks, s)
+    push!(mc, pushforward_density(s, exp, 1.0; h = 0.12))
+  end
+  @test pushforward_density_standard_error(chunks[1], exp, 1.0; h = 0.12) ≈ std(mc) rtol = 0.2
 end
 
 

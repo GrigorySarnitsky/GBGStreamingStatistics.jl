@@ -18,7 +18,8 @@ using ..Kernels: gaussian_kernel
 
 
 export mean, var, std, central_moment,
-       expectation, expectation_standard_error, expectation_with_standard_error, pushforward_density
+       expectation, expectation_standard_error, expectation_with_standard_error,
+       pushforward_density, pushforward_density_standard_error, pushforward_density_with_standard_error
 
 
 # --- Power-sum quadrature: the shared atom for every global (non-local) readout ---
@@ -325,6 +326,62 @@ function pushforward_density(summary::Histogram1D, g, ys::AbstractVector;
                              h::Real, kernel = gaussian_kernel)
   h > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
   return [expectation(summary, x -> kernel((g(x) - y) / h) / h) for y in ys]
+end
+
+
+"""
+    pushforward_density_standard_error(summary::Histogram1D, g, y;
+                                       h, kernel = gaussian_kernel)
+
+**Estimand.** The pointwise standard error of the pushforward density [`pushforward_density`](@ref
+GBGStreamingStatistics.Expectations.pushforward_density) ``\\equiv f_{g(X)}``,
+``\\mathrm{SE}(y) = \\sqrt{\\operatorname{Var}\\hat f_{g(X)}(y)}`` with the two-term kernel-density variance
+``\\operatorname{Var}\\hat f_{g(X)}(y) \\approx R(K)\\,f_{g(X)}(y)/(nh) - f_{g(X)}(y)^2/n`` (``R(K) = \\int K^2``).
+
+**Estimator.** Because ``\\hat f_{g(X)}(y) = \\hat{\\mathbb{E}}[K_h(g(X) - y)]`` is a sample mean of the
+composed kernel, its standard error is exactly the
+[`expectation_standard_error`](@ref GBGStreamingStatistics.Expectations.expectation_standard_error) of that
+integrand — ``\\sqrt{(\\hat{\\mathbb{E}}[K_h(g(X)-y)^2] - \\hat f_{g(X)}(y)^2)/n}``, which reduces to the
+two-term form above.
+
+Arguments: as for [`pushforward_density`](@ref GBGStreamingStatistics.Expectations.pushforward_density) —
+`summary`, `g`, `y`; `h`, `kernel`.
+"""
+function pushforward_density_standard_error(summary::Histogram1D, g, y::Real; h::Real,
+                                            kernel = gaussian_kernel)
+  h > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
+  return expectation_standard_error(summary, x -> kernel((g(x) - y) / h) / h)
+end
+
+function pushforward_density_standard_error(summary::Histogram1D, g, ys::AbstractVector; h::Real,
+                                            kernel = gaussian_kernel)
+  h > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
+  return [expectation_standard_error(summary, x -> kernel((g(x) - y) / h) / h) for y in ys]
+end
+
+
+"""
+    pushforward_density_with_standard_error(summary::Histogram1D, g, y;
+                                            h, kernel = gaussian_kernel)
+
+[`pushforward_density`](@ref GBGStreamingStatistics.Expectations.pushforward_density) and its standard
+error from one quadrature pass — the `NamedTuple` ``(\\texttt{value}, \\texttt{standard\\_error})``, sharing
+the composed-kernel integrand with [`pushforward_density_standard_error`](@ref
+GBGStreamingStatistics.Expectations.pushforward_density_standard_error). For a vector `y`, a `NamedTuple` of
+vectors. Arguments as for
+[`pushforward_density`](@ref GBGStreamingStatistics.Expectations.pushforward_density).
+"""
+function pushforward_density_with_standard_error(summary::Histogram1D, g, y::Real; h::Real,
+                                                 kernel = gaussian_kernel)
+  h > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
+  return expectation_with_standard_error(summary, x -> kernel((g(x) - y) / h) / h)
+end
+
+function pushforward_density_with_standard_error(summary::Histogram1D, g, ys::AbstractVector; h::Real,
+                                                 kernel = gaussian_kernel)
+  h > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
+  rs = [expectation_with_standard_error(summary, x -> kernel((g(x) - y) / h) / h) for y in ys]
+  return (value = [r.value for r in rs], standard_error = [r.standard_error for r in rs])
 end
 
 

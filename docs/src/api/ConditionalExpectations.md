@@ -16,4 +16,6 @@ conditional_expectation_with_standard_error
 conditional_mean
 conditional_variance
 conditional_pushforward_density
+conditional_pushforward_density_standard_error
+conditional_pushforward_density_with_standard_error
 ```

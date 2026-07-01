@@ -89,7 +89,7 @@ verbatim by every consumer) and an **estimator upper half** (the estimands):
 - [`Expectations`](api/Expectations.md): the power-sum quadrature readouts — the expectation of a smooth
   functional `expectation` ``\equiv \mathbb{E}[g(X)]``, its sampling `expectation_standard_error` (paired
   with the estimate by `expectation_with_standard_error`), and the pushforward density
-  `pushforward_density` ``\equiv f_{g(X)}`` of a transformed variable. Read off the stored power-sums; the
+  `pushforward_density` ``\equiv f_{g(X)}`` of a transformed variable — each with its standard error. Read off the stored power-sums; the
   recovered moments (`mean` / `var` / `std` / `central_moment`) are the ``g = x^p`` case.
 - [`MarginalDensity`](api/MarginalDensity.md): the marginal density `density` ``\equiv f_X`` — one
   call over the binned KDE, the local-log-polynomial (`degree`), and the Abramson variable bandwidth
@@ -103,7 +103,7 @@ verbatim by every consumer) and an **estimator upper half** (the estimands):
   ``g = \mathrm{identity}`` / ``y^2`` cases, the sampling `conditional_expectation_standard_error` (paired
   with the estimate by `conditional_expectation_with_standard_error`), and the
   conditional pushforward density `conditional_pushforward_density` ``\equiv f_{g(Y)\mid X}``
-  (local-polynomial regression in ``x`` of a ``y``-quadrature response).
+  (local-polynomial regression in ``x`` of a ``y``-quadrature response) — each with its standard error.
 - [`ConditionalDensity`](api/ConditionalDensity.md): the conditional density `conditional_density`
   ``\equiv f_{Y\mid X}`` and two-time transition density `transition_density`
   ``\equiv p_\tau(y\mid x)`` (double-kernel), each with its pointwise standard error and paired reader.

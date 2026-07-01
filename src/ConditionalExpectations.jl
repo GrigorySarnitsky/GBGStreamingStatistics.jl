@@ -10,14 +10,15 @@ module ConditionalExpectations
 
 using LinearAlgebra: mul!
 
-using ..Histograms: Histogram2D, _column_sums, _xbincenter, _ybincenter
+using ..Histograms: Histogram2D, _column_sums, _xbincenter, _ybincenter, _total
 using ..LocalPolynomial: local_fit, _leverage
-using ..Kernels: gaussian_kernel
+using ..Kernels: gaussian_kernel, _quad
 using ..Expectations: _interp_matrix
 
 export conditional_mean, conditional_variance, conditional_expectation,
        conditional_expectation_standard_error, conditional_expectation_with_standard_error,
-       conditional_pushforward_density
+       conditional_pushforward_density, conditional_pushforward_density_standard_error,
+       conditional_pushforward_density_with_standard_error
 
 
 # Local-polynomial order admitted by the conditional-moment estimators: 0 (Nadaraya–Watson),
@@ -451,6 +452,104 @@ function conditional_pushforward_density(summary::Histogram2D, g, x::Real, zs::A
   hz > 0 || throw(ArgumentError("response bandwidth hz must be positive (got hz = $hz)"))
   return [conditional_expectation(summary, y -> kernelz((g(y) - z) / hz) / hz, x;
                                   h = hx, kernel = kernelx, degree = degree) for z in zs]
+end
+
+
+function _check_cpf_se(hx, hz, degree)
+  (hx > 0 && hz > 0) ||
+    throw(ArgumentError("bandwidths hx, hz must be positive (got hx = $hx, hz = $hz)"))
+  _check_degree(degree)
+end
+
+
+# The local-fit leverage ℓ(x) at the conditioning point (z-independent, so formed once per SE call).
+function _cpf_leverage(summary::Histogram2D, x::Real, hx, kernelx, degree)
+  cx, N, _ = _column_response(summary, identity)   # cx, N do not depend on the response
+  return _leverage(cx, N, x, hx, kernelx, degree)
+end
+
+
+# The conditional pushforward density f̂(z|x) = Ê[K_hz(g(Y)−z)|x] and its standard error. f̂ is a conditional
+# DENSITY of the transformed response, so its two-term variance is ℓ(x)·(R(K_z)f̂/h_z) − f̂²/n: the leading
+# double-kernel term (the local-fit leverage ℓ(x) times the leading kernel variance R(K_z)f̂/h_z, with the
+# analytic R(K_z) since the order-2 Y-quadrature cannot resolve K_hz²) minus the finite-sample f̂²/n. At
+# degree 0 this is exactly the `conditional_density` standard error. Both NaN where the fit is degenerate.
+function _cpf_value_and_se(summary::Histogram2D, g, x::Real, z::Real, hx, hz, kernelx, kernelz, degree, lev)
+  f = conditional_pushforward_density(summary, g, x, z; hx = hx, hz = hz, kernelx = kernelx,
+                                      kernelz = kernelz, degree = degree)
+  (isfinite(f) && isfinite(lev)) || return (f, oftype(f, NaN))
+  variance = lev * f * _quad(u -> kernelz(u)^2) / hz - f^2 / _total(summary)
+  return (f, sqrt(max(variance, zero(variance))))
+end
+
+
+"""
+    conditional_pushforward_density_standard_error(summary::Histogram2D, g, x, z;
+        hx, hz, kernelx = gaussian_kernel, kernelz = gaussian_kernel, degree = 1)
+
+**Estimand.** The pointwise standard error of the conditional pushforward density
+[`conditional_pushforward_density`](@ref
+GBGStreamingStatistics.ConditionalExpectations.conditional_pushforward_density) ``\\equiv f_{g(Y)\\mid X}``
+— the sampling error of the density of the transformed response ``g(Y)`` at ``z`` given ``x``.
+
+**Estimator.** The two-term ``\\sqrt{\\ell(x)\\,R(K_z)\\hat f/h_z - \\hat f^2/n}``: the local-regression
+**leverage** ``\\ell(x)`` of the fit in ``x`` (correct at any `degree`) times the leading kernel variance
+``R(K_z)\\hat f/h_z`` — ``R(K_z) = \\int K_z^2`` by quadrature, the analytic form since the order-2
+``Y``-quadrature cannot resolve the squared narrow kernel ``K_{h_z}^2`` — minus the finite-sample
+``\\hat f^2/n``. At `degree` 0 it coincides with the
+[`conditional_density_standard_error`](@ref GBGStreamingStatistics.ConditionalDensity.conditional_density_standard_error)
+of the transformed response. Symmetric ``kernelz``.
+
+Arguments: as for [`conditional_pushforward_density`](@ref
+GBGStreamingStatistics.ConditionalExpectations.conditional_pushforward_density) — `summary`, `g`, `x`, `z`;
+`hx`, `hz`, `kernelx`, `kernelz`, `degree`.
+"""
+function conditional_pushforward_density_standard_error(summary::Histogram2D, g, x::Real, z::Real;
+                                                        hx::Real, hz::Real, kernelx = gaussian_kernel,
+                                                        kernelz = gaussian_kernel, degree::Integer = 1)
+  _check_cpf_se(hx, hz, degree)
+  lev = _cpf_leverage(summary, x, hx, kernelx, degree)
+  return _cpf_value_and_se(summary, g, x, z, hx, hz, kernelx, kernelz, degree, lev)[2]
+end
+
+function conditional_pushforward_density_standard_error(summary::Histogram2D, g, x::Real,
+                                                        zs::AbstractVector; hx::Real, hz::Real,
+                                                        kernelx = gaussian_kernel,
+                                                        kernelz = gaussian_kernel, degree::Integer = 1)
+  _check_cpf_se(hx, hz, degree)
+  lev = _cpf_leverage(summary, x, hx, kernelx, degree)
+  return [_cpf_value_and_se(summary, g, x, z, hx, hz, kernelx, kernelz, degree, lev)[2] for z in zs]
+end
+
+
+"""
+    conditional_pushforward_density_with_standard_error(summary::Histogram2D, g, x, z;
+        hx, hz, kernelx = gaussian_kernel, kernelz = gaussian_kernel, degree = 1)
+
+[`conditional_pushforward_density`](@ref
+GBGStreamingStatistics.ConditionalExpectations.conditional_pushforward_density) and its standard error from
+one fit — the `NamedTuple` ``(\\texttt{value}, \\texttt{standard\\_error})``, sharing the fit's leverage with
+[`conditional_pushforward_density_standard_error`](@ref
+GBGStreamingStatistics.ConditionalExpectations.conditional_pushforward_density_standard_error). For a vector
+`z`, a `NamedTuple` of vectors.
+"""
+function conditional_pushforward_density_with_standard_error(summary::Histogram2D, g, x::Real, z::Real;
+                                                             hx::Real, hz::Real, kernelx = gaussian_kernel,
+                                                             kernelz = gaussian_kernel, degree::Integer = 1)
+  _check_cpf_se(hx, hz, degree)
+  lev = _cpf_leverage(summary, x, hx, kernelx, degree)
+  v, se = _cpf_value_and_se(summary, g, x, z, hx, hz, kernelx, kernelz, degree, lev)
+  return (value = v, standard_error = se)
+end
+
+function conditional_pushforward_density_with_standard_error(summary::Histogram2D, g, x::Real,
+                                                             zs::AbstractVector; hx::Real, hz::Real,
+                                                             kernelx = gaussian_kernel,
+                                                             kernelz = gaussian_kernel, degree::Integer = 1)
+  _check_cpf_se(hx, hz, degree)
+  lev = _cpf_leverage(summary, x, hx, kernelx, degree)
+  vses = [_cpf_value_and_se(summary, g, x, z, hx, hz, kernelx, kernelz, degree, lev) for z in zs]
+  return (value = [vs[1] for vs in vses], standard_error = [vs[2] for vs in vses])
 end
 
 end # module ConditionalExpectations
