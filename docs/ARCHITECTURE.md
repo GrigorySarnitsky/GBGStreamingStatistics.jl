@@ -434,12 +434,27 @@ kernel, no query point. Within a bin, ``S_p^{(j)} = \sum_{i\in\text{bin}}(X_i - 
 ```
 **exact** for polynomials of degree ``\le \texttt{order}`` (the remainder terminates) — this is the
 recovered `mean` / `var` / `central_moment` (§3, the shift formula, the ``g = x^p`` case) — and
-``O(\Delta^{\,\texttt{order}+1})`` for general smooth ``g``. The general ``\mathbb{E}[g(X)]`` and the
-**pushforward density** ``f_{g(X)}`` (the binned measure mapped through ``g`` — analytically
-``f_X(g^{-1}(y))/|g'|`` over the preimages, or by re-binning ``g(c_j)`` and smoothing) are **forthcoming**:
-a post-hoc functional the summary already supports, no new accumulation. Limits: ``g`` smooth on the bin
-scale, mass inside the range, and — for the density — the Jacobian modulates the ``y``-resolution while
-``g' = 0`` makes an (integrable) caustic.
+``O(\Delta^{\,\texttt{order}+1})`` for general smooth ``g``. **Built** in `Expectations`:
+
+- `expectation` ``\equiv \mathbb{E}[g(X)]`` for a general smooth `g`. The per-bin coefficients
+  ``g^{(p)}(c_j)/p!`` are read off a **degree-``\texttt{order}`` polynomial interpolant of ``g`` on each
+  bin** — no automatic differentiation and no new dependency (uniform bins ⇒ one Chebyshev–Vandermonde
+  inverse serves every bin), which reduces *exactly* to the shift formula on the monomials. Both
+  `expectation` and the recovered moments route through the one shared contraction atom
+  `Histograms._quadrature` (the moments supplying closed-form coefficients, `expectation` interpolation
+  coefficients) — the literal realization of the two-family lens.
+- `expectation_standard_error` ``= \sqrt{(\mathbb{E}[g^2] - \mathbb{E}[g]^2)/n}`` — the sampling error of
+  ``\hat{\mathbb{E}}[g]``, itself a second quadrature readout (``\mathbb{E}[g^2]`` is `expectation` with
+  the smooth integrand ``g^2``).
+- `pushforward_density` ``\equiv f_{g(X)}``, the density of ``Y = g(X)``. Rather than form ``g^{-1}`` or a
+  Jacobian, it is written as the **expectation of the composed kernel test function**,
+  ``\hat f_{g(X)}(y) = \tfrac1n\sum_i K_h(g(X_i) - y) = \hat{\mathbb{E}}[K_h(g(X) - y)]`` — so it is one
+  more `expectation` call. A **non-monotone** ``g`` is handled automatically (every preimage contributes),
+  a flat spot ``g'=0`` shows up as the expected (integrable) caustic, and a symmetric ``K`` makes
+  ``\int \hat f\,\mathrm dy = 1`` exactly.
+
+Limits: ``g`` smooth on the bin scale, mass inside the range, and — for the pushforward — the response
+bandwidth ``h \gtrsim |g'|\,\Delta`` so ``K_h\circ g`` is resolved across a bin.
 
 ### 4.6 Projection road [OPEN, alternative]
 
@@ -873,6 +888,22 @@ intentional — do not dedupe it).
   when that cost bites. `FFTW` is retained — the ISJ bandwidth (`rule = :isj`) uses its DCT today; the
   unused `AbstractFFTs` direct dependency (its sole intended consumer was this deferred smoothing) was
   dropped, per the rule against speculative structure (§6).
+- **Power-sum quadrature readouts §4.B — built** (`expectation`, `expectation_standard_error`,
+  `pushforward_density`). The second readout family lands: a smooth functional ``\mathbb{E}[g(X)]`` of the
+  binned measure, its sampling standard error, and the pushforward density of ``g(X)``. All three route
+  through the one shared contraction atom `Histograms._quadrature`, into which `mean` / `var` /
+  `central_moment` were **folded** as the ``g = x^p`` case (guarded by the unchanged exactness tests) — the
+  literal realization of the two-family lens. **Decision — the boundary between the two families is that
+  they consume *different sufficient statistics*:** kernel-weighting (§4.A) reads counts + bin locations,
+  weights by ``K_h``, and localizes/solves (a function of a query point, needs a bandwidth); power-sum
+  quadrature (§4.B) contracts the within-bin power-sums ``S_p`` against a test function's local coefficients
+  (a scalar, no bandwidth). The summary stores **both** counts and power-sums precisely because there are
+  two readout modes. This settles the tempting over-unification: the kernel estimators are *not* trivial
+  cases of ``\mathbb{E}[g(X)]`` (they are ratios / local solves of *joint* moments; only the bare degree-0
+  fixed-``h`` KDE is formally ``\mathbb{E}[K_h(\cdot - x_0)]``), so a single universal map would collapse to
+  the vacuous "every estimator is a functional of the empirical measure" — the mirror of the corrected
+  "the jet is *the* primitive" lens. Two atoms, each estimator a readout of one. `g`'s coefficients come
+  from a dependency-free local polynomial interpolant; the pushforward is `expectation` of ``K_h\circ g``.
 
 Open decisions still flagged **[OPEN]** in §10 (the projection road, `HistogramND`, vector-valued
 conditioning, prior-art mirroring) graduate to entries here when they are settled.

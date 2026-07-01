@@ -15,6 +15,7 @@ module RegressionTests;         include("regression.jl");         end
 module ConditionalDensityTests; include("conditionaldensity.jl"); end
 module ConditionalConvergenceTests; include("conditional_convergence.jl"); end
 module BandwidthTests;          include("bandwidth.jl");          end
+module ExpectationsTests;       include("expectations.jl");       end
 module LocalBandwidthTests;     include("localbandwidth.jl");     end
 module OraclesTests;            include("oracles.jl");            end
 module MergeabilityTests;       include("mergeability.jl");       end

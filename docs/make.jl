@@ -76,7 +76,8 @@ makedocs(
                GBGStreamingStatistics.MarginalDensity,
                GBGStreamingStatistics.Regression,
                GBGStreamingStatistics.ConditionalDensity,
-               GBGStreamingStatistics.Bandwidth],
+               GBGStreamingStatistics.Bandwidth,
+               GBGStreamingStatistics.Expectations],
   format    = Documenter.HTML(
     canonical     = "https://grigorysarnitsky.github.io/GBGStreamingStatistics.jl/stable",
     collapselevel = 1,
@@ -96,6 +97,7 @@ makedocs(
       "Regression"             => "api/Regression.md",
       "ConditionalDensity"     => "api/ConditionalDensity.md",
       "Bandwidth"              => "api/Bandwidth.md",
+      "Expectations"           => "api/Expectations.md",
     ],
     "Design & Internals" => Any[
       "Architecture"  => "architecture.md",

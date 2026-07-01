@@ -8,10 +8,11 @@ The package has a single performance-critical path: the **per-sample accumulatio
 ([`observe!`](@ref GBGStreamingStatistics.Accumulators.observe!)), which runs over every sample of the stream — for the turbulence consumer,
 ``N^3 \times`` steps. Everything else is second-order:
 
-- **Post-hoc smoothing is dwarfed by accumulation.** Every smoother here — the binned KDE (§4.1) and
-  the local-polynomial sums (§4.2) — is a convolution of the small binned summary (a few ``\times 10^3``
-  bins) with the kernel, computed once per request by **direct summation** over the bins (``O(B)`` per
-  query point for a compact-reach kernel, ``O(B^2)`` for the distance-histogram curvature functionals of
+- **Post-hoc smoothing is dwarfed by accumulation.** Every smoother here — the binned KDE (§4.1), the
+  local-polynomial sums (§4.2), and the power-sum quadrature readouts (§4.B) — reads the small binned
+  summary (a few ``\times 10^3`` bins) once per request by **direct summation** over the bins (``O(B)`` per
+  query point for a compact-reach kernel, ``O(B\cdot\texttt{order})`` plus ``\texttt{order}+1`` evaluations
+  of ``g`` per bin for the quadrature, ``O(B^2)`` for the distance-histogram curvature functionals of
   `:sj`). Even so it is dwarfed by the accumulation over every sample of the stream — a few thousand bins
   versus ``N^3`` samples. The **FFT amortization** — transform the bin counts once in ``O(B \log B)``, then
   each ``h`` (and the bandwidth grid a local ``h^\star(x)`` sweep needs) is a multiply by the kernel's

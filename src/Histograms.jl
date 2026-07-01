@@ -181,48 +181,68 @@ function scale!(h::Histogram1D, weight)
 end
 
 
-# Global (over all bins) central moments, recovered host-side from the per-bin power-sums by the
-# shift formula. Returns (n, mean, M) with `M[p-1] = Σ_i (x_i − x̄)^p` for p = 2 … order. Reads the
-# summaries to the host first (a no-op for CPU arrays). Internal — used by bandwidth and the oracles.
-function _global_moments(h::Histogram1D)
+# --- Power-sum quadrature: the shared atom for every global (non-local) readout ---
+# E[g(X)] = (1/n) Σ_j Σ_{p=0}^{order} a_p(c_j) S_p^(j), with S_0^(j) = n_j and a_p(c_j) the local
+# coefficients of the test function's degree-≤order polynomial model about the bin center c_j (a[1] the
+# constant, weighting the count; a[p+1] multiplying (x−c_j)^p). `coeffs!(a, c_j)` fills the reused
+# length-(order+1) buffer; it is called only on non-empty bins, so g is never probed off the data. The
+# recovered moments are the g = x^p / (x−μ)^p case (closed-form binomial coefficients — the shift
+# formula); `Expectations` supplies interpolation coefficients for a general smooth g. Reads the summary
+# to the host first (a no-op for CPU arrays). Returns E[g] (NaN for an empty summary).
+function _quadrature(h::Histogram1D, coeffs!)
   P = _order(h)
   counts = Array(h.counts)
   S = Array(h.powersums)
-  nbins = length(counts)
+  a = zeros(Float64, P + 1)          # reused per-bin coefficient buffer (a[p+1] ↔ (x−c_j)^p)
   n = 0.0
-  sx = 0.0
-  for j in 1:nbins
+  acc = 0.0
+  @inbounds for j in eachindex(counts)
     nj = counts[j]
     iszero(nj) && continue
     n += nj
-    sx += _bincenter(h, j) * nj + S[1, j]      # Σ x = Σ (c_j n_j + S_1[j])
-  end
-  M = zeros(P - 1)
-  iszero(n) && return 0.0, NaN, fill!(M, NaN)
-  xbar = sx / n
-  for j in 1:nbins
-    nj = counts[j]
-    iszero(nj) && continue
-    d = _bincenter(h, j) - xbar
-    for p in 2:P
-      acc = 0.0
-      for k in 0:p
-        Sk = k == 0 ? float(nj) : S[k, j]
-        acc += binomial(p, k) * d^(p - k) * Sk
-      end
-      M[p - 1] += acc
+    coeffs!(a, _bincenter(h, j))
+    acc += a[1] * nj                 # p = 0 term: S_0^(j) = n_j
+    for p in 1:P
+      acc += a[p + 1] * S[p, j]
     end
   end
-  return n, xbar, M
+  return iszero(n) ? NaN : acc / n
 end
 
-_sample_mean(h::Histogram1D) = _global_moments(h)[2]
+
+# Local coefficients of the raw monomial x^m about c_j: (c_j + u)^m = Σ_k C(m,k) c_j^{m-k} u^k, so
+# a[k+1] = C(m,k) c_j^{m-k} for k ≤ m (0 above). The g = x^m instance of the quadrature.
+function _monomial_coeffs!(a, cj, m, P)
+  fill!(a, 0.0)
+  @inbounds for k in 0:min(m, P)
+    a[k + 1] = binomial(m, k) * cj^(m - k)
+  end
+  return a
+end
+
+
+# Local coefficients of the central monomial (x−μ)^p about c_j: (c_j − μ + u)^p, so
+# a[k+1] = C(p,k)(c_j − μ)^{p-k}. The g = (x−μ)^p instance (the shift formula for central moments).
+function _central_coeffs!(a, cj, mu, p, P)
+  fill!(a, 0.0)
+  d = cj - mu
+  @inbounds for k in 0:min(p, P)
+    a[k + 1] = binomial(p, k) * d^(p - k)
+  end
+  return a
+end
+
+
+_sample_mean(h::Histogram1D) =
+  (P = _order(h); _quadrature(h, (a, cj) -> _monomial_coeffs!(a, cj, 1, P)))
 
 function _sample_central_moment(h::Histogram1D, p::Integer)
   2 ≤ p ≤ _order(h) ||
     throw(ArgumentError("central-moment order p must satisfy 2 ≤ p ≤ $(_order(h)) (got $p)"))
-  n, _, M = _global_moments(h)
-  return iszero(n) ? oftype(M[1], NaN) : M[p - 1] / n
+  mu = _sample_mean(h)
+  isnan(mu) && return oftype(mu, NaN)
+  P = _order(h)
+  return _quadrature(h, (a, cj) -> _central_coeffs!(a, cj, mu, p, P))
 end
 
 _sample_variance(h::Histogram1D) = _sample_central_moment(h, 2)
@@ -280,7 +300,10 @@ std(summary::Histogram1D; corrected::Bool = true) = sqrt(var(summary; corrected 
 **Estimator.** the sample central moment ``\\frac1n \\sum_i (X_i - \\bar X)^p`` (``\\bar X`` the recovered
 mean), recovered **exactly** from the power-sums by the shift formula — not a smoothed estimate — for
 ``2 \\le p \\le \\texttt{order}``. ``p = 2`` is the uncorrected variance (`var` with `corrected = false`);
-even orders recover stably, odd orders (``\\approx 0``) to weaker relative precision.
+even orders recover stably, odd orders (``\\approx 0``) to weaker relative precision. This is the
+``g = (x - \\bar X)^p`` case of the power-sum quadrature
+[`expectation`](@ref GBGStreamingStatistics.Expectations.expectation), with which it shares the
+contraction atom.
 """
 central_moment(summary::Histogram1D, p::Integer) = _sample_central_moment(summary, p)
 

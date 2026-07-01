@@ -114,6 +114,7 @@ argument errors) plus the convergence rate:
 | `conditional_mean` / `conditional_variance` | bivariate-Gaussian (+ heteroscedastic curved-mean for Fan–Yao `conditional_variance`) | yes | yes | `NaN` | yes | yes, ``n^{-4/5}`` ISE |
 | `conditional_density` / `transition_density` | biv-Gaussian + OU + bounded-response (asym. `kernely`) | yes | yes | `NaN` off-support ``x`` | yes | yes, ``n^{-2/3}`` |
 | `bandwidth(::Histogram2D)` ``h^\star(x)`` | quadratic-mean Gaussian (closed-form) | yes | yes | `NaN` | yes | n/a, a selector |
+| `expectation` / `pushforward_density` / `expectation_standard_error` | Gaussian MGF/trig + polynomial exactness; lognormal & non-monotone ``\chi^2_1`` pushforward; SE ``= s/\sqrt n`` | yes (`pushforward`) | yes | n/a, mass in range | yes | n/a, exact for degree ``\le`` order else ``O(\Delta^{\texttt{order}+1})`` |
 
 The summaries and the selector carry a different contract:
 
@@ -128,7 +129,10 @@ The summaries and the selector carry a different contract:
 `n/a` is not applicable. The **rate column is now uniform** — `density` (`test/density_convergence.jl`),
 `conditional_mean` (``n^{-4/5}`` ISE), and `conditional_density` (the slower 2-D ``n^{-2/3}``) each carry a
 log–log ISE-slope test (the conditional pair in `test/conditional_convergence.jl`); `conditional_variance`
-inherits `conditional_mean`'s rate (a second-stage local fit), so it needs no separate test. "via summary" means a host-side functional of the
+inherits `conditional_mean`'s rate (a second-stage local fit), so it needs no separate test. The power-sum
+quadrature readouts (`expectation`, `pushforward_density`) carry a **polynomial-exactness** test (they equal
+the raw empirical mean ``\tfrac1n\sum_i g(X_i)`` to ``10^{-8}`` for ``g`` of degree ``\le \texttt{order}``)
+and a binning-error bound in place of an asymptotic slope. "via summary" means a host-side functional of the
 summary, so the device coverage is the summary's row.
 
 **Tolerances are seed-robust.** The ISE-comparison thresholds (the `:plugin` gains, the parametric-start

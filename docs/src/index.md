@@ -41,9 +41,11 @@ two-time conditional densities) — but nothing in the library is specific to a 
     [`transition_density`](@ref GBGStreamingStatistics.ConditionalDensity.transition_density), §4.3)
     are implemented and tested on **CPU and GPU** (Gaussian, bivariate-Gaussian, and Ornstein–Uhlenbeck
     oracles, mergeability, allocation, AMD-ROCm parity), including the asymmetric bounded/positive-support
-    kernels, the response-aware local bandwidth ``h^\star(x)``, and the Fan–Yao conditional variance. The
-    Kramers–Moyal / SDE-reading functionals (drift, diffusion, …) are archived for now; see the
-    [Architecture](architecture.md) for the design and roadmap.
+    kernels, the response-aware local bandwidth ``h^\star(x)``, and the Fan–Yao conditional variance —
+    plus the power-sum quadrature readouts ([`expectation`](@ref GBGStreamingStatistics.Expectations.expectation)
+    of a smooth functional, its `expectation_standard_error`, and the `pushforward_density` of a transformed
+    variable). The Kramers–Moyal / SDE-reading functionals (drift, diffusion, …) are archived for now; see
+    the [Architecture](architecture.md) for the design and roadmap.
 
 ## Installation
 
@@ -101,6 +103,10 @@ verbatim by every consumer) and an **estimator upper half** (the estimands):
   rule (Silverman the Gaussian/degree-0 case), the data-driven Sheather–Jones (`rule = :sj`, `:isj`),
   fit-based AIC (`rule = :aic`), and asymmetric-kernel Chen plug-in (`rule = :plugin`) selectors, and the
   joint-summary response-aware local plug-in ``h^\star(x)`` (`rule = :local`).
+- [`Expectations`](api/Expectations.md): the power-sum quadrature readouts — the expectation of a smooth
+  functional `expectation` ``\equiv \mathbb{E}[g(X)]``, its sampling `expectation_standard_error`, and the
+  pushforward density `pushforward_density` ``\equiv f_{g(X)}`` of a transformed variable. Read off the
+  stored power-sums; the recovered moments (`mean` / `var` / `central_moment`) are the ``g = x^p`` case.
 
 ## Documentation structure
 
@@ -117,6 +123,7 @@ Pages = [
   "api/Regression.md",
   "api/ConditionalDensity.md",
   "api/Bandwidth.md",
+  "api/Expectations.md",
 ]
 ```
 

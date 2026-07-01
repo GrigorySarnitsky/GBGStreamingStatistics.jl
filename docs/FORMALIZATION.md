@@ -14,10 +14,10 @@ du`` its second moment, and ``R(K) = \int K^2`` its roughness; ``h`` is the band
 number of samples, ``f_X`` the marginal density of the conditioning variable.
 
 The entries are grouped by the lens of `ARCHITECTURE.md` §2: the **atoms** (the power-sums summary, the
-cone, the kernel-weighting atom & jet) first, then the **kernel-weighting readouts**. A forthcoming
-operation gets its entry — in the same shape (estimand / estimator / consistency / test) — when it lands,
-its estimand recorded in `ARCHITECTURE.md` §4 meanwhile (the power-sum-quadrature ``\mathbb{E}[g(X)]`` /
-pushforward density, §4.B).
+cone, the kernel-weighting atom & jet) first, then the two readout families — the **kernel-weighting
+readouts** (§4.A) and the **power-sum quadrature readouts** (§4.B). A forthcoming operation gets its
+entry — in the same shape (estimand / estimator / consistency / test) — when it lands, its estimand
+recorded in `ARCHITECTURE.md` §4 meanwhile.
 
 ## Per-bin power-sums about the bin center (`Histograms`, the summaries)
 
@@ -69,8 +69,9 @@ pushforward density, §4.B).
   Taylor contraction about the bin centers, ``\mathbb{E}[g(X)] = \tfrac1n \sum_j \sum_{p=0}^{\texttt{order}}
   g^{(p)}(c_j)/p!\,S_p^{(j)} + O(\Delta^{\texttt{order}+1})`` — **exact** for polynomials of degree
   ``\le \texttt{order}`` (the moment recovery above is the ``g = x^p`` case), ``O(\Delta^{\texttt{order}+1})``
-  for general smooth ``g``. The general ``\mathbb{E}[g(X)]`` and pushforward density ``f_{g(X)}`` are
-  forthcoming (a post-hoc functional of these power-sums, no new accumulation).
+  for general smooth ``g``. The general ``\mathbb{E}[g(X)]``, its standard error, and the pushforward
+  density ``f_{g(X)}`` are **built** in `Expectations` (the §4.B section below), all through this same
+  contraction — no new accumulation.
 - **Test.** `test/histograms.jl` (recovered ``M_2 \dots M_6`` match the direct sum to ``10^{-8}`` and
   the true Gaussian moments to sampling error); `test/histograms2d.jl` (2D marginals + covariance);
   `test/mergeability.jl` (merge ``=`` together); `test/allocations.jl` (bounded `observe!` / `merge!`);
@@ -330,3 +331,57 @@ pushforward density, §4.B).
   bivariate-Gaussian oracle, with ``h_1 = h_2 \propto n^{-1/6}``, the ISE in ``y`` at ``x_0 = 0`` falls
   with fitted log–log slope ``\approx -2/3`` (reaching the 2-D asymptotic regime needs ``n \gtrsim 10^5``,
   so the n-range starts higher than the 1-D density test).
+
+## Power-sum quadrature — expectation of a functional (§4.B) — `expectation`
+
+- **Estimand.** the expectation of a smooth functional of ``X``,
+  ``\mathbb{E}[g(X)] = \int g(x)\, f_X(x)\,\mathrm dx``.
+- **Estimator.** the power-sum quadrature ``\hat{\mathbb{E}}[g] = \tfrac1n \sum_j \sum_{p=0}^{\texttt{order}}
+  a_p^{(j)}\, S_p^{(j)}`` (``S_0^{(j)} = n_j``), where ``a_p^{(j)}`` are the coefficients (in ``u = x - c_j``)
+  of the degree-``\texttt{order}`` polynomial interpolant of ``g`` on bin ``j`` — a Chebyshev–Lobatto
+  interpolant, its inverse Vandermonde precomputed once (uniform bins), so no derivatives of ``g`` are
+  formed. For a monomial ``g = x^m`` (``m \le \texttt{order}``) the interpolant is exact and ``a_p^{(j)}``
+  is the binomial ``\binom{m}{p} c_j^{m-p}``, so the readout **reduces to the shift formula** — `mean`,
+  `var`, `central_moment` are this estimator, and share the `Histograms._quadrature` atom.
+- **Consistency claim.** exact (to floating-point) for polynomial ``g`` of degree ``\le \texttt{order}``,
+  independent of the bin width; ``O(\Delta^{\,\texttt{order}+1})`` for general smooth ``g`` (the
+  interpolation remainder). The estimand needs ``g`` smooth on the bin scale and the mass inside the range.
+- **Test.** `test/expectations.jl` — the Gaussian oracles ``\mathbb{E}[\cos X] = e^{-1/2}``,
+  ``\mathbb{E}[\sin X] = 0`` (MGF/trig); polynomial exactness (``\hat{\mathbb{E}}[g] = \tfrac1n\sum_i
+  g(X_i)`` to ``10^{-10}`` for degree ``\le \texttt{order}``); the binning error vs the raw empirical mean
+  ``< 10^{-6}`` for a smooth ``g``; the moment unification (``\mathbb{E}[x^p]`` equals the recovered moment);
+  mergeability; empty ``\Rightarrow`` `NaN`.
+
+## Power-sum quadrature — sampling standard error (§4.B) — `expectation_standard_error`
+
+- **Estimand.** the sampling standard error of ``\hat{\mathbb{E}}[g]``,
+  ``\mathrm{SE} = \sqrt{\operatorname{Var}(g(X))/n}`` with ``\operatorname{Var}(g(X)) = \mathbb{E}[g^2] -
+  \mathbb{E}[g]^2``.
+- **Estimator.** ``\sqrt{(\hat{\mathbb{E}}[g^2] - \hat{\mathbb{E}}[g]^2)/n}`` — both moments the same
+  quadrature (``\mathbb{E}[g^2]`` is `expectation` with the smooth integrand ``g^2``). It is the plug-in
+  sampling error of the empirical mean of ``g(X)``; the ``O(\Delta^{\,\texttt{order}+1})`` quadrature bias
+  is separate and not included.
+- **Consistency claim.** for ``g = \mathrm{identity}`` it is exactly ``s/\sqrt n`` (``s`` the uncorrected
+  standard deviation); in general the plug-in ``\widehat{\operatorname{Var}(g(X))}`` is consistent as
+  ``\Delta \to 0``.
+- **Test.** `test/expectations.jl` — ``\mathrm{SE}(\mathrm{identity}) = \operatorname{std}_{\text{unc}}/\sqrt
+  n`` to ``10^{-10}``; ``\mathrm{SE}(\cos)`` matches the raw empirical ``\sqrt{\operatorname{Var}(\cos X)/n}``;
+  positivity; empty ``\Rightarrow`` `NaN`.
+
+## Power-sum quadrature — pushforward density (§4.B) — `pushforward_density`
+
+- **Estimand.** the density of the transformed variable ``Y = g(X)``, the pushforward
+  ``f_{g(X)}(y) = \sum_{x:\,g(x)=y} f_X(x)/|g'(x)|`` (change of variables, summed over preimages).
+- **Estimator.** the kernel density estimate of the pushforward written as an expectation,
+  ``\hat f_{g(X)}(y) = \tfrac1n \sum_i K_h(g(X_i) - y) = \hat{\mathbb{E}}[K_h(g(X) - y)]``, so it is one
+  `expectation` of the composed test function ``x \mapsto K_h(g(x) - y)`` — no ``g^{-1}`` and no explicit
+  Jacobian. A non-monotone ``g`` contributes from every preimage automatically; ``g' = 0`` is an integrable
+  caustic. For a symmetric ``K`` (``\int K = 1``) the surviving ``1/h`` gives ``\int \hat f\,\mathrm dy = 1``
+  exactly.
+- **Consistency claim.** the standard KDE bias–variance in ``y`` (bias ``\tfrac12 h^2 \mu_2(K) f_{g(X)}''``,
+  variance ``R(K) f_{g(X)}/(nh)``), provided ``g`` is smooth on the bin scale and ``h \gtrsim |g'|\,\Delta``
+  (so ``K_h\circ g`` is resolved across a bin).
+- **Test.** `test/expectations.jl` — ``Y = e^X`` with ``X\sim N(0,1)`` recovers the Lognormal``(0,1)`` pdf
+  (pointwise to ``6\%``, ``\int\hat f\,\mathrm dy \approx 1``), and the **non-monotone** ``Y = X^2`` recovers
+  the ``\chi^2_1`` pdf in the bulk (both preimages ``\pm\sqrt y`` contributing); scalar ``=`` vector,
+  positive-``h`` check, mergeability.

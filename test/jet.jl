@@ -1,14 +1,14 @@
 using Test
 using JET
 using GBGStreamingStatistics
-using GBGStreamingStatistics: Histograms, MarginalDensity, Bandwidth, Regression, ConditionalDensity
+using GBGStreamingStatistics: Histograms, MarginalDensity, Bandwidth, Regression, ConditionalDensity, Expectations
 
 @testset "JET" begin
   # Static analysis of the public operations on concrete CPU summaries, with reports filtered to the
   # package's own code. Concrete summaries ⇒ `get_backend` is concretely `CPU()`, so the GPU branch of
   # the scatter kernel (only reachable with a GPU backend loaded — exercised in test/gpu/) is not part
   # of the analyzed call; the KernelAbstractions/Atomix internals are excluded by `target_modules`.
-  mods = (GBGStreamingStatistics, Histograms, MarginalDensity, Bandwidth, Regression, ConditionalDensity)
+  mods = (GBGStreamingStatistics, Histograms, MarginalDensity, Bandwidth, Regression, ConditionalDensity, Expectations)
   h = Histogram1D(-5.0, 5.0, 100; order = 4)
   h2 = Histogram1D(-5.0, 5.0, 100; order = 4)
   samples = randn(1000)
@@ -45,4 +45,9 @@ using GBGStreamingStatistics: Histograms, MarginalDensity, Bandwidth, Regression
   # the asymmetric-response path (gamma kernely + normalize) — its own specialization / branch
   @test_call target_modules = mods conditional_density(glag, 0.0, 0.0; hx = 0.5, hy = 0.5, kernely = gamma_kernel, normalize = true)
   @test_call target_modules = mods transition_density(glag, 0.0, 0.0; hx = 0.5, hy = 0.5)
+
+  # the §4.B power-sum quadrature readouts — the `coeffs!` / test-function closures are the inference risk
+  @test_call target_modules = mods expectation(h, cos)
+  @test_call target_modules = mods expectation_standard_error(h, cos)
+  @test_call target_modules = mods pushforward_density(h, exp, 1.0; h = 0.5)
 end

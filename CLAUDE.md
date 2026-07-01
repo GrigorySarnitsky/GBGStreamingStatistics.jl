@@ -102,8 +102,16 @@ estimands.
   ``m''(x)``, and ``f_X(x)``). The post-hoc FFT smoothing helpers (the major performance lever, amortized
   over bandwidth) are **deferred** (recorded, not built — a pure optimization over the exact direct
   summation). Owns `FFTW` (the ISJ `rule = :isj` DCT).
+- `src/Expectations.jl` — §4.B the **power-sum quadrature** readouts (the second of the two readout
+  families): `expectation` ``\equiv \mathbb{E}[g(X)]`` (a smooth functional of `X`), its sampling
+  `expectation_standard_error`, and `pushforward_density` ``\equiv f_{g(X)}`` (the density of a transformed
+  variable ``g(X)``) — all read off the stored power-sums through the shared `Histograms._quadrature` atom,
+  into which `mean` / `var` / `central_moment` were folded as the ``g = x^p`` case. A general `g`'s per-bin
+  coefficients come from a dependency-free local-polynomial interpolant (reuses `LinearAlgebra`, exact on
+  monomials); the pushforward is `expectation` of the composed kernel ``K_h \circ g`` (no ``g^{-1}``,
+  non-monotone `g` handled). Reached by explicit `using ..Histograms: _quadrature`.
 - Include order: `Accumulators → Histograms → Kernels → LocalPolynomial → MarginalDensity → Regression →
-  ConditionalDensity → Bandwidth`. Cross-module access only through explicit `using ..Module: name, …`
+  ConditionalDensity → Bandwidth → Expectations`. Cross-module access only through explicit `using ..Module: name, …`
   — never a bare `using`.
 - Deferred / archived, recorded as commented-out includes (the rule against speculative structure):
   `# IncrementMoments.jl` (the §4.4 SDE-reading `drift` / `diffusion` / Kramers–Moyal functionals —
@@ -415,6 +423,19 @@ Mechanical bar:
     Epanechnikov kernels, by an independent quadrature) and the two remaining parametric starts
     (`exponential_start`, `inverse_gaussian_start`, under matching-distribution oracles in
     `test/marginaldensity.jl`).
+13. **`Expectations`** (§4.B) — the **power-sum quadrature** readout family, the second of the two: the
+    expectation `expectation` ``\\equiv \\mathbb{E}[g(X)]`` of a general smooth functional, its sampling
+    `expectation_standard_error` (``\\sqrt{(\\mathbb{E}[g^2] - \\mathbb{E}[g]^2)/n}``), and
+    `pushforward_density` ``\\equiv f_{g(X)}`` — the density of ``Y = g(X)``, written as
+    ``\\mathbb{E}[K_h(g(X) - y)]`` so no ``g^{-1}`` / Jacobian is formed and a **non-monotone** ``g`` (and
+    ``g'=0`` caustic) is handled. All route through the one shared `Histograms._quadrature` atom, into which
+    `mean` / `var` / `central_moment` were **folded** as the ``g = x^p`` case (the literal two-family lens;
+    the boundary is that the families read *different sufficient statistics* — power-sums vs
+    counts+locations, settled against the tempting universal-map over-unification). A general ``g``'s
+    coefficients come from a **dependency-free** degree-`order` local interpolant (exact on monomials).
+    Tested (`test/expectations.jl`): the Gaussian ``\\mathbb{E}[\\cos X] = e^{-1/2}`` / MGF oracles,
+    polynomial exactness (``= \\tfrac1n\\sum_i g(X_i)`` to ``10^{-10}``), the lognormal and non-monotone
+    ``\\chi^2_1`` pushforwards, the SE reduction to ``s/\\sqrt n``, and mergeability.
 
 **Next, in dependency order:**
 
