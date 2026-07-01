@@ -11,11 +11,12 @@ module ConditionalExpectations
 using LinearAlgebra: mul!
 
 using ..Histograms: Histogram2D, _column_sums, _xbincenter, _ybincenter
-using ..LocalPolynomial: local_fit
+using ..LocalPolynomial: local_fit, _leverage
 using ..Kernels: gaussian_kernel
 using ..Expectations: _interp_matrix
 
-export conditional_mean, conditional_variance, conditional_expectation, conditional_pushforward_density
+export conditional_mean, conditional_variance, conditional_expectation,
+       conditional_expectation_standard_error, conditional_pushforward_density
 
 
 # Local-polynomial order admitted by the conditional-moment estimators: 0 (Nadaraya–Watson),
@@ -126,6 +127,75 @@ function conditional_expectation(summary::Histogram2D, g, xs::AbstractVector; h:
   _check_degree(degree)
   cx, N, sumG = _column_response(summary, g)
   return [local_fit(cx, N, sumG, x, h, kernel, degree)[1] for x in xs]
+end
+
+
+# The standard error at one x from the pre-reduced column responses: √(leverage · Var(g(Y)|x)), with the
+# plug-in conditional variance Ê[g²|x] − Ê[g|x]² and the local-regression leverage Σ_j N_j w_j². NaN where
+# the fit is degenerate (no local data).
+function _ce_standard_error(cx, N, sumG, sumG2, x, h, kernel, degree)
+  eg = local_fit(cx, N, sumG, x, h, kernel, degree)[1]
+  lev = _leverage(cx, N, x, h, kernel, degree)
+  (isfinite(eg) && isfinite(lev)) || return oftype(eg, NaN)
+  eg2 = local_fit(cx, N, sumG2, x, h, kernel, degree)[1]
+  variance = eg2 - eg^2
+  return sqrt(max(variance, zero(variance)) * max(lev, zero(lev)))
+end
+
+
+"""
+    conditional_expectation_standard_error(summary::Histogram2D, g, x;
+                                           h, kernel = gaussian_kernel, degree = 1)
+
+**Estimand.** the sampling standard error of the estimator [`conditional_expectation`](@ref
+GBGStreamingStatistics.ConditionalExpectations.conditional_expectation),
+``\\mathrm{SE}\\bigl(\\widehat{\\mathbb{E}}[g(Y)\\mid x]\\bigr) =
+\\sqrt{\\ell(x)\\,\\operatorname{Var}(g(Y)\\mid x)}``, with the local-regression **leverage**
+``\\ell(x) = \\sum_j N_j\\, w_j(x)^2`` (the sum of squared effective weights of the fit's ``\\beta_0``)
+and the conditional variance of the transformed response
+``\\operatorname{Var}(g(Y)\\mid x) = \\mathbb{E}[g(Y)^2\\mid x] - \\mathbb{E}[g(Y)\\mid x]^2``.
+
+**Estimator.** the **leverage × noise-scale** readout
+``\\sqrt{\\hat\\ell(x)\\,(\\widehat{\\mathbb{E}}[g^2\\mid x] - \\widehat{\\mathbb{E}}[g\\mid x]^2)}``: the
+leverage ``\\hat\\ell(x)`` from the local-fit design (its plain and **squared-kernel** moments; read off the
+actual weights, so correct at any `degree`) times the plug-in conditional variance of ``g(Y)`` — itself two
+[`conditional_expectation`](@ref GBGStreamingStatistics.ConditionalExpectations.conditional_expectation)
+readouts (``\\mathbb{E}[g^2\\mid x]`` the ``g^2`` reader). This is the exact analog of the marginal
+[`expectation_standard_error`](@ref GBGStreamingStatistics.Expectations.expectation_standard_error)
+``= \\sqrt{\\operatorname{Var}(g(X))\\,/\\,n}``, with the global-mean leverage ``1/n`` replaced by the local
+``\\sum_j N_j w_j^2``; at ``g = \\mathrm{identity}`` it is the standard error of the conditional mean
+``m(x)``. It is the plug-in sampling error (not the ``O(h^2)`` smoothing bias). `NaN` where no data is
+local to ``x``.
+
+Arguments:
+
+- `summary` — the joint [`Histogram2D`](@ref GBGStreamingStatistics.Histograms.Histogram2D) of
+  ``(X, Y)``.
+- `g` — the response functional whose conditional average's standard error is wanted (as in
+  [`conditional_expectation`](@ref
+  GBGStreamingStatistics.ConditionalExpectations.conditional_expectation)); `g = identity` gives the
+  conditional mean's standard error.
+- `x` — the conditioning value(s) (scalar or vector).
+- `h` — the conditioning (``x``) bandwidth (``h > 0``), supplied.
+- `kernel` — the conditioning (``x``) kernel (any ``\\int K = 1`` callable; default `gaussian_kernel`).
+- `degree` — the local-polynomial order in ``x``: `0`, `1` (the default), or `2`.
+"""
+function conditional_expectation_standard_error(summary::Histogram2D, g, x::Real; h::Real,
+                                                kernel = gaussian_kernel, degree::Integer = 1)
+  h > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
+  _check_degree(degree)
+  cx, N, sumG = _column_response(summary, g)
+  sumG2 = _column_response(summary, y -> g(y)^2)[3]
+  return _ce_standard_error(cx, N, sumG, sumG2, x, h, kernel, degree)
+end
+
+function conditional_expectation_standard_error(summary::Histogram2D, g, xs::AbstractVector; h::Real,
+                                                kernel = gaussian_kernel, degree::Integer = 1)
+  h > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
+  _check_degree(degree)
+  cx, N, sumG = _column_response(summary, g)
+  sumG2 = _column_response(summary, y -> g(y)^2)[3]
+  return [_ce_standard_error(cx, N, sumG, sumG2, x, h, kernel, degree) for x in xs]
 end
 
 

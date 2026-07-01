@@ -199,3 +199,45 @@ end
     end
   end
 end
+
+
+@testset "conditional_expectation_standard_error — leverage × noise-scale (§4.2)" begin
+  # The SE is √(leverage(x)·Var(g(Y)|x)) — the finite-sample sampling error of the local fit. The gold
+  # standard: it predicts the *actual* spread of the estimate across independent datasets. Build K
+  # independent chunks, and compare the predicted SE (from one chunk) to the empirical std across chunks.
+  Random.seed!(808)
+  ρ = 0.6
+  K = 24
+  per = 60_000
+  h = 0.4
+  summaries = Histogram2D[]
+  ests0 = Float64[]
+  for _ in 1:K
+    X = randn(per)
+    Y = ρ .* X .+ sqrt(1 - ρ^2) .* randn(per)
+    s = Histogram2D(-6.0, 6.0, 160, -6.0, 6.0, 320)
+    observe_pairs!(s, X, Y)
+    push!(summaries, s)
+    push!(ests0, conditional_mean(s, 0.0; h = h))
+  end
+  chunk = summaries[1]
+
+  @testset "Monte-Carlo: predicted SE = empirical sampling spread (at the density peak)" begin
+    @test conditional_expectation_standard_error(chunk, identity, 0.0; h = h) ≈ std(ests0) rtol = 0.2
+    # leading-order closed form √(R(K)σ²/(n h f_X(0))) — R(gaussian) = 1/(2√π), f_X(0) = 1/√(2π)
+    closed0 = sqrt((1 / (2 * sqrt(π))) * (1 - ρ^2) / (per * h * (1 / sqrt(2π))))
+    @test conditional_expectation_standard_error(chunk, identity, 0.0; h = h) ≈ closed0 rtol = 0.15
+  end
+
+  @testset "properties — positive, tail growth, off-support, general g, scalar == vector" begin
+    @test conditional_expectation_standard_error(chunk, identity, 2.0; h = h) >
+          conditional_expectation_standard_error(chunk, identity, 0.0; h = h)   # sparser tail ⇒ larger SE
+    @test isnan(conditional_expectation_standard_error(chunk, identity, 100.0; h = h))
+    @test conditional_expectation_standard_error(chunk, cos, 0.5; h = h) > 0
+    xs = [-0.5, 0.0, 0.5]
+    @test conditional_expectation_standard_error(chunk, identity, xs; h = h) ≈
+          [conditional_expectation_standard_error(chunk, identity, x; h = h) for x in xs]
+    @test_throws ArgumentError conditional_expectation_standard_error(chunk, identity, 0.0; h = -1.0)
+    @test_throws ArgumentError conditional_expectation_standard_error(chunk, identity, 0.0; h = h, degree = 3)
+  end
+end

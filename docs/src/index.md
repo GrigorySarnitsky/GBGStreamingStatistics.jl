@@ -97,9 +97,9 @@ verbatim by every consumer) and an **estimator upper half** (the estimands):
 - [`ConditionalExpectations`](api/ConditionalExpectations.md): the conditional expectation
   `conditional_expectation` ``\equiv \mathbb{E}[g(Y)\mid x]`` of a response functional, with the conditional
   mean `conditional_mean` ``\equiv m(x)`` and variance `conditional_variance` ``\equiv \sigma^2(x)`` as its
-  ``g = \mathrm{identity}`` / ``y^2`` cases, and the conditional pushforward density
-  `conditional_pushforward_density` ``\equiv f_{g(Y)\mid X}`` (local-polynomial regression in ``x`` of a
-  ``y``-quadrature response — composing both atoms).
+  ``g = \mathrm{identity}`` / ``y^2`` cases, the sampling `conditional_expectation_standard_error`, and the
+  conditional pushforward density `conditional_pushforward_density` ``\equiv f_{g(Y)\mid X}``
+  (local-polynomial regression in ``x`` of a ``y``-quadrature response — composing both atoms).
 - [`ConditionalDensity`](api/ConditionalDensity.md): the conditional density `conditional_density`
   ``\equiv f_{Y\mid X}`` and two-time transition density `transition_density`
   ``\equiv p_\tau(y\mid x)`` (double-kernel).

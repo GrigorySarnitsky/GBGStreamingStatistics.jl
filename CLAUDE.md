@@ -88,7 +88,10 @@ estimands.
   ``\equiv \mathbb{E}[g(Y)\mid x]`` of a smooth response functional (the general reader), with
   `conditional_mean` ``\equiv m(x)`` and `conditional_variance` ``\equiv \sigma^2(x)`` as its
   ``g = \text{identity}`` / ``y^2`` cases, and the conditional pushforward density
-  `conditional_pushforward_density` ``\equiv f_{g(Y)\mid X}`` (the density of a transformed response). All
+  `conditional_pushforward_density` ``\equiv f_{g(Y)\mid X}`` (the density of a transformed response), plus
+  the sampling `conditional_expectation_standard_error` (``= \sqrt{\ell(x)\,\mathrm{Var}(g(Y)\mid x)}``, the
+  local-regression leverage ``\ell(x)`` from `LocalPolynomial._leverage` — the reference SE mechanism for
+  the kernel family). All
   by local-polynomial regression **in x** (Fan & Gijbels, over `LocalPolynomial.local_fit`) of a
   per-X-column **y-quadrature** response (the `Expectations` coefficient primitive over the order-2
   Y-power-sums) — **composing both atoms** (kernel-weighting in x ∘ quadrature in y); with the `degree`
@@ -383,9 +386,14 @@ Mechanical bar:
    plug-in in the curved tail). The **general reader** `conditional_expectation`
    ``\equiv \mathbb{E}[g(Y)\mid x]`` and the **conditional pushforward** `conditional_pushforward_density`
    ``\equiv f_{g(Y)\mid X}`` land too — `conditional_mean` folded in as the ``g = \text{identity}`` case,
-   both **composing the two atoms** (a per-X-column y-quadrature response regressed in x); tested against
-   the bivariate-Gaussian ``\mathbb{E}[\cos Y\mid x]`` and lognormal-pushforward oracles, the exact fold,
-   and the degree-0 identity coincidence with `conditional_density`.
+   both **composing the two atoms** (a per-X-column y-quadrature response regressed in x). The sampling
+   `conditional_expectation_standard_error` ``= \sqrt{\ell(x)\,\mathrm{Var}(g(Y)\mid x)}`` lands with them —
+   the local-regression **leverage** ``\ell(x) = \sum_j N_j w_j^2`` a new `LocalPolynomial._leverage` readout
+   (the design's plain **and squared-kernel** moments) — the reference SE mechanism for the whole kernel
+   family; the marginal `expectation_standard_error`'s ``1/n`` leverage becomes the local one. Tested against
+   the bivariate-Gaussian ``\mathbb{E}[\cos Y\mid x]`` and lognormal-pushforward oracles, the exact fold, the
+   degree-0 identity coincidence with `conditional_density`, and a **Monte-Carlo** SE validation (predicted
+   SE = empirical sampling spread across independent datasets).
 7. **`IncrementMoments` — archived** (§4.4). The conditional increment moments and Kramers–Moyal
    functionals (`increment_moment`, `kramers_moyal`, `drift`, `diffusion`; `pawula_quotient` / `markov_test`
    were stubs) were built and OU-tested, then **moved to `archive/`** to focus the core on the

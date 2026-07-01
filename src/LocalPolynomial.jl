@@ -112,4 +112,47 @@ function local_fit(locations, mass, response, x, h, kernel, degree)
 end
 
 
+# The leverage of the local-polynomial value β_0 at x: Σ_j w_j² N_j, the sum of squared effective
+# regression weights (w_j the weight `local_fit`'s β_0 places on column j's response, N_j = `weights[j]`).
+# This is the variance factor of β_0 — for a response whose per-column conditional variance is σ²(x),
+# Var(β_0) ≈ σ²(x)·(this) — so a standard error is √(leverage · noise-scale). Writing w_j = e_0' M⁻¹ v_j
+# with v_j = K_h(c_j−x)(c_j−x)^{0..d} and M the design Hankel [T_{i+j}], Σ_j N_j w_j² = u' Q u where
+# u = M⁻¹ e_0 and Q is the Hankel of the **squared-kernel** moments Q_ℓ = Σ_j N_j K_h(c_j−x)² (c_j−x)^ℓ
+# (the 1/h in K_h cancels between M and Q). Degenerate design (too little local data) ⇒ NaN.
+function _leverage(locations, weights, x, h, kernel, degree)
+  hf = float(h)
+  M = zeros(Float64, 2 * degree + 1)         # plain-kernel design moments Σ N_j K_h (c−x)^ℓ
+  Q = zeros(Float64, 2 * degree + 1)         # squared-kernel moments      Σ N_j K_h² (c−x)^ℓ
+  @inbounds for j in eachindex(locations)
+    wj = weights[j]
+    iszero(wj) && continue
+    kw = _kernel_weight(locations[j], x, hf, kernel)
+    iszero(kw) && continue
+    dloc = locations[j] - x
+    p = 1.0
+    for l in 0:2 * degree
+      M[l + 1] += wj * kw * p
+      Q[l + 1] += wj * kw^2 * p
+      p *= dloc
+    end
+  end
+  d1 = degree + 1
+  Mmat = Matrix{Float64}(undef, d1, d1)
+  Qmat = Matrix{Float64}(undef, d1, d1)
+  @inbounds for j in 1:d1, i in 1:d1
+    Mmat[i, j] = M[i + j - 1]
+    Qmat[i, j] = Q[i + j - 1]
+  end
+  e0 = zeros(Float64, d1)
+  e0[1] = 1.0
+  u = try
+    Mmat \ e0
+  catch
+    return NaN
+  end
+  all(isfinite, u) || return NaN
+  return dot(u, Qmat, u)                      # u' Q u = Σ_j N_j w_j²
+end
+
+
 end # module LocalPolynomial

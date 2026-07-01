@@ -313,6 +313,28 @@ recorded in `ARCHITECTURE.md` §4 meanwhile.
   recovered pointwise (to ``8\%``) with ``\int\hat f\,\mathrm dz \approx 1``; scalar ``=`` vector; the
   positive-``h_z`` guard; the degree-0 identity-``g`` coincidence with `conditional_density`.
 
+## Conditional expectation standard error (§4.2) — `conditional_expectation_standard_error`
+
+- **Estimand.** the sampling standard error of ``\widehat{\mathbb{E}}[g(Y)\mid x]``,
+  ``\mathrm{SE} = \sqrt{\ell(x)\,\operatorname{Var}(g(Y)\mid x)}`` with the local-regression **leverage**
+  ``\ell(x) = \sum_j N_j w_j(x)^2`` (``w_j`` the effective weights of the fit's ``\beta_0``) and
+  ``\operatorname{Var}(g(Y)\mid x) = \mathbb{E}[g^2\mid x] - \mathbb{E}[g\mid x]^2``.
+- **Estimator.** ``\sqrt{\hat\ell(x)\,(\widehat{\mathbb{E}}[g^2\mid x] - \widehat{\mathbb{E}}[g\mid x]^2)}``,
+  the **leverage × noise-scale** readout: ``\hat\ell(x) = u^\top Q\, u`` with ``u = M^{-1} e_0`` (``M`` the
+  design Hankel ``[T_{i+j}]``) and ``Q`` the Hankel of the **squared-kernel** moments
+  ``Q_\ell = \sum_j N_j K_h(c_j-x)^2 (c_j-x)^\ell`` (the `LocalPolynomial._leverage` primitive — the reference
+  mechanism for the kernel-family SE), times the plug-in conditional variance of ``g(Y)`` (two
+  `conditional_expectation` readouts). It is the exact analog of the marginal `expectation_standard_error`
+  ``= \sqrt{\operatorname{Var}(g(X))/n}``, with the global-mean leverage ``1/n`` replaced by
+  ``\sum_j N_j w_j^2``; at ``g = \mathrm{identity}`` it is the conditional mean's standard error.
+- **Consistency claim.** it estimates the leading-order sampling variance of the local fit (not the
+  ``O(h^2)`` smoothing bias); at ``g = \mathrm{identity}`` the leading term is
+  ``R(K)\sigma^2(x)/(n h f_X(x))``.
+- **Test.** `test/conditionalexpectations.jl` — a **Monte-Carlo** check: the predicted SE (from one dataset)
+  matches the empirical standard deviation of `conditional_mean` across ``K`` independent datasets (to
+  ``20\%`` at the density peak, where the finite-``h`` leverage corrections are smallest); the leading-order
+  closed form; positivity, tail growth, off-support `NaN`, general ``g``, scalar ``=`` vector.
+
 ## Response-aware local bandwidth (§4.5) — `bandwidth(::Histogram2D, x; rule = :local)`
 
 - **Estimand.** the AMISE-optimal **local** bandwidth for the conditional mean, balancing the local-linear

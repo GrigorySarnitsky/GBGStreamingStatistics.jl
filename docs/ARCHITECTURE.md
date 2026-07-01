@@ -396,6 +396,11 @@ in exactly) and the `:plugin` variance its ``g = y,\,y^2`` combination. It is ex
 density of the transformed response — is then one `conditional_expectation` of the composed kernel,
 ``\hat{\mathbb E}[K_{h_z}(g(Y)-z)\mid x]`` (no ``g^{-1}`` / Jacobian; a symmetric ``K_z`` integrates to 1);
 at ``g = \mathrm{identity}``, `degree = 0` it coincides with the double-kernel §4.3 `conditional_density`.
+The **standard error** `conditional_expectation_standard_error` ``= \sqrt{\ell(x)\,\mathrm{Var}(g(Y)\mid
+x)}`` completes the reader: the local-regression **leverage** ``\ell(x) = \sum_j N_j w_j^2`` (a
+`LocalPolynomial._leverage` readout off the design's plain **and squared-kernel** moments — the reference
+mechanism for every kernel-family SE) times the plug-in ``\mathrm{Var}(g(Y)\mid x)``. It is the conditional
+analog of the marginal `expectation_standard_error`, the global ``1/n`` leverage replaced by the local one.
 
 #### 4.3 Conditional and transition density
 

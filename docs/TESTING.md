@@ -113,6 +113,7 @@ argument errors) plus the convergence rate:
 | `density_standard_error` | exact SE + band coverage | yes | yes | n/a | yes | n/a, variability band |
 | `conditional_mean` / `conditional_variance` | bivariate-Gaussian (+ heteroscedastic curved-mean for Fan–Yao `conditional_variance`) | yes | yes | `NaN` | yes | yes, ``n^{-4/5}`` ISE |
 | `conditional_expectation` / `conditional_pushforward_density` | biv-Gaussian ``\mathbb{E}[\cos Y\mid x]`` + lognormal pushforward; the `conditional_mean` fold + degree-0 `conditional_density` coincidence | yes | yes | `NaN` | yes | inherits `conditional_mean` ``n^{-4/5}`` |
+| `conditional_expectation_standard_error` | leverage × noise-scale = Monte-Carlo sampling spread (biv-Gaussian) + leading-order closed form | yes | yes | `NaN` | yes | n/a, a standard error |
 | `conditional_density` / `transition_density` | biv-Gaussian + OU + bounded-response (asym. `kernely`) | yes | yes | `NaN` off-support ``x`` | yes | yes, ``n^{-2/3}`` |
 | `bandwidth(::Histogram2D)` ``h^\star(x)`` | quadratic-mean Gaussian (closed-form) | yes | yes | `NaN` | yes | n/a, a selector |
 | `expectation` / `pushforward_density` / `expectation_standard_error` | Gaussian MGF/trig + polynomial exactness; lognormal & non-monotone ``\chi^2_1`` pushforward; SE ``= s/\sqrt n`` | yes (`pushforward`) | yes | n/a, mass in range | yes | n/a, exact for degree ``\le`` order else ``O(\Delta^{\texttt{order}+1})`` |
