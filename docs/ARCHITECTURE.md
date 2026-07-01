@@ -515,6 +515,12 @@ Mirrors PF; the deltas are noted.
   *then* the local-linear ``\hat m_h``. Self-contained pages, **rendered LaTeX in standard notation**, every
   code object **bound to its math symbol** on first mention (`density` ``\equiv f_X``, `conditional_mean`
   ``\equiv m(x)``, `transition_density` ``\equiv p_\tau(y\mid x)``).
+- **Every estimator reports its standard error.** An estimator approximates a population quantity from a
+  finite stream, so it is incomplete without the sampling error of that approximation: every
+  population-quantity estimator ships a companion `*_standard_error` (and the one-call paired
+  `*_with_standard_error`) — a mergeable functional of the *same* summary, held to the
+  `check_standard_error` contract. The exemptions are exactly estimand-first's: an intrinsically
+  finite-sample object with no population estimand (`bandwidth`, a selector; `merge!` / `scale!`).
 - **A `FORMALIZATION.md` analog.** PF records a typed statement per operation, expansion-checked
   against the code and **test-linked**. Here the typed entry states the **estimand**, the
   **estimator**, and the **consistency claim** — its bias and variance, e.g.

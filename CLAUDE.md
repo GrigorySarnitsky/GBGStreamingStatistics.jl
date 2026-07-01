@@ -330,8 +330,11 @@ Treat the feature as unfinished until each is **done and verified** (not "should
    — plus a **consistency / rate test** (error falls at the theoretical ``n^{-2/5}``), a
    **mergeability test** (accumulate-then-merge `=` accumulate-together, for the estimate **and** any
    standard error — every query-point estimator goes through `check_point_estimator`, `merged` a **two-or-more**-way
-   merge), and — for an in-place op — an `@allocated` assertion in `test/allocations.jl`. A **standard
-   error** additionally carries the `check_standard_error` contract: positivity, scalar `=` vector, the
+   merge), and — for an in-place op — an `@allocated` assertion in `test/allocations.jl`. **Every
+   population-quantity estimator ships a standard error** — the `*_standard_error` reader and the one-call
+   paired `*_with_standard_error` (a selector like `bandwidth` and the finite-sample `merge!` / `scale!` are
+   the only exemptions, as for estimand-first). Each standard error carries the `check_standard_error`
+   contract: positivity, scalar `=` vector, the
    ``n^{-1/2}`` **scaling** (merging ``K`` copies shrinks it by ``\sqrt K`` exactly), the ``h^{-1/2}``
    bandwidth scaling for a kernel SE (`check_se_bandwidth_scaling`, asymptotic — flat density, small ``h``),
    and a **calibration** — the predicted SE matches the empirical sampling spread of the estimate across
@@ -514,7 +517,18 @@ Mechanical bar:
 
 **Next, in dependency order:**
 
-1. **Density-estimation methods from the prior-art survey** (`inspiration/density-software/ALGORITHMS.md`),
+1. **Standard errors for the remaining estimators** — closing the *every estimator ships a standard error*
+   requirement (the Definition of done and `docs/ARCHITECTURE.md` §7), in increasing difficulty:
+   `conditional_density_standard_error` (covering `transition_density`) — the double-kernel pointwise
+   variance ``R(K_1)R(K_2)\\hat f(y\\mid x)/(n h_1 h_2 \\hat f_X(x))`` (Hyndman, Bashtannyk & Grunwald 1996;
+   ``\\hat f_X(x)`` is the estimator's own denominator, so it is free), symmetric-kernel — the
+   asymmetric-`kernely` case a recorded sub-gap as for `density_standard_error`; `pushforward_density` and
+   `conditional_pushforward_density` standard errors — nearly free, the `expectation` /
+   `conditional_expectation` SE of the composed kernel ``K_h \\circ g``; and `conditional_variance` — the
+   hard one, its ``\\mu_4``-based SE needs the 4th conditional moment the order-2 `Histogram2D` does not
+   store (waits on a `Histogram2D` order-raise or a residual-based approximation). Each with its paired
+   `*_with_standard_error` and the full `check_standard_error` contract.
+2. **Density-estimation methods from the prior-art survey** (`inspiration/density-software/ALGORITHMS.md`),
    in priority order — all mergeable functionals of the summary: the **POT–GPD heavy-tail splice**
    (domain-critical for intermittent tails; a binned GPD-MLE on the tail bin counts that extrapolates
    beyond the histogram's `[lower, upper)` range, plus an optional mergeable top-k max-heap for exact
