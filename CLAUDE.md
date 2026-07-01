@@ -436,7 +436,7 @@ makes it bite; `FFTW` stays for the ISJ DCT, the unused `AbstractFFTs` dep was d
 projection / SFI–ULI road (§4.6); `HistogramND` (§3, wait for a multi-conditioning consumer);
 vector-valued conditioning (lean scalar-channel — let the consumer loop components); the **bulk scalar time-correlation function**
 (consumer-side — a `Histogram2D` per lag is the wrong cost for one cross-moment; §6); raising
-`Histogram2D` beyond its order-2 per-cell power-sums (the higher Kramers–Moyal / Pawula moments (``M_4``–``M_6``) of *Next* 3 will be
+`Histogram2D` beyond its order-2 per-cell power-sums (the higher Kramers–Moyal / Pawula moments (``M_4``–``M_6``) — the archived §4.4 functionals — will be
 its first consumer); the **leave-one-out cross-validation** bandwidth selectors
 (likelihood-CV, least-squares LSCV — a binned summary's ties drive their objective to zero bandwidth; the
 built `:aic` / `:sj` are the data-driven selectors instead, and a within-bin-spread correction from the
