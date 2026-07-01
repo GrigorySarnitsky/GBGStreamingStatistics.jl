@@ -385,6 +385,18 @@ local fit of the squared residuals ``\widehat{\mathbb E}[(Y-\hat m)^2\mid x]``, 
 curved-``\mathbb E[Y^2\mid x]`` smoothing bias the `:plugin` ``\hat{\mathbb E}[Y^2\mid x] - \hat m^2``
 carries). A one-step robust local M-estimator for heavy-tailed channels (Fan & Jiang 2000) is forthcoming.
 
+**The general reader** `conditional_expectation` ``\equiv \mathbb{E}[g(Y)\mid x]`` for a smooth ``g``
+subsumes both: its response is the per-``X``-column **``y``-quadrature** of ``g`` (the order-2
+``Y``-power-sums contracted against ``g``'s local coefficients — the §4.B atom), regressed in ``x`` by the
+same `local_fit`. So it **composes the two atoms** — kernel-weighting in ``x`` after power-sum quadrature
+in ``y`` — with ``m(x) = \mathbb{E}[Y\mid x]`` its ``g = \mathrm{identity}`` case (`conditional_mean` folded
+in exactly) and the `:plugin` variance its ``g = y,\,y^2`` combination. It is exact for ``g`` of degree
+``\le 2`` in ``y`` and ``O(\Delta_y^2)`` for a general ``g`` (the fixed order-2 joint summary). The
+**conditional pushforward** `conditional_pushforward_density` ``\equiv f_{g(Y)\mid X}(z\mid x)`` — the
+density of the transformed response — is then one `conditional_expectation` of the composed kernel,
+``\hat{\mathbb E}[K_{h_z}(g(Y)-z)\mid x]`` (no ``g^{-1}`` / Jacobian; a symmetric ``K_z`` integrates to 1);
+at ``g = \mathrm{identity}``, `degree = 0` it coincides with the double-kernel §4.3 `conditional_density`.
+
 #### 4.3 Conditional and transition density
 
 **Estimand.** ``f_{Y\mid X}(y\mid x) = f_{X,Y}(x,y)/f_X(x)``, and the two-time transition density
@@ -905,6 +917,16 @@ intentional — do not dedupe it).
   the vacuous "every estimator is a functional of the empirical measure" — the mirror of the corrected
   "the jet is *the* primitive" lens. Two atoms, each estimator a readout of one. `g`'s coefficients come
   from a dependency-free local polynomial interpolant; the pushforward is `expectation` of ``K_h\circ g``.
+
+- **ConditionalExpectations §4.2 — general ``\mathbb{E}[g(Y)\mid x]`` + conditional pushforward, built.**
+  The general `conditional_expectation` (with `conditional_mean` folded in as ``g = \mathrm{identity}``, and
+  `conditional_pushforward_density` ``= f_{g(Y)\mid X}``) makes the conditional side symmetric with the
+  marginal `Expectations`. **Refines the two-family boundary:** conditional functionals *compose* the atoms
+  — a per-``X``-column power-sum quadrature in ``y`` (§4.B) fed as the response to a kernel-weighted
+  regression in ``x`` (§4.A). So "each estimator is a readout of *one* atom" (the §4.B entry above) softens
+  to "readouts are built from the atoms, sometimes composing them" — `conditional_mean` always did (its
+  trivial ``\sum Y`` response is the ``y``-quadrature of the identity); the general ``g`` just makes the
+  inner ``y``-readout non-trivial. The order-2 ``Y``-power-sums cap a general ``g`` at ``O(\Delta_y^2)``.
 
 Open decisions still flagged **[OPEN]** in §10 (the projection road, `HistogramND`, vector-valued
 conditioning, prior-art mirroring) graduate to entries here when they are settled.

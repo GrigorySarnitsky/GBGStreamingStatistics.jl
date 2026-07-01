@@ -37,6 +37,8 @@ using GBGStreamingStatistics: Histograms, MarginalDensity, Bandwidth, Conditiona
   @test_call target_modules = mods conditional_mean(g, 0.0; h = 0.5)
   @test_call target_modules = mods conditional_mean(g, 0.0; h = 0.5, degree = 0, kernel = gamma_kernel)   # asym degree-0
   @test_call target_modules = mods conditional_variance(g, 0.0; h = 0.5)
+  @test_call target_modules = mods conditional_expectation(g, cos, 0.0; h = 0.5)   # the general ⟨g(Y)|x⟩
+  @test_call target_modules = mods conditional_pushforward_density(g, exp, 0.0, 0.0; hx = 0.5, hz = 0.5)
   @test_call target_modules = mods bandwidth(g, 0.0; rule = :local)   # the response-aware local h⋆(x)
 
   glag = Histogram2D(-5.0, 5.0, 50, -5.0, 5.0, 50; lag = 1)

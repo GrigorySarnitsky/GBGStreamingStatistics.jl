@@ -1,8 +1,16 @@
 # ConditionalExpectations
 
-The conditional mean `conditional_mean` ``\equiv m(x)`` and conditional variance `conditional_variance` ``\equiv \sigma^2(x)`` (§4.2) — the estimand-first reference module.
+The conditional expectation ``\mathbb{E}[g(Y) \mid x]`` of a smooth functional of the response
+(`conditional_expectation`), with the conditional mean `conditional_mean` ``\equiv m(x)`` and variance
+`conditional_variance` ``\equiv \sigma^2(x)`` as its ``g = \mathrm{identity}`` / ``y^2`` cases, and the
+conditional pushforward density `conditional_pushforward_density` ``\equiv f_{g(Y) \mid X}`` of a
+transformed response (§4.2). All by local-polynomial regression in ``x`` of a per-column ``y``-quadrature —
+composing both atoms (kernel-weighting in ``x`` ∘ power-sum quadrature in ``y``). The estimand-first
+reference module.
 
 ```@docs
+conditional_expectation
 conditional_mean
 conditional_variance
+conditional_pushforward_density
 ```

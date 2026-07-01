@@ -94,8 +94,12 @@ verbatim by every consumer) and an **estimator upper half** (the estimands):
   (`adaptive`, for tails), the asymmetric `gamma_kernel` / `beta_kernel` for bounded/positive support,
   the parametric `start` (a moment-fitted model corrected by a KDE; Hjort & Glad 1995), and exact
   `normalize` — plus `density_standard_error`, the pointwise variability band.
-- [`ConditionalExpectations`](api/ConditionalExpectations.md): the conditional mean `conditional_mean` ``\equiv m(x)`` and
-  variance `conditional_variance` ``\equiv \sigma^2(x)`` (local-linear).
+- [`ConditionalExpectations`](api/ConditionalExpectations.md): the conditional expectation
+  `conditional_expectation` ``\equiv \mathbb{E}[g(Y)\mid x]`` of a response functional, with the conditional
+  mean `conditional_mean` ``\equiv m(x)`` and variance `conditional_variance` ``\equiv \sigma^2(x)`` as its
+  ``g = \mathrm{identity}`` / ``y^2`` cases, and the conditional pushforward density
+  `conditional_pushforward_density` ``\equiv f_{g(Y)\mid X}`` (local-polynomial regression in ``x`` of a
+  ``y``-quadrature response — composing both atoms).
 - [`ConditionalDensity`](api/ConditionalDensity.md): the conditional density `conditional_density`
   ``\equiv f_{Y\mid X}`` and two-time transition density `transition_density`
   ``\equiv p_\tau(y\mid x)`` (double-kernel).

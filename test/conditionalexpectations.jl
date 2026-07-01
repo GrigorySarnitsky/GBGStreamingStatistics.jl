@@ -112,3 +112,90 @@ end
   @test_throws ArgumentError conditional_mean(gb, 1.0; h = 0.4, degree = 1, kernel = gamma_kernel)
   @test_throws ArgumentError conditional_variance(gb, 1.0; h = 0.4, degree = 2, kernel = gamma_kernel)
 end
+
+
+@testset "conditional_expectation & pushforward — the general ⟨g(Y)|x⟩ (§4.2)" begin
+  # Bivariate-Gaussian: Y|X=x ~ N(ρx, 1−ρ²), so ⟨cos Y|x⟩ = cos(ρx)·e^{−(1−ρ²)/2} (and sin likewise) —
+  # a clean analytic oracle for the general conditional expectation. The y-quadrature of a general g uses
+  # the order-2 Y-power-sums, so ny is taken fine.
+  Random.seed!(31)
+  N = 1_500_000
+  ρ = 0.6
+  v = 1 - ρ^2
+  X = randn(N)
+  Y = ρ .* X .+ sqrt(v) .* randn(N)
+  g = Histogram2D(-6.0, 6.0, 200, -6.0, 6.0, 500)
+  observe_pairs!(g, X, Y)
+  hx = 0.4
+
+  @testset "⟨g(Y)|x⟩ oracle — E[cos Y|x], E[sin Y|x]" begin
+    for x in (-1.0, 0.0, 1.0)
+      @test conditional_expectation(g, cos, x; h = hx) ≈ cos(ρ * x) * exp(-v / 2) atol = 0.025
+    end
+    @test conditional_expectation(g, sin, 0.8; h = hx) ≈ sin(ρ * 0.8) * exp(-v / 2) atol = 0.025
+    @test conditional_expectation(g, sin, 0.0; h = hx) ≈ 0.0 atol = 0.01
+  end
+
+  @testset "conditional_mean is exactly conditional_expectation(identity)" begin
+    for x in (-1.5, -0.5, 0.5, 1.5)
+      @test conditional_mean(g, x; h = hx) == conditional_expectation(g, identity, x; h = hx)
+      @test conditional_mean(g, x; h = hx, degree = 2) ==
+            conditional_expectation(g, identity, x; h = hx, degree = 2)
+    end
+  end
+
+  @testset "plug-in variance = ⟨Y²|x⟩ − ⟨Y|x⟩² via the general reader" begin
+    for x in (-1.0, 0.0, 1.0)
+      plug = conditional_variance(g, x; h = hx, method = :plugin)
+      viaexp = conditional_expectation(g, y -> y^2, x; h = hx) -
+               conditional_expectation(g, identity, x; h = hx)^2
+      @test plug ≈ viaexp rtol = 1e-10
+    end
+  end
+
+  @testset "scalar == vector; argument errors" begin
+    xs = [-1.0, 0.0, 1.0]
+    @test conditional_expectation(g, cos, xs; h = hx) ≈
+          [conditional_expectation(g, cos, x; h = hx) for x in xs]
+    @test_throws ArgumentError conditional_expectation(g, cos, 0.0; h = -1.0)
+    @test_throws ArgumentError conditional_expectation(g, cos, 0.0; h = hx, degree = 3)
+  end
+
+  # the universal query-point contract (scalar==vector, functional of the merged summary, NaN off support)
+  half = N ÷ 2
+  a = Histogram2D(-6.0, 6.0, 200, -6.0, 6.0, 500)
+  b = Histogram2D(-6.0, 6.0, 200, -6.0, 6.0, 500)
+  observe_pairs!(a, view(X, 1:half), view(Y, 1:half))
+  observe_pairs!(b, view(X, half+1:N), view(Y, half+1:N))
+  merge!(a, b)
+  check_point_estimator((s, x) -> conditional_expectation(s, cos, x; h = hx), a, g;
+                        points = [-1.0, 0.0, 1.0], outside = 100.0)
+
+  @testset "conditional_pushforward: Z = exp(Y)|x ~ Lognormal(ρx, 1−ρ²)" begin
+    x0 = 0.5
+    lognormal_pdf(z) = 1 / (z * sqrt(2π * v)) * exp(-(log(z) - ρ * x0)^2 / (2v))
+    for z in (0.8, 1.3, 2.0)
+      @test conditional_pushforward_density(g, exp, x0, z; hx = hx, hz = 0.18) ≈
+            lognormal_pdf(z) rtol = 0.08
+    end
+    # exact normalization ∫ f̂ dz = 1 (symmetric kernelz)
+    zs = range(0.02, 15.0; length = 1800)
+    curve = conditional_pushforward_density(g, exp, x0, collect(zs); hx = hx, hz = 0.18)
+    integral = sum(curve) * step(zs) - 0.5 * (curve[1] + curve[end]) * step(zs)
+    @test integral ≈ 1.0 atol = 0.04
+    # scalar == vector, and the hz > 0 guard
+    @test conditional_pushforward_density(g, exp, x0, [0.8, 1.3]; hx = hx, hz = 0.18) ≈
+          [conditional_pushforward_density(g, exp, x0, z; hx = hx, hz = 0.18) for z in (0.8, 1.3)]
+    @test_throws ArgumentError conditional_pushforward_density(g, exp, x0, 1.0; hx = hx, hz = -0.1)
+  end
+
+  @testset "coincidence: pushforward(identity, degree = 0) ≈ conditional_density" begin
+    # both estimate f_{Y|X}; they agree up to the within-Y-cell correction (pushforward uses the degree-2
+    # y-quadrature, conditional_density the cell-center value), i.e. to O(Δ_y²).
+    for y in (-0.5, 0.3, 1.0)
+      pf = conditional_pushforward_density(g, identity, 0.5, y; hx = hx, hz = 0.2, degree = 0)
+      cd = conditional_density(g, 0.5, y; hx = hx, hy = 0.2)
+      @test pf ≈ cd rtol = 0.02
+    end
+  end
+end

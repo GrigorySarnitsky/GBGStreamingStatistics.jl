@@ -232,7 +232,8 @@ recorded in `ARCHITECTURE.md` §4 meanwhile.
 - **Estimator.** the local-linear fit ``\hat m_h(x) = (T_2 P_0 - T_1 P_1)/(T_0 T_2 - T_1^2)`` from
   the kernel-weighted power-sums ``T_\ell = \sum_i K_h(X_i-x)(X_i-x)^\ell`` and
   ``P_\ell = \sum_i K_h(X_i-x)(X_i-x)^\ell Y_i`` — recovered from the joint `Histogram2D`'s per-X-column
-  counts and response totals ``\sum Y`` (exact from the per-cell power-sums).
+  counts and response totals ``\sum Y`` (exact from the per-cell power-sums); the ``g = \mathrm{identity}``
+  case of `conditional_expectation`.
 - **Consistency claim** (interior ``x``, ``h \to 0``, ``nh \to \infty``):
 
   ```math
@@ -273,6 +274,44 @@ recorded in `ARCHITECTURE.md` §4 meanwhile.
   ``\mathrm{NaN}`` off-support). Its rate is the same ``n^{-2/5}`` local-regression rate (a second
   local-polynomial fit, of the squared residuals); it shares the `conditional_mean` slope test
   (`test/conditional_convergence.jl`) rather than carrying a separate one.
+
+## Conditional expectation of a functional (§4.2) — `conditional_expectation`
+
+- **Estimand.** ``\mathbb{E}[g(Y) \mid X = x] = \int g(y)\, f_{Y\mid X}(y \mid x)\,\mathrm{d}y``, the
+  conditional expectation of a smooth functional of the response (``g = \mathrm{identity}`` the regression
+  function ``m(x)``; ``g(y) = y^2`` gives ``\mathbb{E}[Y^2\mid x]``).
+- **Estimator.** a local-polynomial regression **in ``x``** (as for `conditional_mean`) of a per-``X``-column
+  **``y``-quadrature** response ``\sum_i g(Y_i)`` formed from the stored order-2 ``Y``-power-sums by the §4.B
+  quadrature (``a_0 n + a_1 S_{01} + a_2 S_{02}`` with ``a_p`` the degree-2 interpolant coefficients of ``g``
+  on the ``Y``-bin); the estimate is ``\beta_0``. It **composes the two atoms** — power-sum quadrature in
+  ``y`` then kernel-weighting in ``x`` — and reduces to `conditional_mean` at ``g = \mathrm{identity}``
+  (folded in exactly).
+- **Consistency claim.** the ``x``-side carries `conditional_mean`'s local-regression bias/variance (rate
+  ``n^{-2/5}``); the ``y``-quadrature is **exact for ``g`` of degree ``\le 2`` in ``y``** and
+  ``O(\Delta_y^2)`` for a general smooth ``g`` (the fixed order-2 ``Y``-power-sums of `Histogram2D`).
+- **Test.** `test/conditionalexpectations.jl` — the bivariate-Gaussian oracle ``\mathbb{E}[\cos Y\mid x] =
+  \cos(\rho x)\,e^{-(1-\rho^2)/2}`` (and ``\sin`` likewise) to ``\lesssim 2.5\times10^{-2}``; the exact fold
+  ``\texttt{conditional\_mean}(x) = \texttt{conditional\_expectation}(\mathrm{identity}, x)``; the `:plugin`
+  variance equal to ``\mathbb{E}[Y^2\mid x] - \mathbb{E}[Y\mid x]^2`` via the general reader; scalar ``=``
+  vector; the universal contract via `check_point_estimator`.
+
+## Conditional pushforward density (§4.2) — `conditional_pushforward_density`
+
+- **Estimand.** ``f_{g(Y)\mid X}(z \mid x) = \sum_{y:\,g(y)=z} f_{Y\mid X}(y\mid x)/|g'(y)|``, the density of
+  the transformed response ``Z = g(Y)`` given ``X = x`` (change of variables on the conditional law).
+- **Estimator.** the conditional KDE of ``g(Y)`` written as a conditional expectation,
+  ``\hat f_{g(Y)\mid X}(z\mid x) = \widehat{\mathbb{E}}[K_{h_z}(g(Y)-z)\mid x]`` — one `conditional_expectation`
+  of the composed test function ``y\mapsto K_{h_z}(g(y)-z)``, no ``g^{-1}`` and no explicit Jacobian; a
+  non-monotone ``g`` contributes from every preimage, ``g'=0`` is an integrable caustic. Two smoothing
+  directions: the ``x``-conditioning regression (`hx`, `kernelx`, `degree`) and the ``z`` smoothing (`hz`,
+  `kernelz`).
+- **Consistency claim.** the standard KDE bias–variance in ``z`` (over the ``y``-quadrature), with a
+  symmetric ``K_z`` giving ``\int\hat f\,\mathrm dz = 1`` exactly; needs ``g`` smooth on the ``Y``-bin scale
+  and ``h_z \gtrsim |g'|\,\Delta_y``. At ``g = \mathrm{identity}``, `degree = 0` it coincides with the
+  double-kernel `conditional_density` (up to the within-``Y``-cell ``O(\Delta_y^2)`` correction).
+- **Test.** `test/conditionalexpectations.jl` — ``Z = e^Y\mid x \sim \mathrm{Lognormal}(\rho x, 1-\rho^2)``
+  recovered pointwise (to ``8\%``) with ``\int\hat f\,\mathrm dz \approx 1``; scalar ``=`` vector; the
+  positive-``h_z`` guard; the degree-0 identity-``g`` coincidence with `conditional_density`.
 
 ## Response-aware local bandwidth (§4.5) — `bandwidth(::Histogram2D, x; rule = :local)`
 

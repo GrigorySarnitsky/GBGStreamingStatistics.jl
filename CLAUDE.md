@@ -84,12 +84,20 @@ estimands.
   band ``\mathrm{SE}(x) = \sqrt{R(K)\hat f_h(x)/(nh)}``). `ParametricStart` is exported so consumers can
   plug in custom parametric skeletons (the `AsymmetricKernel` constructor for custom boundary kernels
   lives in `Kernels`).
-- `src/ConditionalExpectations.jl` — §4.2 `conditional_mean` ``\equiv m(x)``, `conditional_variance`
-  ``\equiv \sigma^2(x)`` by local-polynomial fits (Fan & Gijbels) over `LocalPolynomial.local_fit`, with
-  the `degree` (0 Nadaraya–Watson / 1 local-linear default / 2 local-quadratic) and `kernel` options;
-  `conditional_variance` defaults to the bias-reduced **Fan & Yao** residual estimator (`method =
-  :residual`; the plug-in is `:plugin`). The **estimand-first reference module** — write its docstrings to
-  the documentation policy below.
+- `src/ConditionalExpectations.jl` — §4.2 the conditional expectation `conditional_expectation`
+  ``\equiv \mathbb{E}[g(Y)\mid x]`` of a smooth response functional (the general reader), with
+  `conditional_mean` ``\equiv m(x)`` and `conditional_variance` ``\equiv \sigma^2(x)`` as its
+  ``g = \text{identity}`` / ``y^2`` cases, and the conditional pushforward density
+  `conditional_pushforward_density` ``\equiv f_{g(Y)\mid X}`` (the density of a transformed response). All
+  by local-polynomial regression **in x** (Fan & Gijbels, over `LocalPolynomial.local_fit`) of a
+  per-X-column **y-quadrature** response (the `Expectations` coefficient primitive over the order-2
+  Y-power-sums) — **composing both atoms** (kernel-weighting in x ∘ quadrature in y); with the `degree`
+  (0 Nadaraya–Watson / 1 local-linear default / 2 local-quadratic) and `kernel` options. `conditional_mean`
+  is folded in exactly as `conditional_expectation(identity, …)`; `conditional_variance` defaults to the
+  bias-reduced **Fan & Yao** residual estimator (`method = :residual`; the plug-in is `:plugin`, ``=
+  \mathbb{E}[Y^2\mid x]-\mathbb{E}[Y\mid x]^2`` via the general reader). The general `g` is `O(Δ_y^2)`
+  (order-2 Y-power-sums), exact for `g` of degree ≤ 2. The **estimand-first reference module** — write its
+  docstrings to the documentation policy below.
 - `src/ConditionalDensity.jl` — §4.3 `conditional_density` ``\equiv f_{Y\mid X}``,
   `transition_density` ``\equiv p_\tau(y\mid x)`` (binned double-kernel, Rosenblatt) — a separate
   `kernelx` / `kernely`, with an **asymmetric** `kernely` (`gamma_kernel` / `beta_kernel`) for a
@@ -372,7 +380,12 @@ Mechanical bar:
    **Fan & Yao** residual estimator (`method = :residual`; the plug-in is `:plugin`). Tested against the
    bivariate-Gaussian oracle (``m`` recovers ``\rho x`` to ``\lesssim 2\%``; ``\sigma^2`` recovers
    ``1-\rho^2``) and a heteroscedastic curved-mean oracle (Fan–Yao recovers ``\sigma^2(x)`` and beats the
-   plug-in in the curved tail).
+   plug-in in the curved tail). The **general reader** `conditional_expectation`
+   ``\equiv \mathbb{E}[g(Y)\mid x]`` and the **conditional pushforward** `conditional_pushforward_density`
+   ``\equiv f_{g(Y)\mid X}`` land too — `conditional_mean` folded in as the ``g = \text{identity}`` case,
+   both **composing the two atoms** (a per-X-column y-quadrature response regressed in x); tested against
+   the bivariate-Gaussian ``\mathbb{E}[\cos Y\mid x]`` and lognormal-pushforward oracles, the exact fold,
+   and the degree-0 identity coincidence with `conditional_density`.
 7. **`IncrementMoments` — archived** (§4.4). The conditional increment moments and Kramers–Moyal
    functionals (`increment_moment`, `kramers_moyal`, `drift`, `diffusion`; `pawula_quotient` / `markov_test`
    were stubs) were built and OU-tested, then **moved to `archive/`** to focus the core on the
