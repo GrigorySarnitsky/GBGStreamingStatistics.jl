@@ -182,6 +182,10 @@ end
   @test density_standard_error(he, 0.1; h = 0.25, bounds = (0.0, Inf)) >
         density_standard_error(he, 0.1; h = 0.25)
 
+  # h^{-1/2} bandwidth scaling (asymptotic): a flat density at small h ⇒ SE(2h) ≈ SE(h)/√2
+  u = Histogram1D(-0.5, 1.5, 4000); observe!(u, rand(600_000))
+  check_se_bandwidth_scaling((s, x, hh) -> density_standard_error(s, x; h = hh), u, 0.5; h = 0.005, rtol = 0.05)
+
   # density_with_standard_error: one option spec ⇒ estimate and error match the separate calls exactly
   for x in (-1.0, 0.0, 1.3)
     r = density_with_standard_error(hg, x; h = bw, degree = 1, adaptive = true)

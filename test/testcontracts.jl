@@ -10,7 +10,7 @@ module TestContracts
 
 using Test
 
-export check_point_estimator, check_standard_error
+export check_point_estimator, check_standard_error, check_se_bandwidth_scaling
 
 """
     check_point_estimator(f, merged, full; points, outside = nothing, sentinel = NaN, rtol = 1e-8)
@@ -62,6 +62,21 @@ function check_standard_error(se, s; points, K = 4)
     for x in points
       @test se(sK, x) ≈ se(s, x) / sqrt(K)  rtol = 1e-6
     end
+  end
+end
+
+"""
+    check_se_bandwidth_scaling(se_h, s, x; h, rtol = 0.06)
+
+Assert the **``h^{-1/2}`` bandwidth scaling** of a *kernel* standard error. `se_h(summary, x, h)` is the SE
+at bandwidth `h`. Unlike the exact ``n^{-1/2}`` scaling, this is **asymptotic** — changing `h` also moves
+`f̂` and the finite-sample `−f̂²/n` term is `h`-independent — so it holds *at small `h` on a smooth region*
+(pass a flat/uniform `s` and an interior `x`): doubling the bandwidth shrinks the leading-variance SE by
+``\\sqrt2`` (`se_h(s, x, 2h) ≈ se_h(s, x, h)/√2`).
+"""
+function check_se_bandwidth_scaling(se_h, s, x; h, rtol = 0.06)
+  @testset "SE bandwidth (h^{-1/2}) scaling" begin
+    @test se_h(s, x, 2 * h) ≈ se_h(s, x, h) / sqrt(2)  rtol = rtol
   end
 end
 

@@ -107,7 +107,10 @@ the universal one: every `*_standard_error` is checked for **positivity**, **sca
 **``n^{-1/2}`` scaling** — merging ``K`` copies of a summary (``K\times`` the samples, the same shape)
 shrinks the standard error by *exactly* ``\sqrt K`` (``\mathrm{SE}(K\cdot s) = \mathrm{SE}(s)/\sqrt K``),
 the deterministic form of ``\mathrm{SE}\propto n^{-1/2}`` and a direct test of merged-histogram error
-behaviour. It is *also* run through `check_point_estimator` (so the error, like the estimate, is a
+behaviour. For the *kernel* standard errors (`density`, `conditional_expectation`) it also checks the
+**``h^{-1/2}`` bandwidth scaling** (`check_se_bandwidth_scaling`, *asymptotic* — on a flat density at small
+``h``, ``\mathrm{SE}(2h) \approx \mathrm{SE}(h)/\sqrt2``, since changing ``h`` also moves ``\hat f`` and the
+``-\hat f^2/n`` term is ``h``-independent). It is *also* run through `check_point_estimator` (so the error, like the estimate, is a
 deterministic functional of the merged summary — `SE`(merge) ``=`` `SE`(accumulate-together)), and carries a
 **calibration** check per family: the predicted standard error matches the empirical standard deviation of
 the estimate across independent datasets (Monte-Carlo — `density` and `conditional_mean` at the density

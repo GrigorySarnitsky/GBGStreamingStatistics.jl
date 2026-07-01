@@ -174,6 +174,8 @@ end
                         points = [-1.0, 0.0, 1.0], outside = 100.0)
   check_standard_error((s, x) -> conditional_expectation_standard_error(s, cos, x; h = hx), g;
                        points = [-1.0, 0.0, 1.0])
+  check_se_bandwidth_scaling((s, x, hh) -> conditional_expectation_standard_error(s, identity, x; h = hh),
+                             g, 0.0; h = 0.1, rtol = 0.06)
 
   @testset "conditional_pushforward: Z = exp(Y)|x ~ Lognormal(ρx, 1−ρ²)" begin
     x0 = 0.5
