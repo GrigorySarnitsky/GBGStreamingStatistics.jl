@@ -247,4 +247,17 @@ end
     @test_throws ArgumentError conditional_expectation_standard_error(chunk, identity, 0.0; h = -1.0)
     @test_throws ArgumentError conditional_expectation_standard_error(chunk, identity, 0.0; h = h, degree = 3)
   end
+
+  @testset "conditional_expectation_with_standard_error — paired value + error, one fit" begin
+    for x in (-1.0, 0.0, 1.0)
+      r = conditional_expectation_with_standard_error(chunk, cos, x; h = h)
+      @test r.value == conditional_expectation(chunk, cos, x; h = h)
+      @test r.standard_error == conditional_expectation_standard_error(chunk, cos, x; h = h)
+    end
+    rv = conditional_expectation_with_standard_error(chunk, identity, [-1.0, 0.0, 1.0]; h = h)
+    @test rv.value == conditional_expectation(chunk, identity, [-1.0, 0.0, 1.0]; h = h)
+    @test rv.standard_error == conditional_expectation_standard_error(chunk, identity, [-1.0, 0.0, 1.0]; h = h)
+    @test isnan(conditional_expectation_with_standard_error(chunk, identity, 100.0; h = h).standard_error)
+    @test_throws ArgumentError conditional_expectation_with_standard_error(chunk, identity, 0.0; h = -1.0)
+  end
 end

@@ -98,7 +98,8 @@ verbatim by every consumer) and an **estimator upper half** (the estimands):
 - [`ConditionalExpectations`](api/ConditionalExpectations.md): the conditional expectation
   `conditional_expectation` ``\equiv \mathbb{E}[g(Y)\mid x]`` of a response functional, with the conditional
   mean `conditional_mean` ``\equiv m(x)`` and variance `conditional_variance` ``\equiv \sigma^2(x)`` as its
-  ``g = \mathrm{identity}`` / ``y^2`` cases, the sampling `conditional_expectation_standard_error`, and the
+  ``g = \mathrm{identity}`` / ``y^2`` cases, the sampling `conditional_expectation_standard_error` (paired
+  with the estimate by `conditional_expectation_with_standard_error`), and the
   conditional pushforward density `conditional_pushforward_density` ``\equiv f_{g(Y)\mid X}``
   (local-polynomial regression in ``x`` of a ``y``-quadrature response — composing both atoms).
 - [`ConditionalDensity`](api/ConditionalDensity.md): the conditional density `conditional_density`
@@ -109,7 +110,8 @@ verbatim by every consumer) and an **estimator upper half** (the estimands):
   fit-based AIC (`rule = :aic`), and asymmetric-kernel Chen plug-in (`rule = :plugin`) selectors, and the
   joint-summary response-aware local plug-in ``h^\star(x)`` (`rule = :local`).
 - [`Expectations`](api/Expectations.md): the power-sum quadrature readouts — the expectation of a smooth
-  functional `expectation` ``\equiv \mathbb{E}[g(X)]``, its sampling `expectation_standard_error`, and the
+  functional `expectation` ``\equiv \mathbb{E}[g(X)]``, its sampling `expectation_standard_error` (paired
+  with the estimate by `expectation_with_standard_error`), and the
   pushforward density `pushforward_density` ``\equiv f_{g(X)}`` of a transformed variable. Read off the
   stored power-sums; the recovered moments (`mean` / `var` / `central_moment`) are the ``g = x^p`` case.
 

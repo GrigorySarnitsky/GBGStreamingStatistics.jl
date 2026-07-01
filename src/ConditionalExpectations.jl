@@ -16,7 +16,8 @@ using ..Kernels: gaussian_kernel
 using ..Expectations: _interp_matrix
 
 export conditional_mean, conditional_variance, conditional_expectation,
-       conditional_expectation_standard_error, conditional_pushforward_density
+       conditional_expectation_standard_error, conditional_expectation_with_standard_error,
+       conditional_pushforward_density
 
 
 # Local-polynomial order admitted by the conditional-moment estimators: 0 (Nadaraya–Watson),
@@ -130,16 +131,17 @@ function conditional_expectation(summary::Histogram2D, g, xs::AbstractVector; h:
 end
 
 
-# The standard error at one x from the pre-reduced column responses: √(leverage · Var(g(Y)|x)), with the
-# plug-in conditional variance Ê[g²|x] − Ê[g|x]² and the local-regression leverage Σ_j N_j w_j². NaN where
-# the fit is degenerate (no local data).
-function _ce_standard_error(cx, N, sumG, sumG2, x, h, kernel, degree)
+# The value and its standard error at one x from the pre-reduced column responses: the local-fit β₀ and
+# √(leverage · Var(g(Y)|x)), with the plug-in conditional variance Ê[g²|x] − Ê[g|x]² and the leverage
+# Σ_j N_j w_j². Both NaN where the fit is degenerate (no local data). Shared by the standard-error reader
+# and the paired value-plus-error reader, so the two agree by construction.
+function _ce_value_and_se(cx, N, sumG, sumG2, x, h, kernel, degree)
   eg = local_fit(cx, N, sumG, x, h, kernel, degree)[1]
   lev = _leverage(cx, N, x, h, kernel, degree)
-  (isfinite(eg) && isfinite(lev)) || return oftype(eg, NaN)
+  (isfinite(eg) && isfinite(lev)) || return (eg, oftype(eg, NaN))
   eg2 = local_fit(cx, N, sumG2, x, h, kernel, degree)[1]
   variance = eg2 - eg^2
-  return sqrt(max(variance, zero(variance)) * max(lev, zero(lev)))
+  return (eg, sqrt(max(variance, zero(variance)) * max(lev, zero(lev))))
 end
 
 
@@ -186,7 +188,7 @@ function conditional_expectation_standard_error(summary::Histogram2D, g, x::Real
   _check_degree(degree)
   cx, N, sumG = _column_response(summary, g)
   sumG2 = _column_response(summary, y -> g(y)^2)[3]
-  return _ce_standard_error(cx, N, sumG, sumG2, x, h, kernel, degree)
+  return _ce_value_and_se(cx, N, sumG, sumG2, x, h, kernel, degree)[2]
 end
 
 function conditional_expectation_standard_error(summary::Histogram2D, g, xs::AbstractVector; h::Real,
@@ -195,7 +197,45 @@ function conditional_expectation_standard_error(summary::Histogram2D, g, xs::Abs
   _check_degree(degree)
   cx, N, sumG = _column_response(summary, g)
   sumG2 = _column_response(summary, y -> g(y)^2)[3]
-  return [_ce_standard_error(cx, N, sumG, sumG2, x, h, kernel, degree) for x in xs]
+  return [_ce_value_and_se(cx, N, sumG, sumG2, x, h, kernel, degree)[2] for x in xs]
+end
+
+
+"""
+    conditional_expectation_with_standard_error(summary::Histogram2D, g, x;
+                                                h, kernel = gaussian_kernel, degree = 1)
+
+The estimate and its standard error from one local-polynomial fit — the `NamedTuple`
+``(\\texttt{value}, \\texttt{standard\\_error})``, with `value` the [`conditional_expectation`](@ref
+GBGStreamingStatistics.ConditionalExpectations.conditional_expectation)
+``\\widehat{\\mathbb{E}}[g(Y)\\mid x]`` and `standard_error` its
+[`conditional_expectation_standard_error`](@ref
+GBGStreamingStatistics.ConditionalExpectations.conditional_expectation_standard_error). They describe the
+same estimator by construction, sharing the one ``y``-quadrature response and its fit. For a vector `x`,
+returns a `NamedTuple` of vectors.
+
+Arguments: as for [`conditional_expectation`](@ref
+GBGStreamingStatistics.ConditionalExpectations.conditional_expectation) — `summary`, `g`, `x`; `h`,
+`kernel`, `degree`.
+"""
+function conditional_expectation_with_standard_error(summary::Histogram2D, g, x::Real; h::Real,
+                                                     kernel = gaussian_kernel, degree::Integer = 1)
+  h > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
+  _check_degree(degree)
+  cx, N, sumG = _column_response(summary, g)
+  sumG2 = _column_response(summary, y -> g(y)^2)[3]
+  v, se = _ce_value_and_se(cx, N, sumG, sumG2, x, h, kernel, degree)
+  return (value = v, standard_error = se)
+end
+
+function conditional_expectation_with_standard_error(summary::Histogram2D, g, xs::AbstractVector; h::Real,
+                                                     kernel = gaussian_kernel, degree::Integer = 1)
+  h > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
+  _check_degree(degree)
+  cx, N, sumG = _column_response(summary, g)
+  sumG2 = _column_response(summary, y -> g(y)^2)[3]
+  vses = [_ce_value_and_se(cx, N, sumG, sumG2, x, h, kernel, degree) for x in xs]
+  return (value = [vs[1] for vs in vses], standard_error = [vs[2] for vs in vses])
 end
 
 

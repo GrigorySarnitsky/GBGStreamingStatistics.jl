@@ -26,12 +26,12 @@ two with a `count = Float64`
 cone variant for hyperstatistics / forgetting), the marginal density (`density` and its variability band
 `density_standard_error` — and the paired `density_with_standard_error`, the estimate and its band from one option specification — with `gaussian_kernel` / `epanechnikov_kernel`, the half-line `gamma_kernel` and bounded `beta_kernel`, and the parametric starts `normal_start` / `lognormal_start` / `gamma_start` / `exponential_start` / `inverse_gaussian_start` — both the asymmetric kernels and the starts extensible through the exported `AsymmetricKernel` / `ParametricStart` constructors), conditional expectations
 (`conditional_mean`, `conditional_variance`, the general `conditional_expectation` of a response functional,
-its sampling `conditional_expectation_standard_error`, and its `conditional_pushforward_density`),
+its sampling `conditional_expectation_standard_error` — paired with the estimate by `conditional_expectation_with_standard_error` — and its `conditional_pushforward_density`),
 conditional and transition densities
 (`conditional_density`, `transition_density`), and bandwidth selection (`bandwidth`) — plus the
 power-sum quadrature readouts: the recovered marginal moments (`mean`, `var`, `std`, `central_moment`),
 the expectation of a smooth functional of ``X`` (`expectation`, with its sampling
-`expectation_standard_error`), and the pushforward density of a transformed variable ``g(X)``
+`expectation_standard_error` — paired by `expectation_with_standard_error`), and the pushforward density of a transformed variable ``g(X)``
 (`pushforward_density`).
 """
 module GBGStreamingStatistics
@@ -90,6 +90,7 @@ using .ConditionalExpectations:
   conditional_variance,
   conditional_expectation,
   conditional_expectation_standard_error,
+  conditional_expectation_with_standard_error,
   conditional_pushforward_density
 
 
@@ -109,6 +110,7 @@ using .Expectations:
   central_moment,
   expectation,
   expectation_standard_error,
+  expectation_with_standard_error,
   pushforward_density
 
 
@@ -142,12 +144,14 @@ export AbstractAccumulator,
        conditional_variance,
        conditional_expectation,
        conditional_expectation_standard_error,
+       conditional_expectation_with_standard_error,
        conditional_pushforward_density,
        conditional_density,
        transition_density,
        bandwidth,
        expectation,
        expectation_standard_error,
+       expectation_with_standard_error,
        pushforward_density
 
 

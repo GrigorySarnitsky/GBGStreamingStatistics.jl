@@ -95,7 +95,8 @@ estimands.
   `conditional_pushforward_density` ``\equiv f_{g(Y)\mid X}`` (the density of a transformed response), plus
   the sampling `conditional_expectation_standard_error` (``= \sqrt{\ell(x)\,\mathrm{Var}(g(Y)\mid x)}``, the
   local-regression leverage ``\ell(x)`` from `LocalPolynomial._leverage` — the reference SE mechanism for
-  the kernel family). All
+  the kernel family), and the paired `conditional_expectation_with_standard_error` (the
+  `(value, standard_error)` NamedTuple from one fit). All
   by local-polynomial regression **in x** (Fan & Gijbels, over `LocalPolynomial.local_fit`) of a
   per-X-column **y-quadrature** response (the `Expectations` coefficient primitive over the order-2
   Y-power-sums) — **composing both atoms** (kernel-weighting in x ∘ quadrature in y); with the `degree`
@@ -122,7 +123,8 @@ estimands.
 - `src/Expectations.jl` — §4.B the **power-sum quadrature** readouts (the second of the two readout
   families), and the recovered marginal moments they generalize: `mean` / `var` / `std` / `central_moment`
   (the ``g = x^p`` case, **moved here from `Histograms`**), `expectation` ``\equiv \mathbb{E}[g(X)]`` (a
-  general smooth functional of `X`), its sampling `expectation_standard_error`, and `pushforward_density`
+  general smooth functional of `X`), its sampling `expectation_standard_error` (with the paired
+  `expectation_with_standard_error`), and `pushforward_density`
   ``\equiv f_{g(X)}`` (the density of a transformed variable ``g(X)``). All read off the stored power-sums
   through the one shared contraction atom `_quadrature` (**owned here**) — the moments supplying closed-form
   binomial coefficients, the general `expectation` a dependency-free local-polynomial interpolant of `g`

@@ -18,7 +18,7 @@ using ..Kernels: gaussian_kernel
 
 
 export mean, var, std, central_moment,
-       expectation, expectation_standard_error, pushforward_density
+       expectation, expectation_standard_error, expectation_with_standard_error, pushforward_density
 
 
 # --- Power-sum quadrature: the shared atom for every global (non-local) readout ---
@@ -246,6 +246,37 @@ function expectation_standard_error(summary::Histogram1D, g)
   eg2 = expectation(summary, x -> g(x)^2)
   variance = eg2 - eg^2
   return sqrt(max(variance, zero(variance)) / n)
+end
+
+
+"""
+    expectation_with_standard_error(summary::Histogram1D, g)
+
+The estimate and its standard error from one power-sum quadrature pass — the `NamedTuple`
+``(\\texttt{value}, \\texttt{standard\\_error})``, with `value` the [`expectation`](@ref
+GBGStreamingStatistics.Expectations.expectation) ``\\hat{\\mathbb{E}}[g(X)]`` and `standard_error` its
+[`expectation_standard_error`](@ref GBGStreamingStatistics.Expectations.expectation_standard_error). They
+describe the same estimator by construction, and ``\\hat{\\mathbb{E}}[g]`` is computed once and shared.
+
+Arguments: as for [`expectation`](@ref GBGStreamingStatistics.Expectations.expectation) — `summary`, `g`.
+
+# Examples
+```jldoctest
+julia> using GBGStreamingStatistics
+
+julia> h = Histogram1D(-8.0, 8.0, 800); observe!(h, [-1.0, 0.0, 0.5, 1.0, 2.0]);
+
+julia> r = expectation_with_standard_error(h, cos); (r.value isa Float64, r.standard_error > 0)
+(true, true)
+```
+"""
+function expectation_with_standard_error(summary::Histogram1D, g)
+  n = _total(summary)
+  eg = expectation(summary, g)
+  n > 0 || return (value = eg, standard_error = NaN)
+  eg2 = expectation(summary, x -> g(x)^2)
+  variance = eg2 - eg^2
+  return (value = eg, standard_error = sqrt(max(variance, zero(variance)) / n))
 end
 
 

@@ -326,7 +326,10 @@ recorded in `ARCHITECTURE.md` §4 meanwhile.
   mechanism for the kernel-family SE), times the plug-in conditional variance of ``g(Y)`` (two
   `conditional_expectation` readouts). It is the exact analog of the marginal `expectation_standard_error`
   ``= \sqrt{\operatorname{Var}(g(X))/n}``, with the global-mean leverage ``1/n`` replaced by
-  ``\sum_j N_j w_j^2``; at ``g = \mathrm{identity}`` it is the conditional mean's standard error.
+  ``\sum_j N_j w_j^2``; at ``g = \mathrm{identity}`` it is the conditional mean's standard error. The paired
+  `conditional_expectation_with_standard_error` returns this error with the estimate
+  ``\widehat{\mathbb{E}}[g(Y)\mid x]`` from one shared fit (the ``(\texttt{value}, \texttt{standard\_error})``
+  `NamedTuple`).
 - **Consistency claim.** it estimates the leading-order sampling variance of the local fit (not the
   ``O(h^2)`` smoothing bias); at ``g = \mathrm{identity}`` the leading term is
   ``R(K)\sigma^2(x)/(n h f_X(x))``.
@@ -421,7 +424,9 @@ recorded in `ARCHITECTURE.md` §4 meanwhile.
 - **Estimator.** ``\sqrt{(\hat{\mathbb{E}}[g^2] - \hat{\mathbb{E}}[g]^2)/n}`` — both moments the same
   quadrature (``\mathbb{E}[g^2]`` is `expectation` with the smooth integrand ``g^2``). It is the plug-in
   sampling error of the empirical mean of ``g(X)``; the ``O(\Delta^{\,\texttt{order}+1})`` quadrature bias
-  is separate and not included.
+  is separate and not included. The paired `expectation_with_standard_error` returns this error with the
+  estimate ``\hat{\mathbb{E}}[g]`` from one shared quadrature pass (the
+  ``(\texttt{value}, \texttt{standard\_error})`` `NamedTuple`).
 - **Consistency claim.** for ``g = \mathrm{identity}`` it is exactly ``s/\sqrt n`` (``s`` the uncorrected
   standard deviation); in general the plug-in ``\widehat{\operatorname{Var}(g(X))}`` is consistent as
   ``\Delta \to 0``.

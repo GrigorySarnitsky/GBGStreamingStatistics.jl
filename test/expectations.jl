@@ -79,6 +79,12 @@ end
   reps = [begin s = Histogram1D(LOWER, UPPER, NBINS); observe!(s, randn(30_000)); expectation(s, cos) end for _ in 1:40]
   s0 = Histogram1D(LOWER, UPPER, NBINS); observe!(s0, randn(30_000))
   @test expectation_standard_error(s0, cos) ≈ std(reps) rtol = 0.2
+
+  # expectation_with_standard_error: one pass ⇒ estimate and error match the separate calls exactly
+  r = expectation_with_standard_error(h, cos)
+  @test r.value == expectation(h, cos)
+  @test r.standard_error == expectation_standard_error(h, cos)
+  @test isnan(expectation_with_standard_error(Histogram1D(LOWER, UPPER, NBINS), cos).standard_error)
 end
 
 
