@@ -9,7 +9,8 @@ module Bandwidth
 
 using FFTW
 
-using ..Histograms: Histogram1D, Histogram2D, _total, _sample_std, _bincenter, _column_sums
+using ..Histograms: Histogram1D, Histogram2D, _total, _bincenter, _column_sums
+using ..Expectations: _sample_std
 using ..LocalPolynomial: local_fit
 using ..Kernels: gaussian_kernel, _quad, AsymmetricKernel
 using ..ConditionalExpectations: _residual_response

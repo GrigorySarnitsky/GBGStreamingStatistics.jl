@@ -41,16 +41,16 @@ const H = Histograms
     m = mean(data)
     direct(p) = sum((data .- m) .^ p) / length(data)
     for p in 2:6
-      @test H._sample_central_moment(h, p) ≈ direct(p) rtol = 1e-8 atol = 1e-12
+      @test GBGStreamingStatistics.Expectations._sample_central_moment(h, p) ≈ direct(p) rtol = 1e-8 atol = 1e-12
     end
 
     # Agreement with the true Gaussian moments, to sampling error.
-    @test H._sample_mean(h) ≈ 0 atol = 5e-3
-    @test H._sample_variance(h) ≈ 1 rtol = 1e-2
-    @test abs(H._sample_central_moment(h, 3)) < 1e-2          # skewness ≈ 0
-    @test H._sample_central_moment(h, 4) ≈ 3 rtol = 2e-2      # kurtosis
-    @test abs(H._sample_central_moment(h, 5)) < 5e-2          # ≈ 0
-    @test H._sample_central_moment(h, 6) ≈ 15 rtol = 5e-2
+    @test GBGStreamingStatistics.Expectations._sample_mean(h) ≈ 0 atol = 5e-3
+    @test GBGStreamingStatistics.Expectations._sample_variance(h) ≈ 1 rtol = 1e-2
+    @test abs(GBGStreamingStatistics.Expectations._sample_central_moment(h, 3)) < 1e-2          # skewness ≈ 0
+    @test GBGStreamingStatistics.Expectations._sample_central_moment(h, 4) ≈ 3 rtol = 2e-2      # kurtosis
+    @test abs(GBGStreamingStatistics.Expectations._sample_central_moment(h, 5)) < 5e-2          # ≈ 0
+    @test GBGStreamingStatistics.Expectations._sample_central_moment(h, 6) ≈ 15 rtol = 5e-2
   end
 
   @testset "Float32 input accumulates in Float64" begin
@@ -59,7 +59,7 @@ const H = Histograms
     observe!(h, randn(Float32, 300_000))
     @test eltype(h.powersums) === Float64
     @test eltype(h.counts) === UInt64
-    @test H._sample_variance(h) ≈ 1 rtol = 3e-2
+    @test GBGStreamingStatistics.Expectations._sample_variance(h) ≈ 1 rtol = 3e-2
   end
 
   @testset "public moment accessors (mean/var/std/central_moment)" begin
@@ -68,14 +68,14 @@ const H = Histograms
     h = Histogram1D(-8.0, 8.0, 1600; order = 6)
     observe!(h, data)
     @test H._total(h) == length(data)                           # all samples in range
-    @test mean(h) == H._sample_mean(h)                          # public == internal
-    @test central_moment(h, 4) == H._sample_central_moment(h, 4)
+    @test mean(h) == GBGStreamingStatistics.Expectations._sample_mean(h)                          # public == internal
+    @test central_moment(h, 4) == GBGStreamingStatistics.Expectations._sample_central_moment(h, 4)
     # var/std default to Bessel's (n-1) correction, matching Statistics on the same data
     @test var(h) ≈ var(data) rtol = 1e-6                        # corrected == Statistics.var
     @test std(h) ≈ std(data) rtol = 1e-6                        # corrected == Statistics.std
-    @test var(h; corrected = false) == H._sample_variance(h)    # 1/n == internal helper ...
+    @test var(h; corrected = false) == GBGStreamingStatistics.Expectations._sample_variance(h)    # 1/n == internal helper ...
     @test var(h; corrected = false) == central_moment(h, 2)     # ... == the order-2 central moment
-    @test std(h; corrected = false) == H._sample_std(h)
+    @test std(h; corrected = false) == GBGStreamingStatistics.Expectations._sample_std(h)
     @test var(h) > var(h; corrected = false)                    # n/(n-1) > 1
     @test mean(h) ≈ 0 atol = 5e-3                               # Gaussian oracle
     @test var(h) ≈ 1 rtol = 2e-2

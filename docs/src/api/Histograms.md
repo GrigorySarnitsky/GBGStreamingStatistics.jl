@@ -19,14 +19,5 @@ observe_pairs!
 bin_index
 ```
 
-## Recovered moments
-
-The global marginal moments, recovered post hoc from the power-sums by the shift formula (exact),
-extending `Statistics`.
-
-```@docs
-mean(::Histogram1D)
-var(::Histogram1D)
-std(::Histogram1D)
-central_moment
-```
+The recovered marginal moments (`mean` / `var` / `std` / `central_moment`) read off these power-sums live
+in [`Expectations`](Expectations.md), as the ``g = x^p`` case of the power-sum quadrature.

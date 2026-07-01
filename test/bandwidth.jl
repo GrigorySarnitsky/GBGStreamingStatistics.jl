@@ -9,7 +9,7 @@ include("testoracles.jl"); using .TestOracles
   h = Histogram1D(0.0, 10.0, 100)
   observe!(h, [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0])
   n = H._total(h)
-  σ = H._sample_std(h)
+  σ = GBGStreamingStatistics.Expectations._sample_std(h)
   @test σ ≈ sqrt(60 / 9)                                # exact recovery from the binned moments
 
   # rule = :normal (default), Gaussian kernel, degree 0/1 → Silverman (4/3)^(1/5)·σ̂·n^(-1/5).

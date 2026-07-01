@@ -1,20 +1,151 @@
-# Expectations — §4.B: the power-sum quadrature readouts. A smooth functional of X read straight off the
-# stored power-sums, with no kernel and no query point: the expectation E[g(X)] of a general smooth g, its
-# sampling standard error, and the pushforward density of Y = g(X) (`docs/ARCHITECTURE.md` §4.B). All three
-# route through the shared `Histograms._quadrature` atom — the same contraction the recovered moments use
-# (the moments are the g = x^p case). A general g's per-bin coefficients come from a local degree-`order`
-# polynomial interpolant (dependency-free; exact for polynomials of degree ≤ order, so it reduces to the
-# shift formula on the monomials). Pure host-side numerics over the recovered summary.
+# Expectations — §4.B: the power-sum quadrature readouts, and the recovered marginal moments they
+# generalize. A smooth functional of X read straight off the stored power-sums, with no kernel and no
+# query point: the recovered moments `mean` / `var` / `std` / `central_moment` (the g = x^p case), the
+# expectation E[g(X)] of a general smooth g, its sampling standard error, and the pushforward density of
+# Y = g(X) (`docs/ARCHITECTURE.md` §4.B). All route through the one shared contraction atom `_quadrature`
+# — the moments supplying closed-form (binomial) coefficients, the general `expectation` a local
+# degree-`order` polynomial interpolant of g (dependency-free; exact on the monomials, so it reduces to
+# the shift formula). Pure host-side numerics over the recovered summary.
 
 module Expectations
 
+import Statistics: mean, var, std
+
 using LinearAlgebra: inv, mul!
 
-using ..Histograms: Histogram1D, _quadrature, _order, _total
+using ..Histograms: Histogram1D, _bincenter, _order, _total
 using ..Kernels: gaussian_kernel
 
 
-export expectation, expectation_standard_error, pushforward_density
+export mean, var, std, central_moment,
+       expectation, expectation_standard_error, pushforward_density
+
+
+# --- Power-sum quadrature: the shared atom for every global (non-local) readout ---
+# E[g(X)] = (1/n) Σ_j Σ_{p=0}^{order} a_p(c_j) S_p^(j), with S_0^(j) = n_j and a_p(c_j) the local
+# coefficients of the test function's degree-≤order polynomial model about the bin center c_j (a[1] the
+# constant, weighting the count; a[p+1] multiplying (x−c_j)^p). `coeffs!(a, c_j)` fills the reused
+# length-(order+1) buffer; it is called only on non-empty bins, so g is never probed off the data. The
+# recovered moments are the g = x^p / (x−μ)^p case (closed-form binomial coefficients — the shift
+# formula); the general `expectation` supplies interpolation coefficients for a general smooth g. Reads
+# the summary to the host first (a no-op for CPU arrays). Returns E[g] (NaN for an empty summary).
+function _quadrature(h::Histogram1D, coeffs!)
+  P = _order(h)
+  counts = Array(h.counts)
+  S = Array(h.powersums)
+  a = zeros(Float64, P + 1)          # reused per-bin coefficient buffer (a[p+1] ↔ (x−c_j)^p)
+  n = 0.0
+  acc = 0.0
+  @inbounds for j in eachindex(counts)
+    nj = counts[j]
+    iszero(nj) && continue
+    n += nj
+    coeffs!(a, _bincenter(h, j))
+    acc += a[1] * nj                 # p = 0 term: S_0^(j) = n_j
+    for p in 1:P
+      acc += a[p + 1] * S[p, j]
+    end
+  end
+  return iszero(n) ? NaN : acc / n
+end
+
+
+# Local coefficients of the raw monomial x^m about c_j: (c_j + u)^m = Σ_k C(m,k) c_j^{m-k} u^k, so
+# a[k+1] = C(m,k) c_j^{m-k} for k ≤ m (0 above). The g = x^m instance of the quadrature.
+function _monomial_coeffs!(a, cj, m, P)
+  fill!(a, 0.0)
+  @inbounds for k in 0:min(m, P)
+    a[k + 1] = binomial(m, k) * cj^(m - k)
+  end
+  return a
+end
+
+
+# Local coefficients of the central monomial (x−μ)^p about c_j: (c_j − μ + u)^p, so
+# a[k+1] = C(p,k)(c_j − μ)^{p-k}. The g = (x−μ)^p instance (the shift formula for central moments).
+function _central_coeffs!(a, cj, mu, p, P)
+  fill!(a, 0.0)
+  d = cj - mu
+  @inbounds for k in 0:min(p, P)
+    a[k + 1] = binomial(p, k) * d^(p - k)
+  end
+  return a
+end
+
+
+_sample_mean(h::Histogram1D) =
+  (P = _order(h); _quadrature(h, (a, cj) -> _monomial_coeffs!(a, cj, 1, P)))
+
+function _sample_central_moment(h::Histogram1D, p::Integer)
+  2 ≤ p ≤ _order(h) ||
+    throw(ArgumentError("central-moment order p must satisfy 2 ≤ p ≤ $(_order(h)) (got $p)"))
+  mu = _sample_mean(h)
+  isnan(mu) && return oftype(mu, NaN)
+  P = _order(h)
+  return _quadrature(h, (a, cj) -> _central_coeffs!(a, cj, mu, p, P))
+end
+
+_sample_variance(h::Histogram1D) = _sample_central_moment(h, 2)
+_sample_std(h::Histogram1D) = sqrt(_sample_variance(h))
+
+
+"""
+    mean(summary::Histogram1D)
+
+**Estimand.** the population mean ``\\mathbb{E}[X]``.
+
+**Estimator.** the sample mean ``\\bar X = \\frac1n \\sum_i X_i`` — recovered **exactly** (not a smoothed
+estimate) host-side from the per-bin counts and first power-sums by the shift formula (the power-sums use
+the actual ``X_i``, not the bin center; the ``g = x`` case of [`expectation`](@ref
+GBGStreamingStatistics.Expectations.expectation)). Extends `Statistics.mean`; an empty summary gives `NaN`.
+"""
+mean(summary::Histogram1D) = _sample_mean(summary)
+
+
+"""
+    var(summary::Histogram1D; corrected = true)
+
+**Estimand.** the population variance ``\\operatorname{Var}(X) = \\mathbb{E}\\bigl[(X - \\mathbb{E}[X])^2\\bigr]``.
+
+**Estimator.** the recovered sample variance (``\\bar X`` the recovered mean). With `corrected = true`
+(the default, matching `Statistics.var`) the **unbiased** ``\\frac{1}{n-1} \\sum_i (X_i - \\bar X)^2``
+(Bessel's correction; `NaN` for ``n \\le 1``); `corrected = false` the ``\\frac1n \\sum_i (X_i - \\bar X)^2``
+order-2 central moment (`central_moment` at ``p = 2``). Exact via the shift formula. Extends
+`Statistics.var`.
+"""
+function var(summary::Histogram1D; corrected::Bool = true)
+  m2 = _sample_variance(summary)
+  corrected || return m2
+  n = _total(summary)
+  return n > 1 ? m2 * n / (n - 1) : oftype(m2, NaN)
+end
+
+
+"""
+    std(summary::Histogram1D; corrected = true)
+
+**Estimand.** the population standard deviation ``\\sigma = \\sqrt{\\operatorname{Var}(X)}``.
+
+**Estimator.** the recovered sample standard deviation ``\\sqrt{s^2}``, where ``s^2`` is the recovered
+variance (`var`); the `corrected` keyword has the same meaning (the default `true` divides by ``n - 1``).
+Exact via the shift formula. Extends `Statistics.std`.
+"""
+std(summary::Histogram1D; corrected::Bool = true) = sqrt(var(summary; corrected = corrected))
+
+
+"""
+    central_moment(summary::Histogram1D, p)
+
+**Estimand.** the population ``p``-th central moment ``\\mu_p = \\mathbb{E}\\bigl[(X - \\mathbb{E}[X])^p\\bigr]``.
+
+**Estimator.** the sample central moment ``\\frac1n \\sum_i (X_i - \\bar X)^p`` (``\\bar X`` the recovered
+mean), recovered **exactly** from the power-sums by the shift formula — not a smoothed estimate — for
+``2 \\le p \\le \\texttt{order}``. ``p = 2`` is the uncorrected variance (`var` with `corrected = false`);
+even orders recover stably, odd orders (``\\approx 0``) to weaker relative precision. This is the
+``g = (x - \\bar X)^p`` case of the power-sum quadrature [`expectation`](@ref
+GBGStreamingStatistics.Expectations.expectation), with which it shares the contraction atom.
+"""
+central_moment(summary::Histogram1D, p::Integer) = _sample_central_moment(summary, p)
 
 
 # Chebyshev–Lobatto nodes on [-1, 1] and the inverse of their Vandermonde matrix, for the degree-`P`

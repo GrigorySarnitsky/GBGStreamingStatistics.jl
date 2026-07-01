@@ -23,13 +23,13 @@ model itself.
 The package provides the mergeable accumulators and histogram summaries (`AbstractAccumulator`,
 `observe!`, `observe_pairs!`, `merge!`, `scale!`, `bin_index`, `Histogram1D`, `Histogram2D` — the last
 two with a `count = Float64`
-cone variant for hyperstatistics / forgetting) with their recovered marginal moments (`mean`,
-`var`, `std`, `central_moment`), the marginal density (`density` and its variability band
+cone variant for hyperstatistics / forgetting), the marginal density (`density` and its variability band
 `density_standard_error`, with `gaussian_kernel` / `epanechnikov_kernel`, the half-line `gamma_kernel` and bounded `beta_kernel`, and the parametric starts `normal_start` / `lognormal_start` / `gamma_start` / `exponential_start` / `inverse_gaussian_start` — both the asymmetric kernels and the starts extensible through the exported `AsymmetricKernel` / `ParametricStart` constructors), conditional moments
 (`conditional_mean`, `conditional_variance`), conditional and transition densities
 (`conditional_density`, `transition_density`), and bandwidth selection (`bandwidth`) — plus the
-power-sum quadrature readouts: the expectation of a smooth functional of ``X`` (`expectation`, with its
-sampling `expectation_standard_error`) and the pushforward density of a transformed variable ``g(X)``
+power-sum quadrature readouts: the recovered marginal moments (`mean`, `var`, `std`, `central_moment`),
+the expectation of a smooth functional of ``X`` (`expectation`, with its sampling
+`expectation_standard_error`), and the pushforward density of a transformed variable ``g(X)``
 (`pushforward_density`).
 """
 module GBGStreamingStatistics
@@ -38,12 +38,12 @@ module GBGStreamingStatistics
 include("Accumulators.jl")
 include("Histograms.jl")
 include("Kernels.jl")
+include("Expectations.jl")
 include("LocalPolynomial.jl")
 include("MarginalDensity.jl")
 include("ConditionalExpectations.jl")
 include("ConditionalDensity.jl")
 include("Bandwidth.jl")
-include("Expectations.jl")
 # include("IncrementMoments.jl")         # [archived] the §4.4 SDE-reading functionals — see archive/
 # include("CharacteristicFunctions.jl")  # [deferred] the empirical-characteristic-function summary
 # include("ProjectionInference.jl")      # [deferred] the SFI / ULI projection road
@@ -60,11 +60,7 @@ using .Histograms:
   Histogram1D,
   Histogram2D,
   bin_index,
-  observe_pairs!,
-  mean,
-  var,
-  std,
-  central_moment
+  observe_pairs!
 
 
 using .Kernels:
@@ -101,6 +97,10 @@ using .Bandwidth:
 
 
 using .Expectations:
+  mean,
+  var,
+  std,
+  central_moment,
   expectation,
   expectation_standard_error,
   pushforward_density

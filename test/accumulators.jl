@@ -15,16 +15,16 @@ struct _DummyAccumulator <: GBGStreamingStatistics.AbstractAccumulator end
   observe!(h, [0.2, 0.4, 0.9])
   @test H._total(h) == 3
   μ = (0.2 + 0.4 + 0.9) / 3
-  @test H._sample_mean(h) ≈ μ
-  @test H._sample_variance(h) ≈ ((0.2 - μ)^2 + (0.4 - μ)^2 + (0.9 - μ)^2) / 3
+  @test GBGStreamingStatistics.Expectations._sample_mean(h) ≈ μ
+  @test GBGStreamingStatistics.Expectations._sample_variance(h) ≈ ((0.2 - μ)^2 + (0.4 - μ)^2 + (0.9 - μ)^2) / 3
 
   # merge! of two single-point histograms equals observing both points together (the n_B = 1 case).
   a = Histogram1D(0.0, 1.0, 1); observe!(a, 0.2)
   b = Histogram1D(0.0, 1.0, 1); observe!(b, 0.8)
   merge!(a, b)
   @test a.counts[1] == 2
-  @test H._sample_mean(a) ≈ 0.5
-  @test H._sample_variance(a) ≈ ((0.2 - 0.5)^2 + (0.8 - 0.5)^2) / 2
+  @test GBGStreamingStatistics.Expectations._sample_mean(a) ≈ 0.5
+  @test GBGStreamingStatistics.Expectations._sample_variance(a) ≈ ((0.2 - 0.5)^2 + (0.8 - 0.5)^2) / 2
 
   # A still-unimplemented accumulator type falls through to the generic erroring merge!.
   @test_throws ErrorException merge!(_DummyAccumulator(), _DummyAccumulator())

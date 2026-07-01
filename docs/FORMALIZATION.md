@@ -62,9 +62,9 @@ recorded in `ARCHITECTURE.md` §4 meanwhile.
   ```
 
   which is **exact** (the ``S_p`` use the actual ``X_i``, not the center) and numerically stable for
-  the even ``p`` the consumers need; the recovered moments are exposed publicly as `mean`, `var`,
-  `std`, and `central_moment` — `var` and `std` apply Bessel's ``n-1`` correction by default (matching
-  `Statistics`), `corrected = false` the ``1/n`` form.
+  the even ``p`` the consumers need; the recovered moments are exposed publicly (in `Expectations`, §4.B,
+  the ``g = x^p`` quadrature case) as `mean`, `var`, `std`, and `central_moment` — `var` and `std` apply
+  Bessel's ``n-1`` correction by default (matching `Statistics`), `corrected = false` the ``1/n`` form.
 - **Quadrature readout (the power-sum atom; §4.B).** the same power-sums give any smooth functional by
   Taylor contraction about the bin centers, ``\mathbb{E}[g(X)] = \tfrac1n \sum_j \sum_{p=0}^{\texttt{order}}
   g^{(p)}(c_j)/p!\,S_p^{(j)} + O(\Delta^{\texttt{order}+1})`` — **exact** for polynomials of degree
@@ -342,7 +342,7 @@ recorded in `ARCHITECTURE.md` §4 meanwhile.
   interpolant, its inverse Vandermonde precomputed once (uniform bins), so no derivatives of ``g`` are
   formed. For a monomial ``g = x^m`` (``m \le \texttt{order}``) the interpolant is exact and ``a_p^{(j)}``
   is the binomial ``\binom{m}{p} c_j^{m-p}``, so the readout **reduces to the shift formula** — `mean`,
-  `var`, `central_moment` are this estimator, and share the `Histograms._quadrature` atom.
+  `var`, `central_moment` are this estimator, and share the `Expectations._quadrature` atom.
 - **Consistency claim.** exact (to floating-point) for polynomial ``g`` of degree ``\le \texttt{order}``,
   independent of the bin width; ``O(\Delta^{\,\texttt{order}+1})`` for general smooth ``g`` (the
   interpolation remainder). The estimand needs ``g`` smooth on the bin scale and the mass inside the range.

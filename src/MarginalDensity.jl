@@ -10,7 +10,8 @@ module MarginalDensity
 
 using SpecialFunctions: loggamma
 
-using ..Histograms: Histogram1D, _nbins, _bincenter, _total, _sample_mean, _sample_variance, _sample_std
+using ..Histograms: Histogram1D, _nbins, _bincenter, _total
+using ..Expectations: _sample_mean, _sample_variance, _sample_std
 using ..LocalPolynomial: _hankel_solve
 using ..Kernels: gaussian_kernel, epanechnikov_kernel, _quad, _kernel_weight, AsymmetricKernel,
                  gamma_kernel, beta_kernel

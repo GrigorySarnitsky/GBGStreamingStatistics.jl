@@ -441,7 +441,7 @@ recovered `mean` / `var` / `central_moment` (§3, the shift formula, the ``g = x
   bin** — no automatic differentiation and no new dependency (uniform bins ⇒ one Chebyshev–Vandermonde
   inverse serves every bin), which reduces *exactly* to the shift formula on the monomials. Both
   `expectation` and the recovered moments route through the one shared contraction atom
-  `Histograms._quadrature` (the moments supplying closed-form coefficients, `expectation` interpolation
+  `Expectations._quadrature` (the moments supplying closed-form coefficients, `expectation` interpolation
   coefficients) — the literal realization of the two-family lens.
 - `expectation_standard_error` ``= \sqrt{(\mathbb{E}[g^2] - \mathbb{E}[g]^2)/n}`` — the sampling error of
   ``\hat{\mathbb{E}}[g]``, itself a second quadrature readout (``\mathbb{E}[g^2]`` is `expectation` with
@@ -569,8 +569,9 @@ GBGStreamingStatistics/
     GBGStreamingStatistics.jl    # umbrella
     Accumulators.jl              # foundation: AbstractAccumulator, observe!/merge! monoid interface
     Histograms.jl                # Histogram1D / Histogram2D, WARP binning, power-sums about the bin
-                                 #   center, the KA/Atomix scatter kernel, shift-formula recovery
+                                 #   center, the KA/Atomix scatter kernel (the pure summary)
     Kernels.jl                   # all the smoothing kernels (symmetric + asymmetric) + _quad quadrature
+    Expectations.jl              # §4.B   E[g(X)], moments (mean/var/…), pushforward — power-sum quadrature
     LocalPolynomial.jl           # the shared local-polynomial jet primitive (local_fit) — §2, §11
     MarginalDensity.jl           # §4.1   f_X
     ConditionalExpectations.jl   # §4.2   m(x), σ²(x)  [estimand-first reference module]
@@ -891,7 +892,7 @@ intentional — do not dedupe it).
 - **Power-sum quadrature readouts §4.B — built** (`expectation`, `expectation_standard_error`,
   `pushforward_density`). The second readout family lands: a smooth functional ``\mathbb{E}[g(X)]`` of the
   binned measure, its sampling standard error, and the pushforward density of ``g(X)``. All three route
-  through the one shared contraction atom `Histograms._quadrature`, into which `mean` / `var` /
+  through the one shared contraction atom `Expectations._quadrature`, into which `mean` / `var` /
   `central_moment` were **folded** as the ``g = x^p`` case (guarded by the unchanged exactness tests) — the
   literal realization of the two-family lens. **Decision — the boundary between the two families is that
   they consume *different sufficient statistics*:** kernel-weighting (§4.A) reads counts + bin locations,

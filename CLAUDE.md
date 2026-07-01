@@ -55,8 +55,10 @@ estimands.
   local-polynomial fitting). Accumulated by one **KernelAbstractions + Atomix atomic scatter-add**
   (`observe!` / `observe_pairs!`, one work-item per sample, CPU and GPU alike); `merge!` is elementwise
   addition (and `scale!` / weighted `merge!` elementwise scaling — the cone, on the `count = Float64`
-  Float-count variant); `bin_index` is the binning map (exposed for pre-quantization); global central
-  moments are recovered post hoc by the **shift formula**. Owns `KernelAbstractions`, `Atomix`.
+  Float-count variant); `bin_index` is the binning map (exposed for pre-quantization). The **pure summary**
+  (accumulate / `merge!` / `scale!` / bin) — the shift-formula moment recovery (`mean` / `var` / `std` /
+  `central_moment`) and the general quadrature moved to `Expectations` (§4.B); the power-sums it stores are
+  their sufficient statistic. Owns `KernelAbstractions`, `Atomix`.
 - `src/Kernels.jl` — **all the smoothing kernels** and the kernel-moment quadrature (lower half): the
   **symmetric** `gaussian_kernel` / `epanechnikov_kernel` (any callable with ``\int K = 1``) with the
   internal `_quad` (``R(K)``, ``\mu_2(K)``, … by quadrature, so any kernel works), and the **asymmetric**
@@ -103,15 +105,17 @@ estimands.
   over bandwidth) are **deferred** (recorded, not built — a pure optimization over the exact direct
   summation). Owns `FFTW` (the ISJ `rule = :isj` DCT).
 - `src/Expectations.jl` — §4.B the **power-sum quadrature** readouts (the second of the two readout
-  families): `expectation` ``\equiv \mathbb{E}[g(X)]`` (a smooth functional of `X`), its sampling
-  `expectation_standard_error`, and `pushforward_density` ``\equiv f_{g(X)}`` (the density of a transformed
-  variable ``g(X)``) — all read off the stored power-sums through the shared `Histograms._quadrature` atom,
-  into which `mean` / `var` / `central_moment` were folded as the ``g = x^p`` case. A general `g`'s per-bin
-  coefficients come from a dependency-free local-polynomial interpolant (reuses `LinearAlgebra`, exact on
-  monomials); the pushforward is `expectation` of the composed kernel ``K_h \circ g`` (no ``g^{-1}``,
-  non-monotone `g` handled). Reached by explicit `using ..Histograms: _quadrature`.
-- Include order: `Accumulators → Histograms → Kernels → LocalPolynomial → MarginalDensity → ConditionalExpectations →
-  ConditionalDensity → Bandwidth → Expectations`. Cross-module access only through explicit `using ..Module: name, …`
+  families), and the recovered marginal moments they generalize: `mean` / `var` / `std` / `central_moment`
+  (the ``g = x^p`` case, **moved here from `Histograms`**), `expectation` ``\equiv \mathbb{E}[g(X)]`` (a
+  general smooth functional of `X`), its sampling `expectation_standard_error`, and `pushforward_density`
+  ``\equiv f_{g(X)}`` (the density of a transformed variable ``g(X)``). All read off the stored power-sums
+  through the one shared contraction atom `_quadrature` (**owned here**) — the moments supplying closed-form
+  binomial coefficients, the general `expectation` a dependency-free local-polynomial interpolant of `g`
+  (exact on monomials); the pushforward is `expectation` of the composed kernel ``K_h \circ g`` (no
+  ``g^{-1}``, non-monotone `g` handled). `MarginalDensity` / `Bandwidth` reach its `_sample_std` etc. by
+  explicit `using ..Expectations`; reuses `LinearAlgebra`.
+- Include order: `Accumulators → Histograms → Kernels → Expectations → LocalPolynomial → MarginalDensity →
+  ConditionalExpectations → ConditionalDensity → Bandwidth`. Cross-module access only through explicit `using ..Module: name, …`
   — never a bare `using`.
 - Deferred / archived, recorded as commented-out includes (the rule against speculative structure):
   `# IncrementMoments.jl` (the §4.4 SDE-reading `drift` / `diffusion` / Kramers–Moyal functionals —
@@ -312,7 +316,7 @@ Mechanical bar:
    skipped); per-bin counts + **power-sums about the bin center** ``S_p`` to a configurable `order`.
    `observe!` (batch + scalar) and `merge!` (elementwise addition); `bin_index`; global central moments
    recovered by the **shift formula** and exposed publicly as `mean`/`var`/`std`/`central_moment`
-   (extending `Statistics`). Tested:
+   (extending `Statistics`; these now live in `Expectations` §4.B as the ``g = x^p`` quadrature case). Tested:
    Gaussian moment recovery (exact vs direct, and vs the true moments), mergeability, bounded
    allocation, Float32→Float64.
 2. **`Histograms.Histogram2D` + `observe_pairs!`** — the joint two-time summary: `nx×ny` cells, per-cell
@@ -428,8 +432,9 @@ Mechanical bar:
     `expectation_standard_error` (``\\sqrt{(\\mathbb{E}[g^2] - \\mathbb{E}[g]^2)/n}``), and
     `pushforward_density` ``\\equiv f_{g(X)}`` — the density of ``Y = g(X)``, written as
     ``\\mathbb{E}[K_h(g(X) - y)]`` so no ``g^{-1}`` / Jacobian is formed and a **non-monotone** ``g`` (and
-    ``g'=0`` caustic) is handled. All route through the one shared `Histograms._quadrature` atom, into which
-    `mean` / `var` / `central_moment` were **folded** as the ``g = x^p`` case (the literal two-family lens;
+    ``g'=0`` caustic) is handled. All route through the one shared `_quadrature` atom (**owned in
+    `Expectations`**), alongside `mean` / `var` / `std` / `central_moment` — **moved here from `Histograms`**,
+    **folded** as the ``g = x^p`` case (the literal two-family lens;
     the boundary is that the families read *different sufficient statistics* — power-sums vs
     counts+locations, settled against the tempting universal-map over-unification). A general ``g``'s
     coefficients come from a **dependency-free** degree-`order` local interpolant (exact on monomials).

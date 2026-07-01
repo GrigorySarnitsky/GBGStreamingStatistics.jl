@@ -25,15 +25,15 @@ const H = Histograms
   @test merged.counts == full.counts                  # counts add — exact
   @test merged.powersums ≈ full.powersums rtol = 1e-9 atol = 1e-12
   for p in 2:5                                          # central moments — to round-off
-    @test H._sample_central_moment(merged, p) ≈ H._sample_central_moment(full, p) rtol = 1e-8 atol = 1e-10
+    @test GBGStreamingStatistics.Expectations._sample_central_moment(merged, p) ≈ GBGStreamingStatistics.Expectations._sample_central_moment(full, p) rtol = 1e-8 atol = 1e-10
   end
 
   # merging an empty histogram is the identity
   before = copy(full.counts)
-  before_var = H._sample_variance(full)
+  before_var = GBGStreamingStatistics.Expectations._sample_variance(full)
   merge!(full, mk())
   @test full.counts == before
-  @test H._sample_variance(full) ≈ before_var
+  @test GBGStreamingStatistics.Expectations._sample_variance(full) ≈ before_var
 
   # incompatible summaries are rejected
   @test_throws ArgumentError merge!(Histogram1D(-8.0, 8.0, 800), Histogram1D(-7.0, 8.0, 800))

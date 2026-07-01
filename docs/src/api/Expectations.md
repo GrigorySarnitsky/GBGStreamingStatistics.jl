@@ -13,3 +13,15 @@ expectation
 expectation_standard_error
 pushforward_density
 ```
+
+## Recovered moments
+
+The global marginal moments — the ``g = x^p`` case — recovered post hoc from the power-sums by the shift
+formula (exact), extending `Statistics`.
+
+```@docs
+mean(::Histogram1D)
+var(::Histogram1D)
+std(::Histogram1D)
+central_moment
+```
