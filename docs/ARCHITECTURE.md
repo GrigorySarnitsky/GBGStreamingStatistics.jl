@@ -116,28 +116,14 @@ is **not** a cone homomorphism — the estimand-agnostic-accumulation / post-hoc
 pooling must happen on the cone (linear, mergeable), and the degree-zero readout must stay post hoc. That
 is *why* "no reruns" forces the smoothing post hoc.
 
-The lens also fixes the shape of the estimators. The universal object is the **summary-as-measure**; every
-estimand is a **degree-zero readout** of it, and the readouts fall into **two families, each with one
-shared code atom**:
-
-- **Kernel-weighting** — the *local* / smoothing readouts. A query point ``x``, a bandwidth ``h``, and a
-  kernel define the per-bin weights ``w_j`` through the single `Kernels._kernel_weight` atom (symmetric
-  ``(1/h)K((c_j-x)/h)``, or asymmetric ``K(c_j; x, h)`` — its own normalized density on a bounded support);
-  the readouts consume them: a **count sum** (the marginal density), a **Nadaraya–Watson / local-polynomial
-  ratio** returning the jet ``(\beta_0, \beta_1, \dots)`` (the `conditional_mean` is its ``\beta_0``; the
-  conditional density a ratio of two such smoothings; the response-aware local bandwidth ``h^\star(x)`` a
-  higher jet component ``\beta_2``). `local_fit` is the jet readout built on the atom; an asymmetric kernel
-  is degree-0 (it has no jet).
-- **Power-sum quadrature** — the *global* / moment readouts. A smooth functional ``\mathbb{E}[g(X)]`` is the
-  Taylor contraction ``\tfrac1n \sum_j \sum_p g^{(p)}(c_j)/p!\, S_p^{(j)}`` of the stored power-sums — exact
-  for polynomials up to the stored order (the `mean` / `var` / `central_moment` recovery), ``O(\Delta^{p+1})``
-  for general smooth ``g``. No kernel, no query point.
-
-The package's one nonlinearity — the density's log link, and normalization — lives in the readout, exactly
-where the cone homomorphism already breaks. The shared code atoms are `Kernels._kernel_weight` (with
-`LocalPolynomial.local_fit` the jet readout on it) and the shift/Taylor contraction of the ``S_p`` (§11);
-`local_fit` is the kernel-weighting family's primitive, **not** the universal one — ``\mathbb{E}[g(X)]`` is
-a readout with no jet at all.
+The lens also fixes the shape of the estimators: the universal object is the **summary-as-measure**, and
+every estimand is a **degree-zero readout** of it that falls into one of **two families, each with one
+shared code atom** — **kernel-weighting** (the *local* / smoothing readouts, through the
+`Kernels._kernel_weight` atom, with `LocalPolynomial.local_fit` the jet readout on it) and **power-sum
+quadrature** (the *global* / moment readouts, the Taylor contraction of the stored ``S_p``). §4.A and §4.B
+exposit the two families. `local_fit` is the kernel-weighting family's primitive, **not** the universal
+one — ``\mathbb{E}[g(X)]`` is a readout with no jet at all — and the package's one nonlinearity (the
+density's log link and normalization) lives in the readout, exactly where the cone homomorphism breaks.
 
 ### Why a fine histogram is the canonical ``T`` (and the honest caveat)
 
@@ -207,37 +193,17 @@ Following PF's mathematics-first naming:
 
 ### Documentation policy — **estimand first, estimator second**
 
-This is the user's explicit requirement and the exact mirror of PF's *"physical-space meaning
-first — even for spectral-representation operations."* In PF, because a field is a real object and
-spectral is only a representation, a docstring must state what the operation does to the real object
-in physical space — with the formula — before the spectral form it actually computes. Here, because
-**every operation estimates a population quantity from data**:
+The mirror of PF's *physical-meaning-first* rule. Because **every operation estimates a population
+quantity from data**:
 
-> A docstring (and every doc-page entry) for an estimator must **state the estimand — the
-> population quantity, in standard probability notation, with its defining formula — *before* the
-> estimator** that approximates it from the accumulated summary.
+> A docstring (and every doc-page entry) for an estimator **states the estimand — the population
+> quantity, in standard probability notation, with its defining formula — *before* the estimator**
+> that approximates it from the accumulated summary.
 
-`conditional_mean` is the intended reference implementation. It must lead with the estimand
-```math
-m(x) \;=\; \mathbb{E}[Y \mid X = x] \;=\; \int y\, f_{Y\mid X}(y \mid x)\,\mathrm{d}y
-```
-— named as the ``L^2`` projection of ``Y`` onto ``\sigma(X)``, the regression function — and *only then*
-give the local-linear estimator ``\hat m_h(x)`` computed from the per-bin power-sums. State the
-estimand whenever a clean population definition exists; when an object is intrinsically
-finite-sample (a bandwidth selector, a `merge!`), say so plainly rather than forcing a population
-form — the analog of PF allowing "this is the symbol of ``-\nabla^2``, not a kernel" when no clean
-physical form exists.
-
-As in PF, the symbol is **bound to the code on first mention**: `density` ``\equiv f_X``,
-`conditional_mean` ``\equiv m(x)``, `conditional_variance` ``\equiv \sigma^2(x)``, `transition_density`
-``\equiv p_\tau(y\mid x)``.
-
-**Correctness is its own check** (PF's separate-from-formatting rule). Verify the estimator is
-actually **consistent for the stated estimand** under the stated assumptions, and that **every
-normalization is exact**: the ``1/n``, the ``1/(nh)``, ``\int K = 1``, the kernel moments
-``\mu_2(K) = \int u^2 K(u)\,\mathrm{d}u`` and roughness ``R(K) = \int K^2``, the bias/variance
-constants. A stray ``1/h`` or a kernel-moment factor is the easy slip here — the statistics analog of
-PF's stray ``1/N`` or Parseval factor.
+When an object is intrinsically finite-sample (a bandwidth selector, a `merge!`), say so plainly rather
+than forcing a population form. The full convention — the `conditional_mean` reference example, the
+symbol-binding, and the separate correctness/normalization check — lives with the documentation
+conventions (§7).
 
 ---
 
@@ -357,16 +323,12 @@ The local / smoothing readouts: each a degree-zero readout of the kernel-weighte
 from counts ``n_j`` at the within-bin **centroid** ``\ell_j = c_j + S_1^{(j)}/n_j`` (`binning = :linear`,
 the default — matching the bin's first moment, so the discretization is ``O(\Delta^2)`` in the bin width
 ``\Delta``; ``\ell_j = c_j`` is `binning = :simple`, ``O(\Delta)``), the centroid free from the stored
-``S_1``. Bandwidth from §4.5; kernel pluggable (`gaussian_kernel` default; `epanechnikov_kernel`, the
-MSE-optimal ``\tfrac34(1-u^2)``, wants a matched ``h \approx 2.21\times`` the Gaussian's). Tail and shape
-options, all post-hoc on the one summary: the **adaptive** variable bandwidth (`adaptive`; Abramson
-``h_j \propto \tilde f(c_j)^{-1/2}``, cutting tail *variance*), the **local-log-polynomial** (`degree = d`;
-fit ``\log f`` by a binned local-Poisson likelihood — degree 1 exact for exponential tails, 2 for Gaussians
-— cutting tail *bias*), a **bounded support** (`bounds`, the Jones-1993 renormalization, or an
-**asymmetric** `gamma_kernel` / `beta_kernel`, Chen 1999/2000, boundary-bias-free by construction), a
-**parametric start** (`start`; Hjort & Glad 1995, a moment-fitted model times a KDE of its correction
-``f_X/p`` — bias-reducing where the model fits), and exact `normalize`; `density_standard_error` is the
-pointwise ``\sqrt{R(K)\,f_X/(nh) - f_X^2/n}`` band. Caveats: the fixed range ``[\texttt{lower}, \texttt{upper})``
+``S_1``. Bandwidth from §4.5; the kernel is pluggable. The tail and shape refinements are all **post-hoc on the one
+summary** and compose freely — the **adaptive** variable bandwidth (cutting tail *variance*), the
+**local-log-polynomial** `degree` (cutting tail *bias*), a **bounded support** (`bounds`, or an asymmetric
+boundary kernel), a **parametric start**, and exact `normalize` — with `density_standard_error` the
+pointwise variability band; `FORMALIZATION.md` and the API page carry each one's estimand and constants.
+Caveats: the fixed range ``[\texttt{lower}, \texttt{upper})``
 drops events beyond it (set it ``\approx \pm 10\text{–}15\sigma`` wide), and uniform bins under-resolve
 power-law tails (the variable bandwidth is the preferred fix — it stays post-hoc, mergeable, and
 estimand-agnostic, which non-uniform bins would not).
@@ -387,22 +349,13 @@ local fit of the squared residuals ``\widehat{\mathbb E}[(Y-\hat m)^2\mid x]``, 
 curved-``\mathbb E[Y^2\mid x]`` smoothing bias the `:plugin` ``\hat{\mathbb E}[Y^2\mid x] - \hat m^2``
 carries). A one-step robust local M-estimator for heavy-tailed channels (Fan & Jiang 2000) is forthcoming.
 
-**The general reader** `conditional_expectation` ``\equiv \mathbb{E}[g(Y)\mid x]`` for a smooth ``g``
-subsumes both: its response is the per-``X``-column **``y``-quadrature** of ``g`` (the order-2
-``Y``-power-sums contracted against ``g``'s local coefficients — the §4.B atom), regressed in ``x`` by the
-same `local_fit`. So it **composes the two atoms** — kernel-weighting in ``x`` after power-sum quadrature
-in ``y`` — with ``m(x) = \mathbb{E}[Y\mid x]`` its ``g = \mathrm{identity}`` case (`conditional_mean` folded
-in exactly) and the `:plugin` variance its ``g = y,\,y^2`` combination. It is exact for ``g`` of degree
-``\le 2`` in ``y`` and ``O(\Delta_y^2)`` for a general ``g`` (the fixed order-2 joint summary). The
-**conditional pushforward** `conditional_pushforward_density` ``\equiv f_{g(Y)\mid X}(z\mid x)`` — the
-density of the transformed response — is then one `conditional_expectation` of the composed kernel,
-``\hat{\mathbb E}[K_{h_z}(g(Y)-z)\mid x]`` (no ``g^{-1}`` / Jacobian; a symmetric ``K_z`` integrates to 1);
-at ``g = \mathrm{identity}``, `degree = 0` it coincides with the double-kernel §4.3 `conditional_density`.
-The **standard error** `conditional_expectation_standard_error` ``= \sqrt{\ell(x)\,\mathrm{Var}(g(Y)\mid
-x)}`` completes the reader: the local-regression **leverage** ``\ell(x) = \sum_j N_j w_j^2`` (a
-`LocalPolynomial._leverage` readout off the design's plain **and squared-kernel** moments — the reference
-mechanism for every kernel-family SE) times the plug-in ``\mathrm{Var}(g(Y)\mid x)``. It is the conditional
-analog of the marginal `expectation_standard_error`, the global ``1/n`` leverage replaced by the local one.
+The general reader `conditional_expectation` ``\equiv \mathbb{E}[g(Y)\mid x]`` subsumes both — a
+per-``X``-column ``y``-quadrature of ``g`` (the §4.B atom) regressed in ``x`` by the same `local_fit`, so it
+joins the two families — with `conditional_mean` its ``g = \mathrm{identity}`` case and the **conditional
+pushforward density** `conditional_pushforward_density` its transformed-response reader (one
+`conditional_expectation` of a composed kernel, no ``g^{-1}``). Each carries a leverage-based
+`conditional_expectation_standard_error` ``= \sqrt{\ell(x)\,\mathrm{Var}(g(Y)\mid x)}``, the conditional
+analog of the marginal `expectation_standard_error`. `FORMALIZATION.md` pins the constants and rates.
 
 #### 4.3 Conditional and transition density
 
@@ -556,8 +509,12 @@ of lags; the consumer owns the scalar-correlation fast path.
 
 Mirrors PF; the deltas are noted.
 
-- **Estimand-first docstrings** (§2), self-contained pages, **rendered LaTeX in standard notation**,
-  every code object **bound to its math symbol** on first mention.
+- **Estimand-first docstrings** (§2) — state the estimand (the population quantity, in standard notation,
+  with its formula) before the estimator. `conditional_mean` is the reference: lead with
+  ``m(x) = \mathbb{E}[Y \mid X = x] = \int y\, f_{Y\mid X}(y\mid x)\,\mathrm{d}y`` (the ``L^2`` projection),
+  *then* the local-linear ``\hat m_h``. Self-contained pages, **rendered LaTeX in standard notation**, every
+  code object **bound to its math symbol** on first mention (`density` ``\equiv f_X``, `conditional_mean`
+  ``\equiv m(x)``, `transition_density` ``\equiv p_\tau(y\mid x)``).
 - **A `FORMALIZATION.md` analog.** PF records a typed statement per operation, expansion-checked
   against the code and **test-linked**. Here the typed entry states the **estimand**, the
   **estimator**, and the **consistency claim** — its bias and variance, e.g.
@@ -574,7 +531,10 @@ Mirrors PF; the deltas are noted.
   `allowscalar(false)`.
 - **A `check-docs` battery** — adapt PF's `.claude/commands/check-docs.md`: the same matrix of
   (Correct / Self-contained / Notation / Formatted / Current / Cited) × (every surface), with
-  *Correct* extended to **consistency and normalization of every estimator against its estimand**.
+  *Correct* extended to **consistency and normalization of every estimator against its estimand** — each
+  estimator consistent for its estimand, every normalization exact (the ``1/n``, ``1/(nh)``,
+  ``\int K = 1``, ``\mu_2(K)``, ``R(K)``); a stray ``1/h`` or kernel-moment factor is the easy slip,
+  separate from formatting.
 
 ---
 
