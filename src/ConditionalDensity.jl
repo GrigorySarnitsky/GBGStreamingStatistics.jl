@@ -3,10 +3,11 @@
 
 module ConditionalDensity
 
-using ..Histograms: Histogram2D, _xbincenter, _ybincenter
-using ..Kernels: gaussian_kernel, _kernel_weight, AsymmetricKernel
+using ..Histograms: Histogram2D, _xbincenter, _ybincenter, _total
+using ..Kernels: gaussian_kernel, _kernel_weight, AsymmetricKernel, _quad
 
-export conditional_density, transition_density
+export conditional_density, conditional_density_standard_error, conditional_density_with_standard_error,
+       transition_density, transition_density_standard_error, transition_density_with_standard_error
 
 
 _check_bandwidths(hx::Real, hy::Real) =
@@ -197,5 +198,147 @@ transition_density(summary::Histogram2D, x::Real, y; hx::Real, hy::Real,
                    kernelx = gaussian_kernel, kernely = gaussian_kernel, normalize::Bool = false) =
   conditional_density(summary, x, y; hx = hx, hy = hy, kernelx = kernelx, kernely = kernely,
                       normalize = normalize)
+
+
+# The double-kernel variance R(K₁)R(K₂)f/(n h₁ h₂ f_X) is for symmetric (translation) kernels; the
+# asymmetric gamma/beta kernels have a different variance structure — a recorded gap, as for the marginal
+# density SE.
+function _check_cd_se(kernelx, kernely)
+  (kernelx isa AsymmetricKernel || kernely isa AsymmetricKernel) && throw(ArgumentError(
+    "the conditional-density standard error is for symmetric kernels; the asymmetric gamma/beta-kernel variance is not supported"))
+end
+
+
+# The conditional-density estimate and its pointwise standard error at (x, y) from the pre-reduced X-profile
+# (P, D): the two-term double-kernel variance R(K₁)R(K₂)·f̂/(n h₁ h₂ f̂_X(x)) − f̂²/n, with n f̂_X(x) = D the
+# X-window denominator `_y_profile` already forms (Hyndman, Bashtannyk & Grunwald 1996; the −f̂²/n finite-
+# sample term is the double-kernel analog of the marginal Wand–Jones correction), so
+# SE = √(R(K₁)R(K₂)·f̂/(h₁ h₂ D) − f̂²/n). Both NaN where no data is local to x (D = 0). Shared by the SE
+# reader and the paired value-plus-error reader, so the two agree by construction.
+function _cd_value_and_se(summary::Histogram2D, P, D, y::Real, hx::Real, hy::Real, kernelx, kernely)
+  f = _density_at(summary, P, D, y, hy, kernely)
+  isfinite(f) || return (f, oftype(f, NaN))
+  roughness = _quad(u -> kernelx(u)^2) * _quad(u -> kernely(u)^2)   # R(K₁)·R(K₂)
+  fnn = max(f, 0.0)
+  variance = roughness * fnn / (hx * hy * D) - fnn^2 / _total(summary)
+  return (f, sqrt(max(variance, 0.0)))
+end
+
+
+"""
+    conditional_density_standard_error(summary::Histogram2D, x, y;
+                                       hx, hy, kernelx = gaussian_kernel,
+                                       kernely = gaussian_kernel)   # ≡ SE[f̂(y∣x)]
+
+**Estimand.** The pointwise standard error of the conditional-density estimator
+[`conditional_density`](@ref GBGStreamingStatistics.ConditionalDensity.conditional_density),
+``\\mathrm{SE}(y\\mid x) = \\sqrt{\\operatorname{Var}\\hat f(y\\mid x)}`` with the double-kernel asymptotic
+variance
+
+```math
+\\operatorname{Var}\\hat f(y\\mid x) \\;\\approx\\;
+  \\frac{R(K_1)\\,R(K_2)\\,f_{Y\\mid X}(y\\mid x)}{n\\,h_1 h_2\\,f_X(x)}
+  - \\frac{f_{Y\\mid X}(y\\mid x)^2}{n},
+  \\qquad R(K) = \\int K^2,
+```
+
+``f_X`` the marginal density of the conditioning variable ``X`` (the ``-f^2/n`` term the double-kernel
+analog of the marginal Wand–Jones correction).
+
+**Estimator.** The two-term ``\\sqrt{R(K_1)R(K_2)\\,\\hat f(y\\mid x)/(h_1 h_2\\,D) - \\hat f(y\\mid x)^2/n}``
+from the recovered conditional
+density ``\\hat f(y\\mid x)``, the conditioning bandwidths ``h_1 =`` `hx` / ``h_2 =`` `hy`, the kernel
+roughnesses ``R(K_1)``, ``R(K_2)`` (by quadrature), and the **``x``-window denominator**
+``D = \\sum_j N_j K_{h_1}(c^x_j - x) = n\\,\\hat f_X(x)`` — the very sum
+[`conditional_density`](@ref GBGStreamingStatistics.ConditionalDensity.conditional_density) forms to
+normalize its profile, so ``n\\,\\hat f_X(x)`` costs nothing extra. It is the two-dimensional analog of the
+marginal [`density_standard_error`](@ref GBGStreamingStatistics.MarginalDensity.density_standard_error),
+with the ``x``-window effective sample size ``n h_1 \\hat f_X(x)`` in place of ``n``; the ``z``-band
+``\\hat f(y\\mid x) \\pm z\\,\\mathrm{SE}`` covers ``f_{Y\\mid X}`` where the ``O(h^2)`` smoothing bias is
+small. Symmetric kernels only (the asymmetric-`kernely` variance is a recorded gap). `NaN` where no data is
+local to ``x``.
+
+Arguments: as for [`conditional_density`](@ref
+GBGStreamingStatistics.ConditionalDensity.conditional_density) — `summary`, `x`, `y`; `hx`, `hy`,
+`kernelx`, `kernely` (symmetric).
+
+Reference: R. J. Hyndman, D. M. Bashtannyk & G. K. Grunwald (1996), [*Estimating and visualizing
+conditional densities*](https://doi.org/10.1080/10618600.1996.10474715), J. Comput. Graph. Statist. 5(4).
+"""
+function conditional_density_standard_error(summary::Histogram2D, x::Real, y::Real; hx::Real, hy::Real,
+                                            kernelx = gaussian_kernel, kernely = gaussian_kernel)
+  _check_bandwidths(hx, hy)
+  _check_cd_se(kernelx, kernely)
+  P, D = _y_profile(summary, x, hx, kernelx)
+  return _cd_value_and_se(summary, P, D, y, hx, hy, kernelx, kernely)[2]
+end
+
+function conditional_density_standard_error(summary::Histogram2D, x::Real, ys::AbstractVector; hx::Real,
+                                            hy::Real, kernelx = gaussian_kernel, kernely = gaussian_kernel)
+  _check_bandwidths(hx, hy)
+  _check_cd_se(kernelx, kernely)
+  P, D = _y_profile(summary, x, hx, kernelx)
+  return [_cd_value_and_se(summary, P, D, y, hx, hy, kernelx, kernely)[2] for y in ys]
+end
+
+
+"""
+    conditional_density_with_standard_error(summary::Histogram2D, x, y;
+                                            hx, hy, kernelx = gaussian_kernel,
+                                            kernely = gaussian_kernel)
+
+The estimate and its standard error from one ``x``-profile reduction — the `NamedTuple`
+``(\\texttt{value}, \\texttt{standard\\_error})``, with `value` the
+[`conditional_density`](@ref GBGStreamingStatistics.ConditionalDensity.conditional_density)
+``\\hat f(y\\mid x)`` and `standard_error` its
+[`conditional_density_standard_error`](@ref GBGStreamingStatistics.ConditionalDensity.conditional_density_standard_error).
+They share the one profile, so they describe the same estimator by construction. For a vector `y`, returns
+a `NamedTuple` of vectors. Symmetric kernels; arguments as for
+[`conditional_density`](@ref GBGStreamingStatistics.ConditionalDensity.conditional_density).
+"""
+function conditional_density_with_standard_error(summary::Histogram2D, x::Real, y::Real; hx::Real, hy::Real,
+                                                 kernelx = gaussian_kernel, kernely = gaussian_kernel)
+  _check_bandwidths(hx, hy)
+  _check_cd_se(kernelx, kernely)
+  P, D = _y_profile(summary, x, hx, kernelx)
+  v, se = _cd_value_and_se(summary, P, D, y, hx, hy, kernelx, kernely)
+  return (value = v, standard_error = se)
+end
+
+function conditional_density_with_standard_error(summary::Histogram2D, x::Real, ys::AbstractVector; hx::Real,
+                                                 hy::Real, kernelx = gaussian_kernel, kernely = gaussian_kernel)
+  _check_bandwidths(hx, hy)
+  _check_cd_se(kernelx, kernely)
+  P, D = _y_profile(summary, x, hx, kernelx)
+  vses = [_cd_value_and_se(summary, P, D, y, hx, hy, kernelx, kernely) for y in ys]
+  return (value = [vs[1] for vs in vses], standard_error = [vs[2] for vs in vses])
+end
+
+
+"""
+    transition_density_standard_error(summary::Histogram2D, x, y;
+                                      hx, hy, kernelx, kernely)
+
+The standard error of [`transition_density`](@ref GBGStreamingStatistics.ConditionalDensity.transition_density)
+— identical to [`conditional_density_standard_error`](@ref GBGStreamingStatistics.ConditionalDensity.conditional_density_standard_error)
+on the per-lag joint histogram (the name marks the two-time reading), paired with the estimate by
+[`transition_density_with_standard_error`](@ref GBGStreamingStatistics.ConditionalDensity.transition_density_with_standard_error).
+"""
+transition_density_standard_error(summary::Histogram2D, x::Real, y; hx::Real, hy::Real,
+                                  kernelx = gaussian_kernel, kernely = gaussian_kernel) =
+  conditional_density_standard_error(summary, x, y; hx = hx, hy = hy, kernelx = kernelx, kernely = kernely)
+
+
+"""
+    transition_density_with_standard_error(summary::Histogram2D, x, y;
+                                           hx, hy, kernelx, kernely)
+
+[`transition_density`](@ref GBGStreamingStatistics.ConditionalDensity.transition_density) and its standard
+error from one pass (the `(value, standard_error)` `NamedTuple`) — the two-time reading of
+[`conditional_density_with_standard_error`](@ref GBGStreamingStatistics.ConditionalDensity.conditional_density_with_standard_error).
+"""
+transition_density_with_standard_error(summary::Histogram2D, x::Real, y; hx::Real, hy::Real,
+                                       kernelx = gaussian_kernel, kernely = gaussian_kernel) =
+  conditional_density_with_standard_error(summary, x, y; hx = hx, hy = hy, kernelx = kernelx, kernely = kernely)
 
 end # module ConditionalDensity

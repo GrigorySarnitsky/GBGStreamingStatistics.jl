@@ -110,7 +110,11 @@ estimands.
 - `src/ConditionalDensity.jl` — §4.3 `conditional_density` ``\equiv f_{Y\mid X}``,
   `transition_density` ``\equiv p_\tau(y\mid x)`` (binned double-kernel, Rosenblatt) — a separate
   `kernelx` / `kernely`, with an **asymmetric** `kernely` (`gamma_kernel` / `beta_kernel`) for a
-  bounded/positive response and `normalize` for exact ``\int\hat f\,\mathrm dy = 1``.
+  bounded/positive response and `normalize` for exact ``\int\hat f\,\mathrm dy = 1`` — each with its
+  pointwise `conditional_density_standard_error` (the two-term double-kernel band
+  ``\sqrt{R(K_1)R(K_2)\hat f/(h_1 h_2 D) - \hat f^2/n}``, ``D = n\hat f_X(x)`` the estimator's own
+  denominator; symmetric-kernel, the asymmetric-`kernely` variance a recorded gap) and the paired
+  `conditional_density_with_standard_error`, `transition_density` aliased.
 - `src/Bandwidth.jl` — §4.5 `bandwidth`: for the marginal (`Histogram1D`) the **kernel- and degree-aware
   normal-reference rule** (the default, Silverman the Gaussian/degree-0 case;
   ``h = C(K,d)\,\hat\sigma\,n^{-1/(2p+1)}``), the data-driven **Sheather–Jones** plug-ins (`rule = :sj`
@@ -440,7 +444,11 @@ Mechanical bar:
    `kernely` (the surviving ``1/h_2`` gives ``\int \hat f\,\mathrm dy = 1`` exactly for a symmetric
    `kernely`). Supplied bandwidths `hx`, `hy`; for a **bounded/positive response** (a droplet radius as
    ``Y``) an **asymmetric** `kernely` (`gamma_kernel` / `beta_kernel`) is boundary-bias-free in ``y``,
-   with `normalize = true` for an exact integral. Tested: the
+   with `normalize = true` for an exact integral. Each carries its pointwise **standard error**
+   `conditional_density_standard_error` / `conditional_density_with_standard_error` (the two-term
+   double-kernel variance ``R(K_1)R(K_2)\hat f/(n h_1 h_2 f_X) - \hat f^2/n``, Hyndman–Bashtannyk–Grunwald
+   1996 — ``n\hat f_X`` free from the estimator's denominator; `transition_density` aliased), MC-calibrated
+   against the bivariate-Gaussian spread. Tested: the
    bivariate-Gaussian conditional ``N(\rho x, 1-\rho^2)``
    (normalization + pointwise) and the **Ornstein–Uhlenbeck** transition density
    ``N(x e^{-\theta\tau}, s^2(1-e^{-2\theta\tau}))``; scalar/vector forms, `transition_density`
@@ -518,13 +526,11 @@ Mechanical bar:
 **Next, in dependency order:**
 
 1. **Standard errors for the remaining estimators** — closing the *every estimator ships a standard error*
-   requirement (the Definition of done and `docs/ARCHITECTURE.md` §7), in increasing difficulty:
-   `conditional_density_standard_error` (covering `transition_density`) — the double-kernel pointwise
-   variance ``R(K_1)R(K_2)\\hat f(y\\mid x)/(n h_1 h_2 \\hat f_X(x))`` (Hyndman, Bashtannyk & Grunwald 1996;
-   ``\\hat f_X(x)`` is the estimator's own denominator, so it is free), symmetric-kernel — the
-   asymmetric-`kernely` case a recorded sub-gap as for `density_standard_error`; `pushforward_density` and
-   `conditional_pushforward_density` standard errors — nearly free, the `expectation` /
-   `conditional_expectation` SE of the composed kernel ``K_h \\circ g``; and `conditional_variance` — the
+   requirement (the Definition of done and `docs/ARCHITECTURE.md` §7), in increasing difficulty (the
+   double-kernel `conditional_density_standard_error`, covering `transition_density`, is **done** — Done 8):
+   `pushforward_density` and `conditional_pushforward_density` standard errors — nearly free, the
+   `expectation` / `conditional_expectation` SE of the composed kernel ``K_h \\circ g``; and
+   `conditional_variance` — the
    hard one, its ``\\mu_4``-based SE needs the 4th conditional moment the order-2 `Histogram2D` does not
    store (waits on a `Histogram2D` order-raise or a residual-based approximation). Each with its paired
    `*_with_standard_error` and the full `check_standard_error` contract.

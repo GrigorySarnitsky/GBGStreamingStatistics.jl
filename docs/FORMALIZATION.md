@@ -398,6 +398,14 @@ recorded in `ARCHITECTURE.md` §4 meanwhile.
   with fitted log–log slope ``\approx -2/3`` (reaching the 2-D asymptotic regime needs ``n \gtrsim 10^5``,
   so the n-range starts higher than the 1-D density test).
 
+
+## Conditional density standard error (§4.3) — `conditional_density_standard_error`, `conditional_density_with_standard_error`
+
+- **Estimand.** the pointwise standard error of ``\hat f(y\mid x)``, ``\mathrm{SE}(y\mid x) = \sqrt{\operatorname{Var}\hat f(y\mid x)}`` with the two-term double-kernel variance ``\operatorname{Var}\hat f(y\mid x) \approx R(K_1)R(K_2) f_{Y\mid X}(y\mid x)/(n h_1 h_2 f_X(x)) - f_{Y\mid X}(y\mid x)^2/n`` (Hyndman, Bashtannyk & Grunwald 1996; the ``-f^2/n`` term the double-kernel analog of the marginal Wand–Jones correction).
+- **Estimator.** ``\sqrt{R(K_1)R(K_2)\,\hat f(y\mid x)/(h_1 h_2 D) - \hat f(y\mid x)^2/n}`` from the recovered ``\hat f(y\mid x)``, the roughnesses ``R(K) = \int K^2`` (by quadrature), and the ``x``-window denominator ``D = \sum_j N_j K_{h_1}(c^x_j - x) = n\,\hat f_X(x)`` the estimator already forms — so ``n\,\hat f_X(x)`` is free. It is the two-dimensional analog of `density_standard_error`, the ``x``-window effective sample size ``n h_1 \hat f_X(x)`` replacing ``n``. `transition_density_standard_error` is the same on a lag-``\tau`` joint; `conditional_density_with_standard_error` returns the ``(\texttt{value}, \texttt{standard\_error})`` `NamedTuple` from one profile. Symmetric kernels (the asymmetric-``K_2`` variance a recorded gap).
+- **Consistency claim.** it estimates the leading double-kernel sampling variance (not the ``O(h^2)`` smoothing bias); the two-term form matches the finite-sample spread, and the relative error ``\mathrm{SE}/\hat f`` is ``O\bigl((n h_1 h_2)^{-1/2}\bigr)`` — the 2-D effective sample size.
+- **Test.** `test/conditionaldensity.jl` — the SE equals the two-term closed form (with the true ``f``, ``f_X``) to ``6\%``; a **Monte-Carlo** check (predicted SE ``=`` the empirical spread of ``\hat f(0\mid 0)`` across independent datasets to ``20\%``); the exact ``n^{-1/2}`` copy-merge scaling and the asymptotic ``h_2^{-1/2}`` bandwidth scaling; the paired reader and the `transition_density` aliases match the separate calls; off-support `NaN`, and the asymmetric-kernel gap throws.
+
 ## Power-sum quadrature — expectation of a functional (§4.B) — `expectation`
 
 - **Estimand.** the expectation of a smooth functional of ``X``,

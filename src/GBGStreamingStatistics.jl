@@ -87,7 +87,11 @@ using .ConditionalExpectations:
 
 using .ConditionalDensity:
   conditional_density,
-  transition_density
+  conditional_density_standard_error,
+  conditional_density_with_standard_error,
+  transition_density,
+  transition_density_standard_error,
+  transition_density_with_standard_error
 
 
 using .Bandwidth:
@@ -138,7 +142,11 @@ export AbstractAccumulator,
        conditional_expectation_with_standard_error,
        conditional_pushforward_density,
        conditional_density,
+       conditional_density_standard_error,
+       conditional_density_with_standard_error,
        transition_density,
+       transition_density_standard_error,
+       transition_density_with_standard_error,
        bandwidth,
        expectation,
        expectation_standard_error,

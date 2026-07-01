@@ -1,6 +1,7 @@
 using Test
 using GBGStreamingStatistics
 using Random
+using Statistics
 include("testoracles.jl"); using .TestOracles
 include("testcontracts.jl"); using .TestContracts
 
@@ -93,6 +94,49 @@ include("testcontracts.jl"); using .TestContracts
     @test_throws ArgumentError conditional_density(g, 0.0, 0.0; hx = hx, hy = 0.0)
   end
 
+  @testset "conditional_density_standard_error (double-kernel variability band, §4.3)" begin
+    RK = 1 / (2 * sqrt(π))                                     # R(K) for the Gaussian
+    fX(x) = gaussian_pdf(x; mu = 0.0, sigma = 1.0)            # the true marginal of X ∼ N(0,1)
+    # oracle: the SE matches the two-term closed form √(R(K)²f(y|x)/(N hx hy f_X(x)) − f²/N) with the truth
+    for (x0, y0) in ((0.0, 0.0), (0.5, 0.3))
+      f = cond_pdf(y0, x0)
+      closed = sqrt(RK^2 * f / (N * hx * hy * fX(x0)) - f^2 / N)
+      @test conditional_density_standard_error(g, x0, y0; hx = hx, hy = hy) ≈ closed rtol = 0.06
+    end
+    # positivity, scalar == vector, and the exact n^{-1/2} copy-merge scaling
+    check_standard_error((s, y) -> conditional_density_standard_error(s, 0.0, y; hx = hx, hy = hy), g;
+                         points = [-0.3, 0.0, 0.3])
+    # h^{-1/2} scaling in the response bandwidth (asymptotic; leading term at small hy, smooth point)
+    check_se_bandwidth_scaling((s, y, hh) -> conditional_density_standard_error(s, 0.0, y; hx = hx, hy = hh),
+                               g, 0.0; h = 0.15, rtol = 0.12)
+    # paired reader: estimate and error match the separate calls exactly
+    r = conditional_density_with_standard_error(g, 0.0, 0.2; hx = hx, hy = hy)
+    @test r.value == conditional_density(g, 0.0, 0.2; hx = hx, hy = hy)
+    @test r.standard_error == conditional_density_standard_error(g, 0.0, 0.2; hx = hx, hy = hy)
+    rv = conditional_density_with_standard_error(g, 0.0, [-0.2, 0.0, 0.2]; hx = hx, hy = hy)
+    @test rv.standard_error == conditional_density_standard_error(g, 0.0, [-0.2, 0.0, 0.2]; hx = hx, hy = hy)
+    # transition-density aliases forward to the conditional readers
+    @test transition_density_standard_error(g, 0.0, 0.0; hx = hx, hy = hy) ==
+          conditional_density_standard_error(g, 0.0, 0.0; hx = hx, hy = hy)
+    @test transition_density_with_standard_error(g, 0.0, 0.0; hx = hx, hy = hy).standard_error ==
+          conditional_density_standard_error(g, 0.0, 0.0; hx = hx, hy = hy)
+    # off-support NaN; bad bandwidth and the asymmetric-kernel variance (a recorded gap) throw
+    @test isnan(conditional_density_standard_error(g, 100.0, 0.0; hx = hx, hy = hy))
+    @test_throws ArgumentError conditional_density_standard_error(g, 0.0, 0.0; hx = -1.0, hy = hy)
+    @test_throws ArgumentError conditional_density_standard_error(g, 0.0, 0.0; hx = hx, hy = hy, kernely = gamma_kernel)
+    @test_throws ArgumentError conditional_density_standard_error(g, 0.0, 0.0; hx = hx, hy = hy, kernelx = gamma_kernel)
+
+    # Monte-Carlo: the predicted SE matches the empirical spread of f̂(0|0) across independent datasets
+    Random.seed!(71); K = 30; per = 80_000
+    chunks = Histogram2D[]; ests = Float64[]
+    for _ in 1:K
+      Xk = randn(per); Yk = ρ .* Xk .+ sqrt(1 - ρ^2) .* randn(per)
+      s = Histogram2D(-6.0, 6.0, 240, -6.0, 6.0, 240; lag = 1); observe_pairs!(s, Xk, Yk)
+      push!(chunks, s); push!(ests, conditional_density(s, 0.0, 0.0; hx = hx, hy = hy))
+    end
+    @test conditional_density_standard_error(chunks[1], 0.0, 0.0; hx = hx, hy = hy) ≈ std(ests) rtol = 0.2
+  end
+
   # the universal query-point contract (scalar==vector over y, a functional of the merged summary),
   # applied by construction across a range of conditioning x — see test/testcontracts.jl
   half = N ÷ 2
@@ -103,5 +147,6 @@ include("testcontracts.jl"); using .TestContracts
   merge!(ga, gb)
   for x0 in (-0.5, 0.0, 0.5)
     check_point_estimator((s, y) -> conditional_density(s, x0, y; hx = hx, hy = hy), ga, g; points = [-0.3, 0.0, 0.3], rtol = 1e-9)
+    check_point_estimator((s, y) -> conditional_density_standard_error(s, x0, y; hx = hx, hy = hy), ga, g; points = [-0.3, 0.0, 0.3], rtol = 1e-9)
   end
 end

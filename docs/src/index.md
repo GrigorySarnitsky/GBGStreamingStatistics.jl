@@ -106,7 +106,7 @@ verbatim by every consumer) and an **estimator upper half** (the estimands):
   (local-polynomial regression in ``x`` of a ``y``-quadrature response).
 - [`ConditionalDensity`](api/ConditionalDensity.md): the conditional density `conditional_density`
   ``\equiv f_{Y\mid X}`` and two-time transition density `transition_density`
-  ``\equiv p_\tau(y\mid x)`` (double-kernel).
+  ``\equiv p_\tau(y\mid x)`` (double-kernel), each with its pointwise standard error and paired reader.
 - [`Bandwidth`](api/Bandwidth.md): bandwidth selection — the default kernel- and degree-aware
   normal-reference rule (Silverman the Gaussian/degree-0 case), plus data-driven plug-ins
   (e.g. Sheather–Jones, `rule = :sj`) and the joint-summary response-aware local plug-in ``h^\star(x)``

@@ -51,6 +51,8 @@ using GBGStreamingStatistics: Histograms, MarginalDensity, Bandwidth, Conditiona
   # the asymmetric-response path (gamma kernely + normalize) — its own specialization / branch
   @test_call target_modules = mods conditional_density(glag, 0.0, 0.0; hx = 0.5, hy = 0.5, kernely = gamma_kernel, normalize = true)
   @test_call target_modules = mods transition_density(glag, 0.0, 0.0; hx = 0.5, hy = 0.5)
+  @test_call target_modules = mods conditional_density_standard_error(glag, 0.0, 0.0; hx = 0.5, hy = 0.5)
+  @test_call target_modules = mods conditional_density_with_standard_error(glag, 0.0, 0.0; hx = 0.5, hy = 0.5)
 
   # the §4.B power-sum quadrature readouts — the `coeffs!` / test-function closures are the inference risk
   @test_call target_modules = mods expectation(h, cos)
