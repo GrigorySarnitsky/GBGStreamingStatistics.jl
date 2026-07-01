@@ -16,7 +16,7 @@ using ..LocalPolynomial: _hankel_solve
 using ..Kernels: gaussian_kernel, epanechnikov_kernel, _quad, _kernel_weight, AsymmetricKernel,
                  gamma_kernel, beta_kernel
 
-export density, density_standard_error,
+export density, density_standard_error, density_with_standard_error,
        ParametricStart, normal_start, lognormal_start, gamma_start, exponential_start, inverse_gaussian_start
 
 
@@ -609,26 +609,103 @@ function density(summary::Histogram1D, xs::AbstractVector; h = nothing,
 end
 
 
+# --- pointwise standard error (§4.1): SE(x) = √(f̂(x)) · scale, the KDE variability band ---
+# The boundary-restricted roughness R_a(x) = ∫_{[a,b]} K((x−u)/h)²/h du (the ∫K² analog of `_kernel_mass`'s
+# a(x)): the CDF of K² up to (x−a)/h minus up to (x−b)/h. Interior / no `bounds` ⇒ the full R(K) = ∫K².
+_kernel_sq_cdf(kernel, t) = _quad(s -> s ≤ t ? kernel(s)^2 : 0.0)
+
+function _kernel_sq_mass(kernel, x, h, a, b)
+  full = _quad(s -> kernel(s)^2)
+  hi = isfinite(a) ? _kernel_sq_cdf(kernel, (x - a) / h) : full
+  lo = isfinite(b) ? _kernel_sq_cdf(kernel, (x - b) / h) : 0.0
+  return hi - lo
+end
+
+
+# The variability band is for a symmetric kernel at degree 0/1 (the asymmetric-kernel variance and
+# degree ≥ 2 are recorded coverage gaps).
+function _check_se(kernel, degree)
+  kernel isa AsymmetricKernel &&
+    throw(ArgumentError("the density variability band is for a symmetric kernel; the asymmetric gamma/beta-kernel variance is a coverage gap"))
+  (degree == 0 || degree == 1) ||
+    throw(ArgumentError("the density variability band is degree-0/1 (KDE); degree ≥ 2 is a coverage gap (got degree = $degree)"))
+end
+
+
+# The f̂-independent SE scale, so SE(x) = √(f̂(x)) · scale = √(R_eff(x)·f̂(x)/(n·h_eff(x)))/a(x):
+#   h_eff  the Abramson balloon bandwidth h(x) when `adaptive` (else h), so the variance uses the *local*
+#          bandwidth in the tail; R_eff, a(x)  the boundary-restricted roughness / kernel mass when `bounds`
+#          (else R(K), 1), the Jones renormalization's variance inflation near an edge. `start` leaves the
+#          leading variance unchanged (θ̂'s O(1/n) uncertainty is a documented omission), so needs nothing.
+function _se_scale(summary::Histogram1D, x, hh, kernel, adaptive, bounds, binning)
+  n = _total(summary)
+  heff = hh
+  if adaptive
+    counts = Array(summary.counts)
+    centers = _bin_locations(summary, counts, binning)
+    _, g = _abramson(counts, centers, n, hh, kernel)
+    pilot = _kde_h(counts, centers, n, x, hh, kernel)
+    heff = _balloon(hh, g, pilot, true)
+  end
+  slower, supper = bounds === nothing ? (-Inf, Inf) : (float(bounds[1]), float(bounds[2]))
+  Reff = _kernel_sq_mass(kernel, x, hh, slower, supper)
+  a = _kernel_mass(kernel, x, hh, slower, supper)
+  return sqrt(Reff / (n * heff)) / a
+end
+
+
+# SE(x) = √(max(Var, 0)), the finite-sample KDE variance Var = R_eff·f̂/(n·h_eff·a²) − f̂²/n: the leading
+# (nh)⁻¹ term (`_se_scale`²) minus the n⁻¹ term (Wand & Jones 1995) that keeps the band from over-widening
+# where f̂ is not small (the mode, the boundary), given the recovered f̂ = `fx`.
+function _se_from(summary::Histogram1D, x, fx, hh, kernel, adaptive, bounds, binning)
+  n = _total(summary)
+  s2 = _se_scale(summary, x, hh, kernel, adaptive, bounds, binning)^2   # R_eff / (n·h_eff·a²)
+  f = max(fx, 0.0)
+  return sqrt(max(s2 * f - f^2 / n, 0.0))
+end
+
+
 """
-    density_standard_error(summary::Histogram1D, x; h = nothing,
-                           kernel = gaussian_kernel, degree = 0)   # ≡ SE[f̂(x)]
+    density_standard_error(summary::Histogram1D, x;
+                           h = nothing, kernel = gaussian_kernel, degree = 0,
+                           adaptive = false, bounds = nothing, start = nothing,
+                           normalize = false, binning = :linear)   # ≡ SE[f̂(x)]
 
 **Estimand.** the pointwise standard error of the density estimator
 [`density`](@ref GBGStreamingStatistics.MarginalDensity.density) at ``x`` — ``\\mathrm{SE}(x) =
 \\sqrt{\\operatorname{Var}\\hat f_h(x)}`` with the kernel-density asymptotic variance
 
 ```math
-\\operatorname{Var}\\hat f_h(x) \\approx \\frac{R(K)\\,f_X(x)}{n h}, \\qquad R(K) = \\int K^2.
+\\operatorname{Var}\\hat f_h(x) \\approx \\frac{R(K)\\,f_X(x)}{n h} - \\frac{f_X(x)^2}{n}, \\qquad R(K) = \\int K^2.
 ```
 
-**Estimator.** ``\\sqrt{R(K)\\,\\hat f_h(x)/(n h)}`` from the recovered ``\\hat f_h(x)``, the count
-``n``, the bandwidth `h` (default the normal reference), and the roughness ``R(K) = \\int K^2`` of the
-smoothing `kernel` ``K`` — any with ``\\int K = 1``, default
+**Estimator.** ``\\sqrt{R(K)\\,\\hat f_h(x)/(n h) - \\hat f_h(x)^2/n}`` from the recovered ``\\hat f_h(x)``,
+the count ``n``, the bandwidth `h` (default the normal reference), and the roughness ``R(K) = \\int K^2`` of the
+smoothing `kernel` ``K`` — any symmetric ``\\int K = 1`` callable, default
 [`gaussian_kernel`](@ref GBGStreamingStatistics.Kernels.gaussian_kernel) — by quadrature. The
 pointwise **variability band** is ``\\hat f_h(x) \\pm z\\,\\mathrm{SE}(x)`` (``z = 1.96`` for 95\\%) — a
 band about ``\\mathbb{E}\\hat f_h``, so it covers ``f_X`` where the ``O(h^2)`` smoothing bias is small
-and narrows that coverage at a sharp mode or in a tail. `degree` 0/1 (the KDE variance; `degree` ``\\ge 2``
-and the variable bandwidth are a coverage gap); a vector of query points returns a vector.
+and narrows that coverage at a sharp mode or in a tail.
+
+**It tracks the estimator's options** — pass the *same* options you gave [`density`](@ref
+GBGStreamingStatistics.MarginalDensity.density) and the band is the variance of *that* estimate (or use
+[`density_with_standard_error`](@ref
+GBGStreamingStatistics.MarginalDensity.density_with_standard_error) to get the estimate and its band from
+one call). The variance is adjusted per option: `adaptive` replaces ``h`` by the **local** Abramson
+bandwidth ``h(x)`` (a wider window — hence smaller variance — in the tail; the sample-point pilot's own
+variability is an unmodelled higher-order term, so the band runs slightly narrow in the deep tail); `bounds` (Jones
+renormalization) replaces ``R(K)`` by the boundary-restricted roughness ``R_a(x) =
+\\int_{\\text{support}} K_h(x-u)^2\\,\\mathrm du`` and divides by the kernel mass ``a(x)`` inside the
+support, inflating the variance near an edge; a parametric `start` leaves the leading variance
+``R(K)\\hat f/(nh)`` unchanged (the fitted-parameter uncertainty is an ``O(1/n)`` omission). Restricted to
+`degree` 0/1 and a **symmetric** kernel (`degree` ``\\ge 2`` and the asymmetric gamma/beta-kernel variance
+are coverage gaps); a vector of query points returns a vector.
+
+Arguments: as for [`density`](@ref GBGStreamingStatistics.MarginalDensity.density) — `h`, `kernel`,
+`degree`, `adaptive`, `bounds`, `start`, `normalize`, `binning` — specifying the estimator whose standard
+error is returned.
+
+Reference: M. P. Wand & M. C. Jones (1995), [*Kernel Smoothing*](https://doi.org/10.1201/b14876), Chapman & Hall.
 
 ```jldoctest
 julia> h = Histogram1D(-6.0, 6.0, 600);
@@ -640,28 +717,84 @@ true
 ```
 """
 function density_standard_error(summary::Histogram1D, x::Real; h = nothing,
-                    kernel = gaussian_kernel, degree::Integer = 0, binning::Symbol = :linear)
-  (degree == 0 || degree == 1) ||
-    throw(ArgumentError("density_standard_error is a degree-0/1 (KDE) variability band; degree ≥ 2 is a coverage gap (got degree = $degree)"))
+                    kernel = gaussian_kernel, degree::Integer = 0, adaptive::Bool = false,
+                    bounds = nothing, start = nothing, normalize::Bool = false, binning::Symbol = :linear)
+  _check_se(kernel, degree)
   n = _total(summary)
   iszero(n) && return 0.0
   hh = h === nothing ? _normal_reference_h(summary, kernel, degree) : float(h)
   hh > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
-  fx = density(summary, x; h = hh, kernel = kernel, degree = degree, binning = binning)
-  return sqrt(_quad(u -> kernel(u)^2) * max(fx, 0.0) / (n * hh))
+  fx = density(summary, x; h = hh, kernel = kernel, degree = degree, adaptive = adaptive,
+               bounds = bounds, start = start, normalize = normalize, binning = binning)
+  return _se_from(summary, x, fx, hh, kernel, adaptive, bounds, binning)
 end
 
 function density_standard_error(summary::Histogram1D, xs::AbstractVector; h = nothing,
-                    kernel = gaussian_kernel, degree::Integer = 0, binning::Symbol = :linear)
-  (degree == 0 || degree == 1) ||
-    throw(ArgumentError("density_standard_error is a degree-0/1 (KDE) variability band; degree ≥ 2 is a coverage gap (got degree = $degree)"))
+                    kernel = gaussian_kernel, degree::Integer = 0, adaptive::Bool = false,
+                    bounds = nothing, start = nothing, normalize::Bool = false, binning::Symbol = :linear)
+  _check_se(kernel, degree)
   n = _total(summary)
   iszero(n) && return zeros(Float64, length(xs))
   hh = h === nothing ? _normal_reference_h(summary, kernel, degree) : float(h)
   hh > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
-  RK = _quad(u -> kernel(u)^2)
-  fxs = density(summary, xs; h = hh, kernel = kernel, degree = degree, binning = binning)
-  return [sqrt(RK * max(f, 0.0) / (n * hh)) for f in fxs]
+  fxs = density(summary, xs; h = hh, kernel = kernel, degree = degree, adaptive = adaptive,
+                bounds = bounds, start = start, normalize = normalize, binning = binning)
+  return [_se_from(summary, x, f, hh, kernel, adaptive, bounds, binning)
+          for (f, x) in zip(fxs, xs)]
+end
+
+
+"""
+    density_with_standard_error(summary::Histogram1D, x;
+                                h = nothing, kernel = gaussian_kernel, degree = 0,
+                                adaptive = false, bounds = nothing, start = nothing,
+                                normalize = false, binning = :linear)
+
+The [`density`](@ref GBGStreamingStatistics.MarginalDensity.density) estimate **and** its pointwise
+[`density_standard_error`](@ref GBGStreamingStatistics.MarginalDensity.density_standard_error), from a
+**single option specification** — so the estimate and its error describe the same estimator by
+construction (the estimate is computed once and reused). Returns the `NamedTuple`
+`(value = f̂(x), standard_error = SE(x))`; a vector `x` gives a `(value, standard_error)` of vectors. All
+options are exactly those of [`density`](@ref GBGStreamingStatistics.MarginalDensity.density); the standard
+error's estimand and per-option variance are documented at [`density_standard_error`](@ref
+GBGStreamingStatistics.MarginalDensity.density_standard_error).
+
+```jldoctest
+julia> h = Histogram1D(-6.0, 6.0, 600);
+
+julia> observe!(h, [-0.4, 0.1, 0.2, 0.9, 1.3]);
+
+julia> r = density_with_standard_error(h, 0.5); (r.value > 0, r.standard_error > 0)
+(true, true)
+```
+"""
+function density_with_standard_error(summary::Histogram1D, x::Real; h = nothing,
+                    kernel = gaussian_kernel, degree::Integer = 0, adaptive::Bool = false,
+                    bounds = nothing, start = nothing, normalize::Bool = false, binning::Symbol = :linear)
+  _check_se(kernel, degree)
+  n = _total(summary)
+  iszero(n) && return (value = 0.0, standard_error = 0.0)
+  hh = h === nothing ? _normal_reference_h(summary, kernel, degree) : float(h)
+  hh > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
+  fx = density(summary, x; h = hh, kernel = kernel, degree = degree, adaptive = adaptive,
+               bounds = bounds, start = start, normalize = normalize, binning = binning)
+  return (value = fx,
+          standard_error = _se_from(summary, x, fx, hh, kernel, adaptive, bounds, binning))
+end
+
+function density_with_standard_error(summary::Histogram1D, xs::AbstractVector; h = nothing,
+                    kernel = gaussian_kernel, degree::Integer = 0, adaptive::Bool = false,
+                    bounds = nothing, start = nothing, normalize::Bool = false, binning::Symbol = :linear)
+  _check_se(kernel, degree)
+  n = _total(summary)
+  iszero(n) && return (value = zeros(Float64, length(xs)), standard_error = zeros(Float64, length(xs)))
+  hh = h === nothing ? _normal_reference_h(summary, kernel, degree) : float(h)
+  hh > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
+  fxs = density(summary, xs; h = hh, kernel = kernel, degree = degree, adaptive = adaptive,
+                bounds = bounds, start = start, normalize = normalize, binning = binning)
+  ses = [_se_from(summary, x, f, hh, kernel, adaptive, bounds, binning)
+         for (f, x) in zip(fxs, xs)]
+  return (value = fxs, standard_error = ses)
 end
 
 end # module MarginalDensity

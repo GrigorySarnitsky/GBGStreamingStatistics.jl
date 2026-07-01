@@ -24,7 +24,7 @@ The package provides the mergeable accumulators and histogram summaries (`Abstra
 `observe!`, `observe_pairs!`, `merge!`, `scale!`, `bin_index`, `Histogram1D`, `Histogram2D` — the last
 two with a `count = Float64`
 cone variant for hyperstatistics / forgetting), the marginal density (`density` and its variability band
-`density_standard_error`, with `gaussian_kernel` / `epanechnikov_kernel`, the half-line `gamma_kernel` and bounded `beta_kernel`, and the parametric starts `normal_start` / `lognormal_start` / `gamma_start` / `exponential_start` / `inverse_gaussian_start` — both the asymmetric kernels and the starts extensible through the exported `AsymmetricKernel` / `ParametricStart` constructors), conditional expectations
+`density_standard_error` — and the paired `density_with_standard_error`, the estimate and its band from one option specification — with `gaussian_kernel` / `epanechnikov_kernel`, the half-line `gamma_kernel` and bounded `beta_kernel`, and the parametric starts `normal_start` / `lognormal_start` / `gamma_start` / `exponential_start` / `inverse_gaussian_start` — both the asymmetric kernels and the starts extensible through the exported `AsymmetricKernel` / `ParametricStart` constructors), conditional expectations
 (`conditional_mean`, `conditional_variance`, the general `conditional_expectation` of a response functional,
 its sampling `conditional_expectation_standard_error`, and its `conditional_pushforward_density`),
 conditional and transition densities
@@ -76,6 +76,7 @@ using .Kernels:
 using .MarginalDensity:
   density,
   density_standard_error,
+  density_with_standard_error,
   ParametricStart,
   normal_start,
   lognormal_start,
@@ -125,6 +126,7 @@ export AbstractAccumulator,
        central_moment,
        density,
        density_standard_error,
+       density_with_standard_error,
        gaussian_kernel,
        epanechnikov_kernel,
        AsymmetricKernel,

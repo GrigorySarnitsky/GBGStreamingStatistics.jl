@@ -110,7 +110,7 @@ argument errors) plus the convergence rate:
 | Estimator | Oracle | Scalar==vec | Merge | Off-support | Arg err | Rate |
 |---|---|---|---|---|---|---|
 | `density` | 6-PDF suite + Gaussian | yes | yes | n/a, defined everywhere | yes | yes, ``n^{-2p/(2p+1)}`` |
-| `density_standard_error` | exact SE + band coverage | yes | yes | n/a | yes | n/a, variability band |
+| `density_standard_error` / `density_with_standard_error` | two-term variance vs Monte-Carlo spread + band coverage; tracks `adaptive` / `bounds` / `start`; the paired estimate-plus-error consistency | yes | yes | n/a | yes | n/a, variability band |
 | `conditional_mean` / `conditional_variance` | bivariate-Gaussian (+ heteroscedastic curved-mean for Fan–Yao `conditional_variance`) | yes | yes | `NaN` | yes | yes, ``n^{-4/5}`` ISE |
 | `conditional_expectation` / `conditional_pushforward_density` | biv-Gaussian ``\mathbb{E}[\cos Y\mid x]`` + lognormal pushforward; the `conditional_mean` fold + degree-0 `conditional_density` coincidence | yes | yes | `NaN` | yes | inherits `conditional_mean` ``n^{-4/5}`` |
 | `conditional_expectation_standard_error` | leverage × noise-scale = Monte-Carlo sampling spread (biv-Gaussian) + leading-order closed form | yes | yes | `NaN` | yes | n/a, a standard error |

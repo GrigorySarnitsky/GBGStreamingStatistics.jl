@@ -134,10 +134,11 @@ end
   n = 400_000
   RK = 1 / (2 * sqrt(π))                                  # R(K) for the Gaussian
 
-  # the SE is exactly sqrt(R(K)·f̂/(n h))
+  # the SE is exactly the two-term KDE variance √(R(K)·f̂/(n h) − f̂²/n) (Wand & Jones)
   bw = bandwidth(hg)
   for x in (0.0, 1.0, 2.0)
-    @test density_standard_error(hg, x; h = bw) ≈ sqrt(RK * density(hg, x; h = bw) / (n * bw))  rtol = 1e-6
+    f = density(hg, x; h = bw)
+    @test density_standard_error(hg, x; h = bw) ≈ sqrt(RK * f / (n * bw) - f^2 / n)  rtol = 1e-6
   end
 
   # the 95% band f̂ ± 1.96·SE covers the truth across the interior (aggregate; bias dips it at mode/tail)
@@ -155,6 +156,47 @@ end
   @test density_standard_error(Histogram1D(-1.0, 1.0, 4), 0.0) == 0.0
   @test_throws ArgumentError density_standard_error(hg, 0.0; h = -1.0)
   @test_throws ArgumentError density_standard_error(hg, 0.0; degree = 2)
+end
+
+
+@testset "density_standard_error tracks the estimator's options + density_with_standard_error (§4.1)" begin
+  Random.seed!(41)
+  hg = Histogram1D(-8.0, 8.0, 800); observe!(hg, randn(200_000))
+  bw = 0.3
+
+  # adaptive: the wider local (balloon) bandwidth in the tail lowers the variance vs fixed-h
+  @test density_standard_error(hg, 2.0; h = bw, adaptive = true) < density_standard_error(hg, 2.0; h = bw)
+  @test isfinite(density_standard_error(hg, 0.0; h = bw, adaptive = true))
+
+  # start (Hjort–Glad): leading variance unchanged, finite and positive
+  @test density_standard_error(hg, 0.5; h = bw, start = normal_start) > 0
+
+  # the asymmetric-kernel variance is a recorded coverage gap
+  @test_throws ArgumentError density_standard_error(hg, 0.5; h = bw, kernel = gamma_kernel)
+
+  # bounds (Jones renormalization) inflates the variance at the edge vs the un-renormalized KDE there
+  he = Histogram1D(0.0, 12.0, 800); observe!(he, -log.(rand(200_000)))
+  @test density_standard_error(he, 0.1; h = 0.25, bounds = (0.0, Inf)) >
+        density_standard_error(he, 0.1; h = 0.25)
+
+  # density_with_standard_error: one option spec ⇒ estimate and error match the separate calls exactly
+  for x in (-1.0, 0.0, 1.3)
+    r = density_with_standard_error(hg, x; h = bw, degree = 1, adaptive = true)
+    @test r.value == density(hg, x; h = bw, degree = 1, adaptive = true)
+    @test r.standard_error == density_standard_error(hg, x; h = bw, degree = 1, adaptive = true)
+  end
+  rv = density_with_standard_error(hg, [-1.0, 0.0, 1.0]; h = bw)
+  @test rv.value == density(hg, [-1.0, 0.0, 1.0]; h = bw)
+  @test rv.standard_error == density_standard_error(hg, [-1.0, 0.0, 1.0]; h = bw)
+
+  # Monte-Carlo: the SE predicts the actual sampling spread of the estimate at the density peak
+  Random.seed!(51); K = 25; per = 40_000
+  summaries = Histogram1D[]; ests = Float64[]
+  for _ in 1:K
+    s = Histogram1D(-8.0, 8.0, 800); observe!(s, randn(per))
+    push!(summaries, s); push!(ests, density(s, 0.0; h = bw))
+  end
+  @test density_standard_error(summaries[1], 0.0; h = bw) ≈ std(ests) rtol = 0.2
 end
 
 @testset "boundary correction (bounds, §4.1)" begin

@@ -93,7 +93,8 @@ verbatim by every consumer) and an **estimator upper half** (the estimands):
   call over the binned KDE, the local-log-polynomial (`degree`), and the Abramson variable bandwidth
   (`adaptive`, for tails), the asymmetric `gamma_kernel` / `beta_kernel` for bounded/positive support,
   the parametric `start` (a moment-fitted model corrected by a KDE; Hjort & Glad 1995), and exact
-  `normalize` — plus `density_standard_error`, the pointwise variability band.
+  `normalize` — plus `density_standard_error`, the pointwise variability band (tracking those same
+  options), and `density_with_standard_error`, the estimate and its band from one option specification.
 - [`ConditionalExpectations`](api/ConditionalExpectations.md): the conditional expectation
   `conditional_expectation` ``\equiv \mathbb{E}[g(Y)\mid x]`` of a response functional, with the conditional
   mean `conditional_mean` ``\equiv m(x)`` and variance `conditional_variance` ``\equiv \sigma^2(x)`` as its
