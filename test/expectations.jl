@@ -104,6 +104,7 @@ end
         [pushforward_density(h, exp, y; h = 0.12) for y in (0.5, 1.0, 2.0)]
 
   @test_throws ArgumentError pushforward_density(h, exp, 1.0; h = -0.1)
+  @test_throws ArgumentError pushforward_density(h, exp, [0.5, 1.0]; h = -0.1)   # vector-method guard
 end
 
 

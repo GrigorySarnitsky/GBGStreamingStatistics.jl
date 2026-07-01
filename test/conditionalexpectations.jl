@@ -193,6 +193,7 @@ end
     @test conditional_pushforward_density(g, exp, x0, [0.8, 1.3]; hx = hx, hz = 0.18) ≈
           [conditional_pushforward_density(g, exp, x0, z; hx = hx, hz = 0.18) for z in (0.8, 1.3)]
     @test_throws ArgumentError conditional_pushforward_density(g, exp, x0, 1.0; hx = hx, hz = -0.1)
+    @test_throws ArgumentError conditional_pushforward_density(g, exp, x0, 1.0; hx = -1.0, hz = 0.2)
   end
 
   @testset "coincidence: pushforward(identity, degree = 0) ≈ conditional_density" begin

@@ -129,6 +129,7 @@ end
   @test density(Histogram1D(-1.0, 1.0, 4), 0.0) == 0.0                       # empty → 0
   @test_throws ArgumentError density(ha, 0.0; h = -1.0)                      # bad bandwidth
   @test_throws ArgumentError density(ha, 0.0; degree = -1)                   # bad degree
+  @test_throws ArgumentError density(ha, 0.0; binning = :bogus)              # bad binning symbol
 end
 
 @testset "density_standard_error (pointwise variability band, §4.1)" begin
@@ -176,6 +177,10 @@ end
 
   # the asymmetric-kernel variance is a recorded coverage gap
   @test_throws ArgumentError density_standard_error(hg, 0.5; h = bw, kernel = gamma_kernel)
+  # density_with_standard_error inherits the same guards
+  @test_throws ArgumentError density_with_standard_error(hg, 0.5; h = -1.0)
+  @test_throws ArgumentError density_with_standard_error(hg, 0.5; h = bw, degree = 2)
+  @test_throws ArgumentError density_with_standard_error(hg, 0.5; h = bw, kernel = gamma_kernel)
 
   # bounds (Jones renormalization) inflates the variance at the edge vs the un-renormalized KDE there
   he = Histogram1D(0.0, 12.0, 800); observe!(he, -log.(rand(200_000)))

@@ -182,6 +182,7 @@ end
   @test_throws ArgumentError bandwidth(he; rule = :aic, kernel = gamma_kernel)
   @test_throws ArgumentError bandwidth(he; rule = :plugin, kernel = gamma_kernel, degree = 1)
   @test_throws ArgumentError bandwidth(he; rule = :plugin)   # :plugin needs an asymmetric kernel
+  @test_throws ArgumentError bandwidth(he; kernel = gamma_kernel, degree = 1)   # asymmetric takes no degree
 end
 
 @testset "Marron–Wand claw — multimodal stress (the field's standard hard case, §4.5)" begin

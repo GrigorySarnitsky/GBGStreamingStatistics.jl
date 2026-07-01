@@ -87,10 +87,21 @@ check (the failure mode that once left `conditional_mean` without a mergeability
 3. **Functional of the merged summary** — `f`(merge) ``=`` `f`(accumulate-together) — mergeability.
 4. **Off-support sentinel** — `NaN` where the estimand is undefined off the data's support (the conditional
    estimators); a marginal density is defined everywhere and is exempt.
-5. **Argument-domain errors** — a non-positive bandwidth, and any rejected option combination, throws.
+5. **Argument-domain errors** — a non-positive bandwidth, and **every rejected option combination**, throws.
+   The guards are audited for completeness: each `throw(ArgumentError(…))` — the bad `degree` / `binning` /
+   `method` / `rule` symbol, the mutually-exclusive `start` / `adaptive` / `bounds` / asymmetric-kernel
+   combinations, the `degree ≥ 2` and asymmetric-kernel standard-error gaps — carries a `@test_throws`.
 
 Characteristics 2–4 are the `check_point_estimator` battery; 1 and 5 are per-estimator (the oracle, the
 `@test_throws`).
+
+**Not swept: the valid option space.** Every *option* is tested against an oracle (vary one, hold the rest
+at default), and the genuinely-**interacting** pairs are tested together (`adaptive`+`bounds` rewrite the
+same variance; `degree`×`kernel`) — but the full Cartesian product of valid option combinations is
+deliberately **not** exhausted. The options are largely orthogonal (different code paths), the exotic
+combinations have no analytic oracle (only a weak "finite" check), and ``N``-way coverage is a combinatorial
+explosion with diminishing returns past the pairwise level. The systematic-and-exhaustive effort goes into
+the *invalid* combinations (finite, high-value — characteristic 5), not the valid ones.
 
 **Estimand-specific** — layered on where the estimand demands it: **normalization** ``\int\hat f = 1`` (the
 densities), the **`transition_density` alias**, and the **convergence rate** (the matrix).
