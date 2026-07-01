@@ -39,13 +39,16 @@ end
   Random.seed!(61)
   data = randn(300_000)
   full = Histogram1D(-8.0, 8.0, 1600); observe!(full, data)
-  a = Histogram1D(-8.0, 8.0, 1600); observe!(a, view(data, 1:150_000))
-  b = Histogram1D(-8.0, 8.0, 1600); observe!(b, view(data, 150_001:300_000))
-  merge!(a, b)
+  # a 3-way merge of disjoint thirds (two or more), asserted to equal the whole-stream summary
+  a = Histogram1D(-8.0, 8.0, 1600); observe!(a, view(data, 1:100_000))
+  b = Histogram1D(-8.0, 8.0, 1600); observe!(b, view(data, 100_001:200_000))
+  c = Histogram1D(-8.0, 8.0, 1600); observe!(c, view(data, 200_001:300_000))
+  merge!(a, b); merge!(a, c)
   bw = bandwidth(full)
   check_point_estimator((s, x) -> density(s, x; h = bw),                 a, full; points = [-1.0, 0.0, 1.0])
   check_point_estimator((s, x) -> density(s, x; h = bw, degree = 1),     a, full; points = [-1.0, 0.0, 1.0])
   check_point_estimator((s, x) -> density_standard_error(s, x; h = bw),  a, full; points = [-1.0, 0.0, 1.0])
+  check_standard_error((s, x) -> density_standard_error(s, x; h = bw),   full; points = [-1.0, 0.0, 1.0])
 end
 
 @testset "density: affine equivariance — f̂_Y(ax+b) = f̂_X(x)/a (§4.1)" begin

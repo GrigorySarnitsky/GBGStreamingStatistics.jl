@@ -102,6 +102,23 @@ mergeability, and argument errors — no scalar/vector or off-support. The **loc
 `bandwidth(::Histogram2D, x)` (``h^\star``) *is* a query-point estimator, so it carries the universal
 contract (scalar ``=`` vector, merged-summary functional, off-support `NaN`; `test/localbandwidth.jl`).
 
+**Standard errors** carry their own contract, `check_standard_error` (`test/testcontracts.jl`), on top of
+the universal one: every `*_standard_error` is checked for **positivity**, **scalar ``=`` vector**, and the
+**``n^{-1/2}`` scaling** — merging ``K`` copies of a summary (``K\times`` the samples, the same shape)
+shrinks the standard error by *exactly* ``\sqrt K`` (``\mathrm{SE}(K\cdot s) = \mathrm{SE}(s)/\sqrt K``),
+the deterministic form of ``\mathrm{SE}\propto n^{-1/2}`` and a direct test of merged-histogram error
+behaviour. It is *also* run through `check_point_estimator` (so the error, like the estimate, is a
+deterministic functional of the merged summary — `SE`(merge) ``=`` `SE`(accumulate-together)), and carries a
+**calibration** check per family: the predicted standard error matches the empirical standard deviation of
+the estimate across independent datasets (Monte-Carlo — `density` and `conditional_mean` at the density
+peak, `expectation` of ``\cos``). A `*_with_standard_error` additionally asserts its
+`(value, standard_error)` equals the separate estimate / standard-error calls exactly.
+
+**Merged histograms — two or more.** Mergeability is checked at the query-point-functional level
+(`check_point_estimator`, with `merged` a **3-way** merge of disjoint thirds for `density` — associativity
+beyond two) *and* at the summary level (`test/mergeability.jl`, `test/histograms2d.jl` — the monoid / cone
+laws), for both the estimates and their standard errors.
+
 ## Coverage matrix
 
 The query-point estimators — the universal contract (oracle / scalar==vector / merge / off-support /

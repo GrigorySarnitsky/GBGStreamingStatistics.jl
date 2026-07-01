@@ -65,6 +65,20 @@ end
   @test expectation_standard_error(h, cos) > 0
 
   @test isnan(expectation_standard_error(Histogram1D(LOWER, UPPER, NBINS), cos))
+
+  # n^{-1/2} scaling: merging K = 4 copies (4× the samples, same shape) shrinks the SE by exactly √4 = 2
+  hK = deepcopy(h); for _ in 2:4; merge!(hK, h); end
+  @test expectation_standard_error(hK, cos) ≈ expectation_standard_error(h, cos) / 2 rtol = 1e-8
+  # mergeability: a functional of the merged summary (disjoint halves == the whole)
+  ha = Histogram1D(LOWER, UPPER, NBINS); observe!(ha, view(data, 1:60_000))
+  hb = Histogram1D(LOWER, UPPER, NBINS); observe!(hb, view(data, 60_001:120_000))
+  merge!(ha, hb)
+  @test expectation_standard_error(ha, cos) ≈ expectation_standard_error(h, cos) rtol = 1e-10
+  # calibration (Monte-Carlo): the predicted SE matches the empirical spread of Ê[cos X] across datasets
+  Random.seed!(199)
+  reps = [begin s = Histogram1D(LOWER, UPPER, NBINS); observe!(s, randn(30_000)); expectation(s, cos) end for _ in 1:40]
+  s0 = Histogram1D(LOWER, UPPER, NBINS); observe!(s0, randn(30_000))
+  @test expectation_standard_error(s0, cos) ≈ std(reps) rtol = 0.2
 end
 
 

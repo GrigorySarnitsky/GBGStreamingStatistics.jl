@@ -10,18 +10,20 @@ module TestContracts
 
 using Test
 
-export check_point_estimator
+export check_point_estimator, check_standard_error
 
 """
     check_point_estimator(f, merged, full; points, outside = nothing, sentinel = NaN, rtol = 1e-8)
 
 Assert the universal query-point-estimator contract. `f(summary, x)` is the estimator with its bandwidths
-fixed (a closure); `merged` is a summary `merge!`d from disjoint halves of a stream and `full` the summary
-accumulated from the whole stream (so the two hold the same data); `points` are in-support query points.
+fixed (a closure); `merged` is a summary `merge!`d from disjoint parts of a stream (**two or more** — pass
+a 3-way merge to exercise associativity) and `full` the summary accumulated from the whole stream (so the
+two hold the same data); `points` are in-support query points.
 
 Checks: (1) **scalar == vector** — `f(full, points)` equals `[f(full, x) for x in points]`; (2)
-**functional of the merged summary** — `f(merged, x) ≈ f(full, x)` (to `rtol`). If `outside` is given,
-also (3) the **off-support sentinel** — `f(full, outside)` is `NaN` (default) or `≈ sentinel`.
+**functional of the merged summary** — `f(merged, x) ≈ f(full, x)` (to `rtol`; this holds for both a point
+estimate and its standard error, since `merged` and `full` hold the same data). If `outside` is given, also
+(3) the **off-support sentinel** — `f(full, outside)` is `NaN` (default) or `≈ sentinel`.
 """
 function check_point_estimator(f, merged, full; points, outside = nothing, sentinel = NaN, rtol = 1e-8)
   @testset "universal estimator contract" begin
@@ -35,6 +37,30 @@ function check_point_estimator(f, merged, full; points, outside = nothing, senti
       else
         @test f(full, outside) ≈ sentinel
       end
+    end
+  end
+end
+
+
+"""
+    check_standard_error(se, s; points, K = 4)
+
+Assert the **standard-error contract**. `se(summary, x)` is a standard error with its options fixed (a
+closure); `s` an in-support summary; `points` in-support query points. Checks: **positivity** (`se > 0` at
+each point); **scalar == vector**; and the **`n^{-1/2}` scaling** — merging `K` copies of `s` (`K×` the
+samples, the same shape) shrinks the standard error by exactly `√K` (`se(K·s) ≈ se(s)/√K`), the
+deterministic form of `SE ∝ n^{-1/2}`.
+"""
+function check_standard_error(se, s; points, K = 4)
+  @testset "standard-error contract" begin
+    @test all(x -> se(s, x) > 0, points)
+    @test se(s, points) ≈ [se(s, x) for x in points]
+    sK = deepcopy(s)
+    for _ in 2:K
+      merge!(sK, s)
+    end
+    for x in points
+      @test se(sK, x) ≈ se(s, x) / sqrt(K)  rtol = 1e-6
     end
   end
 end

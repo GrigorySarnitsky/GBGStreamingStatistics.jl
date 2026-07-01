@@ -170,6 +170,10 @@ end
   merge!(a, b)
   check_point_estimator((s, x) -> conditional_expectation(s, cos, x; h = hx), a, g;
                         points = [-1.0, 0.0, 1.0], outside = 100.0)
+  check_point_estimator((s, x) -> conditional_expectation_standard_error(s, cos, x; h = hx), a, g;
+                        points = [-1.0, 0.0, 1.0], outside = 100.0)
+  check_standard_error((s, x) -> conditional_expectation_standard_error(s, cos, x; h = hx), g;
+                       points = [-1.0, 0.0, 1.0])
 
   @testset "conditional_pushforward: Z = exp(Y)|x ~ Lognormal(ρx, 1−ρ²)" begin
     x0 = 0.5

@@ -305,9 +305,13 @@ Treat the feature as unfinished until each is **done and verified** (not "should
 1. **Correctness tests** against an *independent* analytic oracle — Gaussian marginals; an
    **Ornstein–Uhlenbeck process** (drift, diffusion, transition density known exactly) for §4.3–4.4
    — plus a **consistency / rate test** (error falls at the theoretical ``n^{-2/5}``), a
-   **mergeability test** (accumulate-then-merge `=` accumulate-together), and — for an in-place op —
-   an `@allocated` assertion in `test/allocations.jl`. **GPU-vs-CPU parity** under
-   `allowscalar(false)` once a device path exists.
+   **mergeability test** (accumulate-then-merge `=` accumulate-together, for the estimate **and** any
+   standard error — every query-point estimator goes through `check_point_estimator`, `merged` a **two-or-more**-way
+   merge), and — for an in-place op — an `@allocated` assertion in `test/allocations.jl`. A **standard
+   error** additionally carries the `check_standard_error` contract: positivity, scalar `=` vector, the
+   ``n^{-1/2}`` **scaling** (merging ``K`` copies shrinks it by ``\sqrt K`` exactly), and a **calibration** —
+   the predicted SE matches the empirical sampling spread of the estimate across independent datasets
+   (Monte-Carlo). **GPU-vs-CPU parity** under `allowscalar(false)` once a device path exists.
 2. **The guiding docs** — a `docs/ARCHITECTURE.md` section (+ decision-log entry), a
    `docs/FORMALIZATION.md` typed entry (estimand / estimator / consistency claim with every constant
    pinned, test-linked), `docs/TESTING.md`, `docs/PERFORMANCE.md`, as applicable.
