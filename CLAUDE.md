@@ -2,7 +2,7 @@
 
 Julia package: a backend-agnostic library for **online nonparametric statistics**. It estimates
 marginal densities, conditional expectations, conditional and two-time transition densities, and
-standard functionals of these (Kramers–Moyal coefficients, drift/diffusion, Pawula diagnostics)
+functionals of these (expectations, moments, and pushforward densities)
 from a **stream of samples that is never stored** — each sample is observed once, folded into a
 fixed-size summary, and discarded. **Single node, shared-memory only** (CPU multithreading and a
 single GPU; distributed/multi-GPU out of scope). Development is **GPU-first** but the code is
@@ -26,18 +26,19 @@ deliberate absences of the invariants). The conceptual model and the writing/doc
 are recorded once — in `docs/ARCHITECTURE.md` and this file; the umbrella module
 `src/GBGStreamingStatistics.jl` only points there.
 
-> **Status: lower half complete (CPU + GPU); estimators landing.** The summaries `Histogram1D` and
-> `Histogram2D` (`observe!` / `observe_pairs!` as one KernelAbstractions + Atomix scatter-add of counts
+> **Status: lower half complete (CPU + GPU); the two readout families landed.** The summaries `Histogram1D`
+> and `Histogram2D` (`observe!` / `observe_pairs!` as one KernelAbstractions + Atomix scatter-add of counts
 > and power-sums about the bin center, `merge!` by addition — and `scale!` / weighted `merge!` the cone
-> for hyperstatistics / forgetting, allocation-free), the marginal density
-> `density` (§4.1), the shared local-polynomial jet primitive `LocalPolynomial.local_fit` and the
-> local-polynomial `conditional_mean` / Fan–Yao `conditional_variance` (§4.2), the conditional /
-> transition density `conditional_density` / `transition_density` (§4.3), the Kramers–Moyal `drift` /
-> `diffusion` (§4.4), and global **and response-aware local** (``h^\star(x)``) `bandwidth` selection (§4.5)
-> are implemented and tested — Gaussian, bivariate-Gaussian, and **Ornstein–Uhlenbeck** oracles,
-> mergeability, allocation, and **GPU-vs-CPU parity verified on the AMD RX 6700 XT** (ROCm). The Pawula /
-> Markov diagnostics and the higher Kramers–Moyal coefficients are declared and forthcoming. See *Current
-> state and roadmap*.
+> for hyperstatistics / forgetting, allocation-free), the marginal density `density` (§4.1), the shared
+> local-polynomial jet primitive `LocalPolynomial.local_fit` and the local-polynomial `conditional_mean` /
+> Fan–Yao `conditional_variance` / general `conditional_expectation` (§4.2), the conditional / transition
+> density `conditional_density` / `transition_density` (§4.3), the **power-sum quadrature** readouts
+> `expectation` / `pushforward_density` and the recovered moments (§4.B), and global **and response-aware
+> local** (``h^\star(x)``) `bandwidth` selection (§4.5) — each with its **standard error** and an
+> estimate-plus-error paired reader — are implemented and tested (Gaussian, bivariate-Gaussian, and
+> **Ornstein–Uhlenbeck** oracles, mergeability, allocation, and **GPU-vs-CPU parity verified on the AMD RX
+> 6700 XT**, ROCm). The Kramers–Moyal `drift` / `diffusion`, Pawula, and Markov diagnostics (§4.4) are
+> **archived** (retrievable) / forthcoming. See *Current state and roadmap*.
 
 ## Modules and wiring
 
@@ -151,7 +152,7 @@ The PF discipline: a missing capability encodes a decision (`docs/ARCHITECTURE.m
 2. **Samples in, statistics out — no domain, no model.** Domain-neutral vocabulary (sample /
    variate / response / lag / conditioning value), never particle / tracer / droplet / velocity. No
    stationarity, Markov, diffusion, or parametric assumption is a *premise*; such structure is only
-   ever *tested* (the Pawula ratio, the Markov / Chapman–Kolmogorov test).
+   ever *tested*, never assumed (e.g. by a Pawula ratio or Markov / Chapman–Kolmogorov test — the archived §4.4 diagnostics).
 3. **Everything is a mergeable monoid — in fact a cone.** Every summary supports `merge!`; the
    unnormalized summary is additive over the stream. No non-mergeable accumulator is admitted. The
    unnormalized summary is also **scalable** (`scale!`), so it lives in a convex cone — equal-weight
@@ -224,8 +225,8 @@ the estimand whenever a clean population definition exists; for an intrinsically
 (a bandwidth selector, `merge!`) say so plainly rather than forcing a population form.
 
 - **Symbol bound to code on first mention:** `density` ``\equiv f_X``, `conditional_mean`
-  ``\equiv m(x)``, `transition_density` ``\equiv p_\tau(y\mid x)``, `drift` ``\equiv D^{(1)}``,
-  `diffusion` ``\equiv D^{(2)}``.
+  ``\equiv m(x)``, `transition_density` ``\equiv p_\tau(y\mid x)``, `expectation`
+  ``\equiv \mathbb{E}[g(X)]``.
 - **Math is rendered LaTeX in standard notation** — Documenter KaTeX: inline `` ``…`` `` (backslashes
   escaped `\\` inside a `"""` docstring), display ` ```math `; never Unicode-glyph approximations,
   never math in backticks (backticks are for code identifiers only). **And the converse — a code
@@ -473,6 +474,23 @@ Mechanical bar:
     Tested (`test/expectations.jl`): the Gaussian ``\\mathbb{E}[\\cos X] = e^{-1/2}`` / MGF oracles,
     polynomial exactness (``= \\tfrac1n\\sum_i g(X_i)`` to ``10^{-10}``), the lognormal and non-monotone
     ``\\chi^2_1`` pushforwards, the SE reduction to ``s/\\sqrt n``, and mergeability.
+14. **Standard errors — the paired readers, the two-term band, and the testing contract.** The
+    estimate-plus-error `*_with_standard_error` pairing across all three families
+    (`density_with_standard_error`, `expectation_with_standard_error`,
+    `conditional_expectation_with_standard_error`) — each the `(value, standard_error)` NamedTuple from one
+    shared computation, so the estimate and its error describe the same estimator by construction.
+    `density_standard_error` is now the **two-term** Wand–Jones KDE variance
+    ``\\sqrt{R(K)\\hat f/(nh) - \\hat f^2/n}`` and **tracks the estimator's options** (`adaptive` → the local
+    Abramson ``h(x)``, `bounds` → the boundary-restricted ``R_a/a^2``, `start` leading-order-neutral;
+    degree-0/1 symmetric-kernel). The uniform **standard-error contract** (`check_standard_error`,
+    `test/testcontracts.jl`) runs on every SE — positivity, scalar ``=`` vector, the exact ``n^{-1/2}``
+    copy-merge scaling, the asymptotic ``h^{-1/2}`` bandwidth scaling (`check_se_bandwidth_scaling`, the
+    kernel SEs), and a Monte-Carlo **calibration** (predicted SE ``=`` the empirical sampling spread) — and
+    each SE also goes through `check_point_estimator` (SE mergeability, a **two-or-more-way** merge). Plus
+    the systematic **invalid-combination audit**: every `throw(ArgumentError(…))` guard carries a
+    `@test_throws` (the valid option space is covered per-option and by the interacting pairs, deliberately
+    not exhaustively). Tested in `test/marginaldensity.jl`, `test/expectations.jl`,
+    `test/conditionalexpectations.jl`.
 
 **Next, in dependency order:**
 
