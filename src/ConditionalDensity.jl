@@ -107,17 +107,16 @@ evaluated from the bin counts ``n_{jk}`` at cell centers ``(c^x_j, c^y_k)`` (the
        {\\sum_{j} N_j\\, K_{h_1}(c^x_j - x)} .
 ```
 
-The ``x``-kernel weighting cancels in the ratio (it appears in both the profile and its total), so the
-choice of `kernelx` only weights the local conditioning window. For a **symmetric** response `kernely`
+The ``x``-kernel weighting cancels in the ``f_{X,Y}/f_X`` ratio (it appears in both the profile and its
+total), so the choice of `kernelx` only weights the local conditioning window — a bounded *conditioning*
+variable thus needs no asymmetric `kernelx`. For a **symmetric** response `kernely`
 the surviving ``1/h_2`` makes ``\\int \\hat f(y \\mid x)\\,\\mathrm{d}y = 1`` exactly (since ``\\int K =
 1``). For a **bounded / positive response** — a droplet radius as ``Y``, say — pass an **asymmetric**
 `kernely` ([`gamma_kernel`](@ref GBGStreamingStatistics.Kernels.gamma_kernel) for ``[0,\\infty)``,
 [`beta_kernel`](@ref GBGStreamingStatistics.Kernels.beta_kernel) for ``[0,1]``), the same boundary-bias
 fix the marginal [`density`](@ref GBGStreamingStatistics.MarginalDensity.density) uses: it is a density in
 the data argument ``K_2(c^y_k;\\, y, h_2)`` (no mass leaks past the edge) but only ``\\approx`` normalized
-in ``y``, so set `normalize = true` to enforce ``\\int \\hat f\\,\\mathrm{d}y = 1`` exactly. (A bounded
-*conditioning* variable needs no asymmetric `kernelx`: the ``x``-kernel cancels in the ``f_{X,Y}/f_X``
-ratio, so its boundary leakage does not bias ``f_{Y\\mid X}``.) The
+in ``y``, so set `normalize = true` to enforce ``\\int \\hat f\\,\\mathrm{d}y = 1`` exactly. The
 conditional MISE rate is slower than a marginal density (``O(n^{-2/3})``). A vector `y` returns the
 density curve over those points at the fixed conditioning value `x`; where no data is local to `x` the
 estimate is `NaN`.
@@ -130,13 +129,12 @@ Arguments:
 - `y` — the response point(s) at which the density is evaluated (a scalar, or a vector for the curve).
 - `hx`, `hy` — the conditioning (``x``) and response (``y``) bandwidths (both ``> 0``), supplied.
 - `kernelx` — the conditioning-direction (``x``) kernel (any ``\\int K = 1`` callable; default
-  `gaussian_kernel`). Its normalization cancels in the ``f_{X,Y}/f_X`` ratio, so a symmetric kernel is
-  almost always the right choice.
+  `gaussian_kernel`); as noted above it cancels in the ratio, so a symmetric kernel is almost always the
+  right choice.
 - `kernely` — the response-direction (``y``) kernel (default `gaussian_kernel`). A **symmetric** kernel
-  gives ``\\int\\hat f\\,\\mathrm dy = 1`` exactly; an **asymmetric**
-  [`AsymmetricKernel`](@ref GBGStreamingStatistics.Kernels.AsymmetricKernel)
-  (`gamma_kernel` / `beta_kernel`), for a bounded / positive response, is boundary-bias-free but needs
-  `normalize = true` for an exact integral.
+  gives ``\\int\\hat f\\,\\mathrm dy = 1`` exactly; an **asymmetric** `gamma_kernel` / `beta_kernel`, for a
+  bounded / positive response, is boundary-bias-free but needs `normalize = true` for an exact integral —
+  or supply your own [`AsymmetricKernel`](@ref GBGStreamingStatistics.Kernels.AsymmetricKernel).
 - `normalize` — when `true`, divide by ``\\int\\hat f(y\\mid x)\\,\\mathrm dy`` over the response range so
   the curve integrates to 1 **exactly**: the finishing step for an asymmetric `kernely`, a no-op for a
   symmetric one.

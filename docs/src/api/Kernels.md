@@ -5,7 +5,9 @@ callable with ``\int K = 1`` (the kernel-aware [`bandwidth`](@ref) computes the 
 second moment ``\mu_2(K)`` by quadrature, so a custom symmetric kernel needs no manual constants). The
 **asymmetric** varying-shape kernels — `gamma_kernel` for ``[0,\infty)``, `beta_kernel` for ``[0,1]``, or
 a custom [`AsymmetricKernel`](@ref) — match a bounded / positive support and are boundary-bias-free by
-construction (Chen 1999, 2000). Both families are passed to [`density`](@ref) as `kernel = …`.
+construction (Chen 1999, 2000). Both families feed the estimators as `kernel = …` — the marginal [`density`](@ref), the
+[`conditional_density`](@ref) (as `kernely`), the [`conditional_expectation`](@ref), and the kernel-aware
+`bandwidth` rules.
 
 ## Symmetric
 

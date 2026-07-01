@@ -19,15 +19,11 @@ smoothing functional of that one summary — so there is no storage of the under
 recompute-from-raw reruns. The library is domain-neutral and model-neutral: no stationarity, Markov, or
 parametric structure is a premise — such structure is only ever *tested*, never assumed.
 
-The package provides the mergeable **summaries** (`Histogram1D` / `Histogram2D`, with `observe!` /
-`observe_pairs!` / `merge!` / `scale!` — a `count = Float64` cone variant for hyperstatistics and
-forgetting); the marginal **`density`** (with its variability band, symmetric or bounded-support kernels,
-an adaptive bandwidth, and a parametric start); **conditional expectations** (`conditional_mean`,
-`conditional_variance`, and the general `conditional_expectation`) and the conditional / transition
-**densities** (`conditional_density`, `transition_density`); **`bandwidth`** selection; and the power-sum
-quadrature **readouts** — the moments (`mean` / `var` / `std` / `central_moment`), `expectation`, and
-`pushforward_density`. Every estimator has a matching `*_standard_error`, with an estimate-plus-error
-`*_with_standard_error` pairing; the API reference documents the full surface.
+On top of the mergeable **summaries** (`Histogram1D` / `Histogram2D`, with a `count = Float64` cone
+variant for hyperstatistics and forgetting), it provides — post hoc, from that one summary — marginal
+densities, conditional expectations, conditional and two-time transition densities, bandwidth selection,
+the power-sum quadrature readouts (moments, expectations, and pushforward densities), and standard-error
+bands for the point estimators. See the API reference for the full, module-by-module surface.
 """
 module GBGStreamingStatistics
 

@@ -5,7 +5,7 @@ The performance model, best practices, and the benchmark coverage contract.
 ## The model — one critical path
 
 The package has a single performance-critical path: the **per-sample accumulation hot loop**
-([`observe!`](@ref GBGStreamingStatistics.Accumulators.observe!)), which runs over every sample of the stream — for the turbulence consumer,
+([`observe!`](@ref)), which runs over every sample of the stream — for the turbulence consumer,
 ``N^3 \times`` steps. Everything else is second-order:
 
 - **Post-hoc smoothing is dwarfed by accumulation.** Every smoother here — the binned KDE (§4.1), the

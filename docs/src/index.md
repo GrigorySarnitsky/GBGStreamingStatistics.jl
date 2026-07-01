@@ -31,20 +31,17 @@ two-time conditional densities) — but nothing in the library is specific to a 
 !!! note "Status"
     The summaries `Histogram1D` and `Histogram2D` (power-sums about the bin center, `observe!` /
     `observe_pairs!` / `merge!` / `scale!` / `bin_index`, with a Float-count cone variant for
-    hyperstatistics / forgetting), the marginal
-    [`density`](@ref GBGStreamingStatistics.MarginalDensity.density), global
-    [`bandwidth`](@ref GBGStreamingStatistics.Bandwidth.bandwidth) selection, and the conditional mean
-    and variance ([`conditional_mean`](@ref GBGStreamingStatistics.ConditionalExpectations.conditional_mean),
-    `conditional_variance`), the conditional and transition densities
-    ([`conditional_density`](@ref GBGStreamingStatistics.ConditionalDensity.conditional_density),
-    [`transition_density`](@ref GBGStreamingStatistics.ConditionalDensity.transition_density))
+    hyperstatistics / forgetting), the marginal [`density`](@ref), global [`bandwidth`](@ref) selection,
+    and the conditional mean and variance ([`conditional_mean`](@ref), [`conditional_variance`](@ref)),
+    the conditional and transition densities ([`conditional_density`](@ref), [`transition_density`](@ref))
     are implemented and tested on **CPU and GPU** (Gaussian, bivariate-Gaussian, and Ornstein–Uhlenbeck
     oracles, mergeability, allocation, AMD-ROCm parity), including the asymmetric bounded/positive-support
     kernels, the response-aware local bandwidth ``h^\star(x)``, and the Fan–Yao conditional variance —
-    plus the power-sum quadrature readouts ([`expectation`](@ref GBGStreamingStatistics.Expectations.expectation)
-    of a smooth functional, its `expectation_standard_error`, and the `pushforward_density` of a transformed
-    variable). The Kramers–Moyal / SDE-reading functionals (drift, diffusion, …) are archived for now; see
-    the [Architecture](architecture.md) for the design and roadmap.
+    plus the power-sum quadrature readouts ([`expectation`](@ref) of a smooth functional, its
+    [`expectation_standard_error`](@ref), and the [`pushforward_density`](@ref) of a transformed
+    variable). The Kramers–Moyal / SDE-reading functionals (drift and diffusion), the higher
+    Kramers–Moyal coefficients, and the Pawula / Markov diagnostics are not currently provided but are
+    planned; see the [Architecture](architecture.md) for the design and roadmap.
 
 ## Installation
 
@@ -85,10 +82,10 @@ verbatim by every consumer) and an **estimator upper half** (the estimands):
   that post-hoc smoothing later coarse-grains — holding per-bin counts and power-sums about the bin
   center; accumulation runs on **CPU or GPU**, and summaries combine with `merge!`. With `bin_index`
   and `observe_pairs!` for two-time statistics.
-- [`Kernels`](api/Kernels.md): the shared smoothing kernels — the symmetric `gaussian_kernel` /
-  `epanechnikov_kernel` (any callable with ``\int K = 1``) and the asymmetric `gamma_kernel` /
-  `beta_kernel` (via the `AsymmetricKernel` constructor) for bounded/positive support — used by `density`,
-  the regression fits, the double-kernel conditional density, and the bandwidth rules.
+- [`Kernels`](api/Kernels.md): the shared smoothing kernels — symmetric (`gaussian_kernel`, or any
+  callable with ``\int K = 1``) and asymmetric bounded/positive-support kernels (`gamma_kernel`, via the
+  `AsymmetricKernel` constructor) — used by `density`, the regression fits, the double-kernel conditional
+  density, and the bandwidth rules.
 - [`Expectations`](api/Expectations.md): the power-sum quadrature readouts — the expectation of a smooth
   functional `expectation` ``\equiv \mathbb{E}[g(X)]``, its sampling `expectation_standard_error` (paired
   with the estimate by `expectation_with_standard_error`), and the pushforward density
@@ -110,10 +107,10 @@ verbatim by every consumer) and an **estimator upper half** (the estimands):
 - [`ConditionalDensity`](api/ConditionalDensity.md): the conditional density `conditional_density`
   ``\equiv f_{Y\mid X}`` and two-time transition density `transition_density`
   ``\equiv p_\tau(y\mid x)`` (double-kernel).
-- [`Bandwidth`](api/Bandwidth.md): bandwidth selection — the kernel- and degree-aware normal-reference
-  rule (Silverman the Gaussian/degree-0 case), the data-driven Sheather–Jones (`rule = :sj`, `:isj`),
-  fit-based AIC (`rule = :aic`), and asymmetric-kernel Chen plug-in (`rule = :plugin`) selectors, and the
-  joint-summary response-aware local plug-in ``h^\star(x)`` (`rule = :local`).
+- [`Bandwidth`](api/Bandwidth.md): bandwidth selection — the default kernel- and degree-aware
+  normal-reference rule (Silverman the Gaussian/degree-0 case), plus data-driven plug-ins
+  (e.g. Sheather–Jones, `rule = :sj`) and the joint-summary response-aware local plug-in ``h^\star(x)``
+  (`rule = :local`), among others.
 
 ## Documentation structure
 

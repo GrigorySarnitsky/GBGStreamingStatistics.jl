@@ -167,8 +167,8 @@ end
 
 **Estimator** (power-sum quadrature). From the [`Histogram1D`](@ref
 GBGStreamingStatistics.Histograms.Histogram1D) `summary`, whose bin ``j`` (center ``c_j``) carries the
-count ``n_j`` and the power-sums ``S_p^{(j)} = \\sum_{i\\in\\text{bin}}(X_i - c_j)^p`` about the center
-(``S_0^{(j)} = n_j``), Taylor-expanding ``g`` about each center gives
+count ``n_j`` and its per-bin power-sums ``S_p^{(j)}`` about the center (with ``S_0^{(j)} = n_j``),
+Taylor-expanding ``g`` about each center gives
 
 ```math
 \\hat{\\mathbb{E}}[g(X)] \\;=\\; \\frac1n \\sum_j \\sum_{p=0}^{\\texttt{order}}
@@ -311,7 +311,8 @@ Arguments:
 - `y` — the response point(s) at which the pushforward density is evaluated (a scalar, or a vector for the
   curve).
 - `h` — the response-direction bandwidth (``h > 0``), supplied.
-- `kernel` — the response-direction kernel (any ``\\int K = 1`` callable; default `gaussian_kernel`).
+- `kernel` — the response-direction kernel (any ``\\int K = 1`` callable; default
+  [`gaussian_kernel`](@ref GBGStreamingStatistics.Kernels.gaussian_kernel)).
 
 Reference: B. W. Silverman (1986), [*Density Estimation for Statistics and Data Analysis*](https://doi.org/10.1201/9781315140919), Chapman & Hall.
 """

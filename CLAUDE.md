@@ -255,6 +255,26 @@ the estimand whenever a clean population definition exists; for an intrinsically
   Keep it self-contained; where a rationale pointer earns its place, name the published page in prose
   ("the Architecture page"), never a `§`-number or path. The `§4.x` estimator map stays in its developer
   home — `#` comments, `CLAUDE.md`, and the design docs (which cite each other by section freely).
+- **Cross-referencing — discriminating-minimalist; a link earns its place.** Live Documenter `@ref`
+  hyperlinks are the *encouraged* way to point across the docs (the rule above bans only *dead* `§`-numbers
+  and repo paths; a mistyped `@ref` fails the build, so it cannot rot). But a link is navigation, not
+  decoration — **backtick every code identifier; promote it to an `@ref` only where a reader would
+  genuinely jump and there is one clear destination**: (1) link a given target **at most once per
+  docstring** (its first genuine mention — this kills duplicate targets scattered across bullets); (2)
+  **never** link the docstring's own binding, its own argument names, `Symbol`/option tokens (`:linear`),
+  struct fields, or `Base` names; (3) a **family of built-ins** (the kernels, the starts) is **one**
+  catalogue destination, not five — name every member in plain backticks (so `?f` at the REPL still shows
+  the menu), `@ref` the **default** member, carry **one** catalogue link (the owning page or a same-page
+  section, via the quoted-header form `[the Kernels page](@ref "Kernels")`), and `@ref` the **extension
+  type** once with a *supply-your-own* clause (“… or a custom `AsymmetricKernel`”) — 2–3 links per family
+  bullet, never five, never one; (4) the **at-home test** for describe-vs-link — if a sentence would be
+  equally at home in the *target's* own docstring, cut it and link; the function's **own** estimand formula
+  and option-incompatibility clauses always stay (estimand-first outranks DRY); (5) **link forms** —
+  docstring→symbol fully qualified `` [`name`](@ref GBGStreamingStatistics.Module.name) ``,
+  docstring→page/section a quoted-header prose link `[the X](@ref "Header")` (never `@ref` a bare module
+  name for a page — it dangles), page→symbol bare `` [`name`](@ref) ``, page→page relative `[X](X.md)`;
+  never a link inside a formula. The docstring must read **complete at the REPL** where links are dead — a
+  link adds depth one hop away, never a fact the reader needs.
 - **Correctness is its own check, distinct from formatting.** Verify the estimator is **consistent
   for the stated estimand** under the stated assumptions, and that **every normalization is exact**:
   the ``1/n``, ``1/(nh)``, ``\int K = 1``, kernel moments ``\mu_2(K) = \int u^2 K``, roughness

@@ -75,11 +75,10 @@ end
 """
     normal_start
 
-A Gaussian (normal) [parametric start](@ref GBGStreamingStatistics.MarginalDensity.density) on
+A Gaussian (normal) [`ParametricStart`](@ref GBGStreamingStatistics.MarginalDensity.ParametricStart) on
 ``(-\\infty,\\infty)``: ``p(x;\\hat\\mu,\\hat\\sigma^2)`` with ``\\hat\\mu``, ``\\hat\\sigma^2`` the
 recovered sample mean and variance. Pass `start = normal_start` to
-[`density`](@ref GBGStreamingStatistics.MarginalDensity.density); the estimate is then near-exact on
-genuinely Gaussian data and reduces to a bias-corrected KDE otherwise.
+[`density`](@ref GBGStreamingStatistics.MarginalDensity.density).
 """
 const normal_start = ParametricStart(
   (mean, variance) -> (mean, variance),
@@ -90,7 +89,7 @@ const normal_start = ParametricStart(
 """
     lognormal_start
 
-A log-normal [parametric start](@ref GBGStreamingStatistics.MarginalDensity.density) on
+A log-normal [`ParametricStart`](@ref GBGStreamingStatistics.MarginalDensity.ParametricStart) on
 ``(0,\\infty)``, parameters by method of moments (``s^2 = \\log(1+\\hat\\sigma^2/\\hat\\mu^2)``,
 ``m = \\log\\hat\\mu - s^2/2``). A natural start for a **positively skewed** quantity such as a droplet
 radius; pass `start = lognormal_start`.
@@ -104,7 +103,7 @@ const lognormal_start = ParametricStart(
 """
     gamma_start
 
-A gamma [parametric start](@ref GBGStreamingStatistics.MarginalDensity.density) on ``(0,\\infty)``,
+A gamma [`ParametricStart`](@ref GBGStreamingStatistics.MarginalDensity.ParametricStart) on ``(0,\\infty)``,
 shape ``k = \\hat\\mu^2/\\hat\\sigma^2`` and scale ``\\theta = \\hat\\sigma^2/\\hat\\mu`` by method of
 moments. For a non-negative quantity; pass `start = gamma_start`.
 """
@@ -117,7 +116,7 @@ const gamma_start = ParametricStart(
 """
     exponential_start
 
-An exponential [parametric start](@ref GBGStreamingStatistics.MarginalDensity.density) on
+An exponential [`ParametricStart`](@ref GBGStreamingStatistics.MarginalDensity.ParametricStart) on
 ``[0,\\infty)``, rate ``\\hat\\lambda = 1/\\hat\\mu`` (a one-parameter start fit from the mean alone).
 Pass `start = exponential_start`; pairs with the `degree = 1` log-linear fit as the two
 exponential-tail tools.
@@ -131,7 +130,7 @@ const exponential_start = ParametricStart(
 """
     inverse_gaussian_start
 
-An inverse-Gaussian [parametric start](@ref GBGStreamingStatistics.MarginalDensity.density) on
+An inverse-Gaussian [`ParametricStart`](@ref GBGStreamingStatistics.MarginalDensity.ParametricStart) on
 ``(0,\\infty)``, mean ``\\hat\\mu`` and shape ``\\hat\\lambda = \\hat\\mu^3/\\hat\\sigma^2`` by method of
 moments — a positive start with an exponentially decaying right tail (lighter than the log-normal's).
 Pass `start = inverse_gaussian_start`.
@@ -415,21 +414,18 @@ Arguments:
   rule** ([`bandwidth`](@ref GBGStreamingStatistics.Bandwidth.bandwidth) — Silverman's
   ``(4/3)^{1/5}\\hat\\sigma\\,n^{-1/5}`` for the Gaussian kernel at degree 0/1, wider at the ``n^{-1/9}``
   rate for degree 2). For a shape-adaptive choice, compute `bandwidth(summary; rule = :sj)` (or `:isj` /
-  `:aic`) yourself and pass the number. The asymmetric
-  [`gamma_kernel`](@ref GBGStreamingStatistics.Kernels.gamma_kernel) /
-  [`beta_kernel`](@ref GBGStreamingStatistics.Kernels.beta_kernel) take their own scale ``b``
-  here (rate ``n^{-2/5}``) in place of the symmetric `h`.
-- `kernel` — the smoothing weight ``K`` (any callable with ``\\int K = 1``). Default the **symmetric**
-  [`gaussian_kernel`](@ref GBGStreamingStatistics.Kernels.gaussian_kernel)
-  ([`epanechnikov_kernel`](@ref GBGStreamingStatistics.Kernels.epanechnikov_kernel) the compact-support
-  alternative). For **bounded / positive support** pass an **asymmetric** kernel —
-  [`gamma_kernel`](@ref GBGStreamingStatistics.Kernels.gamma_kernel) for ``[0,\\infty)`` (e.g. a droplet
-  radius), [`beta_kernel`](@ref GBGStreamingStatistics.Kernels.beta_kernel) for ``[0,1]``, or a custom
-  [`AsymmetricKernel`](@ref GBGStreamingStatistics.Kernels.AsymmetricKernel) — boundary-bias-free by
-  construction. An asymmetric kernel is its own degree-0, boundary-free estimator, so `degree`, `adaptive`,
-  `bounds`, and a parametric `start` do not combine with it, and it takes its own scale ``b`` in place of
-  `h` (the `h` entry).
-- `degree` — the local-polynomial order. `degree = 0` (default) is the binned KDE / WARPing
+  `:aic`) yourself and pass the number. The asymmetric `gamma_kernel` / `beta_kernel` take their own scale
+  ``b`` here (rate ``n^{-2/5}``) in place of the symmetric `h`.
+- `kernel` — the smoothing weight ``K`` (any callable with ``\\int K = 1``), default the **symmetric**
+  [`gaussian_kernel`](@ref GBGStreamingStatistics.Kernels.gaussian_kernel). The compact-support symmetric
+  `epanechnikov_kernel` and, for **bounded / positive support**, the **asymmetric** `gamma_kernel`
+  (``[0,\\infty)``, e.g. a droplet radius) and `beta_kernel` (``[0,1]``) — boundary-bias-free by
+  construction — are catalogued with their supports and constants on [the Kernels page](@ref "Kernels");
+  supply a custom [`AsymmetricKernel`](@ref GBGStreamingStatistics.Kernels.AsymmetricKernel) for your own
+  bounded support. An asymmetric kernel is its own degree-0, boundary-free estimator, so `degree`,
+  `adaptive`, `bounds`, and a parametric `start` do not combine with it, and it takes its own scale ``b``
+  in place of `h`.
+- `degree` — the local-polynomial order. `degree = 0` (default) is the binned KDE / WARPing (weighted averaging of rounded points)
   ``\\hat f(x) = \\frac1n \\sum_j (n_j/h_j)\\, K((x-c_j)/h_j)`` (``\\int K = 1``). `degree` ``\\ge 1`` is the
   **local-log-polynomial** (local-likelihood) estimator (Loader 1996): fit ``\\log f`` by a
   degree-`degree` polynomial through a binned **local Poisson** likelihood and report
@@ -449,20 +445,19 @@ Arguments:
   degree-0 KDE is **renormalized** by the kernel mass inside the support: ``\\hat f(x) \\big/ \\int_a^b K_h(x-u)\\,\\mathrm{d}u`` (Jones 1993). This corrects the boundary bias that otherwise drops the estimate
   to ``\\approx`` half the true value at the edge. (`degree` ``\\ge 1`` is already boundary-adaptive, so
   `bounds` is a degree-0 option.)
-- `start` — a **parametric start** (Hjort & Glad 1995): the semiparametric estimator
-  ``\\hat f(x) = p(x;\\hat\\theta)\\,\\frac1{nh}\\sum_j \\frac{n_j}{p(c_j;\\hat\\theta)}\\,K((x-c_j)/h)``,
-  which multiplies a fitted parametric model ``p(\\cdot;\\hat\\theta)`` by a KDE of its *correction*
-  (the local relative error). ``\\hat\\theta`` is fit by method of moments from the recovered
-  ``\\hat\\mu``, ``\\hat\\sigma^2``, so the start is itself a functional of the summary. The estimate is
-  **near-exact wherever the start is correct** (the correction is then ``\\equiv 1``) and degrades only to
-  a bias-corrected KDE where it is not — a tail-friendly bias reduction. Pass one of
-  [`normal_start`](@ref GBGStreamingStatistics.MarginalDensity.normal_start),
-  [`lognormal_start`](@ref GBGStreamingStatistics.MarginalDensity.lognormal_start),
-  [`gamma_start`](@ref GBGStreamingStatistics.MarginalDensity.gamma_start),
-  [`exponential_start`](@ref GBGStreamingStatistics.MarginalDensity.exponential_start),
-  [`inverse_gaussian_start`](@ref GBGStreamingStatistics.MarginalDensity.inverse_gaussian_start). It is
-  a degree-0, fixed-`h`, symmetric-kernel estimator (`degree` ``\\ge 1``, `adaptive`, `bounds`, and the
-  asymmetric kernels do not combine with it; use `normalize` for ``\\int\\hat f = 1``).
+- `start` — a **parametric start** (Hjort & Glad 1995), or `nothing` (default). Given one, `density`
+  returns the semiparametric estimate
+  ``\\hat f(x) = p(x;\\hat\\theta)\\,\\frac1{nh}\\sum_j \\frac{n_j}{p(c_j;\\hat\\theta)}\\,K((x-c_j)/h)`` —
+  a moment-fitted model ``p(\\cdot;\\hat\\theta)`` times a KDE of its *correction*, **near-exact wherever
+  the start is correct** (the correction is then ``\\equiv 1``) and degrading only to a bias-corrected KDE
+  where it is not. ``\\hat\\theta`` is fit by method of moments from the recovered ``\\hat\\mu``,
+  ``\\hat\\sigma^2``, so the start is itself a functional of the summary. Pass a built-in `normal_start`,
+  `lognormal_start`, `gamma_start`, `exponential_start`, or `inverse_gaussian_start` — [the Parametric
+  starts section](@ref "Parametric starts") lists each with its moment fit — or supply your own
+  [`ParametricStart`](@ref GBGStreamingStatistics.MarginalDensity.ParametricStart) (a moment fit, a
+  log-density, a support). It is a degree-0, fixed-`h`, symmetric-kernel estimator (`degree` ``\\ge 1``,
+  `adaptive`, `bounds`, and the asymmetric kernels do not combine with it; use `normalize` for
+  ``\\int\\hat f = 1``).
 - `normalize` — when `true`, divide the estimate by ``\\int\\hat f`` over the summary's range
   (intersected with the estimator's support), so ``\\int\\hat f = 1`` **exactly**. The symmetric KDE
   already integrates to ``\\approx 1``; the asymmetric kernels and a parametric start do not, so this is
@@ -628,9 +623,9 @@ end
 # degree ≥ 2 are recorded coverage gaps).
 function _check_se(kernel, degree)
   kernel isa AsymmetricKernel &&
-    throw(ArgumentError("the density variability band is for a symmetric kernel; the asymmetric gamma/beta-kernel variance is a coverage gap"))
+    throw(ArgumentError("the density variability band is for a symmetric kernel; it is not supported for the asymmetric gamma/beta kernels"))
   (degree == 0 || degree == 1) ||
-    throw(ArgumentError("the density variability band is degree-0/1 (KDE); degree ≥ 2 is a coverage gap (got degree = $degree)"))
+    throw(ArgumentError("the density variability band is degree-0/1 (KDE); it is not supported for degree ≥ 2 (got degree = $degree)"))
 end
 
 
@@ -700,8 +695,8 @@ renormalization) replaces ``R(K)`` by the boundary-restricted roughness ``R_a(x)
 \\frac1h\\int_{\\text{support}} K((x-u)/h)^2\\,\\mathrm du`` and divides by the squared in-support kernel
 mass ``a(x)^2``, inflating the variance near an edge; a parametric `start` leaves the leading variance
 ``R(K)\\hat f/(nh)`` unchanged (the fitted-parameter uncertainty is an ``O(1/n)`` omission). Restricted to
-`degree` 0/1 and a **symmetric** kernel (`degree` ``\\ge 2`` and the asymmetric gamma/beta-kernel variance
-are coverage gaps); a vector of query points returns a vector.
+`degree` 0/1 and a **symmetric** kernel (`degree` ``\\ge 2`` and an asymmetric gamma/beta kernel are not
+supported); a vector of query points returns a vector.
 
 Arguments: as for [`density`](@ref GBGStreamingStatistics.MarginalDensity.density) — `h`, `kernel`,
 `degree`, `adaptive`, `bounds`, `start`, `normalize`, `binning` — specifying the estimator whose standard

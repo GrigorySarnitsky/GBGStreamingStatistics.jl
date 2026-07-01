@@ -28,10 +28,9 @@ second moment ``\\mu_2(K) = 1``, roughness ``R(K) = 1/(2\\sqrt{\\pi})``) — the
 
 The **Epanechnikov** kernel ``K(u) = \\tfrac{3}{4}(1 - u^2)`` for ``|u| \\le 1`` (zero outside) — the
 MSE-optimal second-order kernel (``\\int K = 1``, second moment ``\\mu_2(K) = 1/5``, roughness ``R(K) = 3/5``). Pass
-it as `kernel = epanechnikov_kernel`; its compact support touches only the bins within ``h`` of the
-query point. [`bandwidth`](@ref GBGStreamingStatistics.Bandwidth.bandwidth) is **kernel-aware**, so it
-returns the matched Epanechnikov ``h \\approx 2.34\\,\\hat\\sigma\\,n^{-1/5}`` (``2.21\\times`` the
-Gaussian ``h``) automatically — no manual rescaling.
+it as `kernel = epanechnikov_kernel` to [`density`](@ref GBGStreamingStatistics.MarginalDensity.density);
+its compact support touches only the bins within ``h`` of the query point. The `bandwidth` selector is
+**kernel-aware**, so it returns the matched Epanechnikov scale automatically — no manual rescaling.
 """
 @inline epanechnikov_kernel(u) = abs(u) < 1 ? 0.75 * (1 - u^2) : 0.0
 
@@ -135,7 +134,7 @@ self-adapts, tightening toward the edge). Use it for non-negative quantities suc
 alternative to (and usually sharper than) the `bounds` renormalization. The bandwidth defaults to
 ``\\hat\\sigma\\,n^{-2/5}`` (the gamma-kernel rate; pass `h` to override, or the data-driven Chen plug-in
 [`bandwidth`](@ref GBGStreamingStatistics.Bandwidth.bandwidth)`(summary; rule = :plugin, kernel = gamma_kernel)`,
-``\\approx 1.4\\text{–}1.7\\times`` lower ISE on skewed data). `degree`, `adaptive`, and `bounds` do not
+which lowers the ISE on skewed data). `degree`, `adaptive`, and `bounds` do not
 apply — the kernel is its own degree-0, boundary-free estimator.
 
 Reference: S. X. Chen (2000), [*Probability density function estimation using gamma
