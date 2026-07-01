@@ -92,9 +92,9 @@ _sample_std(h::Histogram1D) = sqrt(_sample_variance(h))
 """
     mean(summary::Histogram1D)
 
-**Estimand.** the population mean ``\\mathbb{E}[X]``.
+**Estimand.** The population mean ``\\mathbb{E}[X]``.
 
-**Estimator.** the sample mean ``\\bar X = \\frac1n \\sum_i X_i`` — recovered **exactly** (not a smoothed
+**Estimator.** The sample mean ``\\bar X = \\frac1n \\sum_i X_i`` — recovered **exactly** (not a smoothed
 estimate) host-side from the per-bin counts and first power-sums by the shift formula (the power-sums use
 the actual ``X_i``, not the bin center; the ``g = x`` case of [`expectation`](@ref
 GBGStreamingStatistics.Expectations.expectation)). Extends `Statistics.mean`; an empty summary gives `NaN`.
@@ -105,9 +105,9 @@ mean(summary::Histogram1D) = _sample_mean(summary)
 """
     var(summary::Histogram1D; corrected = true)
 
-**Estimand.** the population variance ``\\operatorname{Var}(X) = \\mathbb{E}\\bigl[(X - \\mathbb{E}[X])^2\\bigr]``.
+**Estimand.** The population variance ``\\operatorname{Var}(X) = \\mathbb{E}\\bigl[(X - \\mathbb{E}[X])^2\\bigr]``.
 
-**Estimator.** the recovered sample variance (``\\bar X`` the recovered mean). With `corrected = true`
+**Estimator.** The recovered sample variance (``\\bar X`` the recovered mean). With `corrected = true`
 (the default, matching `Statistics.var`) the **unbiased** ``\\frac{1}{n-1} \\sum_i (X_i - \\bar X)^2``
 (Bessel's correction; `NaN` for ``n \\le 1``); `corrected = false` the ``\\frac1n \\sum_i (X_i - \\bar X)^2``
 order-2 central moment (`central_moment` at ``p = 2``). Exact via the shift formula. Extends
@@ -124,9 +124,9 @@ end
 """
     std(summary::Histogram1D; corrected = true)
 
-**Estimand.** the population standard deviation ``\\sigma = \\sqrt{\\operatorname{Var}(X)}``.
+**Estimand.** The population standard deviation ``\\sigma = \\sqrt{\\operatorname{Var}(X)}``.
 
-**Estimator.** the recovered sample standard deviation ``\\sqrt{s^2}``, where ``s^2`` is the recovered
+**Estimator.** The recovered sample standard deviation ``\\sqrt{s^2}``, where ``s^2`` is the recovered
 variance (`var`); the `corrected` keyword has the same meaning (the default `true` divides by ``n - 1``).
 Exact via the shift formula. Extends `Statistics.std`.
 """
@@ -136,9 +136,9 @@ std(summary::Histogram1D; corrected::Bool = true) = sqrt(var(summary; corrected 
 """
     central_moment(summary::Histogram1D, p)
 
-**Estimand.** the population ``p``-th central moment ``\\mu_p = \\mathbb{E}\\bigl[(X - \\mathbb{E}[X])^p\\bigr]``.
+**Estimand.** The population ``p``-th central moment ``\\mu_p = \\mathbb{E}\\bigl[(X - \\mathbb{E}[X])^p\\bigr]``.
 
-**Estimator.** the sample central moment ``\\frac1n \\sum_i (X_i - \\bar X)^p`` (``\\bar X`` the recovered
+**Estimator.** The sample central moment ``\\frac1n \\sum_i (X_i - \\bar X)^p`` (``\\bar X`` the recovered
 mean), recovered **exactly** from the power-sums by the shift formula — not a smoothed estimate — for
 ``2 \\le p \\le \\texttt{order}``. ``p = 2`` is the uncorrected variance (`var` with `corrected = false`);
 even orders recover stably, odd orders (``\\approx 0``) to weaker relative precision. This is the
@@ -162,7 +162,7 @@ end
 """
     expectation(summary::Histogram1D, g)   # ≡ 𝔼[g(X)]
 
-**Estimand.** the population expectation of a smooth functional of ``X``,
+**Estimand.** The population expectation of a smooth functional of ``X``,
 ``\\mathbb{E}[g(X)] = \\int g(x)\\, f_X(x)\\,\\mathrm{d}x``.
 
 **Estimator** (power-sum quadrature). From the [`Histogram1D`](@ref
@@ -222,7 +222,7 @@ end
 """
     expectation_standard_error(summary::Histogram1D, g)
 
-**Estimand.** the sampling standard error of the estimator [`expectation`](@ref
+**Estimand.** The sampling standard error of the estimator [`expectation`](@ref
 GBGStreamingStatistics.Expectations.expectation),
 ``\\mathrm{SE}\\bigl(\\hat{\\mathbb{E}}[g(X)]\\bigr) = \\sqrt{\\operatorname{Var}(g(X))/n}`` with
 ``\\operatorname{Var}(g(X)) = \\mathbb{E}[g(X)^2] - \\mathbb{E}[g(X)]^2``.
@@ -284,11 +284,11 @@ end
     pushforward_density(summary::Histogram1D, g, y;
                         h, kernel = gaussian_kernel)   # ≡ f_{g(X)}
 
-**Estimand.** the density of the transformed variable ``Y = g(X)``, the **pushforward**
+**Estimand.** The density of the transformed variable ``Y = g(X)``, the **pushforward**
 ``f_{g(X)}(y) = \\sum_{x:\\,g(x)=y} f_X(x)\\,/\\,|g'(x)|`` (the change-of-variables sum over the preimages
 of ``y``).
 
-**Estimator.** the kernel density estimate of the pushforward, written as an expectation and evaluated by
+**Estimator.** The kernel density estimate of the pushforward, written as an expectation and evaluated by
 [`expectation`](@ref GBGStreamingStatistics.Expectations.expectation):
 
 ```math

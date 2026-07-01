@@ -312,7 +312,7 @@ end
     bandwidth(summary::Histogram1D; rule = :normal, kernel = gaussian_kernel,
               degree = 0) -> h
 
-**Estimand.** the AMISE-optimal smoothing bandwidth for the marginal density
+**Estimand.** The AMISE-optimal smoothing bandwidth for the marginal density
 [`density`](@ref GBGStreamingStatistics.MarginalDensity.density) of `summary` — the ``h`` minimising
 ``\\mathrm{MISE}(\\hat f_h) = \\int \\mathbb{E}\\bigl[(\\hat f_h(x) - f_X(x))^2\\bigr]\\,\\mathrm{d}x``
 for the smoothing `kernel` ``K`` and local-polynomial `degree` ``d``.
@@ -495,7 +495,7 @@ end
     bandwidth(summary::Histogram2D, x;
               rule = :local, kernel = gaussian_kernel, hpilot = nothing)   # ≡ h⋆(x)
 
-**Estimand.** the response-aware **local** AMISE-optimal bandwidth ``h^\\star(x)`` for the conditional
+**Estimand.** The response-aware **local** AMISE-optimal bandwidth ``h^\\star(x)`` for the conditional
 mean [`conditional_mean`](@ref GBGStreamingStatistics.ConditionalExpectations.conditional_mean) ``m(x)`` — the
 bandwidth that, at each conditioning value ``x``, minimises the local mean squared error of the
 local-linear estimate ``\\hat m_h(x)`` by balancing its squared bias against its variance:

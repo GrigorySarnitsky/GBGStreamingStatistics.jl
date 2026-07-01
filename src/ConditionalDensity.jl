@@ -85,7 +85,7 @@ end
                         hx, hy, kernelx = gaussian_kernel, kernely = gaussian_kernel,
                         normalize = false)   # ≡ f_{Y|X}
 
-**Estimand.** the conditional density
+**Estimand.** The conditional density
 ``f_{Y\\mid X}(y \\mid x) = f_{X,Y}(x, y) / f_X(x)``.
 
 **Estimator** (double-kernel; Rosenblatt 1969; Hyndman, Bashtannyk & Grunwald 1996). From the joint
@@ -180,12 +180,12 @@ end
                        hx, hy, kernelx = gaussian_kernel, kernely = gaussian_kernel,
                        normalize = false)   # ≡ p_τ(y|x)
 
-**Estimand.** the **two-time transition density**
+**Estimand.** The **two-time transition density**
 ``p_\\tau(y \\mid x) = f_{X_{t+\\tau} \\mid X_t}(y \\mid x)`` — the conditional density of the state a
 lag ``\\tau`` later, given the present state (nonstationary: ``p_{t,\\tau}``). For the
 Ornstein–Uhlenbeck process this is Gaussian in closed form.
 
-**Estimator.** the [`conditional_density`](@ref GBGStreamingStatistics.ConditionalDensity.conditional_density)
+**Estimator.** The [`conditional_density`](@ref GBGStreamingStatistics.ConditionalDensity.conditional_density)
 double-kernel estimator applied to the per-lag joint histogram of pairs
 ``\\bigl(X_t,\\, X_{t+\\tau}\\bigr)`` (binned by
 [`observe_pairs!`](@ref GBGStreamingStatistics.Histograms.observe_pairs!) at the summary's lag

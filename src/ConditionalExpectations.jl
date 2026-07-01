@@ -77,14 +77,14 @@ end
     conditional_expectation(summary::Histogram2D, g, x;
                             h, kernel = gaussian_kernel, degree = 1)   # ≡ ⟨g(Y) ∣ x⟩
 
-**Estimand.** the conditional expectation of a smooth functional of the response,
+**Estimand.** The conditional expectation of a smooth functional of the response,
 ``\\mathbb{E}[g(Y) \\mid X = x] = \\int g(y)\\, f_{Y\\mid X}(y \\mid x)\\,\\mathrm{d}y``. For
 ``g = \\mathrm{identity}`` this is the regression function ``m(x)``
 ([`conditional_mean`](@ref GBGStreamingStatistics.ConditionalExpectations.conditional_mean)); for
 ``g(y) = y^2`` it is ``\\mathbb{E}[Y^2 \\mid x]``, the plug-in ingredient of
 [`conditional_variance`](@ref GBGStreamingStatistics.ConditionalExpectations.conditional_variance).
 
-**Estimator.** a local-polynomial regression **in ``x``** of a per-``X``-column **``y``-quadrature** of
+**Estimator.** A local-polynomial regression **in ``x``** of a per-``X``-column **``y``-quadrature** of
 ``g``. For each ``X``-column the response ``\\sum_i g(Y_i)`` is recovered from the stored order-2
 ``Y``-power-sums by the same quadrature the marginal
 [`expectation`](@ref GBGStreamingStatistics.Expectations.expectation) uses
@@ -149,7 +149,7 @@ end
     conditional_expectation_standard_error(summary::Histogram2D, g, x;
                                            h, kernel = gaussian_kernel, degree = 1)
 
-**Estimand.** the sampling standard error of the estimator [`conditional_expectation`](@ref
+**Estimand.** The sampling standard error of the estimator [`conditional_expectation`](@ref
 GBGStreamingStatistics.ConditionalExpectations.conditional_expectation),
 ``\\mathrm{SE}\\bigl(\\widehat{\\mathbb{E}}[g(Y)\\mid x]\\bigr) =
 \\sqrt{\\ell(x)\\,\\operatorname{Var}(g(Y)\\mid x)}``, with the local-regression **leverage**
@@ -157,7 +157,7 @@ GBGStreamingStatistics.ConditionalExpectations.conditional_expectation),
 and the conditional variance of the transformed response
 ``\\operatorname{Var}(g(Y)\\mid x) = \\mathbb{E}[g(Y)^2\\mid x] - \\mathbb{E}[g(Y)\\mid x]^2``.
 
-**Estimator.** the **leverage × noise-scale** readout
+**Estimator.** The **leverage × noise-scale** readout
 ``\\sqrt{\\hat\\ell(x)\\,(\\widehat{\\mathbb{E}}[g^2\\mid x] - \\widehat{\\mathbb{E}}[g\\mid x]^2)}``: the
 leverage ``\\hat\\ell(x)`` from the local-fit design (its plain and **squared-kernel** moments; read off the
 actual weights, so correct at any `degree`) times the plug-in conditional variance of ``g(Y)`` — itself two
@@ -245,7 +245,7 @@ end
     conditional_mean(summary::Histogram2D, x;
                      h, kernel = gaussian_kernel, degree = 1)   # ≡ m(x)
 
-**Estimand.** the conditional expectation
+**Estimand.** The conditional expectation
 ``m(x) = \\mathbb{E}[Y \\mid X = x] = \\int y\\, f_{Y\\mid X}(y \\mid x)\\,\\mathrm{d}y`` — the
 ``L^2(\\sigma(X))`` projection of the response ``Y`` onto the conditioning variable ``X``, i.e. the
 regression function.
@@ -345,7 +345,7 @@ end
                          h, kernel = gaussian_kernel,
                          degree = 1, method = :residual)   # ≡ σ²(x)
 
-**Estimand.** the conditional variance
+**Estimand.** The conditional variance
 ``\\sigma^2(x) = \\operatorname{Var}(Y \\mid X = x) = \\mathbb{E}[Y^2 \\mid X = x] - m(x)^2``, with
 ``m(x)`` the [`conditional_mean`](@ref GBGStreamingStatistics.ConditionalExpectations.conditional_mean).
 
@@ -408,11 +408,11 @@ end
                                     hx, hz, kernelx = gaussian_kernel, kernelz = gaussian_kernel,
                                     degree = 1)   # ≡ f_{g(Y) ∣ X}
 
-**Estimand.** the density of the transformed response ``Z = g(Y)`` given ``X = x`` — the **conditional
+**Estimand.** The density of the transformed response ``Z = g(Y)`` given ``X = x`` — the **conditional
 pushforward**, change of variables applied to the conditional law,
 ``f_{g(Y)\\mid X}(z \\mid x) = \\sum_{y:\\,g(y)=z} f_{Y\\mid X}(y \\mid x)\\,/\\,|g'(y)|``.
 
-**Estimator.** the conditional kernel density of ``g(Y)``, written as a conditional expectation and
+**Estimator.** The conditional kernel density of ``g(Y)``, written as a conditional expectation and
 evaluated by [`conditional_expectation`](@ref
 GBGStreamingStatistics.ConditionalExpectations.conditional_expectation):
 

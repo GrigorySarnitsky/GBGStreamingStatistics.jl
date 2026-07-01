@@ -1,8 +1,9 @@
 # MarginalDensity
 
 The marginal density ``\equiv f_X``: the flagship [`density`](@ref), its pointwise variability band
-[`density_standard_error`](@ref) and the paired [`density_with_standard_error`](@ref), the smoothing kernels
-it accepts, and the parametric starts for its semiparametric mode.
+[`density_standard_error`](@ref) and the paired [`density_with_standard_error`](@ref), and the parametric
+starts for its semiparametric mode. `density` accepts any symmetric or bounded-support kernel from the
+[Kernels](Kernels.md) page.
 
 ## Density
 
@@ -11,12 +12,6 @@ density
 density_standard_error
 density_with_standard_error
 ```
-
-## Kernels
-
-The `kernel` argument of [`density`](@ref) accepts both the **symmetric** kernels (`gaussian_kernel` /
-`epanechnikov_kernel`) and the bounded/positive-support **asymmetric** ones (`gamma_kernel`, `beta_kernel`,
-or a custom [`AsymmetricKernel`](@ref)); all live on the [Kernels](Kernels.md) page.
 
 ## Parametric starts
 
