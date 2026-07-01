@@ -472,7 +472,7 @@ is a binned local smoother of the `summary` counts ``n_j`` at bin centers ``c_j`
 
 The four corners (fixed/variable ``\\times`` KDE/local-log) and everything between are one call. A vector
 of query points returns a vector. The FFT amortization of the `degree = 0`, fixed-`h` convolution over a
-bandwidth grid is forthcoming.
+bandwidth grid is a deferred optimization (recorded, not built).
 
 ```jldoctest
 julia> h = Histogram1D(-1.0, 1.0, 2);

@@ -1,12 +1,12 @@
 # Bandwidth — §4.5: bandwidth selection (the kernel/degree normal-reference, Sheather–Jones — classic
 # and improved (DCT) — fit-based AIC, the Chen asymmetric-kernel plug-in, and the response-aware local
-# plug-in (rule = :local) now; the FFT-amortized smoothing is forthcoming). The smoothing is a convolution of the binned summary with the kernel; the
-# FFT computes it in O(B log B) and amortizes over bandwidth (`docs/ARCHITECTURE.md` §4.5) — hence the
-# FFTW dependency, used once that lands.
+# plug-in (rule = :local)). The FFT-amortized smoothing is deferred (recorded, not built): it is a
+# convolution of the binned summary with the kernel that the FFT computes in O(B log B), amortizing over
+# bandwidth (`docs/ARCHITECTURE.md` §4.5) — a pure optimization, since the direct summation is already
+# exact and dwarfed by the accumulation hot loop. FFTW is used today by the ISJ DCT (rule = :isj).
 
 module Bandwidth
 
-using AbstractFFTs
 using FFTW
 
 using ..Histograms: Histogram1D, Histogram2D, _total, _sample_std, _bincenter, _column_sums
@@ -32,7 +32,7 @@ _phi6(u) = (u^6 - 15u^4 + 45u^2 - 15) * exp(-u^2 / 2) / sqrt(2π)
 
 # Distance histogram of the bin counts: dist[m+1] = Σ_j counts_j·counts_{j+m} (the autocorrelation — the
 # pair count at bin-lag m). Computed once; each functional evaluation is then O(nbins). O(nbins²) here;
-# the FFT autocorrelation is the §4.5 performance lever, forthcoming.
+# the FFT autocorrelation is the §4.5 performance lever, deferred (recorded, not built).
 function _distance_hist(counts)
   nbins = length(counts)
   dist = zeros(Float64, nbins)

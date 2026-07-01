@@ -182,11 +182,14 @@ per the user, most likely never built.**
 
 **This does not forgo the FFT** — and the distinction is the crux. Storing the ECF as a *sufficient
 statistic* (an **accumulation** choice) is a different thing from using the FFT to *smooth the
-histogram* (a **post-hoc computation** choice). The former is dropped; the latter is kept as a major
-performance lever (§4.5): smoothing a binned density or regression is a convolution of the bin counts
-with the kernel, which the FFT does in ``O(B\log B)`` for ``B`` bins and — decisively — **amortizes over
-bandwidth** (transform the counts once; each bandwidth ``h`` is then a multiply by the kernel's
-transform). So FFT-*smoothing* is recommended; the ECF *summary* is not.
+histogram* (a **post-hoc computation** choice). The former is dropped outright; the latter is the
+endorsed post-hoc optimization (§4.5), **deferred (recorded, not built)**: smoothing a binned density or
+regression is a convolution of the bin counts with the kernel, which the FFT does in ``O(B\log B)`` for
+``B`` bins and — decisively — **amortizes over bandwidth** (transform the counts once; each bandwidth
+``h`` is then a multiply by the kernel's transform). It is a *pure* optimization — the direct summation
+is already exact and dwarfed by the accumulation (§5) — so it waits for a consumer whose ``h^\star(x)``
+bandwidth *grid* makes it bite. So FFT-*smoothing* is the endorsed (if deferred) computation; the ECF
+*summary* is rejected as a stored representation.
 
 ### Naming conventions
 
@@ -417,8 +420,8 @@ which depends on the response's variance ``\sigma^2(x)`` **and** curvature ``m''
 channel gets its own ``h^\star``** (a single shared bandwidth is provably suboptimal), all three of
 ``\sigma^2(x)``, ``m''(x)``, ``f_X(x)`` recovered from the *one* summary, post hoc. *(Performance: every
 smoother here is a convolution of bin arrays with the kernel, so an FFT computes it in ``O(B\log B)``
-amortized over the bandwidth grid the ``h^\star(x)`` sweep needs — Silverman 1982; Wand 1994 — forthcoming,
-and dwarfed by the per-sample accumulation hot loop, §5.)*
+amortized over the bandwidth grid the ``h^\star(x)`` sweep needs — Silverman 1982; Wand 1994 — a deferred
+optimization (recorded, not built), and in any case dwarfed by the per-sample accumulation hot loop, §5.)*
 
 ### 4.B Power-sum quadrature readouts
 
@@ -600,8 +603,8 @@ mergeable streaming-moment design is, however, worth mirroring — §10).
 - **Name — settled:** `GBGStreamingStatistics` (§9).
 - **Numeric precision — settled:** integer counts, Float64 moment accumulators by default
   (type-parameterized), Float32 input promoted at accumulation (§3, invariant 6).
-- **ECF summary — settled: deferred, likely never built** (§2). FFT-*smoothing* of the histogram is
-  kept regardless (§4.5) — a separate, post-hoc computation, not a stored representation.
+- **ECF summary — settled: deferred, likely never built** (§2). FFT-*smoothing* of the histogram is a
+  separate, **deferred** post-hoc optimization (§4.5) — a computation choice, not a stored representation.
 - **Lag handling — settled:** the package bins pre-formed pairs (`observe_pairs!`) and exposes the
   `bin_index` map; the snapshot buffer and all lag / sampling / cadence policy are consumer-side (§3).
 - **[OPEN] Projection road** — include SFI/ULI from the start or defer (§4.6)?
@@ -643,8 +646,8 @@ intentional — do not dedupe it).
   confusion. Alternatives `GBGEmpiricalMeasures` / `GBGSufficientStatistics` weighed and declined.
 - **Numeric precision — integer counts, `Float64` moment accumulators by default** (§3, invariant 6),
   type-parameterized; `Float32` input promoted at accumulation.
-- **ECF summary — deferred, likely never built** (§2). FFT-*smoothing* of the histogram is kept
-  (§4.5) — a post-hoc computation, not a stored representation.
+- **ECF summary — deferred, likely never built** (§2). FFT-*smoothing* of the histogram is a separate,
+  **deferred** post-hoc optimization (§4.5) — a computation choice, not a stored representation.
 - **Lag handling — the package bins pre-formed pairs** (`observe_pairs!`) and exposes `bin_index`;
   the snapshot buffer and all lag / sampling / cadence policy stay consumer-side (§3).
 
@@ -863,6 +866,13 @@ intentional — do not dedupe it).
   statistical core — they are thin functionals of `conditional_mean`, the most physics-flavored,
   least-complete, most consumer-side part, and the identity is sharper without them. Restore when a consumer
   needs them and `Histogram2D` raises its per-cell order for ``n \ge 3``.
+- **FFT-amortized smoothing — deferred (recorded, not built)** (§4.5). Every reported quantity is already
+  computed *exactly* by direct summation over the few ``\times 10^3`` bins, and that cost is dwarfed by the
+  per-sample accumulation (§5), so the FFT is a *pure* amortization win — decisive only once a consumer
+  sweeps a *grid* of bandwidths (the local ``h^\star(x)`` road). Recorded here and in §4.5, to be built
+  when that cost bites. `FFTW` is retained — the ISJ bandwidth (`rule = :isj`) uses its DCT today; the
+  unused `AbstractFFTs` direct dependency (its sole intended consumer was this deferred smoothing) was
+  dropped, per the rule against speculative structure (§6).
 
 Open decisions still flagged **[OPEN]** in §10 (the projection road, `HistogramND`, vector-valued
 conditioning, prior-art mirroring) graduate to entries here when they are settled.

@@ -100,7 +100,8 @@ estimands.
   asymmetric Silverman analog); for the joint (`Histogram2D`) the **response-aware local plug-in**
   ``h^\star(x)`` (`rule = :local`, composing the Fan–Yao ``\sigma^2(x)``, the degree-2 curvature
   ``m''(x)``, and ``f_X(x)``). The post-hoc FFT smoothing helpers (the major performance lever, amortized
-  over bandwidth) are forthcoming. Owns `FFTW`, `AbstractFFTs`.
+  over bandwidth) are **deferred** (recorded, not built — a pure optimization over the exact direct
+  summation). Owns `FFTW` (the ISJ `rule = :isj` DCT).
 - Include order: `Accumulators → Histograms → Kernels → LocalPolynomial → MarginalDensity → Regression →
   ConditionalDensity → Bandwidth`. Cross-module access only through explicit `using ..Module: name, …`
   — never a bare `using`.
@@ -417,11 +418,7 @@ Mechanical bar:
 
 **Next, in dependency order:**
 
-1. **The FFT-amortized smoothing** (§4.5) — the post-hoc convolution of the binned summary with the
-   kernel in ``O(B\\log B)``, amortized over bandwidth (transform the counts once; each ``h`` a multiply
-   by the kernel's transform — the major performance lever, decisive for the ``h^\\star(x)`` bandwidth
-   *grid*). `FFTW` / `AbstractFFTs` are already dependencies.
-2. **Density-estimation methods from the prior-art survey** (`inspiration/density-software/ALGORITHMS.md`),
+1. **Density-estimation methods from the prior-art survey** (`inspiration/density-software/ALGORITHMS.md`),
    in priority order — all mergeable functionals of the summary: the **POT–GPD heavy-tail splice**
    (domain-critical for intermittent tails; a binned GPD-MLE on the tail bin counts that extrapolates
    beyond the histogram's `[lower, upper)` range, plus an optional mergeable top-k max-heap for exact
@@ -431,7 +428,11 @@ Mechanical bar:
    asymmetric gamma/beta kernels are **done** (Done 4). Deliberate skips recorded there: shape-constrained
    MLE (shape-as-premise, invariant 2), taut-string (a mode-count diagnostic), DEFT, kNN, neural/DP-mixture.
 
-Deferred (recorded, not built): the ECF summary (`docs/ARCHITECTURE.md` §2 — likely never); the
+Deferred (recorded, not built): the **FFT-amortized post-hoc smoothing** (§4.5 — the ``O(B\\log B)``
+convolution of the bin counts with the kernel, amortized over a bandwidth *grid*; a pure optimization over
+the exact direct summation, itself dwarfed by accumulation — build it when an ``h^\\star(x)`` grid sweep
+makes it bite; `FFTW` stays for the ISJ DCT, the unused `AbstractFFTs` dep was dropped); the ECF summary
+(`docs/ARCHITECTURE.md` §2 — likely never); the
 projection / SFI–ULI road (§4.6); `HistogramND` (§3, wait for a multi-conditioning consumer);
 vector-valued conditioning (lean scalar-channel — let the consumer loop components); the **bulk scalar time-correlation function**
 (consumer-side — a `Histogram2D` per lag is the wrong cost for one cross-moment; §6); raising

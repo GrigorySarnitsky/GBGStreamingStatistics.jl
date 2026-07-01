@@ -15,8 +15,9 @@ The package has a single performance-critical path: the **per-sample accumulatio
   `:sj`). Even so it is dwarfed by the accumulation over every sample of the stream — a few thousand bins
   versus ``N^3`` samples. The **FFT amortization** — transform the bin counts once in ``O(B \log B)``, then
   each ``h`` (and the bandwidth grid a local ``h^\star(x)`` sweep needs) is a multiply by the kernel's
-  transform and an inverse FFT — is forthcoming; it is the major lever once a bandwidth *grid* is swept
-  (the `FFTW` dependency is already in place, used today for the ISJ DCT).
+  transform and an inverse FFT — is **deferred (recorded, not built)**: a pure optimization over the exact
+  direct summation, the major lever only once a bandwidth *grid* is swept (`FFTW` is already in place,
+  used today for the ISJ DCT).
 
 ## Hot-loop best practices
 
