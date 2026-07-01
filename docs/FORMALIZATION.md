@@ -268,6 +268,16 @@ recorded in `ARCHITECTURE.md` §4 meanwhile.
   curvature of ``\mathbb{E}[Y^2\mid x]``, large where ``m`` curves. The residual-based estimator fits the
   far flatter ``\mathbb{E}[(Y - m)^2\mid x] = \sigma^2(x)``, whose ``O(h^2)`` bias ``\propto (\sigma^2)''``
   is much smaller, so it removes the ``m''``-driven bias.
+- **Standard error** (`conditional_variance_standard_error`; paired `conditional_variance_with_standard_error`).
+  The **residual** approximation ``\mathrm{SE}(\hat\sigma^2(x)) = \sqrt{\ell(x)\,(\mu_4(x) - \sigma^4(x))}`` —
+  since ``\hat\sigma^2(x)`` is a conditional mean of the squared residual ``(Y-\hat m(x))^2``, it is the
+  `conditional_expectation_standard_error` of that response, with the 4th central conditional moment
+  ``\mu_4(x) = \mathbb{E}[(Y-m(x))^4\mid x]`` read off the order-2 ``Y``-power-sums by the ``y``-quadrature of
+  the smooth ``(Y-\hat m)^4`` — so the ``O(\Delta_y^2)`` quadrature captures the conditional **kurtosis**
+  with no 4th-moment storage. Leading-order, common to the `:residual` and `:plugin` variance methods; tested
+  in `test/conditionalexpectations.jl` by Monte-Carlo calibration on the Gaussian and a heavy-tailed
+  Student-``t_5`` response (the heavier ``\mu_4`` widens the band), the ``n^{-1/2}`` scaling contract, and
+  paired consistency.
 - **Test.** `test/conditionalexpectations.jl` — recovers ``1-\rho^2`` on the (linear-mean) bivariate-Gaussian oracle to
   a few percent, and on a **heteroscedastic curved-mean** oracle (``X\sim N(0,1)``, ``m(x)=x^2``,
   ``\sigma^2(x)=0.2+0.1x^2``) the residual estimator recovers ``\sigma^2(x)`` (degree 2) and beats the

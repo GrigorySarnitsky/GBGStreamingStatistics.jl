@@ -105,7 +105,9 @@ estimands.
   (0 Nadaraya–Watson / 1 local-linear default / 2 local-quadratic) and `kernel` options. `conditional_mean`
   is folded in exactly as `conditional_expectation(identity, …)`; `conditional_variance` defaults to the
   bias-reduced **Fan & Yao** residual estimator (`method = :residual`; the plug-in is `:plugin`, ``=
-  \mathbb{E}[Y^2\mid x]-\mathbb{E}[Y\mid x]^2`` via the general reader). The general `g` is `O(Δ_y^2)`
+  \mathbb{E}[Y^2\mid x]-\mathbb{E}[Y\mid x]^2`` via the general reader), with the residual-based
+  `conditional_variance_standard_error` ``= \sqrt{\ell(x)\,(\mu_4-\sigma^4)}`` (``\mu_4`` the order-2
+  quadrature of the smooth ``(Y-\hat m)^4``). The general `g` is `O(Δ_y^2)`
   (order-2 Y-power-sums), exact for `g` of degree ≤ 2. The **estimand-first reference module** — write its
   docstrings to the documentation policy below.
 - `src/ConditionalDensity.jl` — §4.3 `conditional_density` ``\equiv f_{Y\mid X}``,
@@ -421,7 +423,10 @@ Mechanical bar:
    ``\equiv \sigma^2(x)`` by local-polynomial regression from `Histogram2D` over the shared
    `LocalPolynomial.local_fit` (the ``T_\ell``/``P_\ell`` from per-X-column counts and response totals),
    with the `degree` (0/1/2) and `kernel` options; `conditional_variance` defaults to the bias-reduced
-   **Fan & Yao** residual estimator (`method = :residual`; the plug-in is `:plugin`). Tested against the
+   **Fan & Yao** residual estimator (`method = :residual`; the plug-in is `:plugin`), with the residual-based
+   `conditional_variance_standard_error` ``= \sqrt{\ell(x)\,(\mu_4-\sigma^4)}`` (the SE of the squared-residual
+   conditional mean; ``\mu_4`` from the order-2 quadrature, MC-calibrated on Gaussian and heavy-tailed
+   responses). Tested against the
    bivariate-Gaussian oracle (``m`` recovers ``\rho x`` to ``\lesssim 2\%``; ``\sigma^2`` recovers
    ``1-\rho^2``) and a heteroscedastic curved-mean oracle (Fan–Yao recovers ``\sigma^2(x)`` and beats the
    plug-in in the curved tail). The **general reader** `conditional_expectation`
@@ -527,15 +532,14 @@ Mechanical bar:
 
 **Next, in dependency order:**
 
-1. **`conditional_variance`'s standard error** — the last gap in the *every estimator ships a standard
-   error* requirement (the Definition of done and `docs/ARCHITECTURE.md` §7). The density-side SEs are all
-   **done**: `conditional_density_standard_error` (covering `transition_density`) and the
-   `pushforward_density` / `conditional_pushforward_density` standard errors (the densities of a transform,
-   the composed-kernel SE of `expectation` / `conditional_expectation`). `conditional_variance` is the hard
-   one — its ``\\mu_4``-based SE needs the 4th conditional moment the order-2 `Histogram2D` does not store,
-   so it waits on a `Histogram2D` order-raise or a residual-based approximation (with its paired
-   `*_with_standard_error` and the full `check_standard_error` contract).
-2. **Density-estimation methods from the prior-art survey** (`inspiration/density-software/ALGORITHMS.md`),
+The *every estimator ships a standard error* requirement (the Definition of done and
+`docs/ARCHITECTURE.md` §7) is now **complete** — every population-quantity estimator carries its
+`*_standard_error` and paired `*_with_standard_error`, each under the `check_standard_error` contract. The
+last one, `conditional_variance_standard_error` (the residual approximation ``\\sqrt{\\ell(x)\\,(\\mu_4 -
+\\sigma^4)}``, with ``\\mu_4`` read off the order-2 quadrature of the smooth ``(Y-\\hat m)^4`` — no
+4th-moment storage), is Done 6.
+
+1. **Density-estimation methods from the prior-art survey** (`inspiration/density-software/ALGORITHMS.md`),
    in priority order — all mergeable functionals of the summary: the **POT–GPD heavy-tail splice**
    (domain-critical for intermittent tails; a binned GPD-MLE on the tail bin counts that extrapolates
    beyond the histogram's `[lower, upper)` range, plus an optional mergeable top-k max-heap for exact

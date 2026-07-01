@@ -39,6 +39,8 @@ using GBGStreamingStatistics: Histograms, MarginalDensity, Bandwidth, Conditiona
   @test_call target_modules = mods conditional_mean(g, 0.0; h = 0.5)
   @test_call target_modules = mods conditional_mean(g, 0.0; h = 0.5, degree = 0, kernel = gamma_kernel)   # asym degree-0
   @test_call target_modules = mods conditional_variance(g, 0.0; h = 0.5)
+  @test_call target_modules = mods conditional_variance_standard_error(g, 0.0; h = 0.5)
+  @test_call target_modules = mods conditional_variance_with_standard_error(g, 0.0; h = 0.5)
   @test_call target_modules = mods conditional_expectation(g, cos, 0.0; h = 0.5)   # the general ⟨g(Y)|x⟩
   @test_call target_modules = mods conditional_expectation_standard_error(g, cos, 0.0; h = 0.5)
   @test_call target_modules = mods conditional_expectation_with_standard_error(g, cos, 0.0; h = 0.5)

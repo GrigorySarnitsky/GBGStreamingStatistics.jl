@@ -99,8 +99,9 @@ verbatim by every consumer) and an **estimator upper half** (the estimands):
   options), and `density_with_standard_error`, the estimate and its band from one option specification.
 - [`ConditionalExpectations`](api/ConditionalExpectations.md): the conditional expectation
   `conditional_expectation` ``\equiv \mathbb{E}[g(Y)\mid x]`` of a response functional, with the conditional
-  mean `conditional_mean` ``\equiv m(x)`` and variance `conditional_variance` ``\equiv \sigma^2(x)`` as its
-  ``g = \mathrm{identity}`` / ``y^2`` cases, the sampling `conditional_expectation_standard_error` (paired
+  mean `conditional_mean` ``\equiv m(x)`` and variance `conditional_variance` ``\equiv \sigma^2(x)`` (with its
+  residual-based standard error) as its ``g = \mathrm{identity}`` / ``y^2`` cases, the sampling
+  `conditional_expectation_standard_error` (paired
   with the estimate by `conditional_expectation_with_standard_error`), and the
   conditional pushforward density `conditional_pushforward_density` ``\equiv f_{g(Y)\mid X}``
   (local-polynomial regression in ``x`` of a ``y``-quadrature response) — each with its standard error.

@@ -54,6 +54,45 @@ include("testcontracts.jl"); using .TestContracts
   merge!(a, b)
   check_point_estimator((s, x) -> conditional_mean(s, x; h = 0.4),     a, hist; points = [-1.0, 0.0, 1.0], outside = 100.0)
   check_point_estimator((s, x) -> conditional_variance(s, x; h = 0.2), a, hist; points = [-1.0, 0.0, 1.0], outside = 100.0)
+  check_point_estimator((s, x) -> conditional_variance_standard_error(s, x; h = 0.2), a, hist; points = [-1.0, 0.0, 1.0], outside = 100.0)
+
+  @testset "conditional_variance_standard_error — the residual approximation (§4.2)" begin
+    hbw = 0.4
+    # positivity, scalar == vector, exact n^{-1/2} copy-merge scaling
+    check_standard_error((s, x) -> conditional_variance_standard_error(s, x; h = hbw), hist;
+                         points = [-1.0, 0.0, 1.0])
+    # paired reader matches the separate calls; the SE is common to both variance methods
+    r = conditional_variance_with_standard_error(hist, 0.5; h = hbw)
+    @test r.value == conditional_variance(hist, 0.5; h = hbw)
+    @test r.standard_error == conditional_variance_standard_error(hist, 0.5; h = hbw)
+    @test conditional_variance_with_standard_error(hist, 0.5; h = hbw, method = :plugin).standard_error ==
+          conditional_variance_with_standard_error(hist, 0.5; h = hbw, method = :residual).standard_error
+    @test conditional_variance_with_standard_error(hist, [-0.5, 0.5]; h = hbw).standard_error ==
+          conditional_variance_standard_error(hist, [-0.5, 0.5]; h = hbw)
+    @test isnan(conditional_variance_standard_error(hist, 100.0; h = hbw))
+    @test_throws ArgumentError conditional_variance_standard_error(hist, 0.0; h = -1.0)
+    @test_throws ArgumentError conditional_variance_standard_error(hist, 0.0; h = hbw, degree = 3)
+
+    # the residual approximation captures conditional KURTOSIS: a heavy-tailed (Student-t₅) response, at the
+    # same σ²(x), has a larger μ₄ and so a wider variance band than the Gaussian oracle
+    Random.seed!(84); pert = 300_000
+    t5(n) = randn(n) ./ sqrt.((randn(n) .^ 2 .+ randn(n) .^ 2 .+ randn(n) .^ 2 .+ randn(n) .^ 2 .+ randn(n) .^ 2) ./ 5)
+    Xg = randn(pert); heavy = Histogram2D(-6.0, 6.0, 160, -8.0, 8.0, 320)
+    observe_pairs!(heavy, Xg, ρ .* Xg .+ sqrt(1 - ρ^2) .* (t5(pert) ./ sqrt(5 / 3)))
+    Xn = randn(pert); light = Histogram2D(-6.0, 6.0, 160, -8.0, 8.0, 320)
+    observe_pairs!(light, Xn, ρ .* Xn .+ sqrt(1 - ρ^2) .* randn(pert))
+    @test conditional_variance_standard_error(heavy, 0.5; h = hbw) > conditional_variance_standard_error(light, 0.5; h = hbw)
+
+    # Monte-Carlo: the SE predicts the empirical sampling spread of σ̂²(0.5) across independent datasets
+    Random.seed!(85); K = 30; per = 120_000
+    chunks = Histogram2D[]; ests = Float64[]
+    for _ in 1:K
+      Xk = randn(per); Yk = ρ .* Xk .+ sqrt(1 - ρ^2) .* randn(per)
+      s = Histogram2D(-6.0, 6.0, 120, -6.0, 6.0, 120); observe_pairs!(s, Xk, Yk)
+      push!(chunks, s); push!(ests, conditional_variance(s, 0.5; h = hbw))
+    end
+    @test conditional_variance_standard_error(chunks[1], 0.5; h = hbw) ≈ std(ests) rtol = 0.2
+  end
 end
 
 

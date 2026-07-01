@@ -4,8 +4,8 @@ The conditional expectation ``\mathbb{E}[g(Y) \mid x]`` of a smooth functional o
 ([`conditional_expectation`](@ref)) with its sampling standard error
 ([`conditional_expectation_standard_error`](@ref), paired with the estimate in one call by
 [`conditional_expectation_with_standard_error`](@ref)), the conditional mean [`conditional_mean`](@ref)
-``\equiv m(x)`` and variance [`conditional_variance`](@ref) ``\equiv \sigma^2(x)`` as its
-``g = \mathrm{identity}`` / ``y^2`` cases, and the conditional pushforward density
+``\equiv m(x)`` and variance [`conditional_variance`](@ref) ``\equiv \sigma^2(x)`` (with its residual-based
+standard error) as its ``g = \mathrm{identity}`` / ``y^2`` cases, and the conditional pushforward density
 [`conditional_pushforward_density`](@ref) ``\equiv f_{g(Y) \mid X}`` of a transformed response. All
 by local-polynomial regression in ``x`` of a ``y``-quadrature response.
 
@@ -15,6 +15,8 @@ conditional_expectation_standard_error
 conditional_expectation_with_standard_error
 conditional_mean
 conditional_variance
+conditional_variance_standard_error
+conditional_variance_with_standard_error
 conditional_pushforward_density
 conditional_pushforward_density_standard_error
 conditional_pushforward_density_with_standard_error

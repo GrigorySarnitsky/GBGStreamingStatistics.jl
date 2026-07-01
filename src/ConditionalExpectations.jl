@@ -15,7 +15,8 @@ using ..LocalPolynomial: local_fit, _leverage
 using ..Kernels: gaussian_kernel, _quad
 using ..Expectations: _interp_matrix
 
-export conditional_mean, conditional_variance, conditional_expectation,
+export conditional_mean, conditional_variance, conditional_variance_standard_error,
+       conditional_variance_with_standard_error, conditional_expectation,
        conditional_expectation_standard_error, conditional_expectation_with_standard_error,
        conditional_pushforward_density, conditional_pushforward_density_standard_error,
        conditional_pushforward_density_with_standard_error
@@ -390,6 +391,69 @@ function conditional_variance(summary::Histogram2D, xs::AbstractVector; h::Real,
   end
   throw(ArgumentError("conditional_variance `method` must be :residual (Fan–Yao, default) or " *
                       ":plugin (got :$method)"))
+end
+
+
+"""
+    conditional_variance_standard_error(summary::Histogram2D, x;
+                                        h, kernel = gaussian_kernel, degree = 1)
+
+**Estimand.** The sampling standard error of the conditional variance
+[`conditional_variance`](@ref GBGStreamingStatistics.ConditionalExpectations.conditional_variance),
+``\\mathrm{SE}(\\hat\\sigma^2(x)) = \\sqrt{\\ell(x)\\,\\bigl(\\mu_4(x) - \\sigma^4(x)\\bigr)}`` with the
+local-regression leverage ``\\ell(x)``, the conditional variance ``\\sigma^2(x)``, and the 4th central
+conditional moment ``\\mu_4(x) = \\mathbb{E}[(Y - m(x))^4 \\mid x]``.
+
+**Estimator.** The **residual** approximation: since ``\\hat\\sigma^2(x)`` is a conditional mean of the
+squared residual ``(Y - \\hat m(x))^2``, its standard error is the
+[`conditional_expectation_standard_error`](@ref
+GBGStreamingStatistics.ConditionalExpectations.conditional_expectation_standard_error) of that response,
+``\\sqrt{\\ell(x)\\,(\\hat\\mu_4(x) - \\hat\\sigma^4(x))}``, with ``\\hat\\mu_4`` the ``y``-quadrature of the
+smooth ``(Y - \\hat m(x))^4`` off the order-2 ``Y``-power-sums — so the ``O(\\Delta_y^2)`` quadrature
+captures the conditional **kurtosis** (a heavy-tailed response widens the band) with no 4th-moment storage.
+It is the leading-order SE, common to the `:residual` and `:plugin` variance methods.
+
+Arguments: as for [`conditional_variance`](@ref
+GBGStreamingStatistics.ConditionalExpectations.conditional_variance) — `summary`, `x`; `h`, `kernel`,
+`degree`.
+"""
+function conditional_variance_standard_error(summary::Histogram2D, x::Real; h::Real,
+                                             kernel = gaussian_kernel, degree::Integer = 1)
+  m = conditional_mean(summary, x; h = h, kernel = kernel, degree = degree)
+  return conditional_expectation_standard_error(summary, y -> (y - m)^2, x; h = h, kernel = kernel,
+                                                degree = degree)
+end
+
+function conditional_variance_standard_error(summary::Histogram2D, xs::AbstractVector; h::Real,
+                                             kernel = gaussian_kernel, degree::Integer = 1)
+  return [conditional_variance_standard_error(summary, x; h = h, kernel = kernel, degree = degree) for x in xs]
+end
+
+
+"""
+    conditional_variance_with_standard_error(summary::Histogram2D, x;
+        h, kernel = gaussian_kernel, degree = 1, method = :residual)
+
+[`conditional_variance`](@ref GBGStreamingStatistics.ConditionalExpectations.conditional_variance) and its
+standard error — the `NamedTuple` ``(\\texttt{value}, \\texttt{standard\\_error})``, with `value` the
+variance (`method` `:residual` default, or `:plugin`) and `standard_error` its
+[`conditional_variance_standard_error`](@ref
+GBGStreamingStatistics.ConditionalExpectations.conditional_variance_standard_error) (the leading-order
+residual approximation, common to both methods). For a vector `x`, a `NamedTuple` of vectors.
+"""
+function conditional_variance_with_standard_error(summary::Histogram2D, x::Real; h::Real,
+                                                  kernel = gaussian_kernel, degree::Integer = 1,
+                                                  method::Symbol = :residual)
+  v = conditional_variance(summary, x; h = h, kernel = kernel, degree = degree, method = method)
+  se = conditional_variance_standard_error(summary, x; h = h, kernel = kernel, degree = degree)
+  return (value = v, standard_error = se)
+end
+
+function conditional_variance_with_standard_error(summary::Histogram2D, xs::AbstractVector; h::Real,
+                                                  kernel = gaussian_kernel, degree::Integer = 1,
+                                                  method::Symbol = :residual)
+  return (value = conditional_variance(summary, xs; h = h, kernel = kernel, degree = degree, method = method),
+          standard_error = conditional_variance_standard_error(summary, xs; h = h, kernel = kernel, degree = degree))
 end
 
 
