@@ -438,9 +438,8 @@ is a binned local smoother of the `summary` counts ``n_j`` at bin centers ``c_j`
   ``(\\tilde f/g)^{-1/2}`` (a pilot ``\\tilde f`` at the bandwidth `h`, ``g`` its geometric mean), widening
   in the sparse tails for far less tail variance (Abramson 1982). It is **orthogonal to how `h` is
   chosen**, so it composes with the data-driven bandwidth — pass `h = bandwidth(summary; rule = :sj)` to
-  vary a *shape-adaptive* global scale locally (choosing the global bandwidth and varying it by location
-  are independent: the chosen `h` becomes the Abramson pilot). (Fixed-`h` KDE uses the sample-point
-  ``h_j`` per bin; the local-log fit uses one balloon ``h(x)`` at the query.)
+  vary a *shape-adaptive* global scale locally (the chosen `h` becomes the Abramson pilot). (The degree-0
+  KDE uses the sample-point ``h_j`` per bin; the local-log fit uses one balloon ``h(x)`` at the query.)
 - **`bounds`** — the support of the density, passed as the tuple `(lower, upper)` (e.g. `(0.0, Inf)` for
   a positive quantity such as a droplet radius), or `nothing` (default, unbounded). When given, the
   degree-0 KDE is **renormalized** by the kernel mass inside the support: ``\\hat f(x) \\big/ \\int_a^b K_h(x-u)\\,\\mathrm{d}u`` (Jones 1993). This corrects the boundary bias that otherwise drops the estimate
@@ -472,8 +471,7 @@ is a binned local smoother of the `summary` counts ``n_j`` at bin centers ``c_j`
   the higher-order accuracy is free; it applies to every path (KDE, local-log, start, asymmetric kernel).
 
 The four corners (fixed/variable ``\\times`` KDE/local-log) and everything between are one call. A vector
-of query points returns a vector. The FFT amortization of the `degree = 0`, fixed-`h` convolution over a
-bandwidth grid is a deferred optimization (recorded, not built).
+of query points returns a vector.
 
 ```jldoctest
 julia> h = Histogram1D(-1.0, 1.0, 2);
@@ -695,8 +693,8 @@ one call). The variance is adjusted per option: `adaptive` replaces ``h`` by the
 bandwidth ``h(x)`` (a wider window — hence smaller variance — in the tail; the sample-point pilot's own
 variability is an unmodelled higher-order term, so the band runs slightly narrow in the deep tail); `bounds` (Jones
 renormalization) replaces ``R(K)`` by the boundary-restricted roughness ``R_a(x) =
-\\int_{\\text{support}} K_h(x-u)^2\\,\\mathrm du`` and divides by the kernel mass ``a(x)`` inside the
-support, inflating the variance near an edge; a parametric `start` leaves the leading variance
+\\frac1h\\int_{\\text{support}} K((x-u)/h)^2\\,\\mathrm du`` and divides by the squared in-support kernel
+mass ``a(x)^2``, inflating the variance near an edge; a parametric `start` leaves the leading variance
 ``R(K)\\hat f/(nh)`` unchanged (the fitted-parameter uncertainty is an ``O(1/n)`` omission). Restricted to
 `degree` 0/1 and a **symmetric** kernel (`degree` ``\\ge 2`` and the asymmetric gamma/beta-kernel variance
 are coverage gaps); a vector of query points returns a vector.

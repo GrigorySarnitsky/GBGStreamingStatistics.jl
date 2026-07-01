@@ -2,7 +2,7 @@
 
 Shared building blocks *below* the public estimator API — documented here for development, review, and
 **extension** (building a new local-polynomial estimator on the same primitive without reimplementing the
-solve — the architecture's shared core, [Architecture](architecture.md) §11).
+solve — the architecture's shared core, [Architecture](architecture.md)).
 
 !!! warning "Not the stable public API"
     These bindings are **not exported** and **not part of the stable surface** — reach them by the

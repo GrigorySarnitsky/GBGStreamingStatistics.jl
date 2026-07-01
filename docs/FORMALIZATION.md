@@ -11,7 +11,7 @@ gap (`CLAUDE.md`, *Definition of done*).
 
 Throughout, ``K`` is the smoothing kernel with ``\int K = 1``, ``\mu_2(K) = \int u^2 K(u)\,\mathrm
 du`` its second moment, and ``R(K) = \int K^2`` its roughness; ``h`` is the bandwidth, ``n`` the
-number of samples, ``f_X`` the marginal density of the conditioning variable.
+number of samples, ``f_X`` the marginal density of ``X`` (the conditioning variable in the joint estimators).
 
 The entries are grouped by the lens of `ARCHITECTURE.md` §2: the **atoms** (the power-sums summary, the
 cone, the kernel-weighting atom & jet) first, then the two readout families — the **kernel-weighting
@@ -149,6 +149,8 @@ recorded in `ARCHITECTURE.md` §4 meanwhile.
   ``(P,\,P')`` (degree 1); degree 0 is the Nadaraya–Watson ratio ``P_0/T_0``; a degenerate design gives an
   all-NaN jet; the kernel normalization cancels. The ``\beta``-invariance of the ``1/h`` fold and the
   asymmetric-degree-0 admission ride on the unchanged `density` and `conditional_mean` oracle / rate tests.
+  The kernel constants the weighting depends on (``\int K = 1``, ``\mu_2(K)``, ``R(K)``) are verified by
+  independent quadrature in `test/kernels.jl`.
 
 ## Marginal density (§4.1) — `density`
 

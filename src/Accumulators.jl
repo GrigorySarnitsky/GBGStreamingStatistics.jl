@@ -16,8 +16,9 @@ Supertype of every **mergeable summary** ``T(\\hat\\mu_n)`` of the [empirical me
 ``\\hat\\mu_n = \\frac1n \\sum_{i=1}^{n} \\delta_{X_i}`` of an observed stream ``X_1, X_2, \\dots``
 (``\\delta_x`` the unit point mass at ``x``, ``n`` the number of samples seen).
 
-A summary is **finite-dimensional** — the ``n`` point masses are never stored — **mergeable** (an
-additive monoid over the stream; see [`merge!`](@ref Base.merge!)), and **rich enough** that every
+A summary is **finite-dimensional** — the ``n`` point masses are never stored — **mergeable** and
+**scalable** (a convex cone over the stream; see [`merge!`](@ref Base.merge!) and [`scale!`](@ref)), and
+**rich enough** that every
 reported estimator is recoverable from it post hoc, with no second pass over the data. The summary is
 accumulated online and is *estimand-agnostic*; all smoothing (kernel, bandwidth) is applied
 post hoc. Concrete summaries ([`Histogram1D`](@ref GBGStreamingStatistics.Histograms.Histogram1D),
@@ -29,7 +30,7 @@ abstract type AbstractAccumulator end
 """
     observe!(summary::AbstractAccumulator, batch) -> summary
 
-Fold a `batch` of samples into `summary` in place, advancing the accumulated summary
+Fold a `batch` of samples (a vector, or a single sample) into `summary` in place, advancing the accumulated summary
 ``T(\\hat\\mu_n)`` of the empirical measure (see
 [`AbstractAccumulator`](@ref GBGStreamingStatistics.Accumulators.AbstractAccumulator)). Accumulation
 is **estimand-agnostic**: it knows nothing of which estimator will later be asked for, nor of the

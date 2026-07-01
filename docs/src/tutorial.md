@@ -47,8 +47,8 @@ bw = bandwidth(summary)              # a global plug-in bandwidth from the recov
 fX = density(summary, 0.0; h = bw)   # the marginal density f_X at x = 0
 ```
 
-**4. Two-time statistics.** For conditional and transition densities and the conditional increment
-moments, the consumer forms lag-labelled pairs ``\bigl(X(t), Y(t+\tau)\bigr)`` and bins them with
+**4. Two-time statistics.** For conditional and transition densities, the consumer forms lag-labelled
+pairs ``\bigl(X(t), Y(t+\tau)\bigr)`` and bins them with
 [`observe_pairs!`](@ref GBGStreamingStatistics.Histograms.observe_pairs!) into a
 [`Histogram2D`](@ref GBGStreamingStatistics.Histograms.Histogram2D); the snapshot buffer and lag policy
 stay consumer-side. The same post-hoc rule applies — every estimand is read off the one joint summary:
@@ -60,7 +60,7 @@ for (x_past, y_now) in pairs    # the consumer forms the lagged pairs at lag τ
 end
 
 m  = conditional_mean(joint, 0.0; h = 0.3)                     # E[Y | X = 0]
-D1 = drift(joint, 0.0; h = 0.3)                                # Kramers–Moyal drift D⁽¹⁾(0)
+s2 = conditional_variance(joint, 0.0; h = 0.3)                 # Var[Y | X = 0]
 pτ = transition_density(joint, 0.0, 0.0; hx = 0.3, hy = 0.2)   # transition density p_τ(0 | 0)
 ```
 

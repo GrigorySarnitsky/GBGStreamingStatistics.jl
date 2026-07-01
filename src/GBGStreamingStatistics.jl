@@ -10,29 +10,24 @@
     GBGStreamingStatistics
 
 A backend-agnostic library for **online nonparametric statistics**: it estimates marginal densities,
-conditional expectations, conditional and two-time transition densities, and standard functionals of
-these, from a stream of samples that is never stored. Each sample is observed once, folded into a
-fixed-size summary, and discarded.
+conditional expectations, conditional and two-time transition densities, and functionals of these
+(expectations, moments, and pushforward densities), from a stream of samples that is never stored. Each
+sample is observed once, folded into a fixed-size summary, and discarded.
 
 The summary is accumulated online and is estimand-agnostic; every reported quantity is a post-hoc
 smoothing functional of that one summary — so there is no storage of the underlying state and no
-recompute-from-raw reruns. The library is domain-neutral and model-neutral: it returns estimators and
-the diagnostics that *test* a model (the Pawula ratio, a Markov / Chapman–Kolmogorov test), never the
-model itself.
+recompute-from-raw reruns. The library is domain-neutral and model-neutral: no stationarity, Markov, or
+parametric structure is a premise — such structure is only ever *tested*, never assumed.
 
-The package provides the mergeable accumulators and histogram summaries (`AbstractAccumulator`,
-`observe!`, `observe_pairs!`, `merge!`, `scale!`, `bin_index`, `Histogram1D`, `Histogram2D` — the last
-two with a `count = Float64`
-cone variant for hyperstatistics / forgetting), the marginal density (`density` and its variability band
-`density_standard_error` — and the paired `density_with_standard_error`, the estimate and its band from one option specification — with `gaussian_kernel` / `epanechnikov_kernel`, the half-line `gamma_kernel` and bounded `beta_kernel`, and the parametric starts `normal_start` / `lognormal_start` / `gamma_start` / `exponential_start` / `inverse_gaussian_start` — both the asymmetric kernels and the starts extensible through the exported `AsymmetricKernel` / `ParametricStart` constructors), conditional expectations
-(`conditional_mean`, `conditional_variance`, the general `conditional_expectation` of a response functional,
-its sampling `conditional_expectation_standard_error` — paired with the estimate by `conditional_expectation_with_standard_error` — and its `conditional_pushforward_density`),
-conditional and transition densities
-(`conditional_density`, `transition_density`), and bandwidth selection (`bandwidth`) — plus the
-power-sum quadrature readouts: the recovered marginal moments (`mean`, `var`, `std`, `central_moment`),
-the expectation of a smooth functional of ``X`` (`expectation`, with its sampling
-`expectation_standard_error` — paired by `expectation_with_standard_error`), and the pushforward density of a transformed variable ``g(X)``
-(`pushforward_density`).
+The package provides the mergeable **summaries** (`Histogram1D` / `Histogram2D`, with `observe!` /
+`observe_pairs!` / `merge!` / `scale!` — a `count = Float64` cone variant for hyperstatistics and
+forgetting); the marginal **`density`** (with its variability band, symmetric or bounded-support kernels,
+an adaptive bandwidth, and a parametric start); **conditional expectations** (`conditional_mean`,
+`conditional_variance`, and the general `conditional_expectation`) and the conditional / transition
+**densities** (`conditional_density`, `transition_density`); **`bandwidth`** selection; and the power-sum
+quadrature **readouts** — the moments (`mean` / `var` / `std` / `central_moment`), `expectation`, and
+`pushforward_density`. Every estimator has a matching `*_standard_error`, with an estimate-plus-error
+`*_with_standard_error` pairing; the API reference documents the full surface.
 """
 module GBGStreamingStatistics
 

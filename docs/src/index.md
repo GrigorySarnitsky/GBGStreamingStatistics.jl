@@ -1,9 +1,8 @@
 # GBGStreamingStatistics.jl
 
 `GBGStreamingStatistics.jl` is a backend-agnostic library for **online nonparametric statistics**. It
-estimates marginal densities, conditional expectations, conditional and two-time transition
-densities, and standard functionals of these (Kramers–Moyal coefficients, drift and diffusion, the
-Pawula diagnostic), from a **stream of samples that is never stored** — each sample is observed once,
+estimates marginal densities, conditional expectations, and conditional and two-time transition
+densities, from a **stream of samples that is never stored** — each sample is observed once,
 folded into a fixed-size summary, and discarded.
 
 The summary (a fine histogram with per-bin moments) is accumulated online and is *estimand-agnostic*:
@@ -33,12 +32,12 @@ two-time conditional densities) — but nothing in the library is specific to a 
     The summaries `Histogram1D` and `Histogram2D` (power-sums about the bin center, `observe!` /
     `observe_pairs!` / `merge!` / `scale!` / `bin_index`, with a Float-count cone variant for
     hyperstatistics / forgetting), the marginal
-    [`density`](@ref GBGStreamingStatistics.MarginalDensity.density) (§4.1), global
+    [`density`](@ref GBGStreamingStatistics.MarginalDensity.density), global
     [`bandwidth`](@ref GBGStreamingStatistics.Bandwidth.bandwidth) selection, and the conditional mean
     and variance ([`conditional_mean`](@ref GBGStreamingStatistics.ConditionalExpectations.conditional_mean),
-    `conditional_variance`, §4.2), the conditional and transition densities
+    `conditional_variance`), the conditional and transition densities
     ([`conditional_density`](@ref GBGStreamingStatistics.ConditionalDensity.conditional_density),
-    [`transition_density`](@ref GBGStreamingStatistics.ConditionalDensity.transition_density), §4.3)
+    [`transition_density`](@ref GBGStreamingStatistics.ConditionalDensity.transition_density))
     are implemented and tested on **CPU and GPU** (Gaussian, bivariate-Gaussian, and Ornstein–Uhlenbeck
     oracles, mergeability, allocation, AMD-ROCm parity), including the asymmetric bounded/positive-support
     kernels, the response-aware local bandwidth ``h^\star(x)``, and the Fan–Yao conditional variance —
@@ -86,9 +85,15 @@ verbatim by every consumer) and an **estimator upper half** (the estimands):
   that post-hoc smoothing later coarse-grains — holding per-bin counts and power-sums about the bin
   center; accumulation runs on **CPU or GPU**, and summaries combine with `merge!`. With `bin_index`
   and `observe_pairs!` for two-time statistics.
-- [`Kernels`](api/Kernels.md): the shared symmetric smoothing kernels — `gaussian_kernel` /
-  `epanechnikov_kernel` (any callable with ``\int K = 1``), used by `density`, the regression fits, the
-  double-kernel conditional density, and the bandwidth rules.
+- [`Kernels`](api/Kernels.md): the shared smoothing kernels — the symmetric `gaussian_kernel` /
+  `epanechnikov_kernel` (any callable with ``\int K = 1``) and the asymmetric `gamma_kernel` /
+  `beta_kernel` (via the `AsymmetricKernel` constructor) for bounded/positive support — used by `density`,
+  the regression fits, the double-kernel conditional density, and the bandwidth rules.
+- [`Expectations`](api/Expectations.md): the power-sum quadrature readouts — the expectation of a smooth
+  functional `expectation` ``\equiv \mathbb{E}[g(X)]``, its sampling `expectation_standard_error` (paired
+  with the estimate by `expectation_with_standard_error`), and the pushforward density
+  `pushforward_density` ``\equiv f_{g(X)}`` of a transformed variable. Read off the stored power-sums; the
+  recovered moments (`mean` / `var` / `std` / `central_moment`) are the ``g = x^p`` case.
 - [`MarginalDensity`](api/MarginalDensity.md): the marginal density `density` ``\equiv f_X`` — one
   call over the binned KDE, the local-log-polynomial (`degree`), and the Abramson variable bandwidth
   (`adaptive`, for tails), the asymmetric `gamma_kernel` / `beta_kernel` for bounded/positive support,
@@ -101,7 +106,7 @@ verbatim by every consumer) and an **estimator upper half** (the estimands):
   ``g = \mathrm{identity}`` / ``y^2`` cases, the sampling `conditional_expectation_standard_error` (paired
   with the estimate by `conditional_expectation_with_standard_error`), and the
   conditional pushforward density `conditional_pushforward_density` ``\equiv f_{g(Y)\mid X}``
-  (local-polynomial regression in ``x`` of a ``y``-quadrature response — composing both atoms).
+  (local-polynomial regression in ``x`` of a ``y``-quadrature response).
 - [`ConditionalDensity`](api/ConditionalDensity.md): the conditional density `conditional_density`
   ``\equiv f_{Y\mid X}`` and two-time transition density `transition_density`
   ``\equiv p_\tau(y\mid x)`` (double-kernel).
@@ -109,11 +114,6 @@ verbatim by every consumer) and an **estimator upper half** (the estimands):
   rule (Silverman the Gaussian/degree-0 case), the data-driven Sheather–Jones (`rule = :sj`, `:isj`),
   fit-based AIC (`rule = :aic`), and asymmetric-kernel Chen plug-in (`rule = :plugin`) selectors, and the
   joint-summary response-aware local plug-in ``h^\star(x)`` (`rule = :local`).
-- [`Expectations`](api/Expectations.md): the power-sum quadrature readouts — the expectation of a smooth
-  functional `expectation` ``\equiv \mathbb{E}[g(X)]``, its sampling `expectation_standard_error` (paired
-  with the estimate by `expectation_with_standard_error`), and the
-  pushforward density `pushforward_density` ``\equiv f_{g(X)}`` of a transformed variable. Read off the
-  stored power-sums; the recovered moments (`mean` / `var` / `central_moment`) are the ``g = x^p`` case.
 
 ## Documentation structure
 
@@ -126,11 +126,11 @@ Pages = [
   "api/Accumulators.md",
   "api/Histograms.md",
   "api/Kernels.md",
+  "api/Expectations.md",
   "api/MarginalDensity.md",
   "api/ConditionalExpectations.md",
   "api/ConditionalDensity.md",
   "api/Bandwidth.md",
-  "api/Expectations.md",
 ]
 ```
 

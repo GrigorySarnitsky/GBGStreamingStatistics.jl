@@ -90,8 +90,8 @@ end
 [`expectation`](@ref GBGStreamingStatistics.Expectations.expectation) uses
 (``a_0 n + a_1 S_{01} + a_2 S_{02}``, with ``a_p`` the coefficients of ``g``'s degree-2 interpolant on the
 ``Y``-bin), then smoothed across ``x`` by [`local_fit`](@ref) of order `degree`; the estimate is the fitted
-value ``\\beta_0``. It thus **composes the two atoms** — kernel-weighting in ``x`` after power-sum
-quadrature in ``y`` — and reduces to
+value ``\\beta_0``. It thus applies kernel-weighting in ``x`` after power-sum quadrature in ``y``, and
+reduces to
 [`conditional_mean`](@ref GBGStreamingStatistics.ConditionalExpectations.conditional_mean) at
 ``g = \\mathrm{identity}``.
 
@@ -153,7 +153,7 @@ end
 GBGStreamingStatistics.ConditionalExpectations.conditional_expectation),
 ``\\mathrm{SE}\\bigl(\\widehat{\\mathbb{E}}[g(Y)\\mid x]\\bigr) =
 \\sqrt{\\ell(x)\\,\\operatorname{Var}(g(Y)\\mid x)}``, with the local-regression **leverage**
-``\\ell(x) = \\sum_j N_j\\, w_j(x)^2`` (the sum of squared effective weights of the fit's ``\\beta_0``)
+``\\ell(x) = \\sum_j N_j\\, w_j(x)^2`` (``N_j`` the per-``x``-column count, ``w_j`` the effective weights of the fit's ``\\beta_0``)
 and the conditional variance of the transformed response
 ``\\operatorname{Var}(g(Y)\\mid x) = \\mathbb{E}[g(Y)^2\\mid x] - \\mathbb{E}[g(Y)\\mid x]^2``.
 
@@ -360,9 +360,7 @@ squared-residual total is recovered exactly from the stored column sums,
 
 **Estimator** (`method = :plugin`). The simple difference ``\\widehat{\\mathbb{E}}[Y^2 \\mid x] -
 \\hat m_h(x)^2`` (the same local fit applied to the ``Y^2`` response), clamped non-negative — cheaper
-(no first stage), but it carries the curved-``\\mathbb{E}[Y^2 \\mid x]`` smoothing bias. A one-step
-robust local M-estimator for heavy-tailed channels (e.g. ``(\\Delta X)^6``; Fan & Jiang 2000) is
-forthcoming.
+(no first stage), but it carries the curved-``\\mathbb{E}[Y^2 \\mid x]`` smoothing bias.
 
 Arguments:
 

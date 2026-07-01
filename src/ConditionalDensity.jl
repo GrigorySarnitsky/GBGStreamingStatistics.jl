@@ -116,8 +116,8 @@ the surviving ``1/h_2`` makes ``\\int \\hat f(y \\mid x)\\,\\mathrm{d}y = 1`` ex
 fix the marginal [`density`](@ref GBGStreamingStatistics.MarginalDensity.density) uses: it is a density in
 the data argument ``K_2(c^y_k;\\, y, h_2)`` (no mass leaks past the edge) but only ``\\approx`` normalized
 in ``y``, so set `normalize = true` to enforce ``\\int \\hat f\\,\\mathrm{d}y = 1`` exactly. (A bounded
-*conditioning* variable needs no asymmetric `kernelx`: see [`conditional_mean`](@ref
-GBGStreamingStatistics.ConditionalExpectations.conditional_mean) on the boundary-adaptivity of the local fits.) The
+*conditioning* variable needs no asymmetric `kernelx`: the ``x``-kernel cancels in the ``f_{X,Y}/f_X``
+ratio, so its boundary leakage does not bias ``f_{Y\\mid X}``.) The
 conditional MISE rate is slower than a marginal density (``O(n^{-2/3})``). A vector `y` returns the
 density curve over those points at the fixed conditioning value `x`; where no data is local to `x` the
 estimate is `NaN`.
@@ -183,7 +183,7 @@ end
 **Estimand.** the **two-time transition density**
 ``p_\\tau(y \\mid x) = f_{X_{t+\\tau} \\mid X_t}(y \\mid x)`` — the conditional density of the state a
 lag ``\\tau`` later, given the present state (nonstationary: ``p_{t,\\tau}``). For the
-Ornstein–Uhlenbeck oracle this is Gaussian in closed form (the natural end-to-end test).
+Ornstein–Uhlenbeck process this is Gaussian in closed form.
 
 **Estimator.** the [`conditional_density`](@ref GBGStreamingStatistics.ConditionalDensity.conditional_density)
 double-kernel estimator applied to the per-lag joint histogram of pairs

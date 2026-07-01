@@ -164,8 +164,8 @@ detailed in §4:
   per-bin power-sums.
 - **Conditional / transition density** ``f_{Y\mid X}``, ``p_\tau(y \mid x)`` — from a 2-D (joint)
   histogram, per lag.
-- **Conditional increment moments and their functionals** — Kramers–Moyal coefficients,
-  drift/diffusion, Pawula / Q diagnostics — domain-neutral functionals of the above; the SDE
+- **Conditional increment moments and their functionals** *(archived, §4.4)* — Kramers–Moyal
+  coefficients, drift/diffusion, Pawula / Q diagnostics — domain-neutral functionals of the above; the SDE
   *reading* stays consumer-side.
 - **Bandwidth selection** (cross-cutting) — global and the **response-aware local** ``h^\star(x)`` (both built).
 - **[OPEN]** a streaming **projection road** (basis projection à la Stochastic Force Inference /
@@ -196,12 +196,14 @@ bandwidth *grid* makes it bite. So FFT-*smoothing* is the endorsed (if deferred)
 Following PF's mathematics-first naming:
 
 - **Estimands / estimated quantities** take the **quantity's noun**: `density`, `conditional_mean`,
-  `conditional_variance`, `conditional_density`, `transition_density`, `drift`, `diffusion`.
+  `conditional_variance`, `conditional_density`, `transition_density`, `expectation`.
 - **Operations on the summary** that are actions take the **verb**: `observe!` (fold a sample
-  batch in), `merge!` (combine summaries), `estimate`/`smooth`.
-- **In-place** forms append `!` uniformly (`observe!`, `merge!`).
-- **Standard named statistical objects** keep their standard name (`histogram`,
-  `characteristic_function`, the eponymous `nadaraya_watson`, `local_linear`).
+  batch in), `merge!` (combine summaries), `scale!` (reweight the cone).
+- **In-place** forms append `!` uniformly (`observe!`, `merge!`, `scale!`).
+- **Standard named statistical objects** would keep their standard name (a `histogram`, a
+  `characteristic_function`) — a forward policy with no current instance; note the local-polynomial fits
+  are one `conditional_mean` with a `degree` option, not separate `nadaraya_watson` / `local_linear`
+  bindings.
 
 ### Documentation policy — **estimand first, estimator second**
 
@@ -227,8 +229,8 @@ form — the analog of PF allowing "this is the symbol of ``-\nabla^2``, not a k
 physical form exists.
 
 As in PF, the symbol is **bound to the code on first mention**: `density` ``\equiv f_X``,
-`conditional_mean` ``\equiv m(x)``, `transition_density` ``\equiv p_\tau(y\mid x)``, `drift`
-``\equiv D^{(1)}``, `diffusion` ``\equiv D^{(2)}``.
+`conditional_mean` ``\equiv m(x)``, `conditional_variance` ``\equiv \sigma^2(x)``, `transition_density`
+``\equiv p_\tau(y\mid x)``.
 
 **Correctness is its own check** (PF's separate-from-formatting rule). Verify the estimator is
 actually **consistent for the stated estimand** under the stated assumptions, and that **every
@@ -338,8 +340,8 @@ Each estimand is written **estimand first** (per §2), grouped by the **two read
 **§4.A kernel-weighting** (the local / smoothing readouts through `Kernels._kernel_weight` — the marginal
 density §4.1, the conditional mean and variance §4.2, the conditional / transition density §4.3, and
 bandwidth selection §4.5) and **§4.B power-sum quadrature** (the global moment readouts off the stored
-``S_p`` — `mean` / `var` / `central_moment`, §3, with ``\mathbb{E}[g(X)]`` and the pushforward density
-forthcoming). The §4.4 Kramers–Moyal / SDE-reading functionals are **archived** (`archive/`, restore when a
+``S_p`` — `mean` / `var` / `central_moment`, and `expectation` ``\mathbb{E}[g(X)]`` / `pushforward_density`,
+all built). The §4.4 Kramers–Moyal / SDE-reading functionals are **archived** (`archive/`, restore when a
 consumer needs them and `Histogram2D` raises its per-cell order); §4.6 is an [OPEN] alternative.
 
 ### 4.A Kernel-weighting readouts
@@ -364,7 +366,7 @@ fit ``\log f`` by a binned local-Poisson likelihood — degree 1 exact for expon
 **asymmetric** `gamma_kernel` / `beta_kernel`, Chen 1999/2000, boundary-bias-free by construction), a
 **parametric start** (`start`; Hjort & Glad 1995, a moment-fitted model times a KDE of its correction
 ``f_X/p`` — bias-reducing where the model fits), and exact `normalize`; `density_standard_error` is the
-pointwise ``\sqrt{R(K)\,f_X/(nh)}`` band. Caveats: the fixed range ``[\texttt{lower}, \texttt{upper})``
+pointwise ``\sqrt{R(K)\,f_X/(nh) - f_X^2/n}`` band. Caveats: the fixed range ``[\texttt{lower}, \texttt{upper})``
 drops events beyond it (set it ``\approx \pm 10\text{–}15\sigma`` wide), and uniform bins under-resolve
 power-law tails (the variable bandwidth is the preferred fix — it stays post-hoc, mergeable, and
 estimand-agnostic, which non-uniform bins would not).
@@ -605,8 +607,8 @@ GBGStreamingStatistics/
 ```
 
 Internal split, made explicit: **`Accumulators` + `Histograms` are the universal lower half**
-(every domain shares them verbatim, and they hold the hard, write-once numerics — GPU atomic
-high-order moment recursions); **`MarginalDensity` through `Bandwidth` are the estimator upper half**
+(every domain shares them verbatim, and they hold the hard, write-once numerics — the GPU
+atomic scatter-add of counts and per-bin power-sums); **`MarginalDensity` through `Bandwidth` are the estimator upper half**
 (turbulence-leaning but genuinely cross-domain — MD's van Hove function is `ConditionalDensity` with
 a different sampler). Keeping the halves separable lets a consumer that only wants marginal PDFs
 avoid the SDE machinery.
@@ -650,22 +652,11 @@ mergeable streaming-moment design is, however, worth mirroring — §10).
   algebra, or stay scalar-channel and let the consumer loop components? (Lean scalar-channel: the
   estimators are per-component, and a fiber dependency would re-import structure the package doesn't
   otherwise need.)
-- **Weighted merge — settled, built (the cone).** `merge!` is equal-weight addition (the monoid), which
-  already makes **ensemble pooling free**: each run / device / time-chunk accumulates its own summary and
-  they add (§2). The unnormalised summary is also **scalable** (`scale!`) — multiply every count and
-  power-sum by a nonnegative weight and it is the valid summary of a reweighted measure — so it lives in a
-  *cone* (closed under nonnegative linear combinations), not merely an additive monoid. That extra freedom
-  is exactly **hyperstatistics** (superstatistics; Beck & Cohen 2003): a parameter-weighted superposition
-  ``P(x) = \sum_k w_k f_k(x)`` equals ``\sum_k (w_k / N_k)\, T_k`` over per-parameter summaries ``T_k``.
-  Built as the weighted `merge!(into, from; weight)`
-  (``\texttt{into} \mathrel{+}= \texttt{weight} \cdot \texttt{from}``, the default ``\texttt{weight} = 1``
-  the plain monoid add) and `scale!(summary, weight)`, over a **Float-count summary variant**
-  (`count = Float64`; a weighted count ``w\,n`` is not an integer); the conditional / transition estimators
-  carry the correct local mixing weight ``w_k f_k(x)`` automatically, being ratios of linear functionals of
-  the summary. It fits the post-hoc rule: keep one summary per ``\beta`` and choose ``f(\beta)`` after the
-  runs, re-weighting without re-accumulating, just as bandwidth is a post-hoc choice. `scale!` also gives
-  **exponential forgetting** (`scale!(s, λ)` with ``0 < \lambda < 1`` before the next block) for a
-  non-stationary stream. See the §11 decision-log entry.
+- **Weighted merge — settled, built (the cone).** `scale!` and the weighted
+  `merge!(into, from; weight)` make the unnormalised summary a convex **cone** (closed under nonnegative
+  linear combinations), not merely an additive monoid — realizing **hyperstatistics** (superstatistics;
+  Beck & Cohen 2003) and **exponential forgetting** as post-hoc reweightings, over a `count = Float64`
+  summary variant. See the §11 decision-log entry.
 
 ---
 
@@ -697,8 +688,9 @@ intentional — do not dedupe it).
   marginal moments the consumers need (odd moments keep weaker relative precision, an accepted trade).
   Verified by the ROCm GPU parity suite.
 
-- **Kramers–Moyal §4.4 — drift and diffusion first, as conditional increment moments** (§4.4). The
-  first slice implements the increment moments and the finite-``\tau`` Kramers–Moyal coefficients
+- **Kramers–Moyal §4.4 — drift and diffusion first, as conditional increment moments** (§4.4).
+  *[Superseded — these functionals were built and OU-tested, then archived to `archive/`; see the archival
+  entry below.]* The first slice implements the increment moments and the finite-``\tau`` Kramers–Moyal coefficients
   drift ``D^{(1)} = M_1/\tau`` and diffusion ``D^{(2)} = M_2/(2\tau)`` directly from the **order-2
   `Histogram2D`**, via ``M_1(x) = \hat m_h(x) - x`` and
   ``M_2(x) = \widehat{\mathbb{E}}[Y^2\mid x] - 2x\,\hat m_h(x) + x^2`` — reusing the §4.2 local-linear
@@ -874,7 +866,7 @@ intentional — do not dedupe it).
   asymmetric-kernel **conditional density** (§4.3: a bounded *response* — e.g. a droplet radius as ``Y`` —
   takes a boundary-free ``y``-kernel via `conditional_density(…; kernely = gamma_kernel, normalize = true)`,
   the same first-order boundary-bias fix the marginal density already has). It does **not** motivate asymmetric *conditioning* in `conditional_mean`: local-linear regression
-  is boundary-adaptive (Fan 1992), already correcting the ``O(h)`` boundary bias to ``O(h^2)`` with a
+  is boundary-adaptive (Fan & Gijbels 1996), already correcting the ``O(h)`` boundary bias to ``O(h^2)`` with a
   symmetric kernel, so an asymmetric conditioning kernel would be a boundary-*variance* refinement only,
   not a correctness fix — a recorded possibility, not built (convenience / parity is not a justification, §6).
 

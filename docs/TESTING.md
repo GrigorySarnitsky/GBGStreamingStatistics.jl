@@ -164,7 +164,7 @@ The summaries and the selector carry a different contract:
 log–log ISE-slope test (the conditional pair in `test/conditional_convergence.jl`); `conditional_variance`
 inherits `conditional_mean`'s rate (a second-stage local fit), so it needs no separate test. The power-sum
 quadrature readouts (`expectation`, `pushforward_density`) carry a **polynomial-exactness** test (they equal
-the raw empirical mean ``\tfrac1n\sum_i g(X_i)`` to ``10^{-8}`` for ``g`` of degree ``\le \texttt{order}``)
+the raw empirical mean ``\tfrac1n\sum_i g(X_i)`` to ``10^{-10}`` for ``g`` of degree ``\le \texttt{order}``)
 and a binning-error bound in place of an asymptotic slope. "via summary" means a host-side functional of the
 summary, so the device coverage is the summary's row.
 
@@ -181,7 +181,7 @@ thumb is already near-optimal on that smooth, symmetric case, so the gain there 
 constants do not collide; every file is also runnable on its own (`julia --project=. test/<file>.jl`).
 The per-module files are `accumulators.jl`, `histograms.jl`, `histograms2d.jl`, `kernels.jl`,
 `localpolynomial.jl`, `marginaldensity.jl`, `density_convergence.jl`, `bandwidth.jl`, `localbandwidth.jl`,
-`conditionalexpectations.jl`, `conditionaldensity.jl`, `conditional_convergence.jl`, `incrementmoments.jl`;
+`conditionalexpectations.jl`, `conditionaldensity.jl`, `conditional_convergence.jl`, `expectations.jl`;
 the cross-cutting files are `oracles.jl` (the Gaussian / OU end-to-end oracles), `mergeability.jl`,
 `hyperstatistics.jl` (the cone laws and the superstatistics / forgetting oracles), `allocations.jl`,
 `testoracles.jl` (the shared `TestOracles` analytic library — the closed forms), and
@@ -201,7 +201,7 @@ compat pin JET needs).
     curved-mean**, quadratic-mean, and **Ornstein–Uhlenbeck** oracles, mergeability, the uniform
     `check_point_estimator` contract, `density`'s exact affine equivariance, the Marron–Wand claw stress,
     the bounded `@allocated` audit, and **CPU-vs-AMD-GPU parity** (`test/gpu/`, ROCm); `Aqua.test_all` and
-    JET run for real throughout. The Pawula / Markov diagnostics remain placeholders until those land. The
+    JET run for real throughout. The Kramers–Moyal / Pawula / Markov diagnostics are archived (see `archive/`), pending a consumer. The
     conditional-mean ``n^{-2/5}`` and conditional-density ``n^{-2/3}`` rate tests are now implemented
     (`test/conditional_convergence.jl`), alongside the **density** rate test (`test/density_convergence.jl`)
     and the direct kernel-constant oracle (`test/kernels.jl`) — closing the rate column of the matrix.

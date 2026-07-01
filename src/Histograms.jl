@@ -17,7 +17,7 @@ export Histogram1D, Histogram2D, bin_index, observe_pairs!, scale!
     Histogram1D <: AbstractAccumulator
     Histogram1D(lower, upper, nbins; order = 4, accumulator = Float64, count = UInt64)
 
-A **finely binned empirical measure** of a conditioning variable ``X`` — the canonical summary
+A **finely binned empirical measure** of a scalar variate ``X`` — the canonical summary
 ``T(\\hat\\mu_n)``. `nbins` equal-width (WARPing) bins tile the half-open range ``[\\texttt{lower}, \\texttt{upper})``;
 choosing the range to cover the data (e.g. ``\\pm 5\\sigma`` for the data's standard deviation
 ``\\sigma``) with ``\\gtrsim 10^3`` bins makes the bin width ``b \\approx \\sigma/100`` far below any

@@ -354,11 +354,11 @@ is a recorded coverage gap (use `rule = :normal`).
 **Estimator** (`rule = :isj`, the **Improved Sheather–Jones** plug-in; Botev, Grotowski & Kroese 2010;
 `degree` 0/1). The same solve-the-equation idea, but the curvature norms ``\\|f^{(s)}\\|^2`` are read off
 the **DCT** of the bin counts (Plancherel) rather than from a normal-reference pilot — so it stays
-reliable on strongly multimodal data, where the pilot scale of `:sj` can mislead. Mergeable (a functional
-of the counts' cosine transform); the eval kernel again enters as the ``\\delta(K)`` rescale.
+reliable on strongly multimodal data, where the pilot scale of `:sj` can mislead. The eval kernel again
+enters as the ``\\delta(K)`` rescale.
 
 **Estimator** (`rule = :aic`, the fit-based information criterion; `degree` 0/1). Over a log-spaced
-``h``-grid around the normal reference, minimise ``\\mathrm{AIC}(h) = -2\\sum_j n_j \\log \\hat f_h(c_j) + 2\\,\\mathrm{df}(h)`` of the binned **Gaussian** KDE, with ``\\mathrm{df}(h) = (\\varphi(0)/h)\\sum_j n_j/(n\\hat f_h(c_j))`` the kernel self-influence trace (``\\varphi`` the Gaussian). Both terms diverge as ``h \\to 0``, so the optimum is a stable interior point; like `:sj` it is a deterministic functional of the counts (mergeable), and the eval kernel enters only as the canonical ``\\delta(K)`` rescale of the selected ``h``. The leave-one-out **cross-validation** selectors (likelihood-CV and least-squares LSCV) are a deliberate coverage gap — binning ties drive their optimum to ``h \\to 0`` (use `:sj` for a data-driven alternative).
+``h``-grid around the normal reference, minimise ``\\mathrm{AIC}(h) = -2\\sum_j n_j \\log \\hat f_h(c_j) + 2\\,\\mathrm{df}(h)`` of the binned **Gaussian** KDE, with ``\\mathrm{df}(h) = (\\varphi(0)/h)\\sum_j n_j/(n\\hat f_h(c_j))`` the kernel self-influence trace (``\\varphi`` the Gaussian). Both terms diverge as ``h \\to 0``, so the optimum is a stable interior point, and the eval kernel enters only as the canonical ``\\delta(K)`` rescale of the selected ``h``. The leave-one-out **cross-validation** selectors (likelihood-CV and least-squares LSCV) are a deliberate coverage gap — binning ties drive their optimum to ``h \\to 0`` (use `:sj` for a data-driven alternative).
 
 **Asymmetric kernels** ([`gamma_kernel`](@ref GBGStreamingStatistics.Kernels.gamma_kernel),
 [`beta_kernel`](@ref GBGStreamingStatistics.Kernels.beta_kernel)) carry their width in the
@@ -384,6 +384,17 @@ The response-aware *local* plug-in ``h^\\star(x) = \\bigl[R(K)\\,\\sigma^2(x) /
 (\\mu_2(K)^2\\, m''(x)^2\\, f_X(x)\\, n)\\bigr]^{1/5}`` — each conditioning value its own bandwidth from
 the conditional variance ``\\sigma^2(x)`` and regression curvature ``m''(x)`` — is the separate
 joint-summary selector `bandwidth(summary::Histogram2D, x; rule = :local)` (below).
+
+Arguments:
+
+- `summary` — the [`Histogram1D`](@ref GBGStreamingStatistics.Histograms.Histogram1D) of ``X``; its
+  recovered ``\\hat\\sigma`` (and, for the data-driven rules, its bin counts) are the inputs.
+- `rule` — the selector (each described above): `:normal` (default), `:sj`, `:isj`, or `:aic` for a
+  symmetric `kernel`; `:normal` (default) or `:plugin` for an asymmetric one.
+- `kernel` — the smoothing kernel the bandwidth is for (default `gaussian_kernel`); it enters through the
+  canonical factor ``\\delta(K) = [R(K)/\\mu_2(K)^2]^{1/5}``.
+- `degree` — the local-polynomial order the bandwidth is for (default `0`); it sets the bias order (the
+  data-driven rules are `degree` 0/1).
 
 References:
 
