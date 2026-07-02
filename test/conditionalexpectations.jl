@@ -92,6 +92,14 @@ include("testcontracts.jl"); using .TestContracts
       push!(chunks, s); push!(ests, conditional_variance(s, 0.5; h = hbw))
     end
     @test conditional_variance_standard_error(chunks[1], 0.5; h = hbw) ≈ std(ests) rtol = 0.2
+
+    # coverage: the 95% band σ̂²(x) ± 1.96·SE brackets the constant 1−ρ² across the interior (aggregate; the
+    # residual SE is a variance band, so the check lives in the variance-dominated regime, moderate n — the
+    # fraction runs ≈ 0.95 across seeds here, the linear-mean oracle carrying negligible variance bias)
+    xcov = -1.25:0.25:1.25
+    covered = count(x -> abs(conditional_variance(chunks[1], x; h = hbw) - (1 - ρ^2)) ≤
+                         1.96 * conditional_variance_standard_error(chunks[1], x; h = hbw), xcov)
+    @test covered / length(xcov) ≥ 0.7
   end
 end
 
@@ -250,6 +258,16 @@ end
       push!(chunks, s); push!(mc, conditional_pushforward_density(s, exp, x0, 1.0; hx = hx, hz = 0.18))
     end
     @test conditional_pushforward_density_standard_error(chunks[1], exp, x0, 1.0; hx = hx, hz = 0.18) ≈ std(mc) rtol = 0.2
+    # coverage: the 95% band brackets the truth f_{exp(Y)|x}(z) across the interior. As for a 2-D density the
+    # SE is a variance band and the estimate's bias dominates it at large n, so coverage is checked in the
+    # variance-dominated regime (small n, here 5000) and is an aggregate interior fraction, not a pointwise gate.
+    Random.seed!(96)
+    Xc = randn(5000); Yc = ρ .* Xc .+ sqrt(1 - ρ^2) .* randn(5000)
+    sc = Histogram2D(-6.0, 6.0, 200, -6.0, 6.0, 200); observe_pairs!(sc, Xc, Yc)
+    zcov = 0.6:0.2:2.4
+    covered = count(z -> abs(conditional_pushforward_density(sc, exp, x0, z; hx = hx, hz = 0.18) - lognormal_pdf(z)) ≤
+                         1.96 * conditional_pushforward_density_standard_error(sc, exp, x0, z; hx = hx, hz = 0.18), zcov)
+    @test covered / length(zcov) ≥ 0.6
   end
 
   @testset "coincidence: pushforward(identity, degree = 0) ≈ conditional_density" begin
@@ -295,6 +313,17 @@ end
     # leading-order closed form √(R(K)σ²/(n h f_X(0))) — R(gaussian) = 1/(2√π), f_X(0) = 1/√(2π)
     closed0 = sqrt((1 / (2 * sqrt(π))) * (1 - ρ^2) / (per * h * (1 / sqrt(2π))))
     @test conditional_expectation_standard_error(chunk, identity, 0.0; h = h) ≈ closed0 rtol = 0.15
+  end
+
+  @testset "coverage: the 95% band brackets m(x) = ρx across the interior" begin
+    # complement to the calibration above: |m̂(x) − ρx| ≤ 1.96·SE at each interior x (aggregate; local-linear
+    # is unbiased for the linear mean, so per-point coverage sits near the nominal 0.95 — the interior fraction
+    # runs ≈ 0.9 across seeds, dipping only when a whole-fit fluctuation shifts several correlated points at
+    # once, so the floor is a lenient 0.6). SE via the identity reader.
+    xcov = -1.5:0.25:1.5
+    covered = count(x -> abs(conditional_mean(chunk, x; h = h) - ρ * x) ≤
+                         1.96 * conditional_expectation_standard_error(chunk, identity, x; h = h), xcov)
+    @test covered / length(xcov) ≥ 0.6
   end
 
   @testset "properties — positive, tail growth, off-support, general g, scalar == vector" begin

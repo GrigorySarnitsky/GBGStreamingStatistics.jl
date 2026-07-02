@@ -128,6 +128,18 @@ the estimate across independent datasets (Monte-Carlo — `density` and `conditi
 peak, `expectation` of ``\cos``). A `*_with_standard_error` additionally asserts its
 `(value, standard_error)` equals the separate estimate / standard-error calls exactly.
 
+A **coverage** check complements calibration across the families: the ``\hat\theta \pm 1.96\,\mathrm{SE}``
+band is asked to bracket the **oracle truth** — not merely the estimate's own (possibly biased) mean, which
+is what calibration matches — across an interior grid, as an aggregate, lenient fraction. Because a standard
+error is a *variance* band and by construction cannot cover the estimator's ``O(h^2)`` **bias** — the same
+order as the standard error at the mean-squared-error-optimal bandwidth — coverage is checked in the
+**variance-dominated regime**: at the working sample size for the one-dimensional readers (`density`,
+`pushforward_density`, `conditional_mean`, `conditional_variance`), and at a deliberately small ``n`` for the
+two-dimensional densities (`conditional_density`, `conditional_pushforward_density`), whose bias otherwise
+dominates the tight large-``n`` standard error. The floors (an interior fraction ``\ge 0.6``–``0.7``, or
+``\ge 0.8`` for the independent-dataset `expectation`) sit well below the observed ``\approx 0.8``–``0.95``
+and only guard against a broken standard-error *scale*, which would collapse coverage toward zero.
+
 **Merged histograms — two or more.** Mergeability is checked at the query-point-functional level
 (`check_point_estimator`, with `merged` a **3-way** merge of disjoint thirds for `density` — associativity
 beyond two) *and* at the summary level (`test/mergeability.jl`, `test/histograms2d.jl` — the monoid / cone
@@ -142,13 +154,13 @@ argument errors) plus the convergence rate:
 |---|---|---|---|---|---|---|
 | `density` | 6-PDF suite + Gaussian | yes | yes | n/a, defined everywhere | yes | yes, ``n^{-2p/(2p+1)}`` |
 | `density_standard_error` / `density_with_standard_error` | two-term variance vs Monte-Carlo spread + band coverage; tracks `adaptive` / `bounds` / `start`; the paired estimate-plus-error consistency | yes | yes | n/a | yes | n/a, variability band |
-| `conditional_mean` / `conditional_variance` (+ `conditional_variance_standard_error`) | bivariate-Gaussian (+ heteroscedastic curved-mean for Fan–Yao `conditional_variance`); the residual-based variance SE MC-calibrates on the Gaussian and a heavy-tailed Student-``t_5`` (capturing the ``\mu_4`` kurtosis) | yes | yes | `NaN` | yes | yes, ``n^{-4/5}`` ISE |
-| `conditional_expectation` / `conditional_pushforward_density` (+ their standard errors) | biv-Gaussian ``\mathbb{E}[\cos Y\mid x]`` + lognormal pushforward; the `conditional_mean` fold + degree-0 `conditional_density` coincidence; the pushforward SE matches `conditional_density_standard_error` at degree-0 identity + MC, paired consistency | yes | yes | `NaN` | yes | inherits `conditional_mean` ``n^{-4/5}`` |
+| `conditional_mean` / `conditional_variance` (+ `conditional_variance_standard_error`) | bivariate-Gaussian (+ heteroscedastic curved-mean for Fan–Yao `conditional_variance`); the residual-based variance SE MC-calibrates on the Gaussian and a heavy-tailed Student-``t_5`` (capturing the ``\mu_4`` kurtosis); the SE bands' aggregate 95% oracle coverage | yes | yes | `NaN` | yes | yes, ``n^{-4/5}`` ISE |
+| `conditional_expectation` / `conditional_pushforward_density` (+ their standard errors) | biv-Gaussian ``\mathbb{E}[\cos Y\mid x]`` + lognormal pushforward; the `conditional_mean` fold + degree-0 `conditional_density` coincidence; the pushforward SE matches `conditional_density_standard_error` at degree-0 identity + MC, paired consistency; the SE bands' aggregate 95% oracle coverage (small-``n`` variance-dominated regime for the pushforward) | yes | yes | `NaN` | yes | inherits `conditional_mean` ``n^{-4/5}`` |
 | `conditional_expectation_standard_error` / `conditional_expectation_with_standard_error` | leverage × noise-scale = Monte-Carlo sampling spread (biv-Gaussian) + leading-order closed form; the paired value+error matches the separate calls | yes | yes | `NaN` | yes | n/a, a standard error |
 | `conditional_density` / `transition_density` | biv-Gaussian + OU + bounded-response (asym. `kernely`) | yes | yes | `NaN` off-support ``x`` | yes | yes, ``n^{-2/3}`` |
-| `conditional_density_standard_error` / `conditional_density_with_standard_error` | two-term closed form (biv-Gaussian) = Monte-Carlo spread; ``n^{-1/2}`` + ``h_2^{-1/2}`` scaling; paired consistency + `transition_density` aliases | yes | yes | `NaN` | yes | n/a, a standard error |
+| `conditional_density_standard_error` / `conditional_density_with_standard_error` | two-term closed form (biv-Gaussian) = Monte-Carlo spread; ``n^{-1/2}`` + ``h_2^{-1/2}`` scaling; paired consistency + `transition_density` aliases; the band's aggregate 95% oracle coverage (small-``n`` variance-dominated regime) | yes | yes | `NaN` | yes | n/a, a standard error |
 | `bandwidth(::Histogram2D)` ``h^\star(x)`` | quadratic-mean Gaussian (closed-form) | yes | yes | `NaN` | yes | n/a, a selector |
-| `expectation` / `pushforward_density` / `expectation_standard_error` / `expectation_with_standard_error` / `pushforward_density_standard_error` | Gaussian MGF/trig + polynomial exactness; lognormal & non-monotone ``\chi^2_1`` pushforward; SE ``= s/\sqrt n``, scaling / mergeability / Monte-Carlo, paired value+error = separate calls; the pushforward SE reduces to `density_standard_error` at ``g=\mathrm{identity}`` + MC | yes (`pushforward`) | yes | n/a, mass in range | yes | n/a, exact for degree ``\le`` order else ``O(\Delta^{\texttt{order}+1})`` |
+| `expectation` / `pushforward_density` / `expectation_standard_error` / `expectation_with_standard_error` / `pushforward_density_standard_error` | Gaussian MGF/trig + polynomial exactness; lognormal & non-monotone ``\chi^2_1`` pushforward; SE ``= s/\sqrt n``, scaling / mergeability / Monte-Carlo, paired value+error = separate calls; the pushforward SE reduces to `density_standard_error` at ``g=\mathrm{identity}`` + MC; the SE bands' aggregate 95% oracle coverage (`expectation` frequentist across independent datasets) | yes (`pushforward`) | yes | n/a, mass in range | yes | n/a, exact for degree ``\le`` order else ``O(\Delta^{\texttt{order}+1})`` |
 
 The summaries and the selector carry a different contract:
 

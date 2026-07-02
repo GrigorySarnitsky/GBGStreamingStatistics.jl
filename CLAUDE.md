@@ -524,7 +524,12 @@ Mechanical bar:
     `test/testcontracts.jl`) runs on every SE — positivity, scalar ``=`` vector, the exact ``n^{-1/2}``
     copy-merge scaling, the asymptotic ``h^{-1/2}`` bandwidth scaling (`check_se_bandwidth_scaling`, the
     kernel SEs), and a Monte-Carlo **calibration** (predicted SE ``=`` the empirical sampling spread) — and
-    each SE also goes through `check_point_estimator` (SE mergeability, a **two-or-more-way** merge). Plus
+    each SE also goes through `check_point_estimator` (SE mergeability, a **two-or-more-way** merge). A
+    complementary **coverage** check (across every family) asks the ``\\hat\\theta \\pm 1.96\\,\\mathrm{SE}``
+    band to bracket the **oracle truth** (not just the estimate's own biased mean) over an interior grid —
+    aggregate and lenient, since a variance band cannot cover the ``O(h^2)`` bias, so it runs in the
+    variance-dominated regime (a deliberately small ``n`` for the 2-D `conditional_density` /
+    `conditional_pushforward_density`, whose bias dominates the tight large-``n`` SE). Plus
     the systematic **invalid-combination audit**: every `throw(ArgumentError(…))` guard carries a
     `@test_throws` (the valid option space is covered per-option and by the interacting pairs, deliberately
     not exhaustively). Tested in `test/marginaldensity.jl`, `test/expectations.jl`,

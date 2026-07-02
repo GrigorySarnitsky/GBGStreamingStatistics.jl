@@ -135,6 +135,19 @@ include("testcontracts.jl"); using .TestContracts
       push!(chunks, s); push!(ests, conditional_density(s, 0.0, 0.0; hx = hx, hy = hy))
     end
     @test conditional_density_standard_error(chunks[1], 0.0, 0.0; hx = hx, hy = hy) ≈ std(ests) rtol = 0.2
+
+    # coverage: the 95% band f̂(y|x) ± 1.96·SE brackets the truth N(ρx, 1−ρ²) across an interior (x, y) grid.
+    # A standard error is a *variance* band; the estimate carries an O(hx²+hy²) bias the band excludes, and for
+    # a 2-D kernel density that bias dominates the (tight) SE at large n — so coverage is checked in the
+    # variance-dominated regime (small n, here 5000) and is an aggregate interior fraction, never a strict
+    # pointwise gate (the fraction runs ≈ 0.8 across seeds; the 0.6 floor only guards against a broken SE scale).
+    Random.seed!(94)
+    Xc = randn(5000); Yc = ρ .* Xc .+ sqrt(1 - ρ^2) .* randn(5000)
+    sc = Histogram2D(-6.0, 6.0, 240, -6.0, 6.0, 240; lag = 1); observe_pairs!(sc, Xc, Yc)
+    grid = [(x, y) for x in (-0.5, -0.25, 0.0, 0.25, 0.5), y in (-1.0, -0.5, 0.0, 0.5, 1.0)]
+    covered = count(((x, y),) -> abs(conditional_density(sc, x, y; hx = hx, hy = hy) - cond_pdf(y, x)) ≤
+                                1.96 * conditional_density_standard_error(sc, x, y; hx = hx, hy = hy), grid)
+    @test covered / length(grid) ≥ 0.6
   end
 
   # the universal query-point contract (scalar==vector over y, a functional of the merged summary),

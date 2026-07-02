@@ -76,9 +76,17 @@ end
   @test expectation_standard_error(ha, cos) ≈ expectation_standard_error(h, cos) rtol = 1e-10
   # calibration (Monte-Carlo): the predicted SE matches the empirical spread of Ê[cos X] across datasets
   Random.seed!(199)
-  reps = [begin s = Histogram1D(LOWER, UPPER, NBINS); observe!(s, randn(30_000)); expectation(s, cos) end for _ in 1:40]
+  reps = Float64[]; repses = Float64[]
+  for _ in 1:40
+    s = Histogram1D(LOWER, UPPER, NBINS); observe!(s, randn(30_000))
+    push!(reps, expectation(s, cos)); push!(repses, expectation_standard_error(s, cos))
+  end
   s0 = Histogram1D(LOWER, UPPER, NBINS); observe!(s0, randn(30_000))
   @test expectation_standard_error(s0, cos) ≈ std(reps) rtol = 0.2
+  # coverage (frequentist): the 95% band Ê ± 1.96·SE brackets the truth E[cos X] = e^{-1/2} across the
+  # independent datasets (aggregate; expectation is near-unbiased, so coverage sits near the nominal 0.95)
+  covered = count(i -> abs(reps[i] - exp(-0.5)) ≤ 1.96 * repses[i], eachindex(reps))
+  @test covered / length(reps) ≥ 0.8
 
   # expectation_with_standard_error: one pass ⇒ estimate and error match the separate calls exactly
   r = expectation_with_standard_error(h, cos)
@@ -128,6 +136,13 @@ end
     push!(mc, pushforward_density(s, exp, 1.0; h = 0.12))
   end
   @test pushforward_density_standard_error(chunks[1], exp, 1.0; h = 0.12) ≈ std(mc) rtol = 0.2
+  # coverage: the 95% band f̂ ± 1.96·SE brackets the truth f_{exp(X)}(y) across the interior (aggregate; the
+  # SE is a variance band, so the O(h²) KDE bias dips it at the peak — hence aggregate, not pointwise; the
+  # interior fraction runs ≈ 0.8 across seeds, the 0.6 floor guarding only against a broken SE scale)
+  ycov = 0.4:0.2:2.6
+  covered = count(y -> abs(pushforward_density(chunks[1], exp, y; h = 0.12) - lognormal_pdf(y)) ≤
+                       1.96 * pushforward_density_standard_error(chunks[1], exp, y; h = 0.12), ycov)
+  @test covered / length(ycov) ≥ 0.6
 end
 
 
