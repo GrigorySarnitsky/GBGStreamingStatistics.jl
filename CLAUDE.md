@@ -569,6 +569,36 @@ last one, `conditional_variance_standard_error` (the residual approximation ``\\
    asymmetric gamma/beta kernels are **done** (Done 4). Deliberate skips recorded there: shape-constrained
    MLE (shape-as-premise, invariant 2), taut-string (a mode-count diagnostic), DEFT, kNN, neural/DP-mixture.
 
+**Audit / accuracy passes (recorded for a return — reviews of the existing surface, not new estimators):**
+
+- **Pushforward coverage — every axis of every estimator.** Enumerate the (estimator × {conditioning ``X``,
+  response ``Y``}) grid and settle which pushforwards exist, which are sensible-but-missing, and which are
+  deliberate absences. Have: `pushforward_density` (``f_{g(X)}``) and `conditional_pushforward_density`
+  (``f_{g(Y)\\mid X}`` — which on a lagged summary already yields the transition pushforward
+  ``p_\\tau(g(y)\\mid x)``; verify it is exposed / aliased). Open cases to adjudicate: a pushforward on the
+  **conditioning** axis (``f_{Y\\mid g(X)}``, likely ill-posed for non-monotone ``g`` — a candidate
+  deliberate absence); a joint / both-axes pushforward (no joint density readout today); a
+  `transition_density` pushforward alias. Output: the filled grid + recorded absences with reasons.
+- **Option parity — every option, both axes.** Tabulate each shared option (`degree`, `kernel`, `adaptive`,
+  `bounds`, `start`, `normalize`, `method`, `binning`) against every estimator, and for the joint estimators
+  against the **``x`` (conditioning) vs ``y`` (response) axis** separately; mark each absence *deliberate*
+  (theory) or a *gap to close*. Known asymmetries to settle: `adaptive` / `bounds` / `start` exist for
+  `density` but not the conditional densities; `conditional_density` is a fixed degree-0 double-kernel (no
+  local-polynomial `degree` on either axis); the asymmetric kernels reach `density` (`kernel`),
+  `conditional_density` (`kernely`), and degree-0 `conditional_mean` (`kernel`) — is the ``x`` axis at
+  parity? Output: the parity matrix + a short list of justified additions.
+- **Conditional accuracy from the unused per-cell moments.** The conditional readers (`conditional_mean` /
+  `conditional_variance` / `conditional_expectation` / `conditional_density`) consume only the cell counts,
+  the **``Y``-power-sums** ``S_{01}`` / ``S_{02}``, and the **``X`` cell centers** — never the ``X``-direction
+  per-cell moments ``S_{10}`` (within-``x``-bin centroid), ``S_{20}`` (within-``x``-bin variance), ``S_{11}``
+  (within-cell ``xy``-covariance) that `observe_pairs!` already accumulates. Investigate using them to raise
+  accuracy: an **``X``-centroid correction** to the local-polynomial design (place each column at
+  ``c^x_j + S_{10}^{(j)}/N_j`` instead of the bin center — the 2-D analog of `density`'s linear/centroid
+  `binning`, ``O(\\Delta_x^2)`` vs ``O(\\Delta_x)``); an ``S_{11}``-based within-cell bilinear correction to
+  the regression. Weigh the gain against the cost, and settle the standing question of whether the
+  currently-dead ``X``-moments earn their storage (else drop them). Connects to the deferred `Histogram2D`
+  order-raise.
+
 Deferred (recorded, not built): the **FFT-amortized post-hoc smoothing** (§4.5 — the ``O(B\\log B)``
 convolution of the bin counts with the kernel, amortized over a bandwidth *grid*; a pure optimization over
 the exact direct summation, itself dwarfed by accumulation — build it when an ``h^\\star(x)`` grid sweep
