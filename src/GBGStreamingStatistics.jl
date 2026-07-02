@@ -52,7 +52,9 @@ using .Accumulators:
 using .Histograms:
   Histogram1D,
   Histogram2D,
-  observe_pairs!
+  observe_pairs!,
+  write_histogram,
+  read_histogram
 
 
 using .Kernels:
@@ -161,7 +163,9 @@ export AbstractAccumulator,
        expectation_with_standard_error,
        pushforward_density,
        pushforward_density_standard_error,
-       pushforward_density_with_standard_error
+       pushforward_density_with_standard_error,
+       write_histogram,
+       read_histogram
 
 
 end # module GBGStreamingStatistics

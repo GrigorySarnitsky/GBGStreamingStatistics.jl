@@ -81,7 +81,8 @@ verbatim by every consumer) and an **estimator upper half** (the estimands):
   `<: AbstractAccumulator`. Each is a finely **binned empirical measure** — the *fine-grained measure*
   that post-hoc smoothing later coarse-grains — holding per-bin counts and power-sums about the bin
   center; accumulation runs on **CPU or GPU**, and summaries combine with `merge!`. With `observe_pairs!`
-  for two-time statistics.
+  for two-time statistics, and — when `HDF5` is loaded (a package extension) — `write_histogram` /
+  `read_histogram` to persist a summary to an HDF5 group.
 - [`Kernels`](api/Kernels.md): the shared smoothing kernels — symmetric (`gaussian_kernel`, or any
   callable with ``\int K = 1``) and asymmetric bounded/positive-support kernels (`gamma_kernel`, via the
   `AsymmetricKernel` constructor) — used by `density`, the regression fits, the double-kernel conditional

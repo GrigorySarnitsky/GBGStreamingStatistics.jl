@@ -10,7 +10,7 @@ using ..Accumulators: AbstractAccumulator
 using KernelAbstractions: @kernel, @index, @Const, get_backend, synchronize
 import Atomix
 
-export Histogram1D, Histogram2D, observe_pairs!, scale!
+export Histogram1D, Histogram2D, observe_pairs!, scale!, write_histogram, read_histogram
 
 
 """
@@ -341,5 +341,55 @@ function scale!(h::Histogram2D, weight)
   h.powersums .*= weight
   return h
 end
+
+
+# --- HDF5 persistence: bare generics declared here so `?write_histogram` and the docs work without HDF5
+# present; the methods (on `HDF5.File` / `Group`) live in `ext/GBGStreamingStatisticsHDF5Ext.jl`, loaded
+# automatically when the HDF5 package is. ---
+
+"""
+    write_histogram(parent, name, summary) -> group
+
+Persist a `Histogram1D` or `Histogram2D` `summary` as a **new HDF5 group** `name` under `parent` (an open
+HDF5 `File` or `Group`), returning that group. The summary is the durable artifact of the streaming design
+— a fixed-size object — so this is how you checkpoint it, resume from it, or combine summaries stored
+across runs; the reload is exact.
+
+The group is **self-describing**: the arrays become datasets (`counts`, `powersums`) and the scalar
+parameters become attributes (`type`, `version`, the range edges, `nbins` / `nx` / `ny`, `order`, `lag`),
+so any HDF5 tool can read it. Device (GPU) arrays are copied to the host on write, and the count element
+type is preserved, so the `count = Float64` cone variant round-trips. The sugar `parent[name] = summary`
+is equivalent.
+
+`parent` is a handle you opened and own — this never opens or closes a file. Provided by a package
+extension: available only when the `HDF5` package is loaded.
+
+# Arguments
+- `parent` — an open HDF5 `File` or `Group` to create the new subgroup under.
+- `name` — the name of the group to create.
+- `summary` — the `Histogram1D` or `Histogram2D` to write.
+"""
+function write_histogram end
+
+
+"""
+    read_histogram(parent, name) -> Histogram1D or Histogram2D
+
+Reconstruct the summary written by
+[`write_histogram`](@ref GBGStreamingStatistics.Histograms.write_histogram) from the HDF5 group `name`
+under `parent` (an open HDF5 `File` or `Group`), dispatching on the stored `type` attribute to return a
+`Histogram1D` or a `Histogram2D`. The reload is **exact** — counts, power-sums, range, element types, and
+(for a `Histogram2D`) the lag are recovered bit-for-bit, and the result `merge!`s with other summaries of
+the same shape.
+
+The reconstructed summary is a host (CPU) object regardless of where the written one lived; move it to a
+device afterward if needed. Provided by a package extension: available only when the `HDF5` package is
+loaded.
+
+# Arguments
+- `parent` — an open HDF5 `File` or `Group` holding the group.
+- `name` — the name (or path) of the histogram group under `parent`.
+"""
+function read_histogram end
 
 end # module Histograms

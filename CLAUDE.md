@@ -143,6 +143,11 @@ estimands.
 - Include order: `Accumulators → Histograms → Kernels → Expectations → LocalPolynomial → MarginalDensity →
   ConditionalExpectations → ConditionalDensity → Bandwidth`. Cross-module access only through explicit `using ..Module: name, …`
   — never a bare `using`.
+- `ext/GBGStreamingStatisticsHDF5Ext.jl` — **HDF5 persistence** (a weak-dependency package extension, so
+  `HDF5` stays out of the core deps): `write_histogram` / `read_histogram` (+ the `parent[name] = summary`
+  sugar) map a summary to a self-describing HDF5 **group** (arrays → datasets, scalars → attributes, a
+  type/version tag). The core declares the bare generics in the umbrella; the methods (on `HDF5.File` /
+  `HDF5.Group`) live in the extension. Handle-based only — the consumer opens and owns the file.
 - Deferred / archived, recorded as commented-out includes (the rule against speculative structure):
   `# IncrementMoments.jl` (the §4.4 SDE-reading `drift` / `diffusion` / Kramers–Moyal functionals —
   **archived** to `archive/`, working and OU-tested; restore when a consumer needs them and `Histogram2D`
@@ -534,6 +539,16 @@ Mechanical bar:
     `@test_throws` (the valid option space is covered per-option and by the interacting pairs, deliberately
     not exhaustively). Tested in `test/marginaldensity.jl`, `test/expectations.jl`,
     `test/conditionalexpectations.jl`.
+15. **HDF5 persistence — the summary is a durable, portable artifact.** A weak-dependency package extension
+    (`ext/GBGStreamingStatisticsHDF5Ext.jl`, loaded when `HDF5` is present — `HDF5` is **not** a core dep):
+    `write_histogram(parent, name, summary)` / `read_histogram(parent, name)` (+ the `parent[name] =
+    summary` setindex! sugar) map a `Histogram1D` / `Histogram2D` to a self-describing HDF5 **group** (the
+    arrays → `counts` / `powersums` datasets, the scalars → attributes, a `type` / `version` tag).
+    **Handle-based only** — the consumer opens and owns the file, so summaries land beside other data in one
+    file, many groups. Device arrays move to host on write; the count element type (the `count = Float64`
+    cone variant) is preserved; the reload is **bit-exact** and still merges. Tested in `test/hdf5.jl`
+    (1-D / cone / 2-D exact round-trip, the setindex! sugar, functional equality after reload,
+    reload-preserves-merge, self-describing attributes, the error paths).
 
 **Next, in dependency order:**
 

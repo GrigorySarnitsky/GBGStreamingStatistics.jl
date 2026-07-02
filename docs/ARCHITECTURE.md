@@ -609,6 +609,12 @@ mergeable streaming-moment design is, however, worth mirroring — §10).
 - **Lag handling — settled:** the package bins pre-formed pairs (`observe_pairs!`); the pre-quantization /
   index-ingestion path (`bin_index`) is deferred (archived); the snapshot buffer and all lag / sampling /
   cadence policy are consumer-side (§3).
+- **HDF5 persistence — settled:** a **weak-dependency extension** (`write_histogram` / `read_histogram`,
+  and the `parent[name] = summary` sugar), not a core dependency — a summary maps to a self-describing HDF5
+  *group* (arrays as datasets, scalars as attributes, a type/version tag), reloaded exactly. Handle-based:
+  the consumer opens and owns the file, so a summary sits beside other data in one file (many groups); the
+  package never opens or closes a file. The summary is the durable artifact of the no-storage design, so
+  checkpoint / resume / merge-across-runs are the motivating workflows.
 - **[OPEN] Projection road** — include SFI/ULI from the start or defer (§4.6)?
 - **[OPEN] `HistogramND`** — wait for a multi-conditioning consumer (§3)?
 - **[OPEN] Prior art to mirror** — study `OnlineStats.jl` for its mergeable streaming-moment design
