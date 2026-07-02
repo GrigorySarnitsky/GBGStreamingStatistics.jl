@@ -9,12 +9,6 @@ const H = Histograms
     h = Histogram1D(-5.0, 5.0, 10)
     @test H._nbins(h) == 10
     @test H._order(h) == 4
-    @test bin_index(h, -5.0) == 1
-    @test bin_index(h, -4.9) == 1
-    @test bin_index(h, 0.0) == 6
-    @test bin_index(h, 4.99) == 10
-    @test bin_index(h, 5.0) == 11     # upper is the open edge → out of range
-    @test bin_index(h, -6.0) < 1      # underflow
     @test_throws ArgumentError Histogram1D(5.0, -5.0, 10)
     @test_throws ArgumentError Histogram1D(-5.0, 5.0, 0)
     @test_throws ArgumentError Histogram1D(-5.0, 5.0, 10; order = 1)

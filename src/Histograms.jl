@@ -10,7 +10,7 @@ using ..Accumulators: AbstractAccumulator
 using KernelAbstractions: @kernel, @index, @Const, get_backend, synchronize
 import Atomix
 
-export Histogram1D, Histogram2D, bin_index, observe_pairs!, scale!
+export Histogram1D, Histogram2D, observe_pairs!, scale!
 
 
 """
@@ -44,7 +44,7 @@ The summary's whole state, each reachable by dot — `summary.lower`, `summary.s
 `summary.counts`, … — for serialization, inspection, or building one by hand:
 - `lower`, `upper` — the range edges (`upper > lower`).
 - `scale` — the precomputed binning factor `nbins / (upper - lower)`, stored (not recomputed) so that
-  `bin_index` is a single multiply.
+  the binning map is a single multiply.
 - `counts` — per-bin counts, length `nbins` (`UInt64`, or the `count` type; `nbins == length(counts)`).
 - `powersums` — per-bin power-sums, ``\\texttt{order} \\times \\texttt{nbins}`` (row ``p`` is ``S_p``; `order == size(powersums, 1)`).
 
@@ -82,17 +82,12 @@ _bincenter(h::Histogram1D, i::Integer) = h.lower + (oftype(h.lower, i) - oftype(
 _total(h::Histogram1D) = sum(h.counts)
 
 
-"""
-    bin_index(summary, x) -> i
-
-The **binning map**: the index ``i`` of the bin containing `x`. For a
-[`Histogram1D`](@ref GBGStreamingStatistics.Histograms.Histogram1D) over ``[\\texttt{lower}, \\texttt{upper})`` with `nbins`
-bins, ``i = \\lfloor (x - \\texttt{lower})\\,\\texttt{scale} \\rfloor + 1``; a valid bin satisfies
-``1 \\le i \\le \\texttt{nbins}``, and `x` outside the range yields ``i < 1`` or ``i > \\texttt{nbins}``. Exposed so a
-consumer can pre-quantize a snapshot buffer (e.g. store compact `UInt16` bin indices) before forming
-lagged pairs for [`observe_pairs!`](@ref GBGStreamingStatistics.Histograms.observe_pairs!).
-"""
-@inline bin_index(h::Histogram1D, x) = floor(Int, (x - h.lower) * h.scale) + 1
+# `bin_index` (the binning map, `floor(Int, (x - lower) * scale) + 1`) is **archived**: it had no internal
+# caller (the scatter kernels inline the map), and the public path it was exposed for — pre-quantizing the
+# snapshot buffer to compact bin indices and folding them through an index-taking `observe_pairs!` (lossless,
+# since the conditioning readers use only the x-cell, never its sub-bin offset) — is deferred. Restore and
+# re-export it with that path.
+# @inline bin_index(h::Histogram1D, x) = floor(Int, (x - h.lower) * h.scale) + 1
 
 
 # The portable scatter-add: one work-item per sample atomically accumulates the count and the

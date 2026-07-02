@@ -56,7 +56,7 @@ estimands.
   local-polynomial fitting). Accumulated by one **KernelAbstractions + Atomix atomic scatter-add**
   (`observe!` / `observe_pairs!`, one work-item per sample, CPU and GPU alike); `merge!` is elementwise
   addition (and `scale!` / weighted `merge!` elementwise scaling — the cone, on the `count = Float64`
-  Float-count variant); `bin_index` is the binning map (exposed for pre-quantization). The **pure summary**
+  Float-count variant); `bin_index` (the binning map) is **archived**, the pre-quantization / index-ingestion path deferred. The **pure summary**
   (accumulate / `merge!` / `scale!` / bin) — the shift-formula moment recovery (`mean` / `var` / `std` /
   `central_moment`) and the general quadrature moved to `Expectations` (§4.B); the power-sums it stores are
   their sufficient statistic. Owns `KernelAbstractions`, `Atomix`.
@@ -368,7 +368,7 @@ Mechanical bar:
 
 1. **`Histograms.Histogram1D` + `Accumulators`** — linear (WARP) binning over `[lower, upper)` (out-of-range
    skipped); per-bin counts + **power-sums about the bin center** ``S_p`` to a configurable `order`.
-   `observe!` (batch + scalar) and `merge!` (elementwise addition); `bin_index`; global central moments
+   `observe!` (batch + scalar) and `merge!` (elementwise addition); global central moments
    recovered by the **shift formula** and exposed publicly as `mean`/`var`/`std`/`central_moment`
    (extending `Statistics`; these now live in `Expectations` §4.B as the ``g = x^p`` quadrature case). Tested:
    Gaussian moment recovery (exact vs direct, and vs the true moments), mergeability, bounded

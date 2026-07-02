@@ -30,7 +30,7 @@ two-time conditional densities) — but nothing in the library is specific to a 
 
 !!! note "Status"
     The summaries `Histogram1D` and `Histogram2D` (power-sums about the bin center, `observe!` /
-    `observe_pairs!` / `merge!` / `scale!` / `bin_index`, with a Float-count cone variant for
+    `observe_pairs!` / `merge!` / `scale!`, with a Float-count cone variant for
     hyperstatistics / forgetting), the marginal [`density`](@ref), global [`bandwidth`](@ref) selection,
     and the conditional mean and variance ([`conditional_mean`](@ref), [`conditional_variance`](@ref)),
     the conditional and transition densities ([`conditional_density`](@ref), [`transition_density`](@ref))
@@ -80,8 +80,8 @@ verbatim by every consumer) and an **estimator upper half** (the estimands):
 - [`Histograms`](api/Histograms.md): the summaries — `Histogram1D` and `Histogram2D`, both
   `<: AbstractAccumulator`. Each is a finely **binned empirical measure** — the *fine-grained measure*
   that post-hoc smoothing later coarse-grains — holding per-bin counts and power-sums about the bin
-  center; accumulation runs on **CPU or GPU**, and summaries combine with `merge!`. With `bin_index`
-  and `observe_pairs!` for two-time statistics.
+  center; accumulation runs on **CPU or GPU**, and summaries combine with `merge!`. With `observe_pairs!`
+  for two-time statistics.
 - [`Kernels`](api/Kernels.md): the shared smoothing kernels — symmetric (`gaussian_kernel`, or any
   callable with ``\int K = 1``) and asymmetric bounded/positive-support kernels (`gamma_kernel`, via the
   `AsymmetricKernel` constructor) — used by `density`, the regression fits, the double-kernel conditional

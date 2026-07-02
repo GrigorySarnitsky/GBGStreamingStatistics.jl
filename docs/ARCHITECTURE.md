@@ -276,17 +276,17 @@ For a two-time quantity like ``m_\tau(u) = \mathbb{E}[Y_{t+\tau}\mid X_t = u]`` 
 value ``X(t)`` and the response ``Y(t+\tau)`` must be paired **per source** — two separate marginal
 histograms cannot recover the joint (for the OU oracle both marginals are the *same* stationary
 Gaussian; the entire ``\tau``-dependence lives in the pair). The one histogram entry is made at the
-response step, into the bin of ``X(t)``. The package surface for this is just:
-
-- the **memoryless** `observe_pairs!(stat, x_past, y_now)` — bins a batch of pre-formed pairs into the
-  per-lag summary (the lag is the summary's `Histogram2D(…; lag)` label, not an argument here; §4.2 /
-  §4.3); and
-- the **binning map** `bin_index(stat, x)` — exposed so a caller can pre-quantize.
+response step, into the bin of ``X(t)``. The package surface for this is just the **memoryless**
+`observe_pairs!(stat, x_past, y_now)` — it bins a batch of pre-formed pairs into the per-lag summary (the
+lag is the summary's `Histogram2D(…; lag)` label, not an argument here; §4.2 / §4.3). (A pre-quantization
+path — a public binning map plus an index-taking `observe_pairs!` that folds a compact buffer of x-bin
+indices directly, lossless because the conditioning readers use only the x-cell and never its sub-bin
+offset — is **deferred**; the `bin_index` helper is archived until it lands.)
 
 Everything that *produces* the pairs is the **consumer's**, being sample-source policy a
 domain-neutral package must not hold: the **snapshot buffer** of past ``X(t)`` (held until the response
 arrives — the irreducible ``O(M)``-per-lag state for ``M`` sources, optionally stored as compact
-`UInt16` bin indices via `bin_index` when memory is tight); which **sources** to sample; which
+`UInt16` bin indices when memory is tight); which **sources** to sample; which
 **lags** to form (e.g. log-spaced); and the **origin cadence / buffer depth** (a memory-vs-variance
 budget). Pairing is by source identity — for a stably-ordered set just element-wise array alignment
 (no id tag), an explicit id only if the ordering can change (re-meshing, sorting, birth/death).
@@ -606,8 +606,9 @@ mergeable streaming-moment design is, however, worth mirroring — §10).
   (type-parameterized), Float32 input promoted at accumulation (§3, invariant 6).
 - **ECF summary — settled: deferred, likely never built** (§2). FFT-*smoothing* of the histogram is a
   separate, **deferred** post-hoc optimization (§4.5) — a computation choice, not a stored representation.
-- **Lag handling — settled:** the package bins pre-formed pairs (`observe_pairs!`) and exposes the
-  `bin_index` map; the snapshot buffer and all lag / sampling / cadence policy are consumer-side (§3).
+- **Lag handling — settled:** the package bins pre-formed pairs (`observe_pairs!`); the pre-quantization /
+  index-ingestion path (`bin_index`) is deferred (archived); the snapshot buffer and all lag / sampling /
+  cadence policy are consumer-side (§3).
 - **[OPEN] Projection road** — include SFI/ULI from the start or defer (§4.6)?
 - **[OPEN] `HistogramND`** — wait for a multi-conditioning consumer (§3)?
 - **[OPEN] Prior art to mirror** — study `OnlineStats.jl` for its mergeable streaming-moment design
@@ -638,8 +639,9 @@ intentional — do not dedupe it).
   type-parameterized; `Float32` input promoted at accumulation.
 - **ECF summary — deferred, likely never built** (§2). FFT-*smoothing* of the histogram is a separate,
   **deferred** post-hoc optimization (§4.5) — a computation choice, not a stored representation.
-- **Lag handling — the package bins pre-formed pairs** (`observe_pairs!`) and exposes `bin_index`;
-  the snapshot buffer and all lag / sampling / cadence policy stay consumer-side (§3).
+- **Lag handling — the package bins pre-formed pairs** (`observe_pairs!`); the pre-quantization /
+  index-ingestion path (`bin_index`) is deferred (archived); the snapshot buffer and all lag / sampling /
+  cadence policy stay consumer-side (§3).
 
 - **Summary storage — power-sums about the bin center, not Pébay-about-the-running-mean** (§3).
   *Changed during the GPU pass.* The original design accumulated per-bin central moments by the Pébay

@@ -52,7 +52,6 @@ using .Accumulators:
 using .Histograms:
   Histogram1D,
   Histogram2D,
-  bin_index,
   observe_pairs!
 
 
@@ -122,7 +121,6 @@ export AbstractAccumulator,
        observe_pairs!,
        merge!,
        scale!,
-       bin_index,
        mean,
        var,
        std,
