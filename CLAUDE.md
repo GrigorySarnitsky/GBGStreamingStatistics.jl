@@ -292,7 +292,18 @@ the estimand whenever a clean population definition exists; for an intrinsically
   for the stated estimand** under the stated assumptions, and that **every normalization is exact**:
   the ``1/n``, ``1/(nh)``, ``\int K = 1``, kernel moments ``\mu_2(K) = \int u^2 K``, roughness
   ``R(K) = \int K^2``, the bias/variance constants. A stray ``1/h`` or kernel-moment factor is the
-  easy slip here (the statistics analog of PF's stray ``1/N`` / Parseval factor).
+  easy slip here (the statistics analog of PF's stray ``1/N`` / Parseval factor). **Category/type errors
+  are their own failure class** — distinct from a normalization slip and invisible to a value-level check
+  (a sentence can be perfectly formatted and glossed yet false by conflating two kinds of object). Guard
+  against conflating a **density** with a **measure** or **CDF** (``f_X`` / ``\mu`` / ``F_X``); an
+  **estimator** with its **estimand** or a single **estimate** (``\hat m(x)`` / ``m(x)`` / the number);
+  ``\mathbb{E}[Y \mid X]`` (a random variable) with ``\mathbb{E}[Y \mid X = x]`` (a number); a
+  **conditional** density with a **joint** or **marginal**; the overloaded "**kernel**" (the smoothing
+  ``K`` vs a transition kernel ``p_\tau``); a **pushforward density** with a **pushforward measure**; and
+  leaving a **convergence mode** implicit (a.s. / in probability / ``L^2`` / in distribution) under a
+  consistency or rate claim. The lightweight check (from the sibling PF): write the statement formally,
+  every object typed from the code (the estimand's domain/codomain, the estimator a functional of the
+  summary, the standard error a positive scalar), and expand it — if it won't type, the prose is imprecise.
 - **Citations:** context-standard author–year; name up to three authors, `First et al.` for four or
   more; **never cite an inaccessible source** (the private notes under `inspiration/` are working
   material, not citable). The canonical reference list lives in `docs/ARCHITECTURE.md` §References;
@@ -303,7 +314,10 @@ the estimand whenever a clean population definition exists; for an intrinsically
 
 **Doc-edit checklist — run all on every documentation change** (most strictly on `ARCHITECTURE.md`):
 **(1) Correct** — every claim/formula/normalization true and precise, the estimator consistent for
-its estimand, run as a *positive* per-formula verification, not a read-through; **(2) Self-contained**
+its estimand, **and free of category/type errors** (density vs measure/CDF, estimator vs estimand,
+``\mathbb{E}[Y \mid X]`` vs ``\mathbb{E}[Y \mid X = x]``, conditional vs joint/marginal, an implicit
+convergence mode — type every object, a value-check is blind to these), run as a *positive* per-formula
+verification, not a read-through; **(2) Self-contained**
 — every symbol *bound* to its meaning in plain language at first use (enumerate symbols, cite the
 binding clause), **and every signature argument documented** — positional and keyword alike, enumerated
 *from the signature* (not the prose) so an "obvious" `x` or `h` cannot be skipped: each says what it is

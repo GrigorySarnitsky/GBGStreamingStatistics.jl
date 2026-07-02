@@ -28,7 +28,12 @@ reading is not a check.
    claim, and quantifier (*exact / all / never*); verify EACH against the implementation in `src/` (read
    it, quote the decisive line) or by derivation. **Extended for this package: every estimator must be
    consistent for its stated estimand** — check the population definition is right and the estimator
-   actually converges to it (a stray `1/h` or kernel-moment factor is the easy slip). The verified
+   actually converges to it (a stray `1/h` or kernel-moment factor is the easy slip). **Also flag the
+   category/type-error class** — invisible to a value-check: a density conflated with a measure/CDF, an
+   estimator with its estimand or a single estimate, E[Y|X] (a random variable) with E[Y|X=x] (a number),
+   a conditional density with a joint/marginal, the overloaded "kernel" (smoothing K vs transition kernel),
+   a pushforward density with a pushforward measure, or an implicit convergence mode (a.s./in-P/L²/in-dist)
+   under a consistency claim; type every object from the code and expand it. The verified
    statements live in `docs/FORMALIZATION.md`: check each nontrivial prose claim **against its entry**
    (the chain is *prose ↔ formalization ↔ test*), and flag any nontrivial statement with **no entry**, or
    an entry with **no test link**, as a coverage gap.
