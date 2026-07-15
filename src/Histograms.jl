@@ -298,7 +298,7 @@ end
 """
     observe_pairs!(summary::Histogram2D, x_past, y_now) -> summary
 
-Fold a batch of **pre-formed pairs** ``\\bigl(X(t),\\, Y(t+\\tau)\\bigr)`` into the per-lag summary in
+Fold a batch of **pre-formed pairs** ``\\bigl(X(t),  Y(t+\\tau)\\bigr)`` into the per-lag summary in
 place (`x_past` holds ``X(t)``, `y_now` holds ``Y(t+\\tau)``, equal length) — the memoryless surface for
 two-time statistics. The pairs are binned by an atomic
 scatter-add (one work-item per pair, CPU and GPU alike); everything that *produces* the pairs — the

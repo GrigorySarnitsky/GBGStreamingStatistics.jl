@@ -412,7 +412,7 @@ Arguments:
   trade-off (larger `h` smooths more — less variance, more bias). Pass a positive number, or leave it
   `nothing` (default) to select one from the data by the kernel- and degree-aware **normal-reference
   rule** ([`bandwidth`](@ref GBGStreamingStatistics.Bandwidth.bandwidth) — Silverman's
-  ``(4/3)^{1/5}\\hat\\sigma\\,n^{-1/5}`` for the Gaussian kernel at degree 0/1, wider at the ``n^{-1/9}``
+  ``(4/3)^{1/5}\\hat\\sigma n^{-1/5}`` for the Gaussian kernel at degree 0/1, wider at the ``n^{-1/9}``
   rate for degree 2). For a shape-adaptive choice, compute `bandwidth(summary; rule = :sj)` (or `:isj` /
   `:aic`) yourself and pass the number. The asymmetric `gamma_kernel` / `beta_kernel` take their own scale
   ``b`` here (rate ``n^{-2/5}``) in place of the symmetric `h`.
@@ -426,7 +426,7 @@ Arguments:
   `adaptive`, `bounds`, and a parametric `start` do not combine with it, and it takes its own scale ``b``
   in place of `h`.
 - `degree` — the local-polynomial order. `degree = 0` (default) is the binned KDE / WARPing (weighted averaging of rounded points)
-  ``\\hat f(x) = \\frac1n \\sum_j (n_j/h_j)\\, K((x-c_j)/h_j)`` (``\\int K = 1``). `degree` ``\\ge 1`` is the
+  ``\\hat f(x) = \\frac{1}{n} \\sum_j (n_j/h_j)  K((x-c_j)/h_j)`` (``\\int K = 1``). `degree` ``\\ge 1`` is the
   **local-log-polynomial** (local-likelihood) estimator (Loader 1996): fit ``\\log f`` by a
   degree-`degree` polynomial through a binned **local Poisson** likelihood and report
   ``\\hat f(x) = e^{\\hat\\beta_0}``. `degree = 1` (log-linear) is **exact for an exponential density**,
@@ -447,7 +447,7 @@ Arguments:
   `bounds` is a degree-0 option.)
 - `start` — a **parametric start** (Hjort & Glad 1995), or `nothing` (default). Given one, `density`
   returns the semiparametric estimate
-  ``\\hat f(x) = p(x;\\hat\\theta)\\,\\frac1{nh}\\sum_j \\frac{n_j}{p(c_j;\\hat\\theta)}\\,K((x-c_j)/h)`` —
+  ``\\hat f(x) = p(x;\\hat\\theta) \\frac{1}{nh}\\sum_j \\frac{n_j}{p(c_j;\\hat\\theta)} K((x-c_j)/h)`` —
   a moment-fitted model ``p(\\cdot;\\hat\\theta)`` times a KDE of its *correction*, **near-exact wherever
   the start is correct** (the correction is then ``\\equiv 1``) and degrading only to a bias-corrected KDE
   where it is not. ``\\hat\\theta`` is fit by method of moments from the recovered ``\\hat\\mu``,
@@ -673,14 +673,14 @@ end
 \\sqrt{\\operatorname{Var}\\hat f_h(x)}`` with the kernel-density asymptotic variance
 
 ```math
-\\operatorname{Var}\\hat f_h(x) \\approx \\frac{R(K)\\,f_X(x)}{n h} - \\frac{f_X(x)^2}{n}, \\qquad R(K) = \\int K^2.
+\\operatorname{Var}\\hat f_h(x) \\approx \\frac{R(K) f_X(x)}{n h} - \\frac{f_X(x)^2}{n}, \\qquad R(K) = \\int K^2.
 ```
 
-**Estimator.** ``\\sqrt{R(K)\\,\\hat f_h(x)/(n h) - \\hat f_h(x)^2/n}`` from the recovered ``\\hat f_h(x)``,
+**Estimator.** ``\\sqrt{R(K) \\hat f_h(x)/(n h) - \\hat f_h(x)^2/n}`` from the recovered ``\\hat f_h(x)``,
 the count ``n``, the bandwidth `h` (default the normal reference), and the roughness ``R(K) = \\int K^2`` of the
 smoothing `kernel` ``K`` — any symmetric ``\\int K = 1`` callable, default
 [`gaussian_kernel`](@ref GBGStreamingStatistics.Kernels.gaussian_kernel) — by quadrature. The
-pointwise **variability band** is ``\\hat f_h(x) \\pm z\\,\\mathrm{SE}(x)`` (``z = 1.96`` for 95\\%) — a
+pointwise **variability band** is ``\\hat f_h(x) \\pm z \\mathrm{SE}(x)`` (``z = 1.96`` for 95\\%) — a
 band about ``\\mathbb{E}\\hat f_h``, so it covers ``f_X`` where the ``O(h^2)`` smoothing bias is small
 and narrows that coverage at a sharp mode or in a tail.
 
@@ -692,7 +692,7 @@ one call). The variance is adjusted per option: `adaptive` replaces ``h`` by the
 bandwidth ``h(x)`` (a wider window — hence smaller variance — in the tail; the sample-point pilot's own
 variability is an unmodelled higher-order term, so the band runs slightly narrow in the deep tail); `bounds` (Jones
 renormalization) replaces ``R(K)`` by the boundary-restricted roughness ``R_a(x) =
-\\frac1h\\int_{\\text{support}} K((x-u)/h)^2\\,\\mathrm du`` and divides by the squared in-support kernel
+\\frac{1}{h}\\int_{\\text{support}} K((x-u)/h)^2\\,\\mathrm du`` and divides by the squared in-support kernel
 mass ``a(x)^2``, inflating the variance near an edge; a parametric `start` leaves the leading variance
 ``R(K)\\hat f/(nh)`` unchanged (the fitted-parameter uncertainty is an ``O(1/n)`` omission). Restricted to
 `degree` 0/1 and a **symmetric** kernel (`degree` ``\\ge 2`` and an asymmetric gamma/beta kernel are not

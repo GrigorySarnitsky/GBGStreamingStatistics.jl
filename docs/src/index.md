@@ -75,7 +75,7 @@ verbatim by every consumer) and an **estimator upper half** (the estimands):
 
 - [`Accumulators`](api/Accumulators.md): the foundation — `AbstractAccumulator`, the interface of every
   mergeable online **summary** of the [empirical measure](https://en.wikipedia.org/wiki/Empirical_measure)
-  ``\hat\mu_n = \frac1n\sum_i \delta_{X_i}`` (you `observe!` samples into it and `merge!` two together).
+  ``\hat\mu_n = \frac{1}{n}\sum_i \delta_{X_i}`` (you `observe!` samples into it and `merge!` two together).
   The concrete summaries live in `Histograms`.
 - [`Histograms`](api/Histograms.md): the summaries — `Histogram1D` and `Histogram2D`, both
   `<: AbstractAccumulator`. Each is a finely **binned empirical measure** — the *fine-grained measure*

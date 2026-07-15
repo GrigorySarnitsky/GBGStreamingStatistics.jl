@@ -13,7 +13,7 @@ export AbstractAccumulator, observe!, merge!, scale!
     AbstractAccumulator
 
 Supertype of every **mergeable summary** ``T(\\hat\\mu_n)`` of the [empirical measure](https://en.wikipedia.org/wiki/Empirical_measure)
-``\\hat\\mu_n = \\frac1n \\sum_{i=1}^{n} \\delta_{X_i}`` of an observed stream ``X_1, X_2, \\dots``
+``\\hat\\mu_n = \\frac{1}{n} \\sum_{i=1}^{n} \\delta_{X_i}`` of an observed stream ``X_1, X_2, \\dots``
 (``\\delta_x`` the unit point mass at ``x``, ``n`` the number of samples seen).
 
 A summary is **finite-dimensional** — the ``n`` point masses are never stored — **mergeable** and
@@ -72,13 +72,13 @@ is the plain monoid addition above. Because the unnormalized summary is also **s
 parameter-mixture density (superstatistics; Beck & Cohen 2003)
 
 ```math
-P(x) = \\int f(\\beta)\\,P(x \\mid \\beta)\\,\\mathrm{d}\\beta \\;\\approx\\; \\sum_k w_k\\,f_k(x),
-\\qquad w_k = f(\\beta_k)\\,\\Delta\\beta,
+P(x) = \\int f(\\beta) P(x \\mid \\beta)\\,\\mathrm{d}\\beta \\;\\approx\\; \\sum_k w_k f_k(x),
+\\qquad w_k = f(\\beta_k) \\Delta\\beta,
 ```
 
 a superposition over a slowly varying parameter ``\\beta`` with mixing law ``f(\\beta)``: keep one summary
 ``T_k`` per value ``\\beta_k`` (accumulated independently), then **after** the runs choose ``f(\\beta)`` and
-assemble ``\\sum_k (w_k / N_k)\\,T_k`` by weighted `merge!` (``N_k = \\texttt{sum(T\\_k.counts)}`` normalizes
+assemble ``\\sum_k (w_k / N_k) T_k`` by weighted `merge!` (``N_k = \\texttt{sum(T\\_k.counts)}`` normalizes
 each component to a probability measure; the conditional / transition estimators then carry the local
 mixing weight automatically, being ratios of linear functionals). This is **post hoc** — re-weight without
 re-accumulating, exactly as bandwidth is a post-hoc choice. A weighted merge (``\\texttt{weight} \\ne 1``)

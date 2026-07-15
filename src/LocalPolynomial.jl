@@ -72,12 +72,12 @@ moments
 
 ```math
 \\begin{aligned}
-T_\\ell &= \\sum_j K_h(\\ell_j - x)\\, w_j\\, (\\ell_j - x)^\\ell, \\\\
-P_\\ell &= \\sum_j K_h(\\ell_j - x)\\, r_j\\, (\\ell_j - x)^\\ell,
+T_\\ell &= \\sum_j K_h(\\ell_j - x)  w_j  (\\ell_j - x)^\\ell, \\\\
+P_\\ell &= \\sum_j K_h(\\ell_j - x)  r_j  (\\ell_j - x)^\\ell,
 \\end{aligned}
 ```
 
-and solve the normal equations ``[\\,T_{i+\\ell}\\,]_{i,\\ell=0}^{d}\\,\\beta = (P_0, \\dots, P_d)``. The
+and solve the normal equations ``[ T_{i+\\ell} ]_{i,\\ell=0}^{d} \\beta = (P_0, \\dots, P_d)``. The
 jet is the local Taylor expansion: ``\\beta_0`` is the fitted value, ``\\beta_1`` the slope, and
 ``2\\beta_2`` the curvature — so a regression fit gives ``\\hat m(x) = \\beta_0`` and
 ``\\hat m''(x) = 2\\beta_2``. The weight is the shared `Kernels._kernel_weight` atom (its normalization

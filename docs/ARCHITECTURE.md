@@ -64,7 +64,7 @@ the recurring lesson is that an *absence* is a precise statement (§6).
 Let ``X_1, X_2, \dots`` be the observed stream. The object that carries all information is the
 **empirical measure**
 ```math
-\hat\mu_n \;=\; \frac1n \sum_{i=1}^{n} \delta_{X_i},
+\hat\mu_n \;=\; \frac{1}{n} \sum_{i=1}^{n} \delta_{X_i},
 ```
 where ``\delta_x`` is the unit point mass at ``x`` and ``n`` the number of samples seen. We do **not**
 store the ``n`` point masses. We store a **finite-dimensional summary** ``T(\hat\mu_n)`` that is
@@ -160,7 +160,7 @@ detailed in §4:
 ### The histogram is the summary; the ECF is deferred (likely never needed)
 
 The empirical measure could also be carried in a **Fourier** representation — the **empirical
-characteristic function** ``\hat\varphi_n(s) = \frac1n\sum_i e^{\mathrm{i} s X_i}`` — but the histogram
+characteristic function** ``\hat\varphi_n(s) = \frac{1}{n}\sum_i e^{\mathrm{i} s X_i}`` — but the histogram
 is the **sole** summary. Tail estimation (the heavy-tailed acceleration / ``(\Delta X)^6`` channels) is
 robust only in the histogram, where the ECF inverse rings; the ECF would earn its place only for a
 strictly near-Gaussian marginal, which the consumers do not require. It is therefore **deferred and,
@@ -319,7 +319,7 @@ The local / smoothing readouts: each a degree-zero readout of the kernel-weighte
 
 **Estimand.** ``f_X = \mathrm{d}\mu_X/\mathrm{d}\lambda``, the Lebesgue density:
 ``P(X \in A) = \int_A f_X\,\mathrm{d}\lambda``.
-**Estimator** (binned KDE / WARPing): ``\hat f_h(x) = \frac1{nh}\sum_j n_j K((x-\ell_j)/h)`` (``\int K = 1``)
+**Estimator** (binned KDE / WARPing): ``\hat f_h(x) = \frac{1}{nh}\sum_j n_j K((x-\ell_j)/h)`` (``\int K = 1``)
 from counts ``n_j`` at the within-bin **centroid** ``\ell_j = c_j + S_1^{(j)}/n_j`` (`binning = :linear`,
 the default — matching the bin's first moment, so the discretization is ``O(\Delta^2)`` in the bin width
 ``\Delta``; ``\ell_j = c_j`` is `binning = :simple`, ``O(\Delta)``), the centroid free from the stored
@@ -354,7 +354,7 @@ per-``X``-column ``y``-quadrature of ``g`` (the §4.B atom) regressed in ``x`` b
 joins the two families — with `conditional_mean` its ``g = \mathrm{identity}`` case and the **conditional
 pushforward density** `conditional_pushforward_density` its transformed-response reader (one
 `conditional_expectation` of a composed kernel, no ``g^{-1}``). Each carries a leverage-based
-`conditional_expectation_standard_error` ``= \sqrt{\ell(x)\,\mathrm{Var}(g(Y)\mid x)}``, the conditional
+`conditional_expectation_standard_error` ``= \sqrt{\ell(x) \mathrm{Var}(g(Y)\mid x)}``, the conditional
 analog of the marginal `expectation_standard_error`. `FORMALIZATION.md` pins the constants and rates.
 
 #### 4.3 Conditional and transition density
@@ -363,7 +363,7 @@ analog of the marginal `expectation_standard_error`. `FORMALIZATION.md` pins the
 ``p_\tau(y\mid x) = f_{X_{t+\tau}\mid X_t}(y\mid x)`` (nonstationary: ``p_{t,\tau}``).
 **Estimator** (double-kernel; Rosenblatt 1969; Hyndman, Bashtannyk & Grunwald 1996):
 ```math
-\hat f(y\mid x) \;=\; \frac{\sum_i K_{h_1}(X_i-x)\,K_{h_2}(Y_i-y)}{\sum_i K_{h_1}(X_i-x)},
+\hat f(y\mid x) \;=\; \frac{\sum_i K_{h_1}(X_i-x) K_{h_2}(Y_i-y)}{\sum_i K_{h_1}(X_i-x)},
 ```
 with a separate conditioning kernel `kernelx` (in ``x``) and response kernel `kernely` (in ``y``). For a
 **bounded / positive response** — a droplet radius as ``Y`` — `kernely` may be **asymmetric** (gamma / beta;
@@ -377,7 +377,7 @@ local-linear `conditional_mean` is boundary-adaptive, §4.2).
 **Estimand.** the AMISE-optimal bandwidth — the ``h`` minimising ``\int \mathbb{E}[(\hat f_h - f_X)^2]``
 for a kernel ``K`` and local-polynomial degree ``d``.
 **Estimator.** for a marginal, the **kernel- and degree-aware normal-reference rule**
-``h = C(K,d)\,\hat\sigma\,n^{-1/(2p+1)}`` (bias order ``p = 2`` at degree 0/1, ``p = 4`` at degree 2/3; the
+``h = C(K,d) \hat\sigma n^{-1/(2p+1)}`` (bias order ``p = 2`` at degree 0/1, ``p = 4`` at degree 2/3; the
 kernel enters through one canonical factor ``[R(K)/\mu_2(K)^2]^{1/5}`` by quadrature — Silverman
 ``(4/3)^{1/5}`` the Gaussian/degree-0 case, Epanechnikov ``\approx 2.34``), plus the data-driven
 **Sheather–Jones** `:sj` and DCT-based `:isj` (Botev, Grotowski & Kroese 2010) plug-ins, the fit-based
@@ -386,7 +386,7 @@ of the counts (the eval kernel a clean ``\delta(K)`` rescale); leave-one-out CV 
 ties drive ``h \to 0``). The load-bearing one for conditional moments is the **response-aware *local*
 plug-in** `bandwidth(::Histogram2D, x; rule = :local)`,
 ```math
-h^\star(x) \;=\; \left[\frac{R(K)\,\sigma^2(x)}{\mu_2(K)^2\,m''(x)^2\,f_X(x)\,n}\right]^{1/5},
+h^\star(x) \;=\; \left[\frac{R(K) \sigma^2(x)}{\mu_2(K)^2 m''(x)^2 f_X(x) n}\right]^{1/5},
 ```
 which depends on the response's variance ``\sigma^2(x)`` **and** curvature ``m''(x)`` — so **each response
 channel gets its own ``h^\star``** (a single shared bandwidth is provably suboptimal), all three of
@@ -401,12 +401,12 @@ The global (non-local) readouts: a smooth functional of ``X`` read straight off 
 kernel, no query point. Within a bin, ``S_p^{(j)} = \sum_{i\in\text{bin}}(X_i - c_j)^p`` is the within-bin
 ``p``-th moment, so Taylor-expanding any smooth ``g`` about the center,
 ```math
-\mathbb{E}[g(X)] \;=\; \frac1n \sum_j \sum_{p=0}^{\texttt{order}} \frac{g^{(p)}(c_j)}{p!}\, S_p^{(j)}
-\;+\; O\!\big(\Delta^{\,\texttt{order}+1}\big),
+\mathbb{E}[g(X)] \;=\; \frac{1}{n} \sum_j \sum_{p=0}^{\texttt{order}} \frac{g^{(p)}(c_j)}{p!}  S_p^{(j)}
+\;+\; O\!\big(\Delta^{ \texttt{order}+1}\big),
 ```
 **exact** for polynomials of degree ``\le \texttt{order}`` (the remainder terminates) — this is the
 recovered `mean` / `var` / `central_moment` (§3, the shift formula, the ``g = x^p`` case) — and
-``O(\Delta^{\,\texttt{order}+1})`` for general smooth ``g``. **Built** in `Expectations`:
+``O(\Delta^{ \texttt{order}+1})`` for general smooth ``g``. **Built** in `Expectations`:
 
 - `expectation` ``\equiv \mathbb{E}[g(X)]`` for a general smooth `g`. The per-bin coefficients
   ``g^{(p)}(c_j)/p!`` are read off a **degree-``\texttt{order}`` polynomial interpolant of ``g`` on each
@@ -420,13 +420,13 @@ recovered `mean` / `var` / `central_moment` (§3, the shift formula, the ``g = x
   the smooth integrand ``g^2``).
 - `pushforward_density` ``\equiv f_{g(X)}``, the density of ``Y = g(X)``. Rather than form ``g^{-1}`` or a
   Jacobian, it is written as the **expectation of the composed kernel test function**,
-  ``\hat f_{g(X)}(y) = \tfrac1n\sum_i K_h(g(X_i) - y) = \hat{\mathbb{E}}[K_h(g(X) - y)]`` — so it is one
+  ``\hat f_{g(X)}(y) = \tfrac{1}{n}\sum_i K_h(g(X_i) - y) = \hat{\mathbb{E}}[K_h(g(X) - y)]`` — so it is one
   more `expectation` call. A **non-monotone** ``g`` is handled automatically (every preimage contributes),
   a flat spot ``g'=0`` shows up as the expected (integrable) caustic, and a symmetric ``K`` makes
   ``\int \hat f\,\mathrm dy = 1`` exactly.
 
 Limits: ``g`` smooth on the bin scale, mass inside the range, and — for the pushforward — the response
-bandwidth ``h \gtrsim |g'|\,\Delta`` so ``K_h\circ g`` is resolved across a bin.
+bandwidth ``h \gtrsim |g'| \Delta`` so ``K_h\circ g`` is resolved across a bin.
 
 ### 4.6 Projection road [OPEN, alternative]
 
@@ -496,8 +496,8 @@ The PF discipline: a missing capability encodes a decision. The candidate invari
    preserve-the-eltype, for the opposite reason: this is a reduction, not a transform.)
 
 **Deliberate absences (consumer-side, by scope).** Bulk **scalar time-correlation functions**
-``C(\tau) = \langle X(t)\,X(t+\tau)\rangle`` are not provided: a `Histogram2D` per lag would store the
-whole joint density to extract one cross-moment (``O(T\,n_x n_y)`` state for ``O(T)`` scalars), and a
+``C(\tau) = \langle X(t) X(t+\tau)\rangle`` are not provided: a `Histogram2D` per lag would store the
+whole joint density to extract one cross-moment (``O(T n_x n_y)`` state for ``O(T)`` scalars), and a
 scalar correlation is cheaply streamed by a dedicated lagged product-sum or FFT. The
 `Histogram2D`-per-lag path is for the *conditional / two-time density* objects — ``p_\tau(y \mid x)``,
 ``D^{(n)}(x)``, the van Hove ``G(r,t)`` — that genuinely need the joint, over a typically *sparse* set
@@ -511,7 +511,7 @@ Mirrors PF; the deltas are noted.
 
 - **Estimand-first docstrings** (§2) — state the estimand (the population quantity, in standard notation,
   with its formula) before the estimator. `conditional_mean` is the reference: lead with
-  ``m(x) = \mathbb{E}[Y \mid X = x] = \int y\, f_{Y\mid X}(y\mid x)\,\mathrm{d}y`` (the ``L^2`` projection),
+  ``m(x) = \mathbb{E}[Y \mid X = x] = \int y  f_{Y\mid X}(y\mid x)\,\mathrm{d}y`` (the ``L^2`` projection),
   *then* the local-linear ``\hat m_h``. Self-contained pages, **rendered LaTeX in standard notation**, every
   code object **bound to its math symbol** on first mention (`density` ``\equiv f_X``, `conditional_mean`
   ``\equiv m(x)``, `transition_density` ``\equiv p_\tau(y\mid x)``).
@@ -524,8 +524,8 @@ Mirrors PF; the deltas are noted.
 - **A `FORMALIZATION.md` analog.** PF records a typed statement per operation, expansion-checked
   against the code and **test-linked**. Here the typed entry states the **estimand**, the
   **estimator**, and the **consistency claim** — its bias and variance, e.g.
-  ``\mathrm{bias}\,\hat m_h(x) \approx \tfrac12 h^2 \mu_2(K)\,m''(x)`` and
-  ``\mathrm{Var}\,\hat m_h(x) \approx \frac{R(K)\,\sigma^2(x)}{n\,h\,f_X(x)}`` for local-linear
+  ``\mathrm{bias} \hat m_h(x) \approx \tfrac{1}{2} h^2 \mu_2(K) m''(x)`` and
+  ``\mathrm{Var} \hat m_h(x) \approx \frac{R(K) \sigma^2(x)}{n h f_X(x)}`` for local-linear
   regression — every normalization constant pinned, each linked to the test that verifies the
   **convergence rate** numerically.
 - **Testing against analytic oracles** — the statistics analog of PF's analytic round-trips:
@@ -667,8 +667,8 @@ intentional — do not dedupe it).
   entry below.]* The first slice implements the increment moments and the finite-``\tau`` Kramers–Moyal coefficients
   drift ``D^{(1)} = M_1/\tau`` and diffusion ``D^{(2)} = M_2/(2\tau)`` directly from the **order-2
   `Histogram2D`**, via ``M_1(x) = \hat m_h(x) - x`` and
-  ``M_2(x) = \widehat{\mathbb{E}}[Y^2\mid x] - 2x\,\hat m_h(x) + x^2`` — reusing the §4.2 local-linear
-  primitives (no new accumulator), reported as the plain finite-``\tau`` ratio ``M_n/(n!\,\tau)``. The
+  ``M_2(x) = \widehat{\mathbb{E}}[Y^2\mid x] - 2x \hat m_h(x) + x^2`` — reusing the §4.2 local-linear
+  primitives (no new accumulator), reported as the plain finite-``\tau`` ratio ``M_n/(n! \tau)``. The
   all-orders Bell-polynomial finite-time correction (Rydin Gorjão et al. 2021) and the ``\tau\to0``
   limit stay forthcoming / consumer-side. ``n \ge 3`` — the higher Kramers–Moyal coefficients and
   `pawula_quotient` (whose ``Q = \mu_4/(3\mu_2^2)`` needs ``M_4``) — is a **recorded coverage gap** (it
@@ -691,13 +691,13 @@ intentional — do not dedupe it).
   OU-oracle-tested against the closed-form Gaussian ``p_\tau(y\mid x)``.
 
 - **Bandwidth §4.5 — the marginal `bandwidth` made kernel- and degree-aware** (§4.5). *Generalised the
-  global rule.* The first slice returned only Silverman ``(4/3)^{1/5}\hat\sigma\,n^{-1/5}`` (Gaussian,
+  global rule.* The first slice returned only Silverman ``(4/3)^{1/5}\hat\sigma n^{-1/5}`` (Gaussian,
   degree 0; rules `:silverman`/`:scott`). A survey of the field (locfit, KernSmooth, ks, statsmodels)
   confirmed the AMISE-optimal ``h`` depends on the kernel only through the canonical factor
   ``\delta(K) = [R(K)/\mu_2(K)^2]^{1/5}`` and on the local-polynomial degree through both the rate
   (``n^{-1/5}`` at degree 0/1, ``n^{-1/9}`` at degree 2) and the equivalent-kernel constant — exactly
   locfit's `Wikk(K, d)`. `bandwidth(summary; rule = :normal, kernel, degree)` now returns
-  ``C(K,d)\,\hat\sigma\,n^{-1/(2p+1)}`` (``R(K)``, ``\mu_2(K)`` by quadrature, so any kernel works) and
+  ``C(K,d) \hat\sigma n^{-1/(2p+1)}`` (``R(K)``, ``\mu_2(K)`` by quadrature, so any kernel works) and
   is also `density`'s default `h`, so a degree-2 or Epanechnikov call is matched automatically. The
   kernel-as-standard-deviation shortcut (base-R, KDEpy, KernelDensity.jl — kernel-blind, not
   AMISE-exact) was weighed and declined. The data-driven Sheather–Jones plug-in (`rule = :sj`, degree
@@ -744,7 +744,7 @@ intentional — do not dedupe it).
   from Chen's naive ``f_1`` to the bias-reduced ``f_2`` (a fix, committed separately).
 
 - **Bandwidth §4.5 — Chen plug-in for the asymmetric kernels; AIC, U-statistic, and gamma-reference
-  routes rejected** (§4.5). The asymmetric (gamma / beta) kernels shipped only the ``\hat\sigma\,n^{-2/5}``
+  routes rejected** (§4.5). The asymmetric (gamma / beta) kernels shipped only the ``\hat\sigma n^{-2/5}``
   rule of thumb; a data-driven selector was wanted because the optimal scale is ``0.27\text{–}1.6\times`` it
   across densities (``> 2\times`` ISE on log-normal — the droplet regime). Three routes were tried and
   rejected before the plug-in: the **binned AIC** (as for the symmetric kernels) is *monotonic* in ``b``
@@ -756,7 +756,7 @@ intentional — do not dedupe it).
   The shipped `rule = :plugin` is the Chen plug-in with the curvature ``\int w^2 (f'')^2`` (weight
   ``w = x`` / ``x(1-x)``) estimated by **grid quadrature of the pilot ``\hat f''``** — boundary-valid
   because ``w \to 0`` there, and always real. The ``f''`` pilot is a normal-reference scale
-  ``1.3\,\hat\sigma\,n^{-1/9}`` (constant calibrated for robustness, as Silverman's 1.06 is): never
+  ``1.3 \hat\sigma n^{-1/9}`` (constant calibrated for robustness, as Silverman's 1.06 is): never
   materially worse than the rule of thumb, ``1.4\text{–}1.7\times`` lower ISE on skewed data. A
   fully-adaptive (solve-the-equation) curvature pilot is a recorded refinement.
 
@@ -766,11 +766,11 @@ intentional — do not dedupe it).
   and the weighted `merge!(into, from; weight)`
   (``\texttt{into} \mathrel{+}= \texttt{weight} \cdot \texttt{from}``; ``\texttt{weight} = 1`` recovers the
   plain monoid add), on a **Float-count variant** (`count = Float64`; the default `UInt64` counts cannot
-  hold a fractional ``w\,n``, so `scale!` and a weighted merge `ArgumentError` on them). The summary storage
+  hold a fractional ``w n``, so `scale!` and a weighted merge `ArgumentError` on them). The summary storage
   needed almost no change — `observe!`'s atomic scatter already adds `one(eltype(counts))`, so a Float count routes
   through the atomic-*float* add (CPU and GPU), and `merge!` was already an elementwise broadcast. Estimand:
   the **hyperstatistical** parameter-mixture density
-  ``P(x) = \int f(\beta)\,P(x\mid\beta)\,\mathrm{d}\beta \approx \sum_k w_k f_k(x) = \sum_k (w_k/N_k)\,T_k``
+  ``P(x) = \int f(\beta) P(x\mid\beta)\,\mathrm{d}\beta \approx \sum_k w_k f_k(x) = \sum_k (w_k/N_k) T_k``
   (superstatistics; Beck & Cohen 2003) — keep one summary ``T_k`` per ``\beta_k``, choose the mixing law
   ``f(\beta)`` post hoc, re-weight without re-accumulating; and **exponential forgetting** (`scale!(s, λ)`
   before the next block). Oracle-tested by the χ²-superstatistics → Student-``t`` result (a Gamma-weighted

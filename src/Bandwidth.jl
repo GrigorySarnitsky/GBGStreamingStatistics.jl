@@ -321,7 +321,7 @@ for the smoothing `kernel` ``K`` and local-polynomial `degree` ``d``.
 recovered ``\\hat\\sigma`` and the sample size ``n``,
 
 ```math
-h = C(K, d)\\,\\hat\\sigma\\,n^{-1/(2p+1)},
+h = C(K, d) \\hat\\sigma n^{-1/(2p+1)},
 ```
 
 where ``p`` is the estimator's leading **bias order** — ``p = 2`` for `degree` 0 or 1 (the rate
@@ -330,7 +330,7 @@ slowly shrinking rate ``n^{-1/9}``). At `degree` 0/1 the constant is the **canon
 
 ```math
 \\begin{aligned}
-C(K, d) &= (8\\sqrt{\\pi}/3)^{1/5}\\,\\delta(K), \\\\
+C(K, d) &= (8\\sqrt{\\pi}/3)^{1/5} \\delta(K), \\\\
 \\delta(K) &= \\bigl[R(K)/\\mu_2(K)^2\\bigr]^{1/5}, \\\\
 R(K) &= \\int K^2, \\qquad \\mu_2(K) = \\int u^2 K(u)\\,\\mathrm{d}u,
 \\end{aligned}
@@ -338,8 +338,8 @@ R(K) &= \\int K^2, \\qquad \\mu_2(K) = \\int u^2 K(u)\\,\\mathrm{d}u,
 
 and at `degree` 2/3 the analogous fourth-order **equivalent-kernel** constant (Loader 1996). ``R(K)``
 and ``\\mu_2(K)`` are computed by quadrature, so any ``K`` is supported. For the Gaussian kernel at
-`degree` 0 this is **Silverman's rule** ``(4/3)^{1/5}\\hat\\sigma\\,n^{-1/5}``; for the Epanechnikov
-kernel it is ``\\approx 2.34\\,\\hat\\sigma\\,n^{-1/5}`` (``2.21\\times`` the Gaussian ``h``). Every
+`degree` 0 this is **Silverman's rule** ``(4/3)^{1/5}\\hat\\sigma n^{-1/5}``; for the Epanechnikov
+kernel it is ``\\approx 2.34 \\hat\\sigma n^{-1/5}`` (``2.21\\times`` the Gaussian ``h``). Every
 input is read back from the *one* stored summary, post hoc.
 
 **Estimator** (`rule = :sj`, the data-driven Sheather–Jones plug-in; `degree` 0/1). The curvature
@@ -363,14 +363,14 @@ enters as the ``\\delta(K)`` rescale.
 **Asymmetric kernels** ([`gamma_kernel`](@ref GBGStreamingStatistics.Kernels.gamma_kernel),
 [`beta_kernel`](@ref GBGStreamingStatistics.Kernels.beta_kernel)) carry their width in the
 varying shape, so they take their own scale ``b`` (rate ``n^{-2/5}``), not the symmetric ``h``, and accept
-two rules. `rule = :normal` (default) is the ``\\hat\\sigma\\,n^{-2/5}`` rule of thumb. `rule = :plugin`
+two rules. `rule = :normal` (default) is the ``\\hat\\sigma n^{-2/5}`` rule of thumb. `rule = :plugin`
 is the **Chen plug-in**, the asymmetric analog of Silverman's rule: from the AMISE ``A b^2 + C b^{-1/2}/n``
-(Chen 1999, 2000; the modified ``f_2`` kernels) with ``A = \\tfrac14\\int w(x)^2 f''(x)^2\\,\\mathrm{d}x``
-and ``C = (2\\sqrt\\pi)^{-1}\\,\\mathbb{E}[w(X)^{-1/2}]``, where ``w(x) = x`` (gamma) or ``x(1-x)`` (beta)
+(Chen 1999, 2000; the modified ``f_2`` kernels) with ``A = \\tfrac{1}{4}\\int w(x)^2 f''(x)^2\\,\\mathrm{d}x``
+and ``C = (2\\sqrt\\pi)^{-1} \\mathbb{E}[w(X)^{-1/2}]``, where ``w(x) = x`` (gamma) or ``x(1-x)`` (beta)
 is the kernel's local-scale weight,
 
 ```math
-b^\\star = \\left[\\frac{\\mathbb{E}[w(X)^{-1/2}]}{2\\sqrt\\pi\\,n \\int w(x)^2 f''(x)^2\\,\\mathrm{d}x}\\right]^{2/5}.
+b^\\star = \\left[\\frac{\\mathbb{E}[w(X)^{-1/2}]}{2\\sqrt\\pi n \\int w(x)^2 f''(x)^2\\,\\mathrm{d}x}\\right]^{2/5}.
 ```
 
 ``\\mathbb{E}[w(X)^{-1/2}]`` is an exact moment of the bin counts; the curvature ``\\int w^2 (f'')^2`` is
@@ -384,8 +384,8 @@ carries no ``w(x)``, so `:plugin` rejects it — use `rule = :normal`. The symme
 `:isj` / `:aic` do not apply to an asymmetric kernel; a fully
 data-adaptive curvature pilot is a recorded refinement.
 
-The response-aware *local* plug-in ``h^\\star(x) = \\bigl[R(K)\\,\\sigma^2(x) /
-(\\mu_2(K)^2\\, m''(x)^2\\, f_X(x)\\, n)\\bigr]^{1/5}`` — each conditioning value its own bandwidth from
+The response-aware *local* plug-in ``h^\\star(x) = \\bigl[R(K) \\sigma^2(x) /
+(\\mu_2(K)^2  m''(x)^2  f_X(x)  n)\\bigr]^{1/5}`` — each conditioning value its own bandwidth from
 the conditional variance ``\\sigma^2(x)`` and regression curvature ``m''(x)`` — is the separate
 joint-summary selector `bandwidth(summary::Histogram2D, x; rule = :local)` (below).
 
@@ -505,7 +505,7 @@ bandwidth that, at each conditioning value ``x``, minimises the local mean squar
 local-linear estimate ``\\hat m_h(x)`` by balancing its squared bias against its variance:
 
 ```math
-h^\\star(x) = \\left[\\frac{R(K)\\,\\sigma^2(x)}{\\mu_2(K)^2\\,m''(x)^2\\,f_X(x)\\,n}\\right]^{1/5},
+h^\\star(x) = \\left[\\frac{R(K) \\sigma^2(x)}{\\mu_2(K)^2 m''(x)^2 f_X(x) n}\\right]^{1/5},
 ```
 
 with ``\\sigma^2(x)`` the conditional variance, ``m''(x)`` the regression curvature, ``f_X(x)`` the
@@ -519,7 +519,7 @@ Yao [`conditional_variance`](@ref GBGStreamingStatistics.ConditionalExpectations
 degree-2 local-polynomial fit, and ``f_X(x)`` from the binned KDE of the X-marginal. ``R(K)`` and
 ``\\mu_2(K)`` are computed by quadrature, so any `kernel` works. Because estimating a second derivative
 needs a wider window than the final fit, the default pilot is the curvature-rate rule of thumb
-``\\hat\\sigma_X\\, n^{-1/9}``; where the regression is locally linear (``m''(x) \\to 0``) the optimal
+``\\hat\\sigma_X  n^{-1/9}``; where the regression is locally linear (``m''(x) \\to 0``) the optimal
 bandwidth is unbounded, so it is capped at the X-range. A vector `x` returns a vector; `NaN` marks an
 ``x`` off the data's support.
 
@@ -533,7 +533,7 @@ Arguments:
   summary.
 - `kernel` — the smoothing kernel ``K`` (any callable with ``\\int K = 1``; default `gaussian_kernel`).
 - `hpilot` — the pilot bandwidth for the ``\\sigma^2(x)``, ``m''(x)``, ``f_X(x)`` estimates; `nothing`
-  (default) uses the curvature-rate rule of thumb ``\\hat\\sigma_X\\, n^{-1/9}``.
+  (default) uses the curvature-rate rule of thumb ``\\hat\\sigma_X  n^{-1/9}``.
 
 Reference: J. Fan & I. Gijbels (1996), [*Local Polynomial Modelling and Its Applications*](https://doi.org/10.1201/9780203748725),
 Chapman & Hall.

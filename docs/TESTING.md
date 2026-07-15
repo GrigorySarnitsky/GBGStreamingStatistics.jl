@@ -128,7 +128,7 @@ the estimate across independent datasets (Monte-Carlo — `density` and `conditi
 peak, `expectation` of ``\cos``). A `*_with_standard_error` additionally asserts its
 `(value, standard_error)` equals the separate estimate / standard-error calls exactly.
 
-A **coverage** check complements calibration across the families: the ``\hat\theta \pm 1.96\,\mathrm{SE}``
+A **coverage** check complements calibration across the families: the ``\hat\theta \pm 1.96 \mathrm{SE}``
 band is asked to bracket the **oracle truth** — not merely the estimate's own (possibly biased) mean, which
 is what calibration matches — across an interior grid, as an aggregate, lenient fraction. Because a standard
 error is a *variance* band and by construction cannot cover the estimator's ``O(h^2)`` **bias** — the same
@@ -184,7 +184,7 @@ The summaries and the selector carry a different contract:
 log–log ISE-slope test (the conditional pair in `test/conditional_convergence.jl`); `conditional_variance`
 inherits `conditional_mean`'s rate (a second-stage local fit), so it needs no separate test. The power-sum
 quadrature readouts (`expectation`, `pushforward_density`) carry a **polynomial-exactness** test (they equal
-the raw empirical mean ``\tfrac1n\sum_i g(X_i)`` to ``10^{-10}`` for ``g`` of degree ``\le \texttt{order}``)
+the raw empirical mean ``\tfrac{1}{n}\sum_i g(X_i)`` to ``10^{-10}`` for ``g`` of degree ``\le \texttt{order}``)
 and a binning-error bound in place of an asymptotic slope. "via summary" means a host-side functional of the
 summary, so the device coverage is the summary's row.
 

@@ -80,7 +80,7 @@ end
                             h, kernel = gaussian_kernel, degree = 1)   # ≡ ⟨g(Y) ∣ x⟩
 
 **Estimand.** The conditional expectation of a smooth functional of the response,
-``\\mathbb{E}[g(Y) \\mid X = x] = \\int g(y)\\, f_{Y\\mid X}(y \\mid x)\\,\\mathrm{d}y``. For
+``\\mathbb{E}[g(Y) \\mid X = x] = \\int g(y)  f_{Y\\mid X}(y \\mid x)\\,\\mathrm{d}y``. For
 ``g = \\mathrm{identity}`` this is the regression function ``m(x)``
 ([`conditional_mean`](@ref GBGStreamingStatistics.ConditionalExpectations.conditional_mean)); for
 ``g(y) = y^2`` it is ``\\mathbb{E}[Y^2 \\mid x]``, the plug-in ingredient of
@@ -153,17 +153,17 @@ end
 **Estimand.** The sampling standard error of the estimator [`conditional_expectation`](@ref
 GBGStreamingStatistics.ConditionalExpectations.conditional_expectation),
 ``\\mathrm{SE}\\bigl(\\widehat{\\mathbb{E}}[g(Y)\\mid x]\\bigr) =
-\\sqrt{\\ell(x)\\,\\operatorname{Var}(g(Y)\\mid x)}``, with the local-regression **leverage**
-``\\ell(x) = \\sum_j N_j\\, w_j(x)^2`` (``N_j`` the per-``x``-column count, ``w_j`` the effective weights of the fit's ``\\beta_0``)
+\\sqrt{\\ell(x) \\operatorname{Var}(g(Y)\\mid x)}``, with the local-regression **leverage**
+``\\ell(x) = \\sum_j N_j  w_j(x)^2`` (``N_j`` the per-``x``-column count, ``w_j`` the effective weights of the fit's ``\\beta_0``)
 and the conditional variance of the transformed response
 ``\\operatorname{Var}(g(Y)\\mid x) = \\mathbb{E}[g(Y)^2\\mid x] - \\mathbb{E}[g(Y)\\mid x]^2``.
 
 **Estimator.** The **leverage × noise-scale** readout
-``\\sqrt{\\hat\\ell(x)\\,(\\widehat{\\mathbb{E}}[g^2\\mid x] - \\widehat{\\mathbb{E}}[g\\mid x]^2)}``: the
+``\\sqrt{\\hat\\ell(x) (\\widehat{\\mathbb{E}}[g^2\\mid x] - \\widehat{\\mathbb{E}}[g\\mid x]^2)}``: the
 leverage ``\\hat\\ell(x)`` of the local fit (correct at any `degree`) times the plug-in conditional variance
 of ``g(Y)`` — itself two `conditional_expectation` readouts (``\\mathbb{E}[g^2\\mid x]`` the ``g^2`` reader). This is the exact analog of the marginal
 [`expectation_standard_error`](@ref GBGStreamingStatistics.Expectations.expectation_standard_error)
-``= \\sqrt{\\operatorname{Var}(g(X))\\,/\\,n}``, with the global-mean leverage ``1/n`` replaced by the local
+``= \\sqrt{\\operatorname{Var}(g(X)) / n}``, with the global-mean leverage ``1/n`` replaced by the local
 ``\\sum_j N_j w_j^2``; at ``g = \\mathrm{identity}`` it is the standard error of the conditional mean
 ``m(x)``. It is the plug-in sampling error (not the ``O(h^2)`` smoothing bias). `NaN` where no data is
 local to ``x``.
@@ -234,7 +234,7 @@ end
                      h, kernel = gaussian_kernel, degree = 1)   # ≡ m(x)
 
 **Estimand.** The conditional expectation
-``m(x) = \\mathbb{E}[Y \\mid X = x] = \\int y\\, f_{Y\\mid X}(y \\mid x)\\,\\mathrm{d}y`` — the
+``m(x) = \\mathbb{E}[Y \\mid X = x] = \\int y  f_{Y\\mid X}(y \\mid x)\\,\\mathrm{d}y`` — the
 ``L^2(\\sigma(X))`` projection of the response ``Y`` onto the conditioning variable ``X``, i.e. the
 regression function.
 
@@ -255,8 +255,8 @@ which removes the design-density bias ``2 m'(x) f'(x)/f(x)`` of the Nadaraya–W
 response-aware local plug-in ``h^\\star(x)`` from [`bandwidth`](@ref GBGStreamingStatistics.Bandwidth.bandwidth)`(summary, x; rule = :local)`);
 `degree = 2` (local-quadratic) additionally exposes the curvature ``m''(x)`` that ``h^\\star(x)`` needs. A vector of query points
 returns a vector. Consistency: ``\\operatorname{bias}\\hat m_h(x) \\approx
-\\tfrac12 h^2 \\mu_2(K)\\, m''(x)``, ``\\operatorname{Var}\\hat m_h(x) \\approx
-R(K)\\,\\sigma^2(x)/(n\\,h\\,f_X(x))``.
+\\tfrac{1}{2} h^2 \\mu_2(K)  m''(x)``, ``\\operatorname{Var}\\hat m_h(x) \\approx
+R(K) \\sigma^2(x)/(n h f_X(x))``.
 
 **Boundary adaptivity.** The local-linear fit (`degree = 1`, the default) is *boundary-adaptive* (Fan
 1992): conditioning on a bounded or positive quantity — a droplet radius ``X \\ge 0``, say — is
@@ -400,7 +400,7 @@ end
 
 **Estimand.** The sampling standard error of the conditional variance
 [`conditional_variance`](@ref GBGStreamingStatistics.ConditionalExpectations.conditional_variance),
-``\\mathrm{SE}(\\hat\\sigma^2(x)) = \\sqrt{\\ell(x)\\,\\bigl(\\mu_4(x) - \\sigma^4(x)\\bigr)}`` with the
+``\\mathrm{SE}(\\hat\\sigma^2(x)) = \\sqrt{\\ell(x) \\bigl(\\mu_4(x) - \\sigma^4(x)\\bigr)}`` with the
 local-regression leverage ``\\ell(x)``, the conditional variance ``\\sigma^2(x)``, and the 4th central
 conditional moment ``\\mu_4(x) = \\mathbb{E}[(Y - m(x))^4 \\mid x]``.
 
@@ -408,7 +408,7 @@ conditional moment ``\\mu_4(x) = \\mathbb{E}[(Y - m(x))^4 \\mid x]``.
 squared residual ``(Y - \\hat m(x))^2``, its standard error is the
 [`conditional_expectation_standard_error`](@ref
 GBGStreamingStatistics.ConditionalExpectations.conditional_expectation_standard_error) of that response,
-``\\sqrt{\\ell(x)\\,(\\hat\\mu_4(x) - \\hat\\sigma^4(x))}``, with ``\\hat\\mu_4`` the ``y``-quadrature of the
+``\\sqrt{\\ell(x) (\\hat\\mu_4(x) - \\hat\\sigma^4(x))}``, with ``\\hat\\mu_4`` the ``y``-quadrature of the
 smooth ``(Y - \\hat m(x))^4`` off the order-2 ``Y``-power-sums — so the ``O(\\Delta_y^2)`` quadrature
 captures the conditional **kurtosis** (a heavy-tailed response widens the band) with no 4th-moment storage.
 It is the leading-order SE, common to the `:residual` and `:plugin` variance methods.
@@ -464,14 +464,14 @@ end
 
 **Estimand.** The density of the transformed response ``Z = g(Y)`` given ``X = x`` — the **conditional
 pushforward**, change of variables applied to the conditional law,
-``f_{g(Y)\\mid X}(z \\mid x) = \\sum_{y:\\,g(y)=z} f_{Y\\mid X}(y \\mid x)\\,/\\,|g'(y)|``.
+``f_{g(Y)\\mid X}(z \\mid x) = \\sum_{y: g(y)=z} f_{Y\\mid X}(y \\mid x) / |g'(y)|``.
 
 **Estimator.** The conditional kernel density of ``g(Y)``, written as a conditional expectation and
 evaluated by [`conditional_expectation`](@ref
 GBGStreamingStatistics.ConditionalExpectations.conditional_expectation):
 
 ```math
-\\hat f_{g(Y)\\mid X}(z \\mid x) \\;=\\; \\widehat{\\mathbb{E}}\\bigl[\\, K_{h_z}(g(Y) - z) \\mid x \\,\\bigr] ,
+\\hat f_{g(Y)\\mid X}(z \\mid x) \\;=\\; \\widehat{\\mathbb{E}}\\bigl[  K_{h_z}(g(Y) - z) \\mid x  \\bigr] ,
 ```
 
 i.e. `conditional_expectation(summary, y -> K_hz(g(y) - z), x)`. No inverse ``g^{-1}`` and no explicit
@@ -484,7 +484,7 @@ smoothing (`hz`, `kernelz`). At ``g = \\mathrm{identity}`` with `degree = 0` it 
 [`conditional_density`](@ref GBGStreamingStatistics.ConditionalDensity.conditional_density) — which stays
 the specialized native estimator (with the bounded-response asymmetric `kernely` and `normalize`); use it
 directly for the untransformed response. Needs ``g`` smooth on the ``Y``-bin scale and the response
-bandwidth ``h_z \\gtrsim |g'|\\,\\Delta_y``. A vector `z` returns the density curve at the fixed
+bandwidth ``h_z \\gtrsim |g'| \\Delta_y``. A vector `z` returns the density curve at the fixed
 conditioning value `x`.
 
 Arguments:
@@ -556,7 +556,7 @@ end
 GBGStreamingStatistics.ConditionalExpectations.conditional_pushforward_density) ``\\equiv f_{g(Y)\\mid X}``
 — the sampling error of the density of the transformed response ``g(Y)`` at ``z`` given ``x``.
 
-**Estimator.** The two-term ``\\sqrt{\\ell(x)\\,R(K_z)\\hat f/h_z - \\hat f^2/n}``: the local-regression
+**Estimator.** The two-term ``\\sqrt{\\ell(x) R(K_z)\\hat f/h_z - \\hat f^2/n}``: the local-regression
 **leverage** ``\\ell(x)`` of the fit in ``x`` (correct at any `degree`) times the leading kernel variance
 ``R(K_z)\\hat f/h_z`` — ``R(K_z) = \\int K_z^2`` by quadrature, the analytic form since the order-2
 ``Y``-quadrature cannot resolve the squared narrow kernel ``K_{h_z}^2`` — minus the finite-sample

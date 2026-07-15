@@ -95,7 +95,7 @@ _sample_std(h::Histogram1D) = sqrt(_sample_variance(h))
 
 **Estimand.** The population mean ``\\mathbb{E}[X]``.
 
-**Estimator.** The sample mean ``\\bar X = \\frac1n \\sum_i X_i`` — recovered **exactly** (not a smoothed
+**Estimator.** The sample mean ``\\bar X = \\frac{1}{n} \\sum_i X_i`` — recovered **exactly** (not a smoothed
 estimate) host-side from the per-bin counts and first power-sums by the shift formula (the power-sums use
 the actual ``X_i``, not the bin center; the ``g = x`` case of [`expectation`](@ref
 GBGStreamingStatistics.Expectations.expectation)). Extends `Statistics.mean`; an empty summary gives `NaN`.
@@ -110,7 +110,7 @@ mean(summary::Histogram1D) = _sample_mean(summary)
 
 **Estimator.** The recovered sample variance (``\\bar X`` the recovered mean). With `corrected = true`
 (the default, matching `Statistics.var`) the **unbiased** ``\\frac{1}{n-1} \\sum_i (X_i - \\bar X)^2``
-(Bessel's correction; `NaN` for ``n \\le 1``); `corrected = false` the ``\\frac1n \\sum_i (X_i - \\bar X)^2``
+(Bessel's correction; `NaN` for ``n \\le 1``); `corrected = false` the ``\\frac{1}{n} \\sum_i (X_i - \\bar X)^2``
 order-2 central moment (`central_moment` at ``p = 2``). Exact via the shift formula. Extends
 `Statistics.var`.
 """
@@ -139,7 +139,7 @@ std(summary::Histogram1D; corrected::Bool = true) = sqrt(var(summary; corrected 
 
 **Estimand.** The population ``p``-th central moment ``\\mu_p = \\mathbb{E}\\bigl[(X - \\mathbb{E}[X])^p\\bigr]``.
 
-**Estimator.** The sample central moment ``\\frac1n \\sum_i (X_i - \\bar X)^p`` (``\\bar X`` the recovered
+**Estimator.** The sample central moment ``\\frac{1}{n} \\sum_i (X_i - \\bar X)^p`` (``\\bar X`` the recovered
 mean), recovered **exactly** from the power-sums by the shift formula — not a smoothed estimate — for
 ``2 \\le p \\le \\texttt{order}``. ``p = 2`` is the uncorrected variance (`var` with `corrected = false`);
 even orders recover stably, odd orders (``\\approx 0``) to weaker relative precision. This is the
@@ -164,7 +164,7 @@ end
     expectation(summary::Histogram1D, g)   # ≡ 𝔼[g(X)]
 
 **Estimand.** The population expectation of a smooth functional of ``X``,
-``\\mathbb{E}[g(X)] = \\int g(x)\\, f_X(x)\\,\\mathrm{d}x``.
+``\\mathbb{E}[g(X)] = \\int g(x)  f_X(x)\\,\\mathrm{d}x``.
 
 **Estimator** (power-sum quadrature). From the [`Histogram1D`](@ref
 GBGStreamingStatistics.Histograms.Histogram1D) `summary`, whose bin ``j`` (center ``c_j``) carries the
@@ -172,13 +172,13 @@ count ``n_j`` and its per-bin power-sums ``S_p^{(j)}`` about the center (with ``
 Taylor-expanding ``g`` about each center gives
 
 ```math
-\\hat{\\mathbb{E}}[g(X)] \\;=\\; \\frac1n \\sum_j \\sum_{p=0}^{\\texttt{order}}
-  \\frac{g^{(p)}(c_j)}{p!}\\, S_p^{(j)} ,
+\\hat{\\mathbb{E}}[g(X)] \\;=\\; \\frac{1}{n} \\sum_j \\sum_{p=0}^{\\texttt{order}}
+  \\frac{g^{(p)}(c_j)}{p!}  S_p^{(j)} ,
 ```
 
 which is **exact** for a polynomial ``g`` of degree ``\\le \\texttt{order}`` (the remainder terminates —
 this is the shift formula behind `mean` / `var` / `central_moment`, the ``g = x^p`` case) and
-``O(\\Delta^{\\,\\texttt{order}+1})`` in the bin width ``\\Delta`` for a general smooth ``g``. The local
+``O(\\Delta^{ \\texttt{order}+1})`` in the bin width ``\\Delta`` for a general smooth ``g``. The local
 coefficients ``g^{(p)}(c_j)/p!`` are read off a degree-``\\texttt{order}`` polynomial interpolant of ``g``
 on each bin (no automatic differentiation), so any callable `g` works; `g` is probed only on non-empty
 bins, hence only within the data range. The estimand needs ``g`` smooth on the bin scale and the mass
@@ -232,7 +232,7 @@ GBGStreamingStatistics.Expectations.expectation),
 power-sum quadrature (``\\mathbb{E}[g^2]`` is [`expectation`](@ref
 GBGStreamingStatistics.Expectations.expectation) with the smooth integrand ``g^2``), ``n`` the sample
 count. This is the plug-in sampling error of the empirical mean of ``g(X)``; it does not include the
-``O(\\Delta^{\\,\\texttt{order}+1})`` quadrature bias, which is separate. `NaN` for an empty summary.
+``O(\\Delta^{ \\texttt{order}+1})`` quadrature bias, which is separate. `NaN` for an empty summary.
 
 Arguments:
 
@@ -286,15 +286,15 @@ end
                         h, kernel = gaussian_kernel)   # ≡ f_{g(X)}
 
 **Estimand.** The density of the transformed variable ``Y = g(X)``, the **pushforward**
-``f_{g(X)}(y) = \\sum_{x:\\,g(x)=y} f_X(x)\\,/\\,|g'(x)|`` (the change-of-variables sum over the preimages
+``f_{g(X)}(y) = \\sum_{x: g(x)=y} f_X(x) / |g'(x)|`` (the change-of-variables sum over the preimages
 of ``y``).
 
 **Estimator.** The kernel density estimate of the pushforward, written as an expectation and evaluated by
 [`expectation`](@ref GBGStreamingStatistics.Expectations.expectation):
 
 ```math
-\\hat f_{g(X)}(y) \\;=\\; \\frac1n \\sum_i K_h\\bigl(g(X_i) - y\\bigr)
-  \\;=\\; \\hat{\\mathbb{E}}\\Bigl[\\, K_h\\bigl(g(X) - y\\bigr) \\Bigr] ,
+\\hat f_{g(X)}(y) \\;=\\; \\frac{1}{n} \\sum_i K_h\\bigl(g(X_i) - y\\bigr)
+  \\;=\\; \\hat{\\mathbb{E}}\\Bigl[  K_h\\bigl(g(X) - y\\bigr) \\Bigr] ,
 ```
 
 so the composed test function ``x \\mapsto K_h(g(x) - y)`` is smoothed by the power-sum quadrature — no
@@ -302,7 +302,7 @@ inverse ``g^{-1}`` and no explicit Jacobian are formed; a **non-monotone** ``g``
 (every preimage contributes), and a flat spot ``g'(x) = 0`` shows up as the expected (integrable) caustic
 pile-up. For a symmetric `kernel` (``\\int K = 1``) the surviving ``1/h`` makes ``\\int \\hat f\\,\\mathrm
 dy = 1`` exactly. Needs ``g`` smooth on the bin scale and the response bandwidth ``h`` at least of order
-``|g'|\\,\\Delta`` (so ``K_h \\circ g`` is resolved across a bin). A vector `y` returns the density curve
+``|g'| \\Delta`` (so ``K_h \\circ g`` is resolved across a bin). A vector `y` returns the density curve
 over those points.
 
 Arguments:
@@ -336,7 +336,7 @@ end
 **Estimand.** The pointwise standard error of the pushforward density [`pushforward_density`](@ref
 GBGStreamingStatistics.Expectations.pushforward_density) ``\\equiv f_{g(X)}``,
 ``\\mathrm{SE}(y) = \\sqrt{\\operatorname{Var}\\hat f_{g(X)}(y)}`` with the two-term kernel-density variance
-``\\operatorname{Var}\\hat f_{g(X)}(y) \\approx R(K)\\,f_{g(X)}(y)/(nh) - f_{g(X)}(y)^2/n`` (``R(K) = \\int K^2``).
+``\\operatorname{Var}\\hat f_{g(X)}(y) \\approx R(K) f_{g(X)}(y)/(nh) - f_{g(X)}(y)^2/n`` (``R(K) = \\int K^2``).
 
 **Estimator.** Because ``\\hat f_{g(X)}(y) = \\hat{\\mathbb{E}}[K_h(g(X) - y)]`` is a sample mean of the
 composed kernel, its standard error is exactly the

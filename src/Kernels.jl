@@ -69,15 +69,15 @@ directly to plug in a custom boundary kernel. The three fields are the construct
 - `pdf(c, x, b)` — the kernel as a **density in the data argument** ``c``, whose shape is set by the
   evaluation point ``x`` and bandwidth ``b`` (normalized: ``\\int \\texttt{pdf}(c, x, b)\\,\\mathrm{d}c = 1``
   over the support, for each ``x`` and ``b``). The estimate is the binned reduction
-  ``\\hat f(x) = \\tfrac1n \\sum_j n_j\\,\\texttt{pdf}(c_j, x, b)`` over the bin counts ``n_j`` at centers
+  ``\\hat f(x) = \\tfrac{1}{n} \\sum_j n_j \\texttt{pdf}(c_j, x, b)`` over the bin counts ``n_j`` at centers
   ``c_j`` — post hoc and mergeable.
 - `support` — the data domain the kernel covers, as a `(lower, upper)` tuple (e.g. `(0.0, Inf)`).
 - `weight(x)` — the AMISE **local-scale weight** ``w(x)``: the leading bias is
-  ``\\tfrac12 b\\,w(x)\\,f''(x)`` and the variance ``\\propto w(x)^{-1/2}`` (``w(x) = x`` for the gamma
+  ``\\tfrac{1}{2} b w(x) f''(x)`` and the variance ``\\propto w(x)^{-1/2}`` (``w(x) = x`` for the gamma
   kernel, ``x(1-x)`` for the beta). It is used **only** by
   [`bandwidth`](@ref GBGStreamingStatistics.Bandwidth.bandwidth)`(…; rule = :plugin)`. The two-argument
   constructor leaves it unset (`nothing`): `rule = :plugin` then errors rather than silently use a wrong
-  weight, while the ``\\hat\\sigma\\,n^{-2/5}`` rule of thumb (`rule = :normal`) needs no weight and still
+  weight, while the ``\\hat\\sigma n^{-2/5}`` rule of thumb (`rule = :normal`) needs no weight and still
   applies.
 
 ```julia
@@ -123,16 +123,16 @@ end
     gamma_kernel
 
 The **gamma kernel** (Chen 2000) for a density on the half-line ``[0,\\infty)`` — a varying-shape
-*asymmetric* kernel: at the query point ``x`` it is the modified (bias-reduced) ``\\mathrm{Gamma}(\\rho(x),\\,b)``
+*asymmetric* kernel: at the query point ``x`` it is the modified (bias-reduced) ``\\mathrm{Gamma}(\\rho(x), b)``
 density in the data argument (Chen's ``f_2``: shape ``\\rho(x) = x/b`` in the interior — so the kernel mean
 is exactly ``x``, removing the ``f'`` bias of the naive ``x/b+1`` form — and ``(x/b)^2/4 + 1`` within ``2b``
 of the edge), so its support matches the data and **no mass leaks past 0**. Passed as
 `kernel = gamma_kernel`, [`density`](@ref GBGStreamingStatistics.MarginalDensity.density) returns the
-boundary-bias-free estimate ``\\hat f(x) = \\tfrac1n \\sum_j n_j\\,\\mathrm{Gamma}(c_j;\\,\\rho(x),\\,b)``
+boundary-bias-free estimate ``\\hat f(x) = \\tfrac{1}{n} \\sum_j n_j \\mathrm{Gamma}(c_j; \\rho(x), b)``
 (``O(b)`` bias uniformly, including at the boundary where a symmetric kernel is inconsistent; the variance
 self-adapts, tightening toward the edge). Use it for non-negative quantities such as droplet radii — an
 alternative to (and usually sharper than) the `bounds` renormalization. The bandwidth defaults to
-``\\hat\\sigma\\,n^{-2/5}`` (the gamma-kernel rate; pass `h` to override, or the data-driven Chen plug-in
+``\\hat\\sigma n^{-2/5}`` (the gamma-kernel rate; pass `h` to override, or the data-driven Chen plug-in
 [`bandwidth`](@ref GBGStreamingStatistics.Bandwidth.bandwidth)`(summary; rule = :plugin, kernel = gamma_kernel)`,
 which lowers the ISE on skewed data). `degree`, `adaptive`, and `bounds` do not
 apply — the kernel is its own degree-0, boundary-free estimator.
@@ -159,7 +159,7 @@ end
 The **beta kernel** (Chen 1999) for a density on the unit interval ``[0,1]`` — the bounded-interval
 analog of [`gamma_kernel`](@ref GBGStreamingStatistics.Kernels.gamma_kernel): at ``x`` it is
 the modified (bias-reduced) ``\\mathrm{Beta}`` density in the data argument (Chen's ``f_2``: interior
-shapes ``(x/b,\\,(1-x)/b)``, with a ``\\sqrt{\\,\\cdot\\,}`` correction within ``2b`` of an edge),
+shapes ``(x/b, (1-x)/b)``, with a ``\\sqrt{ \\cdot }`` correction within ``2b`` of an edge),
 boundary-bias-free at **both** edges. Pass `kernel = beta_kernel` with data scaled to ``[0,1]``; the bandwidth default, the option
 restrictions, and the ``n^{-2/5}`` rate are as for `gamma_kernel`.
 

@@ -96,7 +96,7 @@ end
 
 ```math
 \\hat f(y \\mid x) =
-  \\frac{\\sum_i K_{h_1}(X_i - x)\\, K_{h_2}(Y_i - y)}{\\sum_i K_{h_1}(X_i - x)} ,
+  \\frac{\\sum_i K_{h_1}(X_i - x)  K_{h_2}(Y_i - y)}{\\sum_i K_{h_1}(X_i - x)} ,
 ```
 
 evaluated from the bin counts ``n_{jk}`` at cell centers ``(c^x_j, c^y_k)`` (the binned form, with
@@ -104,8 +104,8 @@ evaluated from the bin counts ``n_{jk}`` at cell centers ``(c^x_j, c^y_k)`` (the
 
 ```math
 \\hat f(y \\mid x) =
-  \\frac{\\sum_{j,k} n_{jk}\\, K_{h_1}(c^x_j - x)\\, K_{h_2}(c^y_k - y)}
-       {\\sum_{j} N_j\\, K_{h_1}(c^x_j - x)} .
+  \\frac{\\sum_{j,k} n_{jk}  K_{h_1}(c^x_j - x)  K_{h_2}(c^y_k - y)}
+       {\\sum_{j} N_j  K_{h_1}(c^x_j - x)} .
 ```
 
 The ``x``-kernel weighting cancels in the ``f_{X,Y}/f_X`` ratio (it appears in both the profile and its
@@ -116,7 +116,7 @@ the surviving ``1/h_2`` makes ``\\int \\hat f(y \\mid x)\\,\\mathrm{d}y = 1`` ex
 `kernely` ([`gamma_kernel`](@ref GBGStreamingStatistics.Kernels.gamma_kernel) for ``[0,\\infty)``,
 [`beta_kernel`](@ref GBGStreamingStatistics.Kernels.beta_kernel) for ``[0,1]``), the same boundary-bias
 fix the marginal [`density`](@ref GBGStreamingStatistics.MarginalDensity.density) uses: it is a density in
-the data argument ``K_2(c^y_k;\\, y, h_2)`` (no mass leaks past the edge) but only ``\\approx`` normalized
+the data argument ``K_2(c^y_k;  y, h_2)`` (no mass leaks past the edge) but only ``\\approx`` normalized
 in ``y``, so set `normalize = true` to enforce ``\\int \\hat f\\,\\mathrm{d}y = 1`` exactly. The
 conditional MISE rate is slower than a marginal density (``O(n^{-2/3})``). A vector `y` returns the
 density curve over those points at the fixed conditioning value `x`; where no data is local to `x` the
@@ -186,7 +186,7 @@ Ornstein–Uhlenbeck process this is Gaussian in closed form.
 
 **Estimator.** The [`conditional_density`](@ref GBGStreamingStatistics.ConditionalDensity.conditional_density)
 double-kernel estimator applied to the per-lag joint histogram of pairs
-``\\bigl(X_t,\\, X_{t+\\tau}\\bigr)`` (binned by
+``\\bigl(X_t,  X_{t+\\tau}\\bigr)`` (binned by
 [`observe_pairs!`](@ref GBGStreamingStatistics.Histograms.observe_pairs!) at the summary's lag
 ``\\tau``); the computation is identical — the name marks the two-time reading. The bandwidths `hx`
 (conditioning, in ``x``), `hy` (response, in ``y``), the kernels `kernelx` / `kernely`, and `normalize`
@@ -237,7 +237,7 @@ variance
 
 ```math
 \\operatorname{Var}\\hat f(y\\mid x) \\;\\approx\\;
-  \\frac{R(K_1)\\,R(K_2)\\,f_{Y\\mid X}(y\\mid x)}{n\\,h_1 h_2\\,f_X(x)}
+  \\frac{R(K_1) R(K_2) f_{Y\\mid X}(y\\mid x)}{n h_1 h_2 f_X(x)}
   - \\frac{f_{Y\\mid X}(y\\mid x)^2}{n},
   \\qquad R(K) = \\int K^2,
 ```
@@ -245,16 +245,16 @@ variance
 ``f_X`` the marginal density of the conditioning variable ``X`` (the ``-f^2/n`` term the double-kernel
 analog of the marginal Wand–Jones correction).
 
-**Estimator.** The two-term ``\\sqrt{R(K_1)R(K_2)\\,\\hat f(y\\mid x)/(h_1 h_2\\,D) - \\hat f(y\\mid x)^2/n}``
+**Estimator.** The two-term ``\\sqrt{R(K_1)R(K_2) \\hat f(y\\mid x)/(h_1 h_2 D) - \\hat f(y\\mid x)^2/n}``
 from the recovered conditional
 density ``\\hat f(y\\mid x)``, the conditioning bandwidths ``h_1 =`` `hx` / ``h_2 =`` `hy`, the kernel
 roughnesses ``R(K_1)``, ``R(K_2)`` (by quadrature), and the **``x``-window denominator**
-``D = \\sum_j N_j K_{h_1}(c^x_j - x) = n\\,\\hat f_X(x)`` — the very sum
+``D = \\sum_j N_j K_{h_1}(c^x_j - x) = n \\hat f_X(x)`` — the very sum
 [`conditional_density`](@ref GBGStreamingStatistics.ConditionalDensity.conditional_density) forms to
-normalize its profile, so ``n\\,\\hat f_X(x)`` costs nothing extra. It is the two-dimensional analog of the
+normalize its profile, so ``n \\hat f_X(x)`` costs nothing extra. It is the two-dimensional analog of the
 marginal [`density_standard_error`](@ref GBGStreamingStatistics.MarginalDensity.density_standard_error),
 with the ``x``-window effective sample size ``n h_1 \\hat f_X(x)`` in place of ``n``; the ``z``-band
-``\\hat f(y\\mid x) \\pm z\\,\\mathrm{SE}`` covers ``f_{Y\\mid X}`` where the ``O(h^2)`` smoothing bias is
+``\\hat f(y\\mid x) \\pm z \\mathrm{SE}`` covers ``f_{Y\\mid X}`` where the ``O(h^2)`` smoothing bias is
 small. Symmetric kernels only (the asymmetric-`kernely` variance is a recorded gap). `NaN` where no data is
 local to ``x``.
 
