@@ -258,6 +258,15 @@ the estimand whenever a clean population definition exists; for an intrinsically
   ≈ 88 source characters). **Display formulas:** break a wide one with a multi-line LaTeX environment —
   `aligned` (align on `=`), `gathered`, or `split` — never one line packing several equations behind
   `\qquad`/`\quad`. Inline math reflows with the prose, so it is exempt.
+- **Thin space and group bracing — one idiom, grep-enforced.** A thin space `\,` is used ONLY for the
+  differential `\,\mathrm d` (as in `\int f(x)\,\mathrm dx`); between multiplied factors juxtaposition is
+  standard, so `\hat\sigma\,n` is gratuitous — write `\hat\sigma n`. When removing one, replace it with a
+  **plain space, never delete it** (`\sigma\,x` deleted glues into the invalid `\sigmax`; `\sigma x`
+  renders the same and is safe). And every `\frac` / `\tfrac` / `\boldsymbol` **group argument is braced**
+  — `\tfrac{1}{2}` not `\tfrac12`, `\boldsymbol{u}` not `\boldsymbol u` (both render alike; the braces are
+  the house style). Both are grep-guarded (the `/check-docs` gratuitous-thin-space and unbraced-group
+  scans, which must come back empty). SS carries no vector/tensor notation, so the sibling packages'
+  `\mathbf`→`\boldsymbol` and `\partial_i` house-set guards are deliberately absent here.
 - **Neutral reference register — never "knob".** A tunable argument is an **option** (or, where it reads
   better, a *keyword argument*, a *setting*, or a post-hoc *choice* — e.g. the bandwidth), never a "knob":
   the reference docs keep a strict, neutral tone, not a colloquial one. Applies to every authored surface —
@@ -335,7 +344,10 @@ onto an adjacent `code` continuation (a code name inside a formula is `\texttt{}
 **backticks hold only well-formed Julia** (a name/type/call/expression), never math notation —
 intervals, products, inequalities, `·`/`−`/`≤` glyphs; and **nothing horizontally scrolls** — a long
 docstring signature is split with a hanging indent under the first argument, a wide display formula
-broken with `aligned`/`gathered`/`split` (neither a rendered code block nor display math auto-wraps);
+broken with `aligned`/`gathered`/`split` (neither a rendered code block nor display math auto-wraps); and
+**thin spaces and group args follow the house idiom** — `\,` only for the differential `\,\mathrm d`
+(else a plain space, never a delete), and braced `\frac`/`\tfrac`/`\boldsymbol` group arguments
+(`\tfrac{1}{2}`, `\boldsymbol{u}`), both grep-guarded;
 **(5) Current & complete** — no stale *deferred/none-exist* claims, and a
 summary that names only a subset of what the code now provides is stale. "Check the docs" means this
 **complete battery across every surface** (the four rationale docs, every `src/` docstring, every

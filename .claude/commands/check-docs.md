@@ -11,8 +11,9 @@ one pass, rebuild, and report the matrix.
 
 1. `docs/ARCHITECTURE.md` — every section §0–§11 and §References.
 2. `docs/FORMALIZATION.md`, `docs/TESTING.md`, `docs/PERFORMANCE.md`.
-3. Every docstring in `src/*.jl` — `Accumulators`, `Histograms`, `MarginalDensity`, `Regression`,
-   `ConditionalDensity`, `IncrementMoments`, `Bandwidth`, and the umbrella `GBGStreamingStatistics.jl`
+3. Every docstring in `src/*.jl` — `Accumulators`, `Histograms`, `Kernels`, `Expectations`,
+   `LocalPolynomial`, `MarginalDensity`, `ConditionalExpectations`, `ConditionalDensity`, `Bandwidth`,
+   the umbrella `GBGStreamingStatistics.jl`, and the HDF5 extension `ext/GBGStreamingStatisticsHDF5Ext.jl`
    (Public **and** Internal docstrings; `#` comments are exempt — not rendered).
 4. Every page in `docs/src/` — `index.md`, `tutorial.md`, `api.md`, and all `docs/src/api/*.md`
    (hand-written prose; skip `@autodocs` / `@index` / `@contents` blocks).
@@ -72,6 +73,12 @@ reading is not a check.
    ~88 source columns (rendered > ~84; split it with a hanging indent aligned under the first argument,
    the `inspiration/GBGPeriodicFields.jl` `anterpolate!` convention), and a **display formula** that
    packs several equations on one line behind `\qquad`/`\quad` (break it with `aligned`/`gathered`/`split`).
+   **Thin space and group bracing** — the thin space `\,` appears ONLY as the differential `\,\mathrm d`
+   (a product juxtaposes, so `\hat\sigma\,n` is gratuitous — normalize it to a plain space, and never
+   *delete* it, since `\sigma\,x` deleted glues into an invalid `\sigmax`); a `\frac`/`\tfrac`/`\boldsymbol`
+   group argument is always braced (`\tfrac{1}{2}` not `\tfrac12`, `\boldsymbol{u}` not `\boldsymbol u`).
+   Both are grep-guarded below. (SS has no vector/tensor notation, so the sibling `\mathbf`→`\boldsymbol`
+   and `\partial_i` house-set guards are deliberately not ported.)
 5. **Current & complete** — every claim matches the code's present state; no stale *future / deferred /
    none-exist* claims about what is now implemented; and a docstring or summary that names only a *subset*
    of what the code now provides is stale even if literally true. Check each module/operation/summary
@@ -102,6 +109,18 @@ definitions; this command runs all of them.
   backtick span (drop `#`-comment hits and valid array/tuple literals); a **split-formula scan** — a
   math span ending in `\le`/`\ge`/`<`/`>`/`\dots` immediately followed by a backticked `code` span,
   which must instead be one `\texttt{}`-using LaTeX span; triage the legitimate LaTeX command bodies; a
+  **gratuitous-thin-space scan** — `grep -rnP '\\\\,(?!\\\\mathrm(?: ?\{?d|\s*$))' src/*.jl` (a docstring
+  doubles the backslash, so the token is `\\,` there) and `grep -rnP --include='*.md'
+  --exclude={architecture,formalization,testing,performance}.md '\\,(?!\\mathrm(?: ?\{?d|\s*$))' docs` flag
+  a thin space `\,` that is NOT the differential `\,\mathrm d`: normalize each to a plain space (never
+  delete), keeping only `\,\mathrm d`; must be empty (the four `docs/src/` build copies excluded; the
+  `\s*$` alternative in the lookahead tolerates a `\,\mathrm d` differential wrapped across a source line,
+  where the `d` sits on the next line); an
+  **unbraced-group scan** — `grep -rnP '\\\\([dt]?frac[0-9]|boldsymbol\s*[A-Za-z\\])' src/*.jl` and the
+  single-backslash `docs` form (`grep -rnP --include='*.md'
+  --exclude={architecture,formalization,testing,performance}.md '\\([dt]?frac[0-9]|boldsymbol\s*[A-Za-z\\])'
+  docs`) flag a `\frac`/`\tfrac`/`\boldsymbol` with an unbraced argument (`\tfrac45`→`\tfrac{4}{5}`,
+  `\boldsymbol u`→`\boldsymbol{u}`); must be empty; a
   **crammed-references scan** — `grep -rnzE 'References?:[^"]*;' src` flags a `Reference(s):` docstring block
   that joins two citations with a `;` (anywhere before its closing `"""`), which must instead be a `- `
   bullet list, one citation per line (`CLAUDE.md` Citations); a **no-horizontal-scroll scan** —
