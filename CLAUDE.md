@@ -267,6 +267,22 @@ the estimand whenever a clean population definition exists; for an intrinsically
   the house style). Both are grep-guarded (the `/check-docs` gratuitous-thin-space and unbraced-group
   scans, which must come back empty). SS carries no vector/tensor notation, so the sibling packages'
   `\mathbf`→`\boldsymbol` and `\partial_i` house-set guards are deliberately absent here.
+- **Math spacing and command support — standard LaTeX idiom.** These are the conventions a fluent LaTeX
+  author writes by default; the defects they head off — manual spacing, reflexive `\left`/`\right` — are
+  novice tells, not subtle bugs. **Never:** manually space around a relation or binary operator —
+  `\;`/`\:`/`\,` next to `=`/`<`/`\in`/`+`/`-` doubles the space TeX already puts there (write `a = b`, not
+  `a \;=\; b`, and let TeX space it). Never put `\!` before an opening/closing delimiter that follows an
+  operator or name (`\bigl`/`\Bigl`/`\bigr`) — there is already no gap there, so it only jams the delimiter
+  into the name; write `\max\bigl(`. Never `\!\!` before `\sum`/`\int` (it overshoots into an overlap).
+  Never `\mathbb{…}` on anything but a capital `A`–`Z` or `k` — KaTeX's blackboard font covers only those,
+  so `\mathbb{1}` (or any digit) falls back to a plain glyph with the font silently dropped; write
+  `\mathbf{1}` (and consult KaTeX's support table for anything tool-specific). And do not use `\left`/`\right`
+  auto-sized delimiters — size by hand with `\bigl`/`\Bigl` … `\bigr`/`\Bigr` (Open/Close atoms, no spurious
+  gap), the sole exception a system written `\left\{ … \right.`. **These are correct — do NOT "fix":** `\!`
+  before `\left(` (Op–Inner *is* a real thin gap); `\sim\!`; `\,\mathrm{d}x`; `\quad`/`\qquad`;
+  `\mathrm{Re}` vs `\operatorname{Re}` before a delimiter (identical output). **Why:** every rule is standard
+  LaTeX idiom plus a few documented exceptions; when unsure, consult a standard LaTeX reference (and KaTeX's
+  support table for what it supports), never taste.
 - **Neutral reference register — never "knob".** A tunable argument is an **option** (or, where it reads
   better, a *keyword argument*, a *setting*, or a post-hoc *choice* — e.g. the bandwidth), never a "knob":
   the reference docs keep a strict, neutral tone, not a colloquial one. Applies to every authored surface —

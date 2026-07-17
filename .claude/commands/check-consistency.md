@@ -9,7 +9,10 @@ category error, a normalization that disagrees between two formulas, a structure
 unreachable citation, a cold-read gap.
 
 Each hat is a **fresh agent** that reads ONLY the reader-text manuscript (no `src/`, no `CLAUDE.md`, no
-memory — it judges the docs as written, from its own expertise) and banks its findings to a file. The
+memory — it judges the docs as written, from its own expertise) and banks its findings to a file. The one
+exception is the `latex-typesetter` hat, whose substrate deliberately also grants the authored source and
+`CLAUDE.md §Style`: TeX idiom defects live in the markup (a `.jl` docstring's doubled backslashes, an
+unbraced group, a `\left`), so it reads the rubric first, then the source, and reports at source file:line. The
 panel is **collect-only**: it never edits `src/` or `docs/`; you act only when the user says fix. It runs
 **sequentially**, so a token-out loses at most the current hat; the hat order is **priority** (most
 critical first).
@@ -40,7 +43,7 @@ as a crutch).
 | 3 | `statistics-theoretician` | every estimand definition / estimator / consistency claim / constant / rate vs established estimation theory *and* itself | FULL |
 | 4 | `streaming-stability-practitioner` | the one-pass / fixed-memory / no-rerun claims, numerical stability of the streaming updates, the mergeable-monoid/cone laws, the allocation-free hot path | FULL |
 | 5 | `structure-consistency` | infer the implicit (estimand-first) docstring template, then flag every outlier against it | SITEONLY |
-| 6 | `latex-typesetter` | every formula's TeX idiom read as source (operators, upright differentials, gratuitous `\,`, unbraced groups, delimiter sizing) | FULL |
+| 6 | `latex-typesetter` | every formula's TeX idiom read as source (operators, upright differentials, gratuitous `\,`, unbraced groups, the `\left`/`\right` ban, no manual spacing around relations, `\mathbb` only on capitals/`k`) — read against `CLAUDE.md §Style`, reported at source file:line | FULL + source + `CLAUDE.md` |
 | 7 | `api-user` | build/drive the library from the docs alone — arg coverage, return shapes, exported-vs-documented agreement, estimand-first | FULL |
 | 8 | `normalization-convention-auditor` | every normalization factor correct *and* identical across pages; the density-vs-mass-vs-count and estimand-vs-estimator-vs-estimate category distinctions | FULL |
 | 9 | `citations-integrity` | consistent author-year, inline↔References matching, no inaccessible source, no overclaim | FULL |
