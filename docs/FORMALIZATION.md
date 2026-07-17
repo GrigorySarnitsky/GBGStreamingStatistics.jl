@@ -219,7 +219,7 @@ recorded in `ARCHITECTURE.md` §4 meanwhile.
 
 ## Bandwidth selection (§4.5) — `bandwidth`
 
-- **Estimand.** the AMISE-optimal bandwidth ``h^\star = \arg\min_h \int \mathbb{E}[(\hat f_h(x) - f_X(x))^2]\,\mathrm{d}x`` for a kernel ``K`` and local-polynomial degree ``d`` — the asymptotically optimal smoothing scale, itself ``O(n^{-1/(2p+1)})`` (a finite-sample selector, not a fixed population constant).
+- **Estimand.** the AMISE-optimal bandwidth (AMISE = asymptotic mean integrated squared error) ``h^\star`` — asymptotically minimising ``\mathrm{MISE}(h) = \int \mathbb{E}[(\hat f_h(x) - f_X(x))^2]\,\mathrm{d}x`` (the AMISE is its leading-order large-``n`` expansion) for a kernel ``K`` and local-polynomial degree ``d`` — the asymptotically optimal smoothing scale, itself ``O(n^{-1/(2p+1)})`` (a finite-sample selector, not a fixed population constant).
 - **Estimator** (`rule = :normal`, the kernel- and degree-aware normal-reference). ``h = C(K,d) \hat\sigma n^{-1/(2p+1)}`` with bias order ``p = 2`` (degree 0/1) or ``p = 4`` (degree 2/3), and constant ``C(K,d) = [W_{ikk}(K,d) 2^{p+1}\sqrt{\pi}/(2p-1)!!]^{1/(2p+1)}``. The canonical factor is ``W_{ikk}(K,d) = R(K)/\mu_2(K)^2`` at degree 0/1, and the fourth-order equivalent-kernel analog ``W_{ikk} = (4!^2/8) R(K^\star)/\mu_4(K^\star)^2`` with ``K^\star = K (n_4 - v^2 n_2)/(n_0 n_4 - n_2^2)`` at degree 2/3 (Loader 1996); here ``R(K) = \int K^2``, ``\mu_2(K) = \int u^2 K`` (by quadrature) and ``n_k = \int v^k K``. ``\hat\sigma`` and ``n`` are read from the one summary.
 - **Estimator** (`rule = :sj`, the data-driven Sheather–Jones plug-in; degree 0/1). The curvature ``\psi_4 = R(f'')`` and its ``\psi_6`` pilot are estimated from the bin counts, ``\hat\psi_r(g) = (n^2 g^{r+1})^{-1}\sum_{j,k} n_j n_k \varphi^{(r)}((c_j - c_k)/g)`` (Gaussian ``\varphi``, the ``n`` self-pairs removed), and the solve-the-equation bandwidth (Sheather & Jones 1991) is the root of ``h = [R(\varphi)/(\mu_2(\varphi)^2 \hat\psi_4(\alpha h^{5/7}) n)]^{1/5}``; the eval kernel then multiplies by the canonical-bandwidth ratio ``\delta(K)/\delta(\varphi)`` with ``\delta(K) = [R(K)/\mu_2(K)^2]^{1/5}``. Both functionals are reductions of the bin counts, hence mergeable; degree ``\ge 2`` is a recorded coverage gap. The **improved** variant (`rule = :isj`; Botev, Grotowski & Kroese 2010) instead reads ``\|f^{(s)}\|^2`` off the DCT of the bin counts and solves the AMISE fixed point ``t = \xi\gamma^5(t)`` — also a mergeable functional of the counts, and robust on strongly multimodal data.
 - **Estimator** (`rule = :aic`, the fit-based information criterion; degree 0/1). Minimise ``\mathrm{AIC}(h) = -2\sum_j n_j\log\hat f_h(c_j) + 2\mathrm{df}(h)`` of the binned **Gaussian** KDE over a log-spaced ``h``-grid, with the effective degrees of freedom ``\mathrm{df}(h) = (\varphi(0)/h)\sum_j n_j/(n\hat f_h(c_j))`` — the kernel smoother's self-influence trace (``\varphi`` the Gaussian); both terms diverge as ``h\to0``, giving a stable interior optimum. Mergeable (a functional of the counts); the eval kernel multiplies by ``\delta(K)/\delta(\varphi)``. The leave-one-out cross-validation selectors (likelihood-CV, least-squares LSCV) are a recorded coverage gap — binning ties drive their objective to ``h\to0``.
@@ -424,7 +424,7 @@ recorded in `ARCHITECTURE.md` §4 meanwhile.
 
 - **Estimand.** the expectation of a smooth functional of ``X``,
   ``\mathbb{E}[g(X)] = \int g(x)  f_X(x)\,\mathrm dx``.
-- **Estimator.** the power-sum quadrature ``\hat{\mathbb{E}}[g] = \tfrac{1}{n} \sum_j \sum_{p=0}^{\texttt{order}}
+- **Estimator.** the power-sum quadrature ``\widehat{\mathbb{E}}[g] = \tfrac{1}{n} \sum_j \sum_{p=0}^{\texttt{order}}
   a_p^{(j)}  S_p^{(j)}`` (``S_0^{(j)} = n_j``), where ``a_p^{(j)}`` are the coefficients (in ``u = x - c_j``)
   of the degree-``\texttt{order}`` polynomial interpolant of ``g`` on bin ``j`` — a Chebyshev–Lobatto
   interpolant, its inverse Vandermonde precomputed once (uniform bins), so no derivatives of ``g`` are
@@ -435,21 +435,21 @@ recorded in `ARCHITECTURE.md` §4 meanwhile.
   independent of the bin width; ``O(\Delta^{ \texttt{order}+1})`` for general smooth ``g`` (the
   interpolation remainder). The estimand needs ``g`` smooth on the bin scale and the mass inside the range.
 - **Test.** `test/expectations.jl` — the Gaussian oracles ``\mathbb{E}[\cos X] = e^{-1/2}``,
-  ``\mathbb{E}[\sin X] = 0`` (MGF/trig); polynomial exactness (``\hat{\mathbb{E}}[g] = \tfrac{1}{n}\sum_i
+  ``\mathbb{E}[\sin X] = 0`` (MGF/trig); polynomial exactness (``\widehat{\mathbb{E}}[g] = \tfrac{1}{n}\sum_i
   g(X_i)`` to ``10^{-10}`` for degree ``\le \texttt{order}``); the binning error vs the raw empirical mean
   ``< 10^{-6}`` for a smooth ``g``; the moment unification (``\mathbb{E}[x^p]`` equals the recovered moment);
   mergeability; empty ``\Rightarrow`` `NaN`.
 
 ## Power-sum quadrature — sampling standard error (§4.B) — `expectation_standard_error`
 
-- **Estimand.** the sampling standard error of ``\hat{\mathbb{E}}[g]``,
+- **Estimand.** the sampling standard error of ``\widehat{\mathbb{E}}[g]``,
   ``\mathrm{SE} = \sqrt{\operatorname{Var}(g(X))/n}`` with ``\operatorname{Var}(g(X)) = \mathbb{E}[g^2] -
   \mathbb{E}[g]^2``.
-- **Estimator.** ``\sqrt{(\hat{\mathbb{E}}[g^2] - \hat{\mathbb{E}}[g]^2)/n}`` — both moments the same
+- **Estimator.** ``\sqrt{(\widehat{\mathbb{E}}[g^2] - \widehat{\mathbb{E}}[g]^2)/n}`` — both moments the same
   quadrature (``\mathbb{E}[g^2]`` is `expectation` with the smooth integrand ``g^2``). It is the plug-in
   sampling error of the empirical mean of ``g(X)``; the ``O(\Delta^{ \texttt{order}+1})`` quadrature bias
   is separate and not included. The paired `expectation_with_standard_error` returns this error with the
-  estimate ``\hat{\mathbb{E}}[g]`` from one shared quadrature pass (the
+  estimate ``\widehat{\mathbb{E}}[g]`` from one shared quadrature pass (the
   ``(\texttt{value}, \texttt{standard\_error})`` `NamedTuple`).
 - **Consistency claim.** for ``g = \mathrm{identity}`` it is exactly ``s/\sqrt n`` (``s`` the uncorrected
   standard deviation); in general the plug-in ``\widehat{\operatorname{Var}(g(X))}`` is consistent as
@@ -463,7 +463,7 @@ recorded in `ARCHITECTURE.md` §4 meanwhile.
 - **Estimand.** the density of the transformed variable ``Y = g(X)``, the pushforward
   ``f_{g(X)}(y) = \sum_{x: g(x)=y} f_X(x)/|g'(x)|`` (change of variables, summed over preimages).
 - **Estimator.** the kernel density estimate of the pushforward written as an expectation,
-  ``\hat f_{g(X)}(y) = \tfrac{1}{n} \sum_i K_h(g(X_i) - y) = \hat{\mathbb{E}}[K_h(g(X) - y)]``, so it is one
+  ``\hat f_{g(X)}(y) = \tfrac{1}{n} \sum_i K_h(g(X_i) - y) = \widehat{\mathbb{E}}[K_h(g(X) - y)]``, so it is one
   `expectation` of the composed test function ``x \mapsto K_h(g(x) - y)`` — no ``g^{-1}`` and no explicit
   Jacobian. A non-monotone ``g`` contributes from every preimage automatically; ``g' = 0`` is an integrable
   caustic. For a symmetric ``K`` (``\int K = 1``) the surviving ``1/h`` gives ``\int \hat f\,\mathrm dy = 1``

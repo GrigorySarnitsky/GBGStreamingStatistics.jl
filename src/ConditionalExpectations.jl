@@ -260,8 +260,8 @@ returns a vector. Consistency: ``\\operatorname{bias}\\hat m_h(x) \\approx
 \\tfrac{1}{2} h^2 \\mu_2(K)  m''(x)``, ``\\operatorname{Var}\\hat m_h(x) \\approx
 R(K) \\sigma^2(x)/(n h f_X(x))``.
 
-**Boundary adaptivity.** The local-linear fit (`degree = 1`, the default) is *boundary-adaptive* (Fan
-1992): conditioning on a bounded or positive quantity — a droplet radius ``X \\ge 0``, say — is
+**Boundary adaptivity.** The local-linear fit (`degree = 1`, the default) is *boundary-adaptive* (Fan &
+Gijbels 1996): conditioning on a bounded or positive quantity — a droplet radius ``X \\ge 0``, say — is
 first-order correct near the edge with the symmetric `kernel`, because the local-linear fit corrects the
 ``O(h)`` boundary bias to the interior ``O(h^2)`` automatically. The `degree = 0` Nadaraya–Watson fit does
 **not** — it keeps the ``O(h)`` edge bias — so near a bounded edge **use `degree = 1`** (the default; being

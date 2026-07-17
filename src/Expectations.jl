@@ -172,7 +172,7 @@ count ``n_j`` and its per-bin power-sums ``S_p^{(j)}`` about the center (with ``
 Taylor-expanding ``g`` about each center gives
 
 ```math
-\\hat{\\mathbb{E}}[g(X)] = \\frac{1}{n} \\sum_j \\sum_{p=0}^{\\texttt{order}}
+\\widehat{\\mathbb{E}}[g(X)] = \\frac{1}{n} \\sum_j \\sum_{p=0}^{\\texttt{order}}
   \\frac{g^{(p)}(c_j)}{p!}  S_p^{(j)} ,
 ```
 
@@ -225,10 +225,10 @@ end
 
 **Estimand.** The sampling standard error of the estimator [`expectation`](@ref
 GBGStreamingStatistics.Expectations.expectation),
-``\\mathrm{SE}\\bigl(\\hat{\\mathbb{E}}[g(X)]\\bigr) = \\sqrt{\\operatorname{Var}(g(X))/n}`` with
+``\\mathrm{SE}\\bigl(\\widehat{\\mathbb{E}}[g(X)]\\bigr) = \\sqrt{\\operatorname{Var}(g(X))/n}`` with
 ``\\operatorname{Var}(g(X)) = \\mathbb{E}[g(X)^2] - \\mathbb{E}[g(X)]^2``.
 
-**Estimator.** ``\\sqrt{(\\hat{\\mathbb{E}}[g^2] - \\hat{\\mathbb{E}}[g]^2)/n}`` — both moments the same
+**Estimator.** ``\\sqrt{(\\widehat{\\mathbb{E}}[g^2] - \\widehat{\\mathbb{E}}[g]^2)/n}`` — both moments the same
 power-sum quadrature (``\\mathbb{E}[g^2]`` is [`expectation`](@ref
 GBGStreamingStatistics.Expectations.expectation) with the smooth integrand ``g^2``), ``n`` the sample
 count. This is the plug-in sampling error of the empirical mean of ``g(X)``; it does not include the
@@ -255,9 +255,9 @@ end
 
 The estimate and its standard error from one power-sum quadrature pass — the `NamedTuple`
 ``(\\texttt{value}, \\texttt{standard\\_error})``, with `value` the [`expectation`](@ref
-GBGStreamingStatistics.Expectations.expectation) ``\\hat{\\mathbb{E}}[g(X)]`` and `standard_error` its
+GBGStreamingStatistics.Expectations.expectation) ``\\widehat{\\mathbb{E}}[g(X)]`` and `standard_error` its
 [`expectation_standard_error`](@ref GBGStreamingStatistics.Expectations.expectation_standard_error). They
-describe the same estimator by construction, and ``\\hat{\\mathbb{E}}[g]`` is computed once and shared.
+describe the same estimator by construction, and ``\\widehat{\\mathbb{E}}[g]`` is computed once and shared.
 
 Arguments: as for [`expectation`](@ref GBGStreamingStatistics.Expectations.expectation) — `summary`, `g`.
 
@@ -293,8 +293,8 @@ of ``y``).
 [`expectation`](@ref GBGStreamingStatistics.Expectations.expectation):
 
 ```math
-\\hat f_{g(X)}(y) = \\frac{1}{n} \\sum_i K_h\\bigl(g(X_i) - y\\bigr)
-  = \\hat{\\mathbb{E}}\\Bigl[  K_h\\bigl(g(X) - y\\bigr) \\Bigr] ,
+\\hat f_{g(X)}(y) = \\frac{1}{n} \\sum_i K_h(g(X_i) - y)
+  = \\widehat{\\mathbb{E}}\\bigl[  K_h(g(X) - y)  \\bigr] ,
 ```
 
 so the composed test function ``x \\mapsto K_h(g(x) - y)`` is smoothed by the power-sum quadrature — no
@@ -338,10 +338,10 @@ GBGStreamingStatistics.Expectations.pushforward_density) ``\\equiv f_{g(X)}``,
 ``\\mathrm{SE}(y) = \\sqrt{\\operatorname{Var}\\hat f_{g(X)}(y)}`` with the two-term kernel-density variance
 ``\\operatorname{Var}\\hat f_{g(X)}(y) \\approx R(K) f_{g(X)}(y)/(nh) - f_{g(X)}(y)^2/n`` (``R(K) = \\int K^2``).
 
-**Estimator.** Because ``\\hat f_{g(X)}(y) = \\hat{\\mathbb{E}}[K_h(g(X) - y)]`` is a sample mean of the
+**Estimator.** Because ``\\hat f_{g(X)}(y) = \\widehat{\\mathbb{E}}[K_h(g(X) - y)]`` is a sample mean of the
 composed kernel, its standard error is exactly the
 [`expectation_standard_error`](@ref GBGStreamingStatistics.Expectations.expectation_standard_error) of that
-integrand — ``\\sqrt{(\\hat{\\mathbb{E}}[K_h(g(X)-y)^2] - \\hat f_{g(X)}(y)^2)/n}``, which reduces to the
+integrand — ``\\sqrt{(\\widehat{\\mathbb{E}}[K_h(g(X)-y)^2] - \\hat f_{g(X)}(y)^2)/n}``, which reduces to the
 two-term form above.
 
 Arguments: as for [`pushforward_density`](@ref GBGStreamingStatistics.Expectations.pushforward_density) —

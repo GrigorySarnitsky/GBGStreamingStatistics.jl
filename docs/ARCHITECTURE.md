@@ -348,8 +348,8 @@ estimand-agnostic, which non-uniform bins would not).
 — the ``\beta_0`` of one `LocalPolynomial.local_fit` (§4.A atom); local-linear removes the design-density
 bias ``2 m'(x) f'(x)/f(x)`` that the degree-0 Nadaraya–Watson ``P_0/T_0`` carries. The variance is the
 bias-reduced **residual-based** Fan & Yao (1998) estimator (`method = :residual`, the default — a second
-local fit of the squared residuals ``\widehat{\mathbb E}[(Y-\hat m)^2\mid x]``, removing the
-curved-``\mathbb E[Y^2\mid x]`` smoothing bias the `:plugin` ``\hat{\mathbb E}[Y^2\mid x] - \hat m^2``
+local fit of the squared residuals ``\widehat{\mathbb{E}}[(Y-\hat m)^2\mid x]``, removing the
+curved-``\mathbb{E}[Y^2\mid x]`` smoothing bias the `:plugin` ``\widehat{\mathbb{E}}[Y^2\mid x] - \hat m^2``
 carries). A one-step robust local M-estimator for heavy-tailed channels (Fan & Jiang 2000) is forthcoming.
 
 The general reader `conditional_expectation` ``\equiv \mathbb{E}[g(Y)\mid x]`` subsumes both — a
@@ -377,7 +377,7 @@ local-linear `conditional_mean` is boundary-adaptive, §4.2).
 
 #### 4.5 Bandwidth selection (cross-cutting)
 
-**Estimand.** the AMISE-optimal bandwidth — the ``h`` minimising ``\int \mathbb{E}[(\hat f_h - f_X)^2]``
+**Estimand.** the AMISE-optimal bandwidth (AMISE = asymptotic mean integrated squared error) — the ``h`` asymptotically minimising ``\mathrm{MISE}(h) = \int \mathbb{E}[(\hat f_h - f_X)^2]``
 for a kernel ``K`` and local-polynomial degree ``d``.
 **Estimator.** for a marginal, the **kernel- and degree-aware normal-reference rule**
 ``h = C(K,d) \hat\sigma n^{-1/(2p+1)}`` (bias order ``p = 2`` at degree 0/1, ``p = 4`` at degree 2/3; the
@@ -419,11 +419,11 @@ recovered `mean` / `var` / `central_moment` (§3, the shift formula, the ``g = x
   `Expectations._quadrature` (the moments supplying closed-form coefficients, `expectation` interpolation
   coefficients) — the literal realization of the two-family lens.
 - `expectation_standard_error` ``= \sqrt{(\mathbb{E}[g^2] - \mathbb{E}[g]^2)/n}`` — the sampling error of
-  ``\hat{\mathbb{E}}[g]``, itself a second quadrature readout (``\mathbb{E}[g^2]`` is `expectation` with
+  ``\widehat{\mathbb{E}}[g]``, itself a second quadrature readout (``\mathbb{E}[g^2]`` is `expectation` with
   the smooth integrand ``g^2``).
 - `pushforward_density` ``\equiv f_{g(X)}``, the density of ``Y = g(X)``. Rather than form ``g^{-1}`` or a
   Jacobian, it is written as the **expectation of the composed kernel test function**,
-  ``\hat f_{g(X)}(y) = \tfrac{1}{n}\sum_i K_h(g(X_i) - y) = \hat{\mathbb{E}}[K_h(g(X) - y)]`` — so it is one
+  ``\hat f_{g(X)}(y) = \tfrac{1}{n}\sum_i K_h(g(X_i) - y) = \widehat{\mathbb{E}}[K_h(g(X) - y)]`` — so it is one
   more `expectation` call. A **non-monotone** ``g`` is handled automatically (every preimage contributes),
   a flat spot ``g'=0`` shows up as the expected (integrable) caustic, and a symmetric ``K`` makes
   ``\int \hat f\,\mathrm dy = 1`` exactly.

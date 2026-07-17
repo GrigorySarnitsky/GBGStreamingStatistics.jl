@@ -312,10 +312,11 @@ end
     bandwidth(summary::Histogram1D; rule = :normal, kernel = gaussian_kernel,
               degree = 0) -> h
 
-**Estimand.** The AMISE-optimal smoothing bandwidth for the marginal density
-[`density`](@ref GBGStreamingStatistics.MarginalDensity.density) of `summary` — the ``h`` minimising
-``\\mathrm{MISE}(\\hat f_h) = \\int \\mathbb{E}\\bigl[(\\hat f_h(x) - f_X(x))^2\\bigr]\\,\\mathrm{d}x``
-for the smoothing `kernel` ``K`` and local-polynomial `degree` ``d``.
+**Estimand.** The AMISE-optimal (asymptotic mean integrated squared error) smoothing bandwidth for the
+marginal density [`density`](@ref GBGStreamingStatistics.MarginalDensity.density) of `summary` — the ``h``
+asymptotically minimising ``\\mathrm{MISE}(\\hat f_h) = \\int \\mathbb{E}\\bigl[(\\hat f_h(x) - f_X(x))^2\\bigr]\\,\\mathrm{d}x``
+(the AMISE is its leading-order large-``n`` expansion, which has the closed form the plug-in uses) for the
+smoothing `kernel` ``K`` and local-polynomial `degree` ``d``.
 
 **Estimator** (`rule = :normal`, the kernel- and degree-aware normal-reference plug-in). From the
 recovered ``\\hat\\sigma`` and the sample size ``n``,

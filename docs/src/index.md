@@ -40,8 +40,9 @@ two-time conditional densities) — but nothing in the library is specific to a 
     plus the power-sum quadrature readouts ([`expectation`](@ref) of a smooth functional, its
     [`expectation_standard_error`](@ref), and the [`pushforward_density`](@ref) of a transformed
     variable). The Kramers–Moyal / SDE-reading functionals (drift and diffusion), the higher
-    Kramers–Moyal coefficients, and the Pawula / Markov diagnostics are not currently provided but are
-    planned; see the [Architecture](architecture.md) for the design and roadmap.
+    Kramers–Moyal coefficients, and the Pawula / Markov diagnostics are **archived** — built and
+    Ornstein–Uhlenbeck-tested, then moved out to keep the core focused, and restorable when a consumer
+    needs them; see the [Architecture](architecture.md) for the design and roadmap.
 
 ## Installation
 
@@ -83,9 +84,10 @@ verbatim by every consumer) and an **estimator upper half** (the estimands):
   center; accumulation runs on **CPU or GPU**, and summaries combine with `merge!`. With `observe_pairs!`
   for two-time statistics, and — when `HDF5` is loaded (a package extension) — `write_histogram` /
   `read_histogram` to persist a summary to an HDF5 group.
-- [`Kernels`](api/Kernels.md): the shared smoothing kernels — symmetric (`gaussian_kernel`, or any
-  callable with ``\int K = 1``) and asymmetric bounded/positive-support kernels (`gamma_kernel`, via the
-  `AsymmetricKernel` constructor) — used by `density`, the regression fits, the double-kernel conditional
+- [`Kernels`](api/Kernels.md): the shared smoothing kernels — symmetric (`gaussian_kernel`,
+  `epanechnikov_kernel`, or any callable with ``\int K = 1``) and asymmetric bounded/positive-support
+  kernels (`gamma_kernel`, `beta_kernel`, via the `AsymmetricKernel` constructor) — used by `density`, the
+  regression fits, the double-kernel conditional
   density, and the bandwidth rules.
 - [`Expectations`](api/Expectations.md): the power-sum quadrature readouts — the expectation of a smooth
   functional `expectation` ``\equiv \mathbb{E}[g(X)]``, its sampling `expectation_standard_error` (paired
