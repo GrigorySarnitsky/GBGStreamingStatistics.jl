@@ -471,7 +471,7 @@ evaluated by [`conditional_expectation`](@ref
 GBGStreamingStatistics.ConditionalExpectations.conditional_expectation):
 
 ```math
-\\hat f_{g(Y)\\mid X}(z \\mid x) \\;=\\; \\widehat{\\mathbb{E}}\\bigl[  K_{h_z}(g(Y) - z) \\mid x  \\bigr] ,
+\\hat f_{g(Y)\\mid X}(z \\mid x) = \\widehat{\\mathbb{E}}\\bigl[  K_{h_z}(g(Y) - z) \\mid x  \\bigr] ,
 ```
 
 i.e. `conditional_expectation(summary, y -> K_hz(g(y) - z), x)`. No inverse ``g^{-1}`` and no explicit

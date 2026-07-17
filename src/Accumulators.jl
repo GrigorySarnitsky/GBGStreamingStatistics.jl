@@ -72,7 +72,7 @@ is the plain monoid addition above. Because the unnormalized summary is also **s
 parameter-mixture density (superstatistics; Beck & Cohen 2003)
 
 ```math
-P(x) = \\int f(\\beta) P(x \\mid \\beta)\\,\\mathrm{d}\\beta \\;\\approx\\; \\sum_k w_k f_k(x),
+P(x) = \\int f(\\beta) P(x \\mid \\beta)\\,\\mathrm{d}\\beta \\approx \\sum_k w_k f_k(x),
 \\qquad w_k = f(\\beta_k) \\Delta\\beta,
 ```
 

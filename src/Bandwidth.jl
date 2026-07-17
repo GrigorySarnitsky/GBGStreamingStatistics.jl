@@ -370,7 +370,7 @@ and ``C = (2\\sqrt\\pi)^{-1} \\mathbb{E}[w(X)^{-1/2}]``, where ``w(x) = x`` (gam
 is the kernel's local-scale weight,
 
 ```math
-b^\\star = \\left[\\frac{\\mathbb{E}[w(X)^{-1/2}]}{2\\sqrt\\pi n \\int w(x)^2 f''(x)^2\\,\\mathrm{d}x}\\right]^{2/5}.
+b^\\star = \\biggl[\\frac{\\mathbb{E}[w(X)^{-1/2}]}{2\\sqrt\\pi n \\int w(x)^2 f''(x)^2\\,\\mathrm{d}x}\\biggr]^{2/5}.
 ```
 
 ``\\mathbb{E}[w(X)^{-1/2}]`` is an exact moment of the bin counts; the curvature ``\\int w^2 (f'')^2`` is
@@ -505,7 +505,7 @@ bandwidth that, at each conditioning value ``x``, minimises the local mean squar
 local-linear estimate ``\\hat m_h(x)`` by balancing its squared bias against its variance:
 
 ```math
-h^\\star(x) = \\left[\\frac{R(K) \\sigma^2(x)}{\\mu_2(K)^2 m''(x)^2 f_X(x) n}\\right]^{1/5},
+h^\\star(x) = \\biggl[\\frac{R(K) \\sigma^2(x)}{\\mu_2(K)^2 m''(x)^2 f_X(x) n}\\biggr]^{1/5},
 ```
 
 with ``\\sigma^2(x)`` the conditional variance, ``m''(x)`` the regression curvature, ``f_X(x)`` the

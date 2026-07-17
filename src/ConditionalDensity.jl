@@ -236,7 +236,7 @@ end
 variance
 
 ```math
-\\operatorname{Var}\\hat f(y\\mid x) \\;\\approx\\;
+\\operatorname{Var}\\hat f(y\\mid x) \\approx
   \\frac{R(K_1) R(K_2) f_{Y\\mid X}(y\\mid x)}{n h_1 h_2 f_X(x)}
   - \\frac{f_{Y\\mid X}(y\\mid x)^2}{n},
   \\qquad R(K) = \\int K^2,

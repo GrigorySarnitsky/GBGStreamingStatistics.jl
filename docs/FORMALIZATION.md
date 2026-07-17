@@ -90,7 +90,7 @@ recorded in `ARCHITECTURE.md` §4 meanwhile.
   a slowly varying parameter ``\beta`` with mixing law ``f(\beta)``,
 
   ```math
-  P(x) = \int f(\beta) P(x \mid \beta)\,\mathrm{d}\beta \;\approx\; \sum_k w_k  f_k(x),
+  P(x) = \int f(\beta) P(x \mid \beta)\,\mathrm{d}\beta \approx \sum_k w_k  f_k(x),
   \qquad w_k = f(\beta_k) \Delta\beta,
   ```
 
@@ -155,7 +155,7 @@ recorded in `ARCHITECTURE.md` §4 meanwhile.
 ## Marginal density (§4.1) — `density`
 
 - **Estimand.** ``f_X = \mathrm{d}\mu_X/\mathrm{d}\lambda``, the Lebesgue density of ``X``.
-- **Estimator.** the binned KDE ``\hat f_h(x) = \frac{1}{nh}\sum_j n_j K\!\left(\frac{x-\ell_j}{h}\right)``
+- **Estimator.** the binned KDE ``\hat f_h(x) = \frac{1}{nh}\sum_j n_j K\Bigl(\frac{x-\ell_j}{h}\Bigr)``
   (``\int K = 1``, Gaussian ``K``) from the bin counts ``n_j`` at bin locations ``\ell_j`` — the within-bin
   **centroid** ``\ell_j = c_j + S_1^{(j)}/n_j`` (linear binning, the default `binning = :linear`) or the
   geometric center ``\ell_j = c_j`` (`binning = :simple`) — with ``h`` from `bandwidth`
@@ -360,7 +360,7 @@ recorded in `ARCHITECTURE.md` §4 meanwhile.
   squared bias against the variance at each ``x``:
 
   ```math
-  h^\star(x) = \left[\frac{R(K) \sigma^2(x)}{\mu_2(K)^2 m''(x)^2 f_X(x) n}\right]^{1/5}.
+  h^\star(x) = \biggl[\frac{R(K) \sigma^2(x)}{\mu_2(K)^2 m''(x)^2 f_X(x) n}\biggr]^{1/5}.
   ```
 
 - **Estimator.** plug in the three ``x``-local quantities from the one joint summary, each at a pilot

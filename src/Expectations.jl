@@ -172,7 +172,7 @@ count ``n_j`` and its per-bin power-sums ``S_p^{(j)}`` about the center (with ``
 Taylor-expanding ``g`` about each center gives
 
 ```math
-\\hat{\\mathbb{E}}[g(X)] \\;=\\; \\frac{1}{n} \\sum_j \\sum_{p=0}^{\\texttt{order}}
+\\hat{\\mathbb{E}}[g(X)] = \\frac{1}{n} \\sum_j \\sum_{p=0}^{\\texttt{order}}
   \\frac{g^{(p)}(c_j)}{p!}  S_p^{(j)} ,
 ```
 
@@ -293,8 +293,8 @@ of ``y``).
 [`expectation`](@ref GBGStreamingStatistics.Expectations.expectation):
 
 ```math
-\\hat f_{g(X)}(y) \\;=\\; \\frac{1}{n} \\sum_i K_h\\bigl(g(X_i) - y\\bigr)
-  \\;=\\; \\hat{\\mathbb{E}}\\Bigl[  K_h\\bigl(g(X) - y\\bigr) \\Bigr] ,
+\\hat f_{g(X)}(y) = \\frac{1}{n} \\sum_i K_h\\bigl(g(X_i) - y\\bigr)
+  = \\hat{\\mathbb{E}}\\Bigl[  K_h\\bigl(g(X) - y\\bigr) \\Bigr] ,
 ```
 
 so the composed test function ``x \\mapsto K_h(g(x) - y)`` is smoothed by the power-sum quadrature — no

@@ -64,7 +64,7 @@ the recurring lesson is that an *absence* is a precise statement (§6).
 Let ``X_1, X_2, \dots`` be the observed stream. The object that carries all information is the
 **empirical measure**
 ```math
-\hat\mu_n \;=\; \frac{1}{n} \sum_{i=1}^{n} \delta_{X_i},
+\hat\mu_n = \frac{1}{n} \sum_{i=1}^{n} \delta_{X_i},
 ```
 where ``\delta_x`` is the unit point mass at ``x`` and ``n`` the number of samples seen. We do **not**
 store the ``n`` point masses. We store a **finite-dimensional summary** ``T(\hat\mu_n)`` that is
@@ -79,7 +79,7 @@ store the ``n`` point masses. We store a **finite-dimensional summary** ``T(\hat
 
 Every reported quantity is then an **estimator** — a functional
 ```math
-\hat\theta \;=\; S_h\!\big(T(\hat\mu_n)\big)
+\hat\theta = S_h\!\big(T(\hat\mu_n)\big)
 ```
 of that summary, where ``S_h`` is a **smoothing** operator (a choice of kernel, bandwidth ``h``, and any
 secondary smoothing). The load-bearing decision:
@@ -340,7 +340,7 @@ estimand-agnostic, which non-uniform bins would not).
 **Estimator** (local-linear; Fan & Gijbels): from the joint `Histogram2D`'s kernel-weighted power-sums
 ``T_\ell = \sum_i K_h(X_i-x)(X_i-x)^\ell`` and ``P_\ell = \sum_i K_h(X_i-x)(X_i-x)^\ell Y_i``,
 ```math
-\hat m_h(x) \;=\; \frac{T_2 P_0 - T_1 P_1}{T_0 T_2 - T_1^{2}}
+\hat m_h(x) = \frac{T_2 P_0 - T_1 P_1}{T_0 T_2 - T_1^{2}}
 ```
 — the ``\beta_0`` of one `LocalPolynomial.local_fit` (§4.A atom); local-linear removes the design-density
 bias ``2 m'(x) f'(x)/f(x)`` that the degree-0 Nadaraya–Watson ``P_0/T_0`` carries. The variance is the
@@ -363,7 +363,7 @@ analog of the marginal `expectation_standard_error`. `FORMALIZATION.md` pins the
 ``p_\tau(y\mid x) = f_{X_{t+\tau}\mid X_t}(y\mid x)`` (nonstationary: ``p_{t,\tau}``).
 **Estimator** (double-kernel; Rosenblatt 1969; Hyndman, Bashtannyk & Grunwald 1996):
 ```math
-\hat f(y\mid x) \;=\; \frac{\sum_i K_{h_1}(X_i-x) K_{h_2}(Y_i-y)}{\sum_i K_{h_1}(X_i-x)},
+\hat f(y\mid x) = \frac{\sum_i K_{h_1}(X_i-x) K_{h_2}(Y_i-y)}{\sum_i K_{h_1}(X_i-x)},
 ```
 with a separate conditioning kernel `kernelx` (in ``x``) and response kernel `kernely` (in ``y``). For a
 **bounded / positive response** — a droplet radius as ``Y`` — `kernely` may be **asymmetric** (gamma / beta;
@@ -386,7 +386,7 @@ of the counts (the eval kernel a clean ``\delta(K)`` rescale); leave-one-out CV 
 ties drive ``h \to 0``). The load-bearing one for conditional moments is the **response-aware *local*
 plug-in** `bandwidth(::Histogram2D, x; rule = :local)`,
 ```math
-h^\star(x) \;=\; \left[\frac{R(K) \sigma^2(x)}{\mu_2(K)^2 m''(x)^2 f_X(x) n}\right]^{1/5},
+h^\star(x) = \biggl[\frac{R(K) \sigma^2(x)}{\mu_2(K)^2 m''(x)^2 f_X(x) n}\biggr]^{1/5},
 ```
 which depends on the response's variance ``\sigma^2(x)`` **and** curvature ``m''(x)`` — so **each response
 channel gets its own ``h^\star``** (a single shared bandwidth is provably suboptimal), all three of
@@ -401,8 +401,8 @@ The global (non-local) readouts: a smooth functional of ``X`` read straight off 
 kernel, no query point. Within a bin, ``S_p^{(j)} = \sum_{i\in\text{bin}}(X_i - c_j)^p`` is the within-bin
 ``p``-th moment, so Taylor-expanding any smooth ``g`` about the center,
 ```math
-\mathbb{E}[g(X)] \;=\; \frac{1}{n} \sum_j \sum_{p=0}^{\texttt{order}} \frac{g^{(p)}(c_j)}{p!}  S_p^{(j)}
-\;+\; O\!\big(\Delta^{ \texttt{order}+1}\big),
+\mathbb{E}[g(X)] = \frac{1}{n} \sum_j \sum_{p=0}^{\texttt{order}} \frac{g^{(p)}(c_j)}{p!}  S_p^{(j)}
++ O\!\big(\Delta^{ \texttt{order}+1}\big),
 ```
 **exact** for polynomials of degree ``\le \texttt{order}`` (the remainder terminates) — this is the
 recovered `mean` / `var` / `central_moment` (§3, the shift formula, the ``g = x^p`` case) — and
