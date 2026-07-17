@@ -79,7 +79,7 @@ store the ``n`` point masses. We store a **finite-dimensional summary** ``T(\hat
 
 Every reported quantity is then an **estimator** — a functional
 ```math
-\hat\theta = S_h\!\big(T(\hat\mu_n)\big)
+\hat\theta = S_h\bigl(T(\hat\mu_n)\bigr)
 ```
 of that summary, where ``S_h`` is a **smoothing** operator (a choice of kernel, bandwidth ``h``, and any
 secondary smoothing). The load-bearing decision:
@@ -402,7 +402,7 @@ kernel, no query point. Within a bin, ``S_p^{(j)} = \sum_{i\in\text{bin}}(X_i - 
 ``p``-th moment, so Taylor-expanding any smooth ``g`` about the center,
 ```math
 \mathbb{E}[g(X)] = \frac{1}{n} \sum_j \sum_{p=0}^{\texttt{order}} \frac{g^{(p)}(c_j)}{p!}  S_p^{(j)}
-+ O\!\big(\Delta^{ \texttt{order}+1}\big),
++ O\bigl(\Delta^{ \texttt{order}+1}\bigr),
 ```
 **exact** for polynomials of degree ``\le \texttt{order}`` (the remainder terminates) — this is the
 recovered `mean` / `var` / `central_moment` (§3, the shift formula, the ``g = x^p`` case) — and
