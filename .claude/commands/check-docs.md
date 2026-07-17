@@ -79,6 +79,13 @@ reading is not a check.
    group argument is always braced (`\tfrac{1}{2}` not `\tfrac12`, `\boldsymbol{u}` not `\boldsymbol u`).
    Both are grep-guarded below. (SS has no vector/tensor notation, so the sibling `\mathbf`→`\boldsymbol`
    and `\partial_i` house-set guards are deliberately not ported.)
+   **Math spacing and command support** — standard LaTeX idiom: no `\left`/`\right` auto-sizing (size by
+   hand with `\bigl`/`\Bigl`/`\biggl` …, the sole exception a `\left\{ … \right.` cases-system); no manual
+   `\;`/`\:` spacing around a relation / binary operator (TeX already spaces these — `a \;=\; b` doubles it,
+   write `a = b`); no `\!` before a `\big`/`\bigl`/`\Big` delimiter (sided or unsided — both zero-gap, so
+   the `\!` only kerns the delimiter into the preceding symbol; the idiom is legitimate ONLY before the
+   `minner` `\left(`), and no `\!\!` overshoot before `\sum`/`\int`; `\mathbb` only on a capital `A`–`Z` or
+   `k` (KaTeX drops the blackboard font on `\mathbb{1}` — write `\mathbf{1}`). All grep-guarded below.
 5. **Current & complete** — every claim matches the code's present state; no stale *future / deferred /
    none-exist* claims about what is now implemented; and a docstring or summary that names only a *subset*
    of what the code now provides is stale even if literally true. Check each module/operation/summary
@@ -121,6 +128,29 @@ definitions; this command runs all of them.
   --exclude={architecture,formalization,testing,performance}.md '\\([dt]?frac[0-9]|boldsymbol\s*[A-Za-z\\])'
   docs`) flag a `\frac`/`\tfrac`/`\boldsymbol` with an unbraced argument (`\tfrac45`→`\tfrac{4}{5}`,
   `\boldsymbol u`→`\boldsymbol{u}`); must be empty; a
+  **delimiter-ban scan** — `grep -rnP '\\\\(left|right)(?![a-zA-Z])' src/*.jl` and the single-backslash
+  `docs` form (`grep -rnP --include='*.md' --exclude={architecture,formalization,testing,performance}.md
+  '\\(left|right)(?![a-zA-Z])' docs`) flag any `\left`/`\right` auto-sized delimiter (the `(?![a-zA-Z])`
+  excludes the `\leftarrow`/`\rightarrow`/`\leftrightarrow` arrow family); size by hand with
+  `\bigl`/`\Bigl`/`\biggl` … (a display `\frac`→`\biggl`, a textstyle one→`\Bigl`); must be empty save a
+  genuine `\left\{ … \right.` cases-system (the sole allowed exception — triage it); a
+  **manual-op-spacing scan** — `grep -rnP '\\\\[;:]' src/*.jl` and the `docs` form (`grep -rnP
+  --include='*.md' --exclude={architecture,formalization,testing,performance}.md '\\[;:]' docs`) flag a
+  manual `\;`/`\:` space (the `\,` case is the thin-space scan above): TeX already spaces a relation /
+  binary operator, so `a \;=\; b` doubles it — write `a = b`; must be empty (`\quad`/`\qquad` are the
+  allowed explicit spaces, not matched); a
+  **big-delimiter-kern scan** — `grep -rnP '\\\\!\\\\[bB]igg?[lrm]?' src/*.jl` and the `docs` form (`grep
+  -rnP --include='*.md' --exclude={architecture,formalization,testing,performance}.md '\\!\\[bB]igg?[lrm]?'
+  docs`) flag a `\!` before a `\big`/`\bigl`/`\Bigr`/… delimiter — sided OR unsided (the unsided `\big` is a
+  `mord`, the sided a `mopen`/`mclose`, both zero-gap, so the `\!` only kerns the delimiter into the
+  preceding symbol); drop the `\!` and prefer the sided `\bigl … \bigr`. The `\!` idiom is legitimate ONLY
+  before `\left(` (a `minner` atom with a real Ord–Inner gap), which this does not match; a companion `grep
+  -rnP '\\\\!\\\\!' src/*.jl` (and its `docs` form) flags a `\!\!` overshoot before `\sum`/`\int`; both must
+  be empty; a
+  **blackboard-digit scan** — `grep -rnP '\\\\mathbb\s*\{?\s*[0-9]' src/*.jl` and the `docs` form (`grep
+  -rnP --include='*.md' --exclude={architecture,formalization,testing,performance}.md
+  '\\mathbb\s*\{?\s*[0-9]' docs`) flag `\mathbb` on a digit (KaTeX's blackboard font covers only a capital
+  `A`–`Z` or `k`, so `\mathbb{1}` silently drops the font — write `\mathbf{1}`); must be empty; a
   **crammed-references scan** — `grep -rnzE 'References?:[^"]*;' src` flags a `Reference(s):` docstring block
   that joins two citations with a `;` (anywhere before its closing `"""`), which must instead be a `- `
   bullet list, one citation per line (`CLAUDE.md` Citations); a **no-horizontal-scroll scan** —
