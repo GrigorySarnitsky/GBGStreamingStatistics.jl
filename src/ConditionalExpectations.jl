@@ -77,7 +77,7 @@ end
 
 """
     conditional_expectation(summary::Histogram2D, g, x;
-                            h, kernel = gaussian_kernel, degree = 1)   # ≡ ⟨g(Y) ∣ x⟩
+                            h, kernel = gaussian_kernel, degree = 1)   # ≡ E[g(Y) ∣ x]
 
 **Estimand.** The conditional expectation of a smooth functional of the response,
 ``\\mathbb{E}[g(Y) \\mid X = x] = \\int g(y)  f_{Y\\mid X}(y \\mid x)\\,\\mathrm{d}y``. For
@@ -243,8 +243,10 @@ regression function.
 kernel-weighted design and response sums ``T_\\ell(x) = \\sum_i K_h(X_i-x)(X_i-x)^\\ell`` and
 ``P_\\ell(x) = \\sum_i K_h(X_i-x)(X_i-x)^\\ell Y_i`` — recovered from the per-X-column counts and
 response totals ``\\sum Y`` (themselves exact, from the per-cell power-sums) — and solve the local
-normal equations of order `degree` for the jet; the estimate is the fitted value
-``\\hat m_h(x) = \\beta_0``. At the default `degree = 1` (local-linear) this is
+normal equations of order `degree` for the **jet** ``(\\beta_0, \\dots, \\beta_{\\texttt{degree}})`` — the
+local-polynomial coefficients at ``x`` (``\\beta_0`` the fitted value, ``\\beta_1`` the slope, ``2\\beta_2``
+the curvature); the estimate is the fitted value ``\\hat m_h(x) = \\beta_0``. At the default `degree = 1`
+(local-linear) this is
 
 ```math
 \\hat m_h(x) = \\frac{T_2 P_0 - T_1 P_1}{T_0 T_2 - T_1^{2}},

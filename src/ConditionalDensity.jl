@@ -317,7 +317,8 @@ end
 
 """
     transition_density_standard_error(summary::Histogram2D, x, y;
-                                      hx, hy, kernelx, kernely)
+                                      hx, hy, kernelx = gaussian_kernel,
+                                      kernely = gaussian_kernel)
 
 The standard error of [`transition_density`](@ref GBGStreamingStatistics.ConditionalDensity.transition_density)
 — identical to [`conditional_density_standard_error`](@ref GBGStreamingStatistics.ConditionalDensity.conditional_density_standard_error)
@@ -331,7 +332,8 @@ transition_density_standard_error(summary::Histogram2D, x::Real, y; hx::Real, hy
 
 """
     transition_density_with_standard_error(summary::Histogram2D, x, y;
-                                           hx, hy, kernelx, kernely)
+                                           hx, hy, kernelx = gaussian_kernel,
+                                           kernely = gaussian_kernel)
 
 [`transition_density`](@ref GBGStreamingStatistics.ConditionalDensity.transition_density) and its standard
 error from one pass (the `(value, standard_error)` `NamedTuple`) — the two-time reading of

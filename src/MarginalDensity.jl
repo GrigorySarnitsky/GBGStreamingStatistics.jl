@@ -48,8 +48,8 @@ construct one directly to plug in a custom parametric model. The three fields ar
   returning a parameter tuple. Fitting from the mean and variance (not the raw data) is what keeps the whole
   estimate **mergeable**: ``\\hat\\theta`` is itself a post-hoc functional of the summary.
 - `logpdf(x, params)` — the model log-density ``\\log p(x;\\hat\\theta)``, returning ``-\\infty`` off the
-  support. `density` reweights each bin by ``1/p(c_j;\\hat\\theta)`` through this log form (stable in the
-  tails, where ``p`` is tiny).
+  support. `density` reweights each bin by ``1/p(\\ell_j;\\hat\\theta)`` at the bin location ``\\ell_j`` through
+  this log form (stable in the tails, where ``p`` is tiny).
 - `support` — the domain the model is positive on, as a `(lower, upper)` tuple (e.g. `(0.0, Inf)`).
 
 ```jldoctest
@@ -401,8 +401,8 @@ end
 conditioning variable ``X``, defined by ``P(X \\in A) = \\int_A f_X\\,\\mathrm{d}\\lambda``.
 
 **Estimator.** The smoothed estimate ``\\hat f_h(x)`` from the accumulated `summary` — a binned local
-smoother of the counts ``n_j`` at bin centers ``c_j`` (a KDE / WARPing, or a local-log-polynomial fit of
-``\\log f`` at `degree` ``\\ge 1``).
+smoother of the counts ``n_j`` at bin locations ``\\ell_j`` (the within-bin centroid by default; see the
+`binning` option), a KDE / WARPing, or a local-log-polynomial fit of ``\\log f`` at `degree` ``\\ge 1``.
 
 Arguments:
 
@@ -426,7 +426,7 @@ Arguments:
   `adaptive`, `bounds`, and a parametric `start` do not combine with it, and it takes its own scale ``b``
   in place of `h`.
 - `degree` — the local-polynomial order. `degree = 0` (default) is the binned KDE / WARPing (weighted averaging of rounded points)
-  ``\\hat f(x) = \\frac{1}{n} \\sum_j (n_j/h_j)  K((x-c_j)/h_j)`` (``\\int K = 1``). `degree` ``\\ge 1`` is the
+  ``\\hat f(x) = \\frac{1}{n} \\sum_j (n_j/h_j)  K((x-\\ell_j)/h_j)`` (``\\int K = 1``). `degree` ``\\ge 1`` is the
   **local-log-polynomial** (local-likelihood) estimator (Loader 1996): fit ``\\log f`` by a
   degree-`degree` polynomial through a binned **local Poisson** likelihood and report
   ``\\hat f(x) = e^{\\hat\\beta_0}``. `degree = 1` (log-linear) is **exact for an exponential density**,
@@ -447,7 +447,7 @@ Arguments:
   `bounds` is a degree-0 option.)
 - `start` — a **parametric start** (Hjort & Glad 1995), or `nothing` (default). Given one, `density`
   returns the semiparametric estimate
-  ``\\hat f(x) = p(x;\\hat\\theta) \\frac{1}{nh}\\sum_j \\frac{n_j}{p(c_j;\\hat\\theta)} K((x-c_j)/h)`` —
+  ``\\hat f(x) = p(x;\\hat\\theta) \\frac{1}{nh}\\sum_j \\frac{n_j}{p(\\ell_j;\\hat\\theta)} K((x-\\ell_j)/h)`` —
   a moment-fitted model ``p(\\cdot;\\hat\\theta)`` times a KDE of its *correction*, **near-exact wherever
   the start is correct** (the correction is then ``\\equiv 1``) and degrading only to a bias-corrected KDE
   where it is not. ``\\hat\\theta`` is fit by method of moments from the recovered ``\\hat\\mu``,
@@ -463,9 +463,9 @@ Arguments:
   already integrates to ``\\approx 1``; the asymmetric kernels and a parametric start do not, so this is
   their finishing step.
 - `binning` — where each bin's mass sits for the post-hoc evaluation. `:linear` (the default) places
-  it at the recovered within-bin **centroid** ``c_j + S_1^{(j)}/n_j`` (from the stored first power-sum
+  it at the recovered within-bin **centroid** ``\\ell_j = c_j + S_1^{(j)}/n_j`` (from the stored first power-sum
   ``S_1``), which matches the bin's own first moment, so the binned estimate converges to the exact KDE at
-  ``O(\\Delta^2)`` in the bin width ``\\Delta``; `:simple` places it at the geometric bin center ``c_j``,
+  ``O(\\Delta^2)`` in the bin width ``\\Delta``; `:simple` places it at the geometric bin center ``\\ell_j = c_j``,
   the ``O(\\Delta)`` mass-at-center approximation. The centroid is read from data already in the summary, so
   the higher-order accuracy is free; it applies to every path (KDE, local-log, start, asymmetric kernel).
 

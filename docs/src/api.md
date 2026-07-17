@@ -10,4 +10,9 @@ primitives; the upper half ([`Expectations`](api/Expectations.md) through
 [`Bandwidth`](api/Bandwidth.md)) holds the estimands.
 
 ```@index
+Pages = [
+  "api/Accumulators.md", "api/Histograms.md", "api/Kernels.md", "api/Expectations.md",
+  "api/MarginalDensity.md", "api/ConditionalExpectations.md", "api/ConditionalDensity.md",
+  "api/Bandwidth.md", "api/GBGStreamingStatistics.md",
+]
 ```

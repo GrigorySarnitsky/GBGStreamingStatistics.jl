@@ -5,7 +5,7 @@ estimates marginal densities, conditional expectations, and conditional and two-
 densities, from a **stream of samples that is never stored** — each sample is observed once,
 folded into a fixed-size summary, and discarded.
 
-The summary (a fine histogram with per-bin moments) is accumulated online and is *estimand-agnostic*:
+The summary (a fine histogram with per-bin power-sums about the bin center) is accumulated online and is *estimand-agnostic*:
 every reported quantity is a post-hoc smoothing functional of that one summary, so there is no storage
 of the underlying state and no recompute-from-raw reruns. It is a **mergeable monoid** — in fact a
 **cone** (combine across threads, devices, or time-chunks by addition, or weight and superpose for

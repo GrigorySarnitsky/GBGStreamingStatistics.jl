@@ -52,6 +52,15 @@ A freshly constructed summary is **empty**: `counts` and `powersums` are all zer
 identity), and you `observe!` data into it. `merge!` adds `counts` and `powersums` elementwise, so
 summaries on the same binning combine by saving and adding these two arrays. The recovered moments are
 read out with `mean`, `var`, `std`, and `central_moment`.
+
+```jldoctest
+julia> summary = Histogram1D(-5.0, 5.0, 1000);       # 1000 bins over [-5, 5)
+
+julia> observe!(summary, [0.3, -1.2, 0.3, 2.1]);     # fold in a stream, never stored
+
+julia> Int(sum(summary.counts))                      # the four in-range samples counted
+4
+```
 """
 struct Histogram1D{T<:AbstractFloat,C<:AbstractVector,M<:AbstractMatrix} <: AbstractAccumulator
   lower::T          # lower edge of the binned range
@@ -203,6 +212,15 @@ The summary's whole state, each reachable by dot (`summary.xlower`, `summary.xsc
 
 A freshly constructed summary is **empty** (`counts`, `powersums` all zeros). `merge!` adds `counts`
 and `powersums` (requires matching box, cell counts, and `lag`).
+
+```jldoctest
+julia> joint = Histogram2D(-5.0, 5.0, 100, -5.0, 5.0, 100);   # 100×100 cells over the box
+
+julia> observe_pairs!(joint, [0.3, -1.2], [0.5, 0.4]);        # (X, Y) pairs, paired per source
+
+julia> Int(sum(joint.counts))                                 # the two in-box pairs counted
+2
+```
 """
 struct Histogram2D{T<:AbstractFloat,C<:AbstractVector,M<:AbstractMatrix} <: AbstractAccumulator
   xlower::T; xupper::T; xscale::T     # X range and nx/(xupper−xlower)

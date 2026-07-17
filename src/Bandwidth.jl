@@ -339,7 +339,7 @@ R(K) &= \\int K^2, \\qquad \\mu_2(K) = \\int u^2 K(u)\\,\\mathrm{d}u,
 and at `degree` 2/3 the analogous fourth-order **equivalent-kernel** constant (Loader 1996). ``R(K)``
 and ``\\mu_2(K)`` are computed by quadrature, so any ``K`` is supported. For the Gaussian kernel at
 `degree` 0 this is **Silverman's rule** ``(4/3)^{1/5}\\hat\\sigma n^{-1/5}``; for the Epanechnikov
-kernel it is ``\\approx 2.34 \\hat\\sigma n^{-1/5}`` (``2.21\\times`` the Gaussian ``h``). Every
+kernel it is ``\\approx 2.34 \\hat\\sigma n^{-1/5}`` (``2.214\\times`` the Gaussian ``h``). Every
 input is read back from the *one* stored summary, post hoc.
 
 **Estimator** (`rule = :sj`, the data-driven Sheather–Jones plug-in; `degree` 0/1). The curvature
@@ -358,7 +358,7 @@ reliable on strongly multimodal data, where the pilot scale of `:sj` can mislead
 enters as the ``\\delta(K)`` rescale.
 
 **Estimator** (`rule = :aic`, the fit-based information criterion; `degree` 0/1). Over a log-spaced
-``h``-grid around the normal reference, minimise ``\\mathrm{AIC}(h) = -2\\sum_j n_j \\log \\hat f_h(c_j) + 2\\,\\mathrm{df}(h)`` of the binned **Gaussian** KDE, with ``\\mathrm{df}(h) = (\\varphi(0)/h)\\sum_j n_j/(n\\hat f_h(c_j))`` the kernel self-influence trace (``\\varphi`` the Gaussian). Both terms diverge as ``h \\to 0``, so the optimum is a stable interior point, and the eval kernel enters only as the canonical ``\\delta(K)`` rescale of the selected ``h``. The leave-one-out **cross-validation** selectors (likelihood-CV and least-squares LSCV) are not offered — binning ties drive their optimum to ``h \\to 0``; use `:sj` or `:isj` for a data-driven alternative.
+``h``-grid around the normal reference, minimise ``\\mathrm{AIC}(h) = -2\\sum_j n_j \\log \\hat f_h(c_j) + 2\\mathrm{df}(h)`` of the binned **Gaussian** KDE, with ``\\mathrm{df}(h) = (\\varphi(0)/h)\\sum_j n_j/(n\\hat f_h(c_j))`` the kernel self-influence trace (``\\varphi`` the Gaussian). Both terms diverge as ``h \\to 0``, so the optimum is a stable interior point, and the eval kernel enters only as the canonical ``\\delta(K)`` rescale of the selected ``h``. The leave-one-out **cross-validation** selectors (likelihood-CV and least-squares LSCV) are not offered — binning ties drive their optimum to ``h \\to 0``; use `:sj` or `:isj` for a data-driven alternative.
 
 **Asymmetric kernels** ([`gamma_kernel`](@ref GBGStreamingStatistics.Kernels.gamma_kernel),
 [`beta_kernel`](@ref GBGStreamingStatistics.Kernels.beta_kernel)) carry their width in the
@@ -515,8 +515,8 @@ marginal density of the conditioning variable ``X``, ``n`` the sample size, and 
 **Estimator** (`rule = :local`). The three ``x``-local quantities are read from the one joint `summary`,
 each at a single pilot bandwidth: the conditional variance ``\\sigma^2(x)`` from the bias-reduced Fan &
 Yao [`conditional_variance`](@ref GBGStreamingStatistics.ConditionalExpectations.conditional_variance)
-(its default residual estimator), the curvature ``m''(x) = 2\\beta_2`` from the
-degree-2 local-polynomial fit, and ``f_X(x)`` from the binned KDE of the X-marginal. ``R(K)`` and
+(its default residual estimator), the curvature ``m''(x) = 2\\beta_2`` (twice the second-order coefficient
+of the degree-2 local-polynomial fit), and ``f_X(x)`` from the binned KDE of the X-marginal. ``R(K)`` and
 ``\\mu_2(K)`` are computed by quadrature, so any `kernel` works. Because estimating a second derivative
 needs a wider window than the final fit, the default pilot is the curvature-rate rule of thumb
 ``\\hat\\sigma_X  n^{-1/9}``; where the regression is locally linear (``m''(x) \\to 0``) the optimal

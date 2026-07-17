@@ -67,7 +67,9 @@ Let ``X_1, X_2, \dots`` be the observed stream. The object that carries all info
 \hat\mu_n = \frac{1}{n} \sum_{i=1}^{n} \delta_{X_i},
 ```
 where ``\delta_x`` is the unit point mass at ``x`` and ``n`` the number of samples seen. We do **not**
-store the ``n`` point masses. We store a **finite-dimensional summary** ``T(\hat\mu_n)`` that is
+store the ``n`` point masses. We store a **finite-dimensional summary** ``T(\hat\mu_n)`` — a functional of
+the **unnormalized** empirical measure ``\sum_i \delta_{X_i} = n\hat\mu_n`` (the additive object; the
+``1/n`` normalization is applied post hoc) — that is
 
 1. **mergeable** — ``T`` is an *additive monoid* (in fact a *cone* — also scalable by `scale!`; §10)
    over the sample stream: the unnormalized summary of
@@ -213,7 +215,7 @@ These types are the load-bearing, domain-agnostic core; they are pure numerics o
 transfer verbatim to every consumer.
 
 - **`Histogram1D`** — a binned empirical measure of a conditioning variable ``X``: linear (WARPing)
-  bins over a fixed range (default ``\pm 5\sigma``, ``\gtrsim 10^3`` bins), each bin carrying its
+  bins over a fixed range (e.g. ``\pm 5\sigma``, ``\gtrsim 10^3`` bins), each bin carrying its
   **count** and **per-bin power-sums about the bin center** ``S_p = \sum_{i\in\text{bin}}(X_i -
   c_j)^p`` for ``p = 1 \dots P`` (default ``P = 4``; raise ``P`` for the heavy-tailed channels — a high
   marginal central moment such as ``M_6`` needs ``P = 6``, and its *sampling variance* reaches the 12th
@@ -329,7 +331,8 @@ summary** and compose freely — the **adaptive** variable bandwidth (cutting ta
 boundary kernel), a **parametric start**, and exact `normalize` — with `density_standard_error` the
 pointwise variability band; `FORMALIZATION.md` and the API page carry each one's estimand and constants.
 Caveats: the fixed range ``[\texttt{lower}, \texttt{upper})``
-drops events beyond it (set it ``\approx \pm 10\text{–}15\sigma`` wide), and uniform bins under-resolve
+drops events beyond it (cover the data — ``\approx \pm 5\sigma`` for light tails, wider for heavy ones,
+with proportionally more bins to keep ``b \ll h``), and uniform bins under-resolve
 power-law tails (the variable bandwidth is the preferred fix — it stays post-hoc, mergeable, and
 estimand-agnostic, which non-uniform bins would not).
 
@@ -708,7 +711,7 @@ intentional — do not dedupe it).
 
 - **Bandwidth §4.5 — fit-based AIC added; leave-one-out CV is a deliberate absence** (§4.5). The survey
   flagged Loader's *preferred* route as fit-based selection over an ``h``-grid. Implemented as
-  `rule = :aic`: minimise the binned-KDE AIC ``-2\sum_j n_j\log\hat f_h(c_j) + 2\,\mathrm{df}(h)`` over
+  `rule = :aic`: minimise the binned-KDE AIC ``-2\sum_j n_j\log\hat f_h(c_j) + 2\mathrm{df}(h)`` over
   the grid — a mergeable functional of the counts, the eval kernel a ``\delta(K)`` rescale. But the
   **cross-validation** selectors (likelihood-CV and least-squares LSCV) are **not** built: they are
   leave-one-out, and a *binned* summary has heavy ties (≈10²–10³ samples per bin) whose same-bin term
@@ -916,6 +919,9 @@ The load-bearing works the package implements or pins to:
   ed., Wiley; P. Hall & M. P. Wand (1996), [*On the accuracy of binned kernel density
   estimators*](https://doi.org/10.1006/jmva.1996.0009), J. Multivariate Anal. 56. (WARPing /
   binned-KDE sufficiency.)
+- M. P. Wand & M. C. Jones (1995), [*Kernel Smoothing*](https://doi.org/10.1201/b14876), Chapman & Hall.
+  (The two-term finite-sample KDE variance ``R(K)\hat f/(nh) - \hat f^2/n`` behind the density,
+  conditional-density, and pushforward standard errors.)
 - M. P. Wand (1994), [*Fast computation of multivariate kernel
   estimators*](https://doi.org/10.1080/10618600.1994.10474656), J. Comput. Graph. Statist. 3(4); J.
   Fan & J. S. Marron (1994), [*Fast implementations of nonparametric curve
