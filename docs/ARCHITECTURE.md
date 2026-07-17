@@ -711,7 +711,7 @@ intentional — do not dedupe it).
 
 - **Bandwidth §4.5 — fit-based AIC added; leave-one-out CV is a deliberate absence** (§4.5). The survey
   flagged Loader's *preferred* route as fit-based selection over an ``h``-grid. Implemented as
-  `rule = :aic`: minimise the binned-KDE AIC ``-2\sum_j n_j\log\hat f_h(c_j) + 2\mathrm{df}(h)`` over
+  `rule = :aic`: minimise the binned-KDE AIC ``-2\sum_j n_j\log\hat f_h(c_j) + 2\mathrm{df}(h)`` (``\mathrm{df}`` the effective degrees of freedom, the smoother's self-influence trace) over
   the grid — a mergeable functional of the counts, the eval kernel a ``\delta(K)`` rescale. But the
   **cross-validation** selectors (likelihood-CV and least-squares LSCV) are **not** built: they are
   leave-one-out, and a *binned* summary has heavy ties (≈10²–10³ samples per bin) whose same-bin term
