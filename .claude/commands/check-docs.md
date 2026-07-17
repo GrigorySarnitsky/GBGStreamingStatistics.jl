@@ -116,13 +116,15 @@ definitions; this command runs all of them.
   backtick span (drop `#`-comment hits and valid array/tuple literals); a **split-formula scan** — a
   math span ending in `\le`/`\ge`/`<`/`>`/`\dots` immediately followed by a backticked `code` span,
   which must instead be one `\texttt{}`-using LaTeX span; triage the legitimate LaTeX command bodies; a
-  **gratuitous-thin-space scan** — `grep -rnP '\\\\,(?!\\\\mathrm(?: ?\{?d|\s*$))' src/*.jl` (a docstring
+  **gratuitous-thin-space scan** — `grep -rnP '\\\\,(?!\\\\mathrm(?: ?\{d\}| ?d|\s*$))' src/*.jl` (a docstring
   doubles the backslash, so the token is `\\,` there) and `grep -rnP --include='*.md'
-  --exclude={architecture,formalization,testing,performance}.md '\\,(?!\\mathrm(?: ?\{?d|\s*$))' docs` flag
+  --exclude={architecture,formalization,testing,performance}.md '\\,(?!\\mathrm(?: ?\{d\}| ?d|\s*$))' docs` flag
   a thin space `\,` that is NOT the differential `\,\mathrm d`: normalize each to a plain space (never
   delete), keeping only `\,\mathrm d`; must be empty (the four `docs/src/` build copies excluded; the
-  `\s*$` alternative in the lookahead tolerates a `\,\mathrm d` differential wrapped across a source line,
-  where the `d` sits on the next line); an
+  differential lookahead matches ONLY a genuine `\,\mathrm d` — the braced single-`d` `\mathrm{d}` or the
+  unbraced `\mathrm d` — so a multi-letter upright operator like `\mathrm{df}` (degrees of freedom) is
+  correctly flagged, not mistaken for a differential; the `\s*$` alternative tolerates a `\,\mathrm d`
+  wrapped across a source line, the `d` on the next line); an
   **unbraced-group scan** — `grep -rnP '\\\\([dt]?frac[0-9]|boldsymbol\s*[A-Za-z\\])' src/*.jl` and the
   single-backslash `docs` form (`grep -rnP --include='*.md'
   --exclude={architecture,formalization,testing,performance}.md '\\([dt]?frac[0-9]|boldsymbol\s*[A-Za-z\\])'
@@ -145,8 +147,15 @@ definitions; this command runs all of them.
   `mord`, the sided a `mopen`/`mclose`, both zero-gap, so the `\!` only kerns the delimiter into the
   preceding symbol); drop the `\!` and prefer the sided `\bigl … \bigr`. The `\!` idiom is legitimate ONLY
   before `\left(` (a `minner` atom with a real Ord–Inner gap), which this does not match; a companion `grep
-  -rnP '\\\\!\\\\!' src/*.jl` (and its `docs` form) flags a `\!\!` overshoot before `\sum`/`\int`; both must
-  be empty; a
+  -rnP '\\\\!\\\\!' src/*.jl` (and its `docs` form) flags a `\!\!` overshoot before `\sum`/`\int`; and a
+  **bare un-lateralized sizer** scan — `grep -rnP '\\\\(?:Bigg|bigg|Big|big)(?=[()\[\]]|\\\\[{}])'
+  src/*.jl` and the `docs` form (`grep -rnP --include='*.md'
+  --exclude={architecture,formalization,testing,performance}.md
+  '\\(?:Bigg|bigg|Big|big)(?=[()\[\]]|\\[{}])' docs`) flags a `\big`/`\Big`/`\bigg`/`\Bigg` used as a
+  **paired** delimiter WITHOUT the `l`/`r` laterality (`\big(` is a `mord` — wrong inter-atom spacing;
+  write `\bigl(…\bigr)`); the `(?=…)` lookahead fires only before a paired bracket `( ) [ ] \{ \}`, so the
+  `\bigcup`/`\bigoplus` big-operators and the legitimately-solo `\big/` (division slash) / `\big|`
+  (evaluation bar) are correctly not matched; all must be empty; a
   **blackboard-digit scan** — `grep -rnP '\\\\mathbb\s*\{?\s*[0-9]' src/*.jl` and the `docs` form (`grep
   -rnP --include='*.md' --exclude={architecture,formalization,testing,performance}.md
   '\\mathbb\s*\{?\s*[0-9]' docs`) flag `\mathbb` on a digit (KaTeX's blackboard font covers only a capital
