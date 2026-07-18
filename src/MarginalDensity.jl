@@ -698,9 +698,8 @@ mass ``a(x)^2``, inflating the variance near an edge; a parametric `start` leave
 `degree` 0/1 and a **symmetric** kernel (`degree` ``\\ge 2`` and an asymmetric gamma/beta kernel are not
 supported); a vector of query points returns a vector.
 
-Arguments: as for [`density`](@ref GBGStreamingStatistics.MarginalDensity.density) — `h`, `kernel`,
-`degree`, `adaptive`, `bounds`, `start`, `normalize`, `binning` — specifying the estimator whose standard
-error is returned.
+Arguments: as for [`density`](@ref GBGStreamingStatistics.MarginalDensity.density) — the options specify the
+estimator whose standard error is returned.
 
 ```jldoctest
 julia> h = Histogram1D(-6.0, 6.0, 600);

@@ -234,7 +234,7 @@ GBGStreamingStatistics.Expectations.expectation) with the smooth integrand ``g^2
 count. This is the plug-in sampling error of the empirical mean of ``g(X)``; it does not include the
 ``O(\\Delta^{ \\texttt{order}+1})`` quadrature bias, which is separate. `NaN` for an empty summary.
 
-Arguments: as for [`expectation`](@ref GBGStreamingStatistics.Expectations.expectation) — `summary`, `g`.
+Arguments: as for [`expectation`](@ref GBGStreamingStatistics.Expectations.expectation).
 """
 function expectation_standard_error(summary::Histogram1D, g)
   n = _total(summary)
@@ -339,8 +339,7 @@ composed kernel, its standard error is exactly the
 integrand — ``\\sqrt{(\\widehat{\\mathbb{E}}[K_h(g(X)-y)^2] - \\hat f_{g(X)}(y)^2)/n}``, which reduces to the
 two-term form above.
 
-Arguments: as for [`pushforward_density`](@ref GBGStreamingStatistics.Expectations.pushforward_density) —
-`summary`, `g`, `y`; `h`, `kernel`.
+Arguments: as for [`pushforward_density`](@ref GBGStreamingStatistics.Expectations.pushforward_density).
 """
 function pushforward_density_standard_error(summary::Histogram1D, g, y::Real; h::Real,
                                             kernel = gaussian_kernel)

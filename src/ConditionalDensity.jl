@@ -259,8 +259,8 @@ small. Symmetric kernels only (the asymmetric-`kernely` variance is a recorded g
 local to ``x``.
 
 Arguments: as for [`conditional_density`](@ref
-GBGStreamingStatistics.ConditionalDensity.conditional_density) — `summary`, `x`, `y`; `hx`, `hy`,
-`kernelx`, `kernely` (symmetric).
+GBGStreamingStatistics.ConditionalDensity.conditional_density), without `normalize` (the band is for the
+un-normalized estimate); symmetric kernels only.
 
 Reference: R. J. Hyndman, D. M. Bashtannyk & G. K. Grunwald (1996), [*Estimating and visualizing
 conditional densities*](https://doi.org/10.1080/10618600.1996.10474715), J. Comput. Graph. Statist. 5(4).
@@ -326,6 +326,9 @@ The standard error of [`transition_density`](@ref GBGStreamingStatistics.Conditi
 — identical to [`conditional_density_standard_error`](@ref GBGStreamingStatistics.ConditionalDensity.conditional_density_standard_error)
 on the per-lag joint histogram (the name marks the two-time reading), paired with the estimate by
 [`transition_density_with_standard_error`](@ref GBGStreamingStatistics.ConditionalDensity.transition_density_with_standard_error).
+
+Arguments: as for [`transition_density`](@ref GBGStreamingStatistics.ConditionalDensity.transition_density),
+without `normalize` (the band is for the un-normalized estimate).
 """
 transition_density_standard_error(summary::Histogram2D, x::Real, y; hx::Real, hy::Real,
                                   kernelx = gaussian_kernel, kernely = gaussian_kernel) =
