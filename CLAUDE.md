@@ -237,6 +237,16 @@ f_{Y\mid X}(y\mid x)\,\mathrm{d}y`` (the ``L^2`` projection), *then* the local-l
 the estimand whenever a clean population definition exists; for an intrinsically finite-sample object
 (a bandwidth selector, `merge!`) say so plainly rather than forcing a population form.
 
+- **Estimator-variant blocks vs Arguments — by number of variant axes.** When an estimator has a
+  **single** variant axis whose branches are genuinely different estimators — a primary `rule` selector
+  (`bandwidth`) or a `method` refinement (`conditional_variance`) — give each branch its own
+  `**Estimator** (rule = …)` / `**Estimator** (method = …)` block stating that branch's formula. When the
+  estimator varies along **several independent axes at once** — `density`'s `degree` (KDE vs
+  local-likelihood) × `start` (semiparametric) × `adaptive` × `bounds` — there is no single axis to break
+  out: give **one** unified `**Estimator.**` paragraph that names the branches, and put each axis's formula
+  in its own Arguments bullet. Block-vs-Arguments tracks *how many axes*, not primary-vs-secondary — a
+  secondary `method` can still earn blocks. *(Recorded so the docstring-structure audit does not re-flag
+  the `density`-vs-`bandwidth` asymmetry: it is justified by single- vs multi-axis, not a defect.)*
 - **Symbol bound to code on first mention:** `density` ``\equiv f_X``, `conditional_mean`
   ``\equiv m(x)``, `transition_density` ``\equiv p_\tau(y\mid x)``, `expectation`
   ``\equiv \mathbb{E}[g(X)]``.
