@@ -168,7 +168,7 @@ of ``g(Y)`` — itself two `conditional_expectation` readouts (``\\mathbb{E}[g^2
 ``m(x)``. It is the plug-in sampling error (not the ``O(h^2)`` smoothing bias). `NaN` where no data is
 local to ``x``.
 
-Arguments: as for `conditional_expectation` — `summary`, `g`, `x`; `h`, `kernel`, `degree`.
+Arguments: as for [`conditional_expectation`](@ref GBGStreamingStatistics.ConditionalExpectations.conditional_expectation) — `summary`, `g`, `x`; `h`, `kernel`, `degree`.
 """
 function conditional_expectation_standard_error(summary::Histogram2D, g, x::Real; h::Real,
                                                 kernel = gaussian_kernel, degree::Integer = 1)
