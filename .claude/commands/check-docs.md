@@ -170,7 +170,11 @@ definitions; this command runs all of them.
   **argument-coverage scan** — a short Julia helper that splits each `"""…"""`, parses the signature
   parameters (positional + keyword), and flags any never mentioned as a backticked `` `arg` `` in the
   body, then triage the false positives (an arg bound by `::Type`, by the estimand `m(x)`/`D(x)`, by an
-  `arg = value` mention, or by a `` `arg(…)` `` field bullet) and document the genuine misses; and — when
+  `arg = value` mention, by a `` `arg(…)` `` field bullet, or — for a paired `*_with_standard_error` reader
+  whose signature is identical to its base — by an `` Arguments: as for [`base`](@ref) `` pointer that
+  delegates the whole list to the base, e.g. `expectation_with_standard_error`; a pointer that also names a
+  *departure* from the base — `` …, without `normalize` `` on the conditional/transition-density readers —
+  covers the delegated args and calls out the difference) and document the genuine misses; and — when
   the docstring lists its arguments as bullets — flag any arg documented only in prose rather than as its
   own `` - **`arg`** `` entry (the `density` `kernel`-in-a-closing-paragraph defect) — the deterministic
   backstop for check (2)'s signature-driven argument coverage; a **register scan** —
