@@ -203,8 +203,7 @@ same estimator by construction, sharing the one ``y``-quadrature response and it
 returns a `NamedTuple` of vectors.
 
 Arguments: as for [`conditional_expectation`](@ref
-GBGStreamingStatistics.ConditionalExpectations.conditional_expectation) — `summary`, `g`, `x`; `h`,
-`kernel`, `degree`.
+GBGStreamingStatistics.ConditionalExpectations.conditional_expectation).
 """
 function conditional_expectation_with_standard_error(summary::Histogram2D, g, x::Real; h::Real,
                                                      kernel = gaussian_kernel, degree::Integer = 1)
@@ -442,6 +441,8 @@ variance (`method` `:residual` default, or `:plugin`) and `standard_error` its
 [`conditional_variance_standard_error`](@ref
 GBGStreamingStatistics.ConditionalExpectations.conditional_variance_standard_error) (the leading-order
 residual approximation, common to both methods). For a vector `x`, a `NamedTuple` of vectors.
+
+Arguments: as for [`conditional_variance`](@ref GBGStreamingStatistics.ConditionalExpectations.conditional_variance).
 """
 function conditional_variance_with_standard_error(summary::Histogram2D, x::Real; h::Real,
                                                   kernel = gaussian_kernel, degree::Integer = 1,
@@ -567,8 +568,7 @@ GBGStreamingStatistics.ConditionalExpectations.conditional_pushforward_density) 
 of the transformed response. Symmetric ``kernelz``.
 
 Arguments: as for [`conditional_pushforward_density`](@ref
-GBGStreamingStatistics.ConditionalExpectations.conditional_pushforward_density) — `summary`, `g`, `x`, `z`;
-`hx`, `hz`, `kernelx`, `kernelz`, `degree`.
+GBGStreamingStatistics.ConditionalExpectations.conditional_pushforward_density).
 """
 function conditional_pushforward_density_standard_error(summary::Histogram2D, g, x::Real, z::Real;
                                                         hx::Real, hz::Real, kernelx = gaussian_kernel,

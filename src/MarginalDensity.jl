@@ -751,10 +751,11 @@ The [`density`](@ref GBGStreamingStatistics.MarginalDensity.density) estimate **
 [`density_standard_error`](@ref GBGStreamingStatistics.MarginalDensity.density_standard_error), from a
 **single option specification** — so the estimate and its error describe the same estimator by
 construction (the estimate is computed once and reused). Returns the `NamedTuple`
-`(value = f̂(x), standard_error = SE(x))`; a vector `x` gives a `(value, standard_error)` of vectors. All
-options are exactly those of [`density`](@ref GBGStreamingStatistics.MarginalDensity.density); the standard
-error's estimand and per-option variance are documented at [`density_standard_error`](@ref
+`(value = f̂(x), standard_error = SE(x))`; a vector `x` gives a `(value, standard_error)` of vectors. The
+standard error's estimand and per-option variance are documented at [`density_standard_error`](@ref
 GBGStreamingStatistics.MarginalDensity.density_standard_error).
+
+Arguments: as for [`density`](@ref GBGStreamingStatistics.MarginalDensity.density).
 
 ```jldoctest
 julia> h = Histogram1D(-6.0, 6.0, 600);

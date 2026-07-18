@@ -293,8 +293,10 @@ The estimate and its standard error from one ``x``-profile reduction — the `Na
 ``\\hat f(y\\mid x)`` and `standard_error` its
 [`conditional_density_standard_error`](@ref GBGStreamingStatistics.ConditionalDensity.conditional_density_standard_error).
 They share the one profile, so they describe the same estimator by construction. For a vector `y`, returns
-a `NamedTuple` of vectors. Symmetric kernels; arguments as for
-[`conditional_density`](@ref GBGStreamingStatistics.ConditionalDensity.conditional_density).
+a `NamedTuple` of vectors.
+
+Arguments: as for [`conditional_density`](@ref GBGStreamingStatistics.ConditionalDensity.conditional_density),
+without `normalize` (the band is for the un-normalized estimate); symmetric kernels only.
 """
 function conditional_density_with_standard_error(summary::Histogram2D, x::Real, y::Real; hx::Real, hy::Real,
                                                  kernelx = gaussian_kernel, kernely = gaussian_kernel)
@@ -338,6 +340,9 @@ transition_density_standard_error(summary::Histogram2D, x::Real, y; hx::Real, hy
 [`transition_density`](@ref GBGStreamingStatistics.ConditionalDensity.transition_density) and its standard
 error from one pass (the `(value, standard_error)` `NamedTuple`) — the two-time reading of
 [`conditional_density_with_standard_error`](@ref GBGStreamingStatistics.ConditionalDensity.conditional_density_with_standard_error).
+
+Arguments: as for [`transition_density`](@ref GBGStreamingStatistics.ConditionalDensity.transition_density),
+without `normalize` (the band is for the un-normalized estimate).
 """
 transition_density_with_standard_error(summary::Histogram2D, x::Real, y; hx::Real, hy::Real,
                                        kernelx = gaussian_kernel, kernely = gaussian_kernel) =

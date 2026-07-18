@@ -40,8 +40,9 @@ Samples outside ``[\\texttt{lower}, \\texttt{upper})`` are **skipped** (not coun
 
 # Fields
 
-The summary's whole state, each reachable by dot — `summary.lower`, `summary.scale`,
-`summary.counts`, … — for serialization, inspection, or building one by hand:
+The summary's whole **internal state — distinct from the constructor arguments** (`scale` is derived,
+`counts` and `powersums` are allocated) — each reachable by dot (`summary.lower`, `summary.scale`,
+`summary.counts`, …), for serialization, inspection, or building one by hand:
 - `lower`, `upper` — the range edges (`upper > lower`).
 - `scale` — the precomputed binning factor `nbins / (upper - lower)`, stored (not recomputed) so that
   the binning map is a single multiply.
@@ -203,7 +204,8 @@ variant (for [`scale!`](@ref GBGStreamingStatistics.Accumulators.scale!) and wei
 
 # Fields
 
-The summary's whole state, each reachable by dot (`summary.xlower`, `summary.xscale`, `summary.lag`, …):
+The summary's whole **internal state — distinct from the constructor arguments** (`xscale`/`yscale`
+derived, `counts` and `powersums` allocated) — each reachable by dot (`summary.xlower`, `summary.xscale`, `summary.lag`, …):
 - `xlower`, `xupper`, `ylower`, `yupper`, `nx`, `ny` — the box and cell counts.
 - `xscale`, `yscale` — the precomputed binning factors `nx/(xupper-xlower)`, `ny/(yupper-ylower)`, stored.
 - `lag` — the lag ``\\tau`` this joint summary is accumulated at (`0` for the static joint).

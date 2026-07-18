@@ -255,7 +255,7 @@ GBGStreamingStatistics.Expectations.expectation) ``\\widehat{\\mathbb{E}}[g(X)]`
 [`expectation_standard_error`](@ref GBGStreamingStatistics.Expectations.expectation_standard_error). They
 describe the same estimator by construction, and ``\\widehat{\\mathbb{E}}[g]`` is computed once and shared.
 
-Arguments: as for [`expectation`](@ref GBGStreamingStatistics.Expectations.expectation) — `summary`, `g`.
+Arguments: as for [`expectation`](@ref GBGStreamingStatistics.Expectations.expectation).
 
 ```jldoctest
 julia> using GBGStreamingStatistics
@@ -363,8 +363,9 @@ end
 error from one quadrature pass — the `NamedTuple` ``(\\texttt{value}, \\texttt{standard\\_error})``, sharing
 the composed-kernel integrand with [`pushforward_density_standard_error`](@ref
 GBGStreamingStatistics.Expectations.pushforward_density_standard_error). For a vector `y`, a `NamedTuple` of
-vectors. Arguments as for
-[`pushforward_density`](@ref GBGStreamingStatistics.Expectations.pushforward_density).
+vectors.
+
+Arguments: as for [`pushforward_density`](@ref GBGStreamingStatistics.Expectations.pushforward_density).
 """
 function pushforward_density_with_standard_error(summary::Histogram1D, g, y::Real; h::Real,
                                                  kernel = gaussian_kernel)
