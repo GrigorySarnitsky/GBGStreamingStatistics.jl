@@ -702,8 +702,6 @@ Arguments: as for [`density`](@ref GBGStreamingStatistics.MarginalDensity.densit
 `degree`, `adaptive`, `bounds`, `start`, `normalize`, `binning` — specifying the estimator whose standard
 error is returned.
 
-Reference: M. P. Wand & M. C. Jones (1995), [*Kernel Smoothing*](https://doi.org/10.1201/b14876), Chapman & Hall.
-
 ```jldoctest
 julia> h = Histogram1D(-6.0, 6.0, 600);
 
@@ -712,6 +710,8 @@ julia> observe!(h, [-0.4, 0.1, 0.2, 0.9, 1.3]);
 julia> density_standard_error(h, 0.5) > 0
 true
 ```
+
+Reference: M. P. Wand & M. C. Jones (1995), [*Kernel Smoothing*](https://doi.org/10.1201/b14876), Chapman & Hall.
 """
 function density_standard_error(summary::Histogram1D, x::Real; h = nothing,
                     kernel = gaussian_kernel, degree::Integer = 0, adaptive::Bool = false,

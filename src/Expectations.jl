@@ -234,11 +234,7 @@ GBGStreamingStatistics.Expectations.expectation) with the smooth integrand ``g^2
 count. This is the plug-in sampling error of the empirical mean of ``g(X)``; it does not include the
 ``O(\\Delta^{ \\texttt{order}+1})`` quadrature bias, which is separate. `NaN` for an empty summary.
 
-Arguments:
-
-- `summary` — the [`Histogram1D`](@ref GBGStreamingStatistics.Histograms.Histogram1D) of ``X``.
-- `g` — the functional whose average's standard error is wanted (as in [`expectation`](@ref
-  GBGStreamingStatistics.Expectations.expectation)).
+Arguments: as for [`expectation`](@ref GBGStreamingStatistics.Expectations.expectation) — `summary`, `g`.
 """
 function expectation_standard_error(summary::Histogram1D, g)
   n = _total(summary)
@@ -261,7 +257,6 @@ describe the same estimator by construction, and ``\\widehat{\\mathbb{E}}[g]`` i
 
 Arguments: as for [`expectation`](@ref GBGStreamingStatistics.Expectations.expectation) — `summary`, `g`.
 
-# Examples
 ```jldoctest
 julia> using GBGStreamingStatistics
 
