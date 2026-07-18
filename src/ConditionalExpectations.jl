@@ -114,6 +114,9 @@ query points returns a vector; where no data is local to ``x`` the estimate is `
   [`gaussian_kernel`](@ref GBGStreamingStatistics.Kernels.gaussian_kernel)).
 - `degree` — the local-polynomial order in ``x``: `0` (Nadaraya–Watson), `1` (local-linear, the default),
   or `2`.
+
+Reference: J. Fan & I. Gijbels (1996), [*Local Polynomial Modelling and Its Applications*](https://doi.org/10.1201/9780203748725),
+Chapman & Hall.
 """
 function conditional_expectation(summary::Histogram2D, g, x::Real; h::Real,
                                  kernel = gaussian_kernel, degree::Integer = 1)
@@ -504,6 +507,8 @@ conditioning value `x`.
 - `kernelz` — the response-direction (``z``) kernel (default `gaussian_kernel`); a symmetric kernel
   integrates to 1 exactly.
 - `degree` — the local-polynomial order in ``x``: `0`, `1` (the default), or `2`.
+
+Reference: B. W. Silverman (1986), [*Density Estimation for Statistics and Data Analysis*](https://doi.org/10.1201/9781315140919), Chapman & Hall.
 """
 function conditional_pushforward_density(summary::Histogram2D, g, x::Real, z::Real;
                                          hx::Real, hz::Real, kernelx = gaussian_kernel,
