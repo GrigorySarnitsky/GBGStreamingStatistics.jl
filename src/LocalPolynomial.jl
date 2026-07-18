@@ -89,7 +89,7 @@ This is the shared linear primitive of the local smoothers:
 ``\\hat m(x)`` is ``\\beta_0`` of one `local_fit`, and the local-likelihood density reuses the same
 kernel-weighted-moment solve as the iteratively reweighted (IRLS) inner step of its local-Poisson fit.
 
-Arguments:
+# Arguments
 
 - `locations` — the bin locations ``\\ell_j`` (geometric centers or recovered centroids).
 - `mass` — the per-bin design weight ``w_j`` (the bin counts).

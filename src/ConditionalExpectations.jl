@@ -102,7 +102,7 @@ and ``O(\\Delta_y^2)`` for a general smooth ``g`` — the price of the fixed ord
 [`conditional_mean`](@ref GBGStreamingStatistics.ConditionalExpectations.conditional_mean). A vector of
 query points returns a vector; where no data is local to ``x`` the estimate is `NaN`.
 
-Arguments:
+# Arguments
 
 - `summary` — the joint [`Histogram2D`](@ref GBGStreamingStatistics.Histograms.Histogram2D) of
   ``(X, Y)``.
@@ -272,7 +272,7 @@ density, so they do **not** generally improve the conditional mean; prefer `degr
 conditioning variable. A bounded *response* is the other case: there the response kernel can be asymmetric —
 see [`conditional_density`](@ref GBGStreamingStatistics.ConditionalDensity.conditional_density).
 
-Arguments:
+# Arguments
 
 - `summary` — the joint [`Histogram2D`](@ref GBGStreamingStatistics.Histograms.Histogram2D) of
   ``(X, Y)``.
@@ -353,7 +353,7 @@ squared-residual total is recovered exactly from the stored column sums,
 \\hat m_h(x)^2`` (the same local fit applied to the ``Y^2`` response), clamped non-negative — cheaper
 (no first stage), but it carries the curved-``\\mathbb{E}[Y^2 \\mid x]`` smoothing bias.
 
-Arguments:
+# Arguments
 
 - `summary` — the joint [`Histogram2D`](@ref GBGStreamingStatistics.Histograms.Histogram2D) of
   ``(X, Y)``.
@@ -490,7 +490,7 @@ directly for the untransformed response. Needs ``g`` smooth on the ``Y``-bin sca
 bandwidth ``h_z \\gtrsim |g'| \\Delta_y``. A vector `z` returns the density curve at the fixed
 conditioning value `x`.
 
-Arguments:
+# Arguments
 
 - `summary` — the joint [`Histogram2D`](@ref GBGStreamingStatistics.Histograms.Histogram2D) of
   ``(X, Y)``.

@@ -385,6 +385,7 @@ is equivalent.
 extension: available only when the `HDF5` package is loaded.
 
 # Arguments
+
 - `parent` — an open HDF5 `File` or `Group` to create the new subgroup under.
 - `name` — the name of the group to create.
 - `summary` — the `Histogram1D` or `Histogram2D` to write.
@@ -407,6 +408,7 @@ device afterward if needed. Provided by a package extension: available only when
 loaded.
 
 # Arguments
+
 - `parent` — an open HDF5 `File` or `Group` holding the group.
 - `name` — the name (or path) of the histogram group under `parent`.
 """

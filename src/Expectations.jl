@@ -184,7 +184,7 @@ on each bin (no automatic differentiation), so any callable `g` works; `g` is pr
 bins, hence only within the data range. The estimand needs ``g`` smooth on the bin scale and the mass
 inside the summary's range. An empty summary gives `NaN`.
 
-Arguments:
+# Arguments
 
 - `summary` — the [`Histogram1D`](@ref GBGStreamingStatistics.Histograms.Histogram1D) of ``X``.
 - `g` — the functional to average: any callable ``x \\mapsto g(x)`` (smooth on the bin scale). The moments
@@ -300,7 +300,7 @@ dy = 1`` exactly. Needs ``g`` smooth on the bin scale and the response bandwidth
 ``|g'| \\Delta`` (so ``K_h \\circ g`` is resolved across a bin). A vector `y` returns the density curve
 over those points.
 
-Arguments:
+# Arguments
 
 - `summary` — the [`Histogram1D`](@ref GBGStreamingStatistics.Histograms.Histogram1D) of ``X``.
 - `g` — the transform defining ``Y = g(X)`` (any callable, smooth on the bin scale).

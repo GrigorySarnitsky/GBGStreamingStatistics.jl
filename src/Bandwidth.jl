@@ -390,7 +390,7 @@ The response-aware *local* plug-in ``h^\\star(x) = \\bigl[R(K) \\sigma^2(x) /
 the conditional variance ``\\sigma^2(x)`` and regression curvature ``m''(x)`` — is the separate
 joint-summary selector `bandwidth(summary::Histogram2D, x; rule = :local)` (below).
 
-Arguments:
+# Arguments
 
 - `summary` — the [`Histogram1D`](@ref GBGStreamingStatistics.Histograms.Histogram1D) of ``X``; its
   recovered ``\\hat\\sigma`` (and, for the data-driven rules, its bin counts) are the inputs.
@@ -524,7 +524,7 @@ needs a wider window than the final fit, the default pilot is the curvature-rate
 bandwidth is unbounded, so it is capped at the X-range. A vector `x` returns a vector; `NaN` marks an
 ``x`` off the data's support.
 
-Arguments:
+# Arguments
 
 - `summary` — the joint [`Histogram2D`](@ref GBGStreamingStatistics.Histograms.Histogram2D) of
   ``(X, Y)``.

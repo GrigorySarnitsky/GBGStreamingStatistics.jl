@@ -404,7 +404,7 @@ conditioning variable ``X``, defined by ``P(X \\in A) = \\int_A f_X\\,\\mathrm{d
 smoother of the counts ``n_j`` at bin locations ``\\ell_j`` (the within-bin centroid by default; see the
 `binning` option), a KDE / WARPing, or a local-log-polynomial fit of ``\\log f`` at `degree` ``\\ge 1``.
 
-Arguments:
+# Arguments
 
 - `summary` — the [`Histogram1D`](@ref GBGStreamingStatistics.Histograms.Histogram1D) of ``X``.
 - `x` — the **query point(s)**: a scalar for the density at one point, or a vector for the whole curve.
