@@ -1,7 +1,10 @@
 using Pkg
 Pkg.activate(@__DIR__)
 using Documenter
+using GBGCodingTools
 using GBGStreamingStatistics
+const ROOT = normpath(joinpath(@__DIR__, ".."))
+const TOOLING = GBGCodingTools.Render.pages(GBGCodingTools.ConfigIO.read_config(ROOT), ROOT)
 
 
 # Doc lint: an inline-math span ``…`` must not be split across a source line by a CommonMark
@@ -66,7 +69,7 @@ copy_rationale_pages()
 # verifies them on every build so they cannot drift from the code. Add them incrementally.
 DocMeta.setdocmeta!(GBGStreamingStatistics, :DocTestSetup, :(using GBGStreamingStatistics); recursive = true)
 
-makedocs(
+GBGCodingTools.makedocs(ROOT;
   sitename  = "GBGStreamingStatistics.jl",
   modules   = [GBGStreamingStatistics,
                GBGStreamingStatistics.Accumulators,
@@ -105,6 +108,7 @@ makedocs(
       "Testing"       => "testing.md",
       "Performance"   => "performance.md",
       "Internals"     => "internals.md",
+      "Documentation tooling" => only(TOOLING),
     ],
   ]
 )

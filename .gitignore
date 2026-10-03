@@ -1,3 +1,14 @@
+# gbg:managed begin v2.0.0-rc.57 — rewritten by `gbg sync`; do not edit
+.gbg/scratch/
+docs/build/
+docs/src/gbg.md
+docs/Manifest.toml
+test/Manifest.toml
+benchmark/Manifest.toml
+.claude/settings.local.json
+*.cov
+# gbg:managed end
+
 .ipynb_checkpoints/
 Manifest.toml
 benchmark/results/

@@ -1,3 +1,23 @@
+<!-- gbg:managed begin v2.0.0-rc.57 — rewritten by `gbg sync`; do not edit -->
+@.gbg/policy/00-index.md
+
+The rulebook above is the whole of it: the rules, the terms they use, and what GBGStreamingStatistics has
+switched off with its reason. Nothing restates a rule outside it — a rule quoted in two files is a
+rule that will be reworded in one.
+
+Unasked, run `Pkg.test()` and nothing else; before every push the docs build runs too, through the
+push hook, and a failing build stops the push. What a rule finds is reported, never fixed silently:
+documentation may be fixed without asking, and anything else waits for an answer.
+
+The readers of a review are derived from the rules and the tool's catalogue of disciplines. A
+reader or a discipline this package needs and the tool lacks is requested of the tool, as a request
+file the owner has approved, never written here.
+
+A run an earlier session left open is continued before anything else, and the chat says so:
+`gbg run next` says what to launch or that the stage is ready to collect, and the run goes on to
+its close. It waits for the owner only when `gbg run next` says the tree moved since the launch.
+<!-- gbg:managed end -->
+
 # CLAUDE.md — GBGStreamingStatistics
 
 Julia package: a backend-agnostic library for **online nonparametric statistics**. It estimates

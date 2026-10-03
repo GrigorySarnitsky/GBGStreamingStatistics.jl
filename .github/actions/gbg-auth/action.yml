@@ -1,0 +1,15 @@
+# gbg:managed begin v2.0.0-rc.57 — rewritten by `gbg sync`; do not edit
+name: GBG private dependencies
+description: Lets a runner fetch the GBG packages, which are private repositories.
+inputs:
+  token:
+    description: A token that can read the GBG repositories.
+    required: true
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      # Before any julia-actions step: Pkg fetches the pinned tool over https, and this rewrite is
+      # what lets a private repository resolve on the runner.
+      run: git config --global url."https://x-access-token:${{ inputs.token }}@github.com/".insteadOf "https://github.com/"
+# gbg:managed end

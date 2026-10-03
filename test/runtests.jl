@@ -24,3 +24,6 @@ module AllocationsTests;        include("allocations.jl");        end
 module AquaTests;               include("aqua.jl");               end
 module JETTests;                include("jet.jl");                end
 module HDF5Tests;               include("hdf5.jl");               end
+
+using GBGCodingTools
+GBGCodingTools.Engine.Harness.test(dirname(@__DIR__); checks = (GBGCodingTools.Render.wiring,))

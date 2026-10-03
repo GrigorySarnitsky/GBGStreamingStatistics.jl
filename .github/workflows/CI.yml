@@ -1,7 +1,7 @@
 name: CI
 
 on:
-  # Every commit is authored locally and the FULL matrix is run before it is pushed (`julia +1.11`
+  # Every commit is authored locally and the FULL matrix is run before it is pushed (`julia +1.12`
   # 1-thread + `julia +release` 4-thread, via juliaup), so a push-triggered run would only re-verify
   # what is already green. Kept manual (`workflow_dispatch`) plus on release tags — the one thing a
   # single local run cannot give is a from-scratch clean-environment resolve, which a tagged release
@@ -18,13 +18,16 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - version: '1.11'   # the package's minimum (compat floor)
+          - version: '1.12'   # the package's minimum (compat floor)
             threads: '1'
           - version: '1'      # current stable, threaded lane
             threads: '4'
 
     steps:
       - uses: actions/checkout@v6
+      - uses: ./.github/actions/gbg-auth
+        with:
+          token: ${{ secrets.GBG_DEPS_TOKEN }}
       - uses: julia-actions/setup-julia@v3
         with:
           version: ${{ matrix.version }}
