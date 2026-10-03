@@ -21,6 +21,8 @@ module OraclesTests;            include("oracles.jl");            end
 module MergeabilityTests;       include("mergeability.jl");       end
 module HyperstatisticsTests;    include("hyperstatistics.jl");    end
 module AllocationsTests;        include("allocations.jl");        end
+module MethodParityTests;       include("method_parity.jl");      end
+module OracleRegistryTests;     include("oracle_registry.jl");    end
 module AquaTests;               include("aqua.jl");               end
 module JETTests;                include("jet.jl");                end
 module HDF5Tests;               include("hdf5.jl");               end

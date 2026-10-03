@@ -93,6 +93,11 @@ end
   @test r.value == expectation(h, cos)
   @test r.standard_error == expectation_standard_error(h, cos)
   @test isnan(expectation_with_standard_error(Histogram1D(LOWER, UPPER, NBINS), cos).standard_error)
+  # ... and each half against its closed form on N(0, 1): E[cos X] = e^{-1/2}, and
+  # Var(cos X) = E[cos² X] − E[cos X]² = (1 + e^{-2})/2 − e^{-1}, so SE = √(Var(cos X)/n)
+  closed_se = sqrt(((1 + exp(-2)) / 2 - exp(-1)) / n)
+  @test r.value ≈ exp(-0.5) atol = 4 * closed_se
+  @test r.standard_error ≈ closed_se rtol = 0.02
 end
 
 
@@ -128,6 +133,11 @@ end
   @test r.standard_error == pushforward_density_standard_error(h, exp, 1.0; h = 0.12)
   @test pushforward_density_with_standard_error(h, exp, [0.8, 1.2]; h = 0.12).standard_error ==
         pushforward_density_standard_error(h, exp, [0.8, 1.2]; h = 0.12)
+  # ... and each half against its closed form: the lognormal pdf, and the two-term KDE variance in the
+  # transformed variable √(R(K) f/(n h) − f²/n) with R(K) = 1/(2√π) and f = f_{exp(X)}(1) analytic
+  f1 = lognormal_pdf(1.0); nn = float(length(data))
+  @test r.value ≈ f1 rtol = 0.06
+  @test r.standard_error ≈ sqrt(f1 / (2 * sqrt(π) * nn * 0.12) - f1^2 / nn) rtol = 0.1
   @test_throws ArgumentError pushforward_density_standard_error(h, exp, 1.0; h = -0.1)
   # Monte-Carlo: the SE predicts the empirical spread of f̂_{exp(X)}(1) across independent datasets
   Random.seed!(77); chunks = Histogram1D[]; mc = Float64[]

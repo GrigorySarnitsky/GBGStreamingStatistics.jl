@@ -200,6 +200,17 @@ end
   rv = density_with_standard_error(hg, [-1.0, 0.0, 1.0]; h = bw)
   @test rv.value == density(hg, [-1.0, 0.0, 1.0]; h = bw)
   @test rv.standard_error == density_standard_error(hg, [-1.0, 0.0, 1.0]; h = bw)
+  # ... and each half against its closed form: a Gaussian-kernel KDE of N(0, 1) data has mean exactly
+  # the N(0, 1 + h²) pdf (the convolution), so the value is checked against that with no bias allowance,
+  # and the SE against √(R(K) f/(n h) − f²/n) evaluated at it, R(K) = 1/(2√π)
+  nn = 200_000
+  for x in (-1.0, 0.0, 1.0)
+    fs = gaussian_pdf(x; sigma = sqrt(1 + bw^2))
+    closed = sqrt(fs / (2 * sqrt(π) * nn * bw) - fs^2 / nn)
+    r = density_with_standard_error(hg, x; h = bw)
+    @test r.value ≈ fs atol = 4 * closed
+    @test r.standard_error ≈ closed rtol = 0.02
+  end
 
   # Monte-Carlo: the SE predicts the actual sampling spread of the estimate at the density peak
   Random.seed!(51); K = 25; per = 40_000

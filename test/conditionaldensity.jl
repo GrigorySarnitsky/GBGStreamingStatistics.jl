@@ -113,6 +113,13 @@ include("testcontracts.jl"); using .TestContracts
     r = conditional_density_with_standard_error(g, 0.0, 0.2; hx = hx, hy = hy)
     @test r.value == conditional_density(g, 0.0, 0.2; hx = hx, hy = hy)
     @test r.standard_error == conditional_density_standard_error(g, 0.0, 0.2; hx = hx, hy = hy)
+    # ... and each half against its closed form: N(ρx, 1 − ρ²) and the two-term double-kernel variance
+    for (x0, y0) in ((0.0, 0.0), (0.5, 0.3))
+      f = cond_pdf(y0, x0)
+      rx = conditional_density_with_standard_error(g, x0, y0; hx = hx, hy = hy)
+      @test rx.value ≈ f atol = 0.03
+      @test rx.standard_error ≈ sqrt(RK^2 * f / (N * hx * hy * fX(x0)) - f^2 / N) rtol = 0.06
+    end
     rv = conditional_density_with_standard_error(g, 0.0, [-0.2, 0.0, 0.2]; hx = hx, hy = hy)
     @test rv.standard_error == conditional_density_standard_error(g, 0.0, [-0.2, 0.0, 0.2]; hx = hx, hy = hy)
     # transition-density aliases forward to the conditional readers

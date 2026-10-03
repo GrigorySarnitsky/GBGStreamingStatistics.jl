@@ -200,6 +200,26 @@ Monte-Carlo–averaged MISE the source papers report — its goal is a non-fragi
 MISE estimate. (It is why the `:plugin`-on-`Beta(2,2)` test asserts only *competitiveness*: the rule of
 thumb is already near-optimal on that smooth, symmetric case, so the gain there is real but marginal.)
 
+## Declared harness contracts
+
+Three completeness contracts are declared to the shared tooling package,
+[GBGCodingTools](https://grigorysarnitsky.github.io/GBGCodingTools.jl/), so its engines
+run inside `Pkg.test()` and derive their required rows from the package's public surface (ownership over
+the modules `test/public_surface.jl` lists), never from a remembered list:
+
+- **Allocation audit** (`test/allocations.jl`). Every in-place operation — `observe!`, `observe_pairs!`,
+  `merge!`, `scale!` — has an `@alloc_below` row, and a fifth one fails the suite until it is measured.
+  The exact zero of each `merge!` is pinned by a plain `@allocated` beside its row, since the tool's macro
+  adds its own few bytes there.
+- **Oracle registry** (`test/oracle_registry.jl`). Every public value-returning operation is classified
+  by where its ground truth comes from — a closed form, a direct computation on the raw data, an
+  invariant — citing the test that holds it; none may rest only on agreement with another operation of
+  the package. Each paired `*_with_standard_error` reader is held to the closed form of its value and of
+  its standard error, not only to the separate calls.
+- **Method parity** (`test/method_parity.jl`, `test/method_parity_baseline.toml`). The method count of
+  every public operation and of every module is frozen; a moved number is refrozen in the commit that
+  moves it, with the reason.
+
 ## Layout
 
 `test/runtests.jl` includes each module's tests in its own wrapper module so top-level helpers and
@@ -209,11 +229,12 @@ The per-module files are `accumulators.jl`, `histograms.jl`, `histograms2d.jl`, 
 `conditionalexpectations.jl`, `conditionaldensity.jl`, `conditional_convergence.jl`, `expectations.jl`;
 the cross-cutting files are `oracles.jl` (the Gaussian / OU end-to-end oracles), `mergeability.jl`,
 `hyperstatistics.jl` (the cone laws and the superstatistics / forgetting oracles), `allocations.jl`,
+`method_parity.jl`, `oracle_registry.jl`, `public_surface.jl` (the three declared contracts above),
 `testoracles.jl` (the shared `TestOracles` analytic library — the closed forms), and
 `testcontracts.jl` (the `TestContracts` universal-contract battery — `check_point_estimator`). `aqua.jl`
 and `jet.jl` are the package-quality checks; `gpu/` is the gated device suite. The test environment is
-`test/Project.toml` (Aqua, JET, Random, SpecialFunctions, Statistics, Test, plus the `LoweredCodeUtils`
-compat pin JET needs).
+`test/Project.toml` (Aqua, GBGCodingTools, HDF5, JET, Random, SpecialFunctions, Statistics, TOML, Test,
+plus the `LoweredCodeUtils` compat pin JET needs).
 
 !!! note "Status"
     The summary suites (`Histogram1D`, `Histogram2D`), `density` (with the asymmetric kernels, the

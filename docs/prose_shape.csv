@@ -64,7 +64,7 @@ unit,words,longest_paragraph,admonitions
 "ConditionalExpectations.jl :: conditional_variance_with_standard_error(summary::Histogram2",116,54,0
 "ConditionalExpectations.md § ConditionalExpectations",68,68,0
 "Expectations.jl :: central_moment(summary::Histogram1D, p)",75,66,0
-"Expectations.jl :: expectation(summary::Histogram1D, g)   # ≡ 𝔼[g(X)]",224,97,0
+"Expectations.jl :: expectation(summary::Histogram1D, g)   # ≡ 𝔼[g(X)]",223,97,0
 "Expectations.jl :: expectation_standard_error(summary::Histogram1D, g)",72,48,0
 "Expectations.jl :: expectation_with_standard_error(summary::Histogram1D, g)",80,39,0
 "Expectations.jl :: mean(summary::Histogram1D)",52,46,0
@@ -132,8 +132,9 @@ unit,words,longest_paragraph,admonitions
 "PERFORMANCE.md § The model — one critical path",187,156,0
 "TESTING.md § (preamble)",22,22,1
 "TESTING.md § Coverage matrix",724,388,0
+"TESTING.md § Declared harness contracts",189,151,0
 "TESTING.md § Layers",774,774,0
-"TESTING.md § Layout",265,149,1
+"TESTING.md § Layout",276,149,1
 "TESTING.md § Testing",25,25,0
 "TESTING.md § The estimator contract",85,71,0
 "TESTING.md § The estimator contract / item 1",11,11,0

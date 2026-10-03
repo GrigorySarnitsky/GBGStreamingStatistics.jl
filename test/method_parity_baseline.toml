@@ -1,0 +1,261 @@
+# Method-parity baseline, read by GBGCodingTools.TestHarness.method_parity from test/method_parity.jl.
+# The package DECLARES method parity to the tool (RULE.TEST.METHOD_PARITY); these are its frozen numbers,
+# and a moved number is refrozen deliberately, in the same commit as the change, with the reason beside it.
+#
+# Two tables, counting DIFFERENT denominators, which must not be compared:
+# - [[generic]]: the public surface — for each operation a user can call, the number of methods the named
+#   module defines for it (a scalar and a vector query-point method give 2; `merge!` has its abstract
+#   fallback in Accumulators and the two concrete summaries' methods in Histograms). `write_histogram` /
+#   `read_histogram` are bare generics whose methods live in the HDF5 extension, not in a package module.
+# - [module]: the derived count — every method each module owns over the package's whole function
+#   surface, internals included, so a method added anywhere moves a number.
+#
+# Frozen 2026-10-03 at the wiring (GBGCodingTools v2.0.0-rc.57), Julia 1.12.
+
+[[generic]]
+set = "public"
+name = "observe!"
+count = 2
+module = "Histograms"
+
+[[generic]]
+set = "public"
+name = "observe_pairs!"
+count = 1
+module = "Histograms"
+
+[[generic]]
+set = "public"
+name = "merge!"
+count = 1
+module = "Accumulators"
+
+[[generic]]
+set = "public"
+name = "merge!"
+count = 2
+module = "Histograms"
+
+[[generic]]
+set = "public"
+name = "scale!"
+count = 2
+module = "Histograms"
+
+[[generic]]
+set = "public"
+name = "write_histogram"
+count = 0
+module = "Histograms"
+
+[[generic]]
+set = "public"
+name = "read_histogram"
+count = 0
+module = "Histograms"
+
+[[generic]]
+set = "public"
+name = "gaussian_kernel"
+count = 1
+module = "Kernels"
+
+[[generic]]
+set = "public"
+name = "epanechnikov_kernel"
+count = 1
+module = "Kernels"
+
+[[generic]]
+set = "public"
+name = "mean"
+count = 1
+module = "Expectations"
+
+[[generic]]
+set = "public"
+name = "var"
+count = 1
+module = "Expectations"
+
+[[generic]]
+set = "public"
+name = "std"
+count = 1
+module = "Expectations"
+
+[[generic]]
+set = "public"
+name = "central_moment"
+count = 1
+module = "Expectations"
+
+[[generic]]
+set = "public"
+name = "expectation"
+count = 1
+module = "Expectations"
+
+[[generic]]
+set = "public"
+name = "expectation_standard_error"
+count = 1
+module = "Expectations"
+
+[[generic]]
+set = "public"
+name = "expectation_with_standard_error"
+count = 1
+module = "Expectations"
+
+[[generic]]
+set = "public"
+name = "pushforward_density"
+count = 2
+module = "Expectations"
+
+[[generic]]
+set = "public"
+name = "pushforward_density_standard_error"
+count = 2
+module = "Expectations"
+
+[[generic]]
+set = "public"
+name = "pushforward_density_with_standard_error"
+count = 2
+module = "Expectations"
+
+[[generic]]
+set = "public"
+name = "density"
+count = 2
+module = "MarginalDensity"
+
+[[generic]]
+set = "public"
+name = "density_standard_error"
+count = 2
+module = "MarginalDensity"
+
+[[generic]]
+set = "public"
+name = "density_with_standard_error"
+count = 2
+module = "MarginalDensity"
+
+[[generic]]
+set = "public"
+name = "conditional_expectation"
+count = 2
+module = "ConditionalExpectations"
+
+[[generic]]
+set = "public"
+name = "conditional_expectation_standard_error"
+count = 2
+module = "ConditionalExpectations"
+
+[[generic]]
+set = "public"
+name = "conditional_expectation_with_standard_error"
+count = 2
+module = "ConditionalExpectations"
+
+[[generic]]
+set = "public"
+name = "conditional_mean"
+count = 1
+module = "ConditionalExpectations"
+
+[[generic]]
+set = "public"
+name = "conditional_variance"
+count = 2
+module = "ConditionalExpectations"
+
+[[generic]]
+set = "public"
+name = "conditional_variance_standard_error"
+count = 2
+module = "ConditionalExpectations"
+
+[[generic]]
+set = "public"
+name = "conditional_variance_with_standard_error"
+count = 2
+module = "ConditionalExpectations"
+
+[[generic]]
+set = "public"
+name = "conditional_pushforward_density"
+count = 2
+module = "ConditionalExpectations"
+
+[[generic]]
+set = "public"
+name = "conditional_pushforward_density_standard_error"
+count = 2
+module = "ConditionalExpectations"
+
+[[generic]]
+set = "public"
+name = "conditional_pushforward_density_with_standard_error"
+count = 2
+module = "ConditionalExpectations"
+
+[[generic]]
+set = "public"
+name = "conditional_density"
+count = 2
+module = "ConditionalDensity"
+
+[[generic]]
+set = "public"
+name = "conditional_density_standard_error"
+count = 2
+module = "ConditionalDensity"
+
+[[generic]]
+set = "public"
+name = "conditional_density_with_standard_error"
+count = 2
+module = "ConditionalDensity"
+
+[[generic]]
+set = "public"
+name = "transition_density"
+count = 1
+module = "ConditionalDensity"
+
+[[generic]]
+set = "public"
+name = "transition_density_standard_error"
+count = 1
+module = "ConditionalDensity"
+
+[[generic]]
+set = "public"
+name = "transition_density_with_standard_error"
+count = 1
+module = "ConditionalDensity"
+
+[[generic]]
+set = "public"
+name = "bandwidth"
+count = 3
+module = "Bandwidth"
+
+[set_total]
+"public" = 60
+
+[module]
+Accumulators = 1
+Histograms = 33
+Kernels = 10
+Expectations = 21
+LocalPolynomial = 4
+MarginalDensity = 28
+ConditionalExpectations = 28
+ConditionalDensity = 15
+Bandwidth = 20

@@ -51,6 +51,21 @@ include("testoracles.jl"); using .TestOracles
     end
     ys = collect(-5s:0.02:5s)
     @test sum(transition_density(g, 0.0, ys; hx = 0.25, hy = 0.15)) * 0.02 ≈ 1 atol = 1e-2
+
+    # the transition-density standard error against the closed-form two-term double-kernel variance
+    # √(R(K)² p_τ(y|x)/(n hx hy f_X(x)) − p_τ²/n), every factor analytic: R(K) = 1/(2√π) for the Gaussian
+    # kernel, p_τ the OU transition law, f_X the stationary N(0, s²) — no package operation in the oracle.
+    # The paired reader's value is held to the transition law itself, as above.
+    RK = 1 / (2 * sqrt(π))
+    fX(x) = exp(-x^2 / (2s^2)) / (s * sqrt(2π))
+    for (x, y) in ((0.0, 0.0), (0.5, 0.5 * exp(-θ * τ) + 0.3))
+      p = ptrans(y, x)
+      closed = sqrt(RK^2 * p / (n * 0.25 * 0.15 * fX(x)) - p^2 / n)
+      @test transition_density_standard_error(g, x, y; hx = 0.25, hy = 0.15) ≈ closed rtol = 0.08
+      r = transition_density_with_standard_error(g, x, y; hx = 0.25, hy = 0.15)
+      @test r.value ≈ p atol = 0.04
+      @test r.standard_error ≈ closed rtol = 0.08
+    end
   end
   # the density convergence-rate test (ISE ∝ n^{-2p/(2p+1)} per degree) and the representative
   # analytic-PDF accuracy suite live in `test/density_convergence.jl`.

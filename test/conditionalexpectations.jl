@@ -69,6 +69,16 @@ include("testcontracts.jl"); using .TestContracts
           conditional_variance_with_standard_error(hist, 0.5; h = hbw, method = :residual).standard_error
     @test conditional_variance_with_standard_error(hist, [-0.5, 0.5]; h = hbw).standard_error ==
           conditional_variance_standard_error(hist, [-0.5, 0.5]; h = hbw)
+    # ... and each half against its closed form: σ²(x) = 1 − ρ², and the residual SE √(ℓ(x)(μ₄ − σ⁴))
+    # with the Gaussian μ₄ = 3σ⁴ and the interior leverage ℓ(x) ≈ R(K)/(N h f_X(x)), R(K) = 1/(2√π)
+    σ2 = 1 - ρ^2
+    for x in (0.0, 0.5)
+      fX = exp(-x^2 / 2) / sqrt(2π)
+      closed = sqrt(2 * σ2^2 / (2 * sqrt(π) * N * hbw * fX))
+      rx = conditional_variance_with_standard_error(hist, x; h = hbw)
+      @test rx.value ≈ σ2 rtol = 0.05
+      @test rx.standard_error ≈ closed rtol = 0.15
+    end
     @test isnan(conditional_variance_standard_error(hist, 100.0; h = hbw))
     @test_throws ArgumentError conditional_variance_standard_error(hist, 0.0; h = -1.0)
     @test_throws ArgumentError conditional_variance_standard_error(hist, 0.0; h = hbw, degree = 3)
@@ -248,6 +258,12 @@ end
     @test rp.standard_error == conditional_pushforward_density_standard_error(g, exp, x0, 1.0; hx = hx, hz = 0.18)
     @test conditional_pushforward_density_with_standard_error(g, exp, x0, [0.8, 1.3]; hx = hx, hz = 0.18).standard_error ==
           conditional_pushforward_density_standard_error(g, exp, x0, [0.8, 1.3]; hx = hx, hz = 0.18)
+    # ... and each half against its closed form: the conditional lognormal pdf, and the two-term variance
+    # √(R(K)² f/(N hx hz f_X(x)) − f²/N) — the interior local-linear leverage R(K)/(N hx f_X(x)) times the
+    # response-kernel variance R(K) f/hz, R(K) = 1/(2√π), f_X the N(0, 1) marginal
+    fz = lognormal_pdf(1.0); fX0 = exp(-x0^2 / 2) / sqrt(2π); RK = 1 / (2 * sqrt(π))
+    @test rp.value ≈ fz rtol = 0.08
+    @test rp.standard_error ≈ sqrt(RK^2 * fz / (N * hx * 0.18 * fX0) - fz^2 / N) rtol = 0.12
     @test isnan(conditional_pushforward_density_standard_error(g, exp, 100.0, 1.0; hx = hx, hz = 0.18))
     @test_throws ArgumentError conditional_pushforward_density_standard_error(g, exp, x0, 1.0; hx = hx, hz = -0.1)
     @test_throws ArgumentError conditional_pushforward_density_standard_error(g, exp, x0, 1.0; hx = hx, hz = 0.18, degree = 3)
@@ -348,6 +364,18 @@ end
     @test rv.value == conditional_expectation(chunk, identity, [-1.0, 0.0, 1.0]; h = h)
     @test rv.standard_error == conditional_expectation_standard_error(chunk, identity, [-1.0, 0.0, 1.0]; h = h)
     @test isnan(conditional_expectation_with_standard_error(chunk, identity, 100.0; h = h).standard_error)
+    # ... and each half against its closed form: Y | x ∼ N(ρx, 1 − ρ²) gives E[cos Y | x] = cos(ρx) e^{-v/2}
+    # and Var(cos Y | x) = (1 + cos(2ρx) e^{-2v})/2 − cos²(ρx) e^{-v}, v = 1 − ρ², and the SE is
+    # √(R(K) Var/(n h f_X(x))) at the interior leverage, R(K) = 1/(2√π). The value carries the local-linear
+    # O(h²) bias ½h² m''(x) ≈ −0.02 at h = 0.4, hence its absolute tolerance.
+    v = 1 - ρ^2
+    for x in (0.0, 0.5)
+      Varx = (1 + cos(2ρ * x) * exp(-2v)) / 2 - cos(ρ * x)^2 * exp(-v)
+      fX = exp(-x^2 / 2) / sqrt(2π)
+      rx = conditional_expectation_with_standard_error(chunk, cos, x; h = h)
+      @test rx.value ≈ cos(ρ * x) * exp(-v / 2) atol = 0.03
+      @test rx.standard_error ≈ sqrt(Varx / (2 * sqrt(π) * per * h * fX)) rtol = 0.15
+    end
     @test_throws ArgumentError conditional_expectation_with_standard_error(chunk, identity, 0.0; h = -1.0)
   end
 end
