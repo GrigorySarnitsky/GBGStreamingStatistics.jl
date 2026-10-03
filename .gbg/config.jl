@@ -21,4 +21,18 @@ Config(
     ],
     # The one address this package publishes: its author line and every commit's author field.
     leak_emails = ["grigory@sarnitsky.se"],
+    # The fields whose experts read this package's documentation. A statistician reads every estimand,
+    # estimator, standard error and rate claim — the whole content; an architect reads the two-half
+    # layering, the invariants and the decision log. No physics and no Fourier scheme (invariant 2), so
+    # the turbulence, microphysics and spectral disciplines are deliberately absent.
+    disciplines = [:statistical_estimation, :software_architecture],
+    switches = [
+        Switch(target = Symbol("RULE.DOC.COORD_FREE"),
+               reason = "No structured space to state a map intrinsically on: every variate is a scalar \
+                         on an interval, and the package carries no vector or tensor notation at all \
+                         (invariant 2; the \\mathbf and \\partial_i house guards are deliberately absent \
+                         here). The rule's differential-geometry reader would have nothing to judge, \
+                         and without the switch every review reports that nobody judges it. The owner, \
+                         2026-10-03."),
+    ],
 )
