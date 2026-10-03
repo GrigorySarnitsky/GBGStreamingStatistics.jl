@@ -1,3 +1,6 @@
+!!! info "Written by AI, not regularly reviewed"
+    This page is written by AI and is not reviewed regularly by a human.
+
 # Formalization
 
 The typed statements behind the prose. Each operation gets one entry stating its **estimand**, its
@@ -9,8 +12,8 @@ statement, the statement is verified against the code, and the linked test enfor
 A nontrivial claim with **no entry here**, or an entry with **no test link**, is a recorded coverage
 gap (`CLAUDE.md`, *Definition of done*).
 
-Throughout, ``K`` is the smoothing kernel with ``\int K = 1``, ``\mu_2(K) = \int u^2 K(u)\,\mathrm
-du`` its second moment, and ``R(K) = \int K^2`` its roughness; ``h`` is the bandwidth, ``n`` the
+Throughout, ``K`` is the smoothing kernel with ``\int K = 1``, ``\mu_2(K) = \int u^2 K(u)\,\mathrm{d}u``
+its second moment, and ``R(K) = \int K^2`` its roughness; ``h`` is the bandwidth, ``n`` the
 number of samples, ``f_X`` the marginal density of ``X`` (the conditioning variable in the joint estimators).
 
 The entries are grouped by the lens of `ARCHITECTURE.md` §2: the **atoms** (the power-sums summary, the
@@ -185,7 +188,7 @@ recorded in `ARCHITECTURE.md` §4 meanwhile.
   per-bin bandwidths ``h_j = h (\tilde f(c_j)/g)^{-1/2}`` (``g`` the geometric mean of ``\tilde f`` over
   the sample), widening the kernel in the sparse tails: ``\operatorname{bias} = O(h^4)`` at interior
   smooth ``x`` (Abramson 1982), with far less tail variance than a fixed ``h``.
-- **`degree` ``\ge 1`` (local-log-polynomial).** Fit ``\log f`` by a degree-``d`` polynomial through a binned
+- **``\texttt{degree} \ge 1`` (local-log-polynomial).** Fit ``\log f`` by a degree-``d`` polynomial through a binned
   **local Poisson** likelihood — ``\log \mathbb{E}[n_j] = \log(nb) + \sum_{l \le d} \beta_l (c_j-x)^l``,
   weights ``K((c_j-x)/h_j)``, by Newton/IRLS — and report ``\hat f(x) = e^{\hat\beta_0}`` (Loader 1996).
   Degree 1 is exact for an exponential density (tracks exponential tails), degree 2 for a Gaussian. The
@@ -225,7 +228,7 @@ recorded in `ARCHITECTURE.md` §4 meanwhile.
 - **Estimator** (`rule = :aic`, the fit-based information criterion; degree 0/1). Minimise ``\mathrm{AIC}(h) = -2\sum_j n_j\log\hat f_h(c_j) + 2\mathrm{df}(h)`` of the binned **Gaussian** KDE over a log-spaced ``h``-grid, with the effective degrees of freedom ``\mathrm{df}(h) = (\varphi(0)/h)\sum_j n_j/(n\hat f_h(c_j))`` — the kernel smoother's self-influence trace (``\varphi`` the Gaussian); both terms diverge as ``h\to0``, giving a stable interior optimum. Mergeable (a functional of the counts); the eval kernel multiplies by ``\delta(K)/\delta(\varphi)``. The leave-one-out cross-validation selectors (likelihood-CV, least-squares LSCV) are a recorded coverage gap — binning ties drive their objective to ``h\to0``.
 - **Estimator** (`rule = :plugin`, the **asymmetric-kernel** Chen plug-in; `gamma_kernel` / `beta_kernel`). The gamma / beta estimators take a scale ``b`` (rate ``n^{-2/5}``), not ``h``; their AMISE (Chen 1999, 2000; modified ``f_2``) is ``A b^2 + C b^{-1/2}/n`` with ``A = \tfrac{1}{4}\int w^2 (f'')^2``, ``C = (2\sqrt\pi)^{-1}\mathbb{E}[w(X)^{-1/2}]`` and local-scale weight ``w(x) = x`` (gamma) or ``x(1-x)`` (beta), giving ``b^\star = [\mathbb{E}[w(X)^{-1/2}]/(2\sqrt\pi n\int w^2 (f'')^2)]^{2/5}``. ``\mathbb{E}[w(X)^{-1/2}]`` is an exact count moment; the curvature ``\int w^2 (f'')^2`` is a grid quadrature of the pilot KDE's ``\hat f''_g`` (pilot ``g = 1.3 s n^{-1/9}`` at the robust scale ``s = \min(\hat\sigma, \mathrm{IQR}/1.349)``, the variance inflation ``R(\varphi'') \mathbb{E}[w^2]/(n g^5)`` removed), which — unlike the integration-by-parts ``\psi_4`` U-statistic — stays valid where ``f(0) > 0`` (the ``w \to 0`` boundary weight suppresses the pilot's edge leakage). A deterministic functional of the counts (mergeable). The symmetric `:sj` / `:isj` / `:aic` do not apply; a fully data-adaptive curvature pilot is a recorded refinement.
 - **Consistency claim.** with ``\hat\sigma \to \sigma`` and the Gaussian reference ``R(f^{(p)}) = (2p-1)!!/(2^{p+1}\sqrt{\pi} \sigma^{2p+1})``, ``C(K,d)`` is the exact AMISE-optimal constant: degree 0/1 gives ``h \sim n^{-1/5}`` (MISE ``\sim n^{-4/5}``), degree 2 the higher-order ``h \sim n^{-1/9}`` (MISE ``\sim n^{-8/9}``); the Gaussian/degree-0 case is Silverman ``(4/3)^{1/5}``, the Epanechnikov ``\approx 2.34``.
-- **Test.** `test/bandwidth.jl` (Gaussian degree 0 reproduces Silverman, degree 1 equals degree 0, the Epanechnikov ``h`` is ``2.214\times`` the Gaussian, degree 2 matches the closed-form ``n^{-1/9}`` rule and exceeds degree 0; coverage-gap and sample-size errors; plus the Sheather–Jones tests — SJ ``\approx`` the normal reference on Gaussian data, much tighter on a bimodal mixture, the exact ``\delta(K)`` kernel ratio, mergeability, the degree ``\ge 2`` gap; and the AIC tests — a stable optimum below the normal reference on Gaussian data, far smaller on a bimodal mixture, the exact ``\delta(K)`` ratio, mergeability, and the deliberately-absent CV rules erroring; and the asymmetric Chen plug-in — `:normal` reproduces the ``\hat\sigma n^{-2/5}`` rule of thumb, `:plugin` lowers the ISE (``\ge 1.25\times`` on log-normal, ``\ge 1.11\times`` on gamma; ``\approx 1.4\text{–}1.7\times`` typically, seed-audited) and stays ``\approx`` neutral on the near-exponential boundary case, gamma and beta kernels, mergeability, and the inapplicable `:sj`/`:isj`/`:aic` and `degree` ``\ge 1`` rules erroring; the Improved Sheather–Jones tests (`:isj` ``\approx`` the normal reference on Gaussian, ``< 0.5\times`` it on a bimodal mixture, the exact ``\delta(K)`` ratio, mergeability); and the **Marron–Wand claw** stress, where the data-driven `:sj` / `:isj` resolve the five spikes the normal reference oversmooths — ``\approx`` an order of magnitude lower ISE) and `test/oracles.jl` (the kernel-aware ratio on the ``N(0,1)`` oracle).
+- **Test.** `test/bandwidth.jl` (Gaussian degree 0 reproduces Silverman, degree 1 equals degree 0, the Epanechnikov ``h`` is ``2.214\times`` the Gaussian, degree 2 matches the closed-form ``n^{-1/9}`` rule and exceeds degree 0; coverage-gap and sample-size errors; plus the Sheather–Jones tests — SJ ``\approx`` the normal reference on Gaussian data, much tighter on a bimodal mixture, the exact ``\delta(K)`` kernel ratio, mergeability, the degree ``\ge 2`` gap; and the AIC tests — a stable optimum below the normal reference on Gaussian data, far smaller on a bimodal mixture, the exact ``\delta(K)`` ratio, mergeability, and the deliberately-absent CV rules erroring; and the asymmetric Chen plug-in — `:normal` reproduces the ``\hat\sigma n^{-2/5}`` rule of thumb, `:plugin` lowers the ISE (``\ge 1.25\times`` on log-normal, ``\ge 1.11\times`` on gamma; ``\approx 1.4\text{–}1.7\times`` typically, seed-audited) and stays ``\approx`` neutral on the near-exponential boundary case, gamma and beta kernels, mergeability, and the inapplicable `:sj`/`:isj`/`:aic` and ``\texttt{degree} \ge 1`` rules erroring; the Improved Sheather–Jones tests (`:isj` ``\approx`` the normal reference on Gaussian, ``< 0.5\times`` it on a bimodal mixture, the exact ``\delta(K)`` ratio, mergeability); and the **Marron–Wand claw** stress, where the data-driven `:sj` / `:isj` resolve the five spikes the normal reference oversmooths — ``\approx`` an order of magnitude lower ISE) and `test/oracles.jl` (the kernel-aware ratio on the ``N(0,1)`` oracle).
 
 ## Local-linear conditional mean (§4.2) — `conditional_mean`
 
@@ -340,8 +343,8 @@ recorded in `ARCHITECTURE.md` §4 meanwhile.
   design Hankel ``[T_{i+j}]``) and ``Q`` the Hankel of the **squared-kernel** moments
   ``Q_\ell = \sum_j N_j K_h(c_j-x)^2 (c_j-x)^\ell`` (the `LocalPolynomial._leverage` primitive — the reference
   mechanism for the kernel-family SE), times the plug-in conditional variance of ``g(Y)`` (two
-  `conditional_expectation` readouts). It is the exact analog of the marginal `expectation_standard_error`
-  ``= \sqrt{\operatorname{Var}(g(X))/n}``, with the global-mean leverage ``1/n`` replaced by
+  `conditional_expectation` readouts). It is the exact analog of the marginal `expectation_standard_error`,
+  ``\sqrt{\operatorname{Var}(g(X))/n}``, with the global-mean leverage ``1/n`` replaced by
   ``\sum_j N_j w_j^2``; at ``g = \mathrm{identity}`` it is the conditional mean's standard error. The paired
   `conditional_expectation_with_standard_error` returns this error with the estimate
   ``\widehat{\mathbb{E}}[g(Y)\mid x]`` from one shared fit (the ``(\texttt{value}, \texttt{standard\_error})``
@@ -382,8 +385,9 @@ recorded in `ARCHITECTURE.md` §4 meanwhile.
 - **Estimand.** ``f_{Y\mid X}(y\mid x) = f_{X,Y}(x,y)/f_X(x)``, and the two-time transition density
   ``p_\tau(y\mid x) = f_{X_{t+\tau}\mid X_t}(y\mid x)`` (the same object on a lag-``\tau`` joint).
 - **Estimator.** the binned double-kernel (Rosenblatt 1969; Hyndman, Bashtannyk & Grunwald 1996), with a
-  conditioning kernel ``K_1 =`` `kernelx` (bandwidth ``h_1 =`` `hx`, in ``x``) and a response kernel
-  ``K_2 =`` `kernely` (bandwidth ``h_2 =`` `hy`, in ``y``); each ``\int K = 1``, default `gaussian_kernel`:
+  conditioning kernel ``K_1`` (`kernelx`, of bandwidth ``h_1`` given by `hx`, in ``x``) and a response
+  kernel ``K_2`` (`kernely`, of bandwidth ``h_2`` given by `hy`, in ``y``); each ``\int K = 1``, default
+  `gaussian_kernel`:
   from the cell counts ``n_{jk}`` at centers ``(c^x_j, c^y_k)`` with ``N_j = \sum_k n_{jk}``,
 
   ```math

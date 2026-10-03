@@ -43,7 +43,7 @@ preallocated summary (no scratch). It runs identically on a CPU `Array` and any 
 allocation-free up to the kernel launch, and accumulates *wider than the data* (in the summary's
 accumulator type, `Float64` by default, never narrowed to the input element type).
 
-References:
+# References
 
 - D. W. Scott (2015), [*Multivariate Density Estimation*](https://doi.org/10.1002/9781118575574), 2nd ed.
 - M. D. Cattaneo et al. (2024), [*On binscatter*](https://doi.org/10.1257/aer.20221576) (the local-moment / WARPing construction).
@@ -84,9 +84,17 @@ mixing weight automatically, being ratios of linear functionals). This is **post
 re-accumulating, exactly as bandwidth is a post-hoc choice. A weighted merge (``\\texttt{weight} \\ne 1``)
 requires a Float-count `into` (`count = Float64`).
 
-`merge!` is intrinsically a finite-sample operation, so it has no population estimand of its own; its
+Being intrinsically a finite-sample operation, `merge!` has no population estimand of its own; its
 specification is the monoid (and, weighted, the cone) law, tested as *accumulate-then-merge `=`
 accumulate-together*. Extends `Base.merge!`.
+
+# Arguments
+
+- `into` — the summary that receives the merge, updated in place and returned.
+- `from` — the summary folded into `into`; both share one binning (range, bin count, order), and `from`
+  is left unchanged.
+- `weight` — the nonnegative weight of `from` in the cone combination (default `1`, the plain monoid
+  addition); a weight other than `1` needs a Float-count `into`.
 """
 merge!(into::AbstractAccumulator, from::AbstractAccumulator; weight = 1) =
   error("merge! is not implemented for $(typeof(into))")
@@ -104,12 +112,12 @@ the addition.
 Two uses. **Exponential forgetting** of a non-stationary stream — `scale!(summary, λ)` with
 ``0 < \\lambda < 1`` before folding in the next block down-weights the past geometrically (an effective
 window ``1/(1-\\lambda)``). **Hyperstatistics** — the scalar building block of the parameter-mixture
-density assembled by weighted [`merge!`](@ref Base.merge!) (the estimand and recipe are documented there;
+density assembled by weighted `merge!` (the estimand and recipe are documented there;
 Beck & Cohen 2003).
 
 Requires a **Float-count summary** (`count = Float64`; the default `UInt64` counts cannot hold a
-fractional ``\\texttt{weight} \\cdot n``) — an `ArgumentError` otherwise. ``\\texttt{weight} = 1`` is the
-identity. Like `merge!`, an intrinsically finite-sample operation with no population estimand; specified
+fractional ``\\texttt{weight} \\cdot n``) — an `ArgumentError` otherwise. The value ``\\texttt{weight} = 1``
+is the identity. Like `merge!`, an intrinsically finite-sample operation with no population estimand; specified
 by the cone laws (`scale!(scale!(s, a), b)` equals scaling by ``ab``; `scale!` distributes over `merge!`)
 and tested as such.
 """

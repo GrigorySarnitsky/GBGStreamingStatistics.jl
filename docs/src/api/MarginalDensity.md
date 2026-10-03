@@ -2,7 +2,7 @@
 
 The marginal density ``\equiv f_X``: the [`density`](@ref) estimator, its pointwise variability band
 [`density_standard_error`](@ref) and the paired [`density_with_standard_error`](@ref), and the parametric
-starts for its semiparametric mode. `density` accepts any symmetric or bounded-support kernel from the
+starts for its semiparametric mode. The estimator `density` accepts any symmetric or bounded-support kernel from the
 [Kernels](Kernels.md) page.
 
 ## Density

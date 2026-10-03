@@ -98,7 +98,7 @@ kernel-weighted-moment solve as the iteratively reweighted (IRLS) inner step of 
 - `x` — the query point at which the jet is evaluated.
 - `h` — the smoothing bandwidth (``h > 0``); it scales the kernel argument.
 - `kernel` — the smoothing kernel: a symmetric callable ``K`` (admitted at any `degree`), or an
-  `AsymmetricKernel` (`degree = 0` only). Its normalization cancels in the solve.
+  [`AsymmetricKernel`](@ref GBGStreamingStatistics.Kernels.AsymmetricKernel) (`degree = 0` only). Its normalization cancels in the solve.
 - `degree` — the local-polynomial order ``d``: `0` (local-constant / Nadaraya–Watson), `1`
   (local-linear), or `2` (local-quadratic); the returned jet then has `degree + 1` entries (an asymmetric
   `kernel` restricts it to `0`).

@@ -90,27 +90,27 @@ verbatim by every consumer) and an **estimator upper half** (the estimands):
   regression fits, the double-kernel conditional
   density, and the bandwidth rules.
 - [`Expectations`](api/Expectations.md): the power-sum quadrature readouts — the expectation of a smooth
-  functional `expectation` ``\equiv \mathbb{E}[g(X)]``, its sampling `expectation_standard_error` (paired
+  functional `expectation` (``\mathbb{E}[g(X)]``), its sampling `expectation_standard_error` (paired
   with the estimate by `expectation_with_standard_error`), and the pushforward density
-  `pushforward_density` ``\equiv f_{g(X)}`` of a transformed variable — each with its standard error. Read off the stored power-sums; the
+  `pushforward_density` (``f_{g(X)}``) of a transformed variable — each with its standard error. Read off the stored power-sums; the
   recovered moments (`mean` / `var` / `std` / `central_moment`) are the ``g = x^p`` case.
-- [`MarginalDensity`](api/MarginalDensity.md): the marginal density `density` ``\equiv f_X`` — one
+- [`MarginalDensity`](api/MarginalDensity.md): the marginal density `density` (``f_X``) — one
   call over the binned KDE, the local-log-polynomial (`degree`), and the Abramson variable bandwidth
   (`adaptive`, for tails), the asymmetric `gamma_kernel` / `beta_kernel` for bounded/positive support,
   the parametric `start` (a moment-fitted model corrected by a KDE; Hjort & Glad 1995), and exact
   `normalize` — plus `density_standard_error`, the pointwise variability band (tracking those same
   options), and `density_with_standard_error`, the estimate and its band from one option specification.
 - [`ConditionalExpectations`](api/ConditionalExpectations.md): the conditional expectation
-  `conditional_expectation` ``\equiv \mathbb{E}[g(Y)\mid x]`` of a response functional, with the conditional
-  mean `conditional_mean` ``\equiv m(x)`` and variance `conditional_variance` ``\equiv \sigma^2(x)`` (with its
+  `conditional_expectation` (``\mathbb{E}[g(Y)\mid x]``) of a response functional, with the conditional
+  mean `conditional_mean` (``m(x)``) and variance `conditional_variance` (``\sigma^2(x)``, with its
   residual-based standard error) as its ``g = \mathrm{identity}`` / ``y^2`` cases, the sampling
   `conditional_expectation_standard_error` (paired
   with the estimate by `conditional_expectation_with_standard_error`), and the
-  conditional pushforward density `conditional_pushforward_density` ``\equiv f_{g(Y)\mid X}``
+  conditional pushforward density `conditional_pushforward_density` (``f_{g(Y)\mid X}``)
   (local-polynomial regression in ``x`` of a ``y``-quadrature response) — each with its standard error.
 - [`ConditionalDensity`](api/ConditionalDensity.md): the conditional density `conditional_density`
-  ``\equiv f_{Y\mid X}`` and two-time transition density `transition_density`
-  ``\equiv p_\tau(y\mid x)`` (double-kernel), each with its pointwise standard error and paired reader.
+  (``f_{Y\mid X}``) and two-time transition density `transition_density`
+  (``p_\tau(y\mid x)``; double-kernel), each with its pointwise standard error and paired reader.
 - [`Bandwidth`](api/Bandwidth.md): bandwidth selection — the default kernel- and degree-aware
   normal-reference rule (Silverman the Gaussian/degree-0 case), plus data-driven plug-ins
   (e.g. Sheather–Jones, `rule = :sj`) and the joint-summary response-aware local plug-in ``h^\star(x)``

@@ -1,3 +1,6 @@
+!!! info "Written by AI, not regularly reviewed"
+    This page is written by AI and is not reviewed regularly by a human.
+
 # Testing
 
 How the tests are built and the per-operation coverage contract. The statistics analog of PF's
@@ -84,13 +87,15 @@ check (the failure mode that once left `conditional_mean` without a mergeability
 
 1. **Analytic-oracle correctness** — recovers a closed-form target (the oracle layer above).
 2. **Scalar ``=`` vector** — the vectorized call equals the per-point scalar calls.
-3. **Functional of the merged summary** — `f`(merge) ``=`` `f`(accumulate-together) — mergeability.
+3. **Functional of the merged summary** — the estimator of the merged summary equals that of the summary
+   accumulated together, ``f(\mathrm{merged}) = f(\mathrm{together})`` — mergeability.
 4. **Off-support sentinel** — `NaN` where the estimand is undefined off the data's support (the conditional
    estimators); a marginal density is defined everywhere and is exempt.
 5. **Argument-domain errors** — a non-positive bandwidth, and **every rejected option combination**, throws.
    The guards are audited for completeness: each `throw(ArgumentError(…))` — the bad `degree` / `binning` /
    `method` / `rule` symbol, the mutually-exclusive `start` / `adaptive` / `bounds` / asymmetric-kernel
-   combinations, the `degree ≥ 2` and asymmetric-kernel standard-error gaps — carries a `@test_throws`.
+   combinations, the ``\texttt{degree} \ge 2`` and asymmetric-kernel standard-error gaps — carries a
+   `@test_throws`.
 
 Characteristics 2–4 are the `check_point_estimator` battery; 1 and 5 are per-estimator (the oracle, the
 `@test_throws`).
@@ -122,7 +127,7 @@ behaviour. For the *kernel* standard errors (`density`, `conditional_expectation
 **``h^{-1/2}`` bandwidth scaling** (`check_se_bandwidth_scaling`, *asymptotic* — on a flat density at small
 ``h``, ``\mathrm{SE}(2h) \approx \mathrm{SE}(h)/\sqrt{2}``, since changing ``h`` also moves ``\hat f`` and the
 ``-\hat f^2/n`` term is ``h``-independent). It is *also* run through `check_point_estimator` (so the error, like the estimate, is a
-deterministic functional of the merged summary — `SE`(merge) ``=`` `SE`(accumulate-together)), and carries a
+deterministic functional of the merged summary, ``\mathrm{SE}(\mathrm{merged}) = \mathrm{SE}(\mathrm{together})``), and carries a
 **calibration** check per family: the predicted standard error matches the empirical standard deviation of
 the estimate across independent datasets (Monte-Carlo — `density` and `conditional_mean` at the density
 peak, `expectation` of ``\cos``). A `*_with_standard_error` additionally asserts its

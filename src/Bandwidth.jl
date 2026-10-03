@@ -337,8 +337,8 @@ R(K) &= \\int K^2, \\qquad \\mu_2(K) = \\int u^2 K(u)\\,\\mathrm{d}u,
 \\end{aligned}
 ```
 
-and at `degree` 2/3 the analogous fourth-order **equivalent-kernel** constant (Loader 1996). ``R(K)``
-and ``\\mu_2(K)`` are computed by quadrature, so any ``K`` is supported. For the Gaussian kernel at
+At `degree` 2/3 the constant is the analogous fourth-order **equivalent-kernel** one (Loader 1996). The
+constants ``R(K)`` and ``\\mu_2(K)`` are computed by quadrature, so any ``K`` is supported. For the Gaussian kernel at
 `degree` 0 this is **Silverman's rule** ``(4/3)^{1/5}\\hat\\sigma n^{-1/5}``; for the Epanechnikov
 kernel it is ``\\approx 2.34 \\hat\\sigma n^{-1/5}`` (``2.214\\times`` the Gaussian ``h``). Every
 input is read back from the *one* stored summary, post hoc.
@@ -374,7 +374,7 @@ is the kernel's local-scale weight,
 b^\\star = \\biggl[\\frac{\\mathbb{E}[w(X)^{-1/2}]}{2\\sqrt\\pi n \\int w(x)^2 f''(x)^2\\,\\mathrm{d}x}\\biggr]^{2/5}.
 ```
 
-``\\mathbb{E}[w(X)^{-1/2}]`` is an exact moment of the bin counts; the curvature ``\\int w^2 (f'')^2`` is
+The moment ``\\mathbb{E}[w(X)^{-1/2}]`` is exact from the bin counts; the curvature ``\\int w^2 (f'')^2`` is
 estimated from a pilot KDE's second derivative by grid quadrature (valid at the boundary because
 ``w \\to 0`` there, unlike an integration-by-parts functional). It lowers the ISE by ``\\approx
 1.4\\text{–}1.7\\times`` on skewed positive data — where the rule of thumb mis-scales — and is otherwise near
@@ -396,12 +396,13 @@ joint-summary selector `bandwidth(summary::Histogram2D, x; rule = :local)` (belo
   recovered ``\\hat\\sigma`` (and, for the data-driven rules, its bin counts) are the inputs.
 - `rule` — the selector (each described above): `:normal` (default), `:sj`, `:isj`, or `:aic` for a
   symmetric `kernel`; `:normal` (default) or `:plugin` for an asymmetric one.
-- `kernel` — the smoothing kernel the bandwidth is for (default `gaussian_kernel`); it enters through the
+- `kernel` — the smoothing kernel the bandwidth is for (default
+  [`gaussian_kernel`](@ref GBGStreamingStatistics.Kernels.gaussian_kernel)); it enters through the
   canonical factor ``\\delta(K) = [R(K)/\\mu_2(K)^2]^{1/5}``.
 - `degree` — the local-polynomial order the bandwidth is for (default `0`); it sets the bias order (the
   data-driven rules are `degree` 0/1).
 
-References:
+# References
 
 - B. W. Silverman (1986), [*Density Estimation for Statistics and Data Analysis*](https://doi.org/10.1201/9781315140919), Chapman & Hall (the normal-reference rule and the canonical bandwidth).
 - S. P. Sheather & M. C. Jones (1991), [*A reliable data-based bandwidth selection method for kernel density estimation*](https://doi.org/10.1111/j.2517-6161.1991.tb01857.x), J. R. Statist. Soc. B 53(3) (the solve-the-equation plug-in).
@@ -517,8 +518,8 @@ marginal density of the conditioning variable ``X``, ``n`` the sample size, and 
 each at a single pilot bandwidth: the conditional variance ``\\sigma^2(x)`` from the bias-reduced Fan &
 Yao [`conditional_variance`](@ref GBGStreamingStatistics.ConditionalExpectations.conditional_variance)
 (its default residual estimator), the curvature ``m''(x) = 2\\beta_2`` (twice the second-order coefficient
-of the degree-2 local-polynomial fit), and ``f_X(x)`` from the binned KDE of the X-marginal. ``R(K)`` and
-``\\mu_2(K)`` are computed by quadrature, so any `kernel` works. Because estimating a second derivative
+of the degree-2 local-polynomial fit), and ``f_X(x)`` from the binned KDE of the X-marginal. The constants
+``R(K)`` and ``\\mu_2(K)`` are computed by quadrature, so any `kernel` works. Because estimating a second derivative
 needs a wider window than the final fit, the default pilot is the curvature-rate rule of thumb
 ``\\hat\\sigma_X  n^{-1/9}``; where the regression is locally linear (``m''(x) \\to 0``) the optimal
 bandwidth is unbounded, so it is capped at the X-range. A vector `x` returns a vector; `NaN` marks an
@@ -532,7 +533,8 @@ bandwidth is unbounded, so it is capped at the X-range. A vector `x` returns a v
   whole bandwidth profile).
 - `rule` — the selector; only `:local` (the response-aware local plug-in) is defined for a joint
   summary.
-- `kernel` — the smoothing kernel ``K`` (any callable with ``\\int K = 1``; default `gaussian_kernel`).
+- `kernel` — the smoothing kernel ``K`` (any callable with ``\\int K = 1``; default
+  [`gaussian_kernel`](@ref GBGStreamingStatistics.Kernels.gaussian_kernel)).
 - `hpilot` — the pilot bandwidth for the ``\\sigma^2(x)``, ``m''(x)``, ``f_X(x)`` estimates; `nothing`
   (default) uses the curvature-rate rule of thumb ``\\hat\\sigma_X  n^{-1/9}``.
 

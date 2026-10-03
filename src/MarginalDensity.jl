@@ -33,7 +33,7 @@ export density, density_standard_error, density_with_standard_error,
     ParametricStart(fit, logpdf, support)
 
 A **parametric start** for the Hjort–Glad semiparametric density (Hjort & Glad 1995). Passed as
-[`density`](@ref GBGStreamingStatistics.MarginalDensity.density)`(…; start = …)`, it multiplies the
+[`density(…; start = …)`](@ref GBGStreamingStatistics.MarginalDensity.density), it multiplies the
 moment-fitted model ``p(\\cdot;\\hat\\theta)`` by a kernel estimate of the **correction** ``f_X/p`` —
 near-exact where the model fits (the bias is driven by ``(f_X/p)''``, not ``f_X''``), degrading only to a
 kernel-of-the-ratio bias where it does not. The built-ins are
@@ -42,7 +42,17 @@ kernel-of-the-ratio bias where it does not. The built-ins are
 [`gamma_start`](@ref GBGStreamingStatistics.MarginalDensity.gamma_start),
 [`exponential_start`](@ref GBGStreamingStatistics.MarginalDensity.exponential_start), and
 [`inverse_gaussian_start`](@ref GBGStreamingStatistics.MarginalDensity.inverse_gaussian_start);
-construct one directly to plug in a custom parametric model. The three fields are the construction contract:
+construct one directly to plug in a custom parametric model.
+
+# Fields
+
+- `fit` — the moment fit, a callable `(mean, variance)` returning the parameter tuple.
+- `logpdf` — the model log-density, a callable `(x, params)`.
+- `support` — the domain the model is positive on, a `(lower, upper)` tuple.
+
+# Arguments
+
+The constructor arguments are the three fields, and they are the construction contract:
 
 - `fit(mean, variance)` — fit the model parameters from the **recovered moments** by method of moments,
   returning a parameter tuple. Fitting from the mean and variance (not the raw data) is what keeps the whole
@@ -414,12 +424,13 @@ smoother of the counts ``n_j`` at bin locations ``\\ell_j`` (the within-bin cent
   rule** ([`bandwidth`](@ref GBGStreamingStatistics.Bandwidth.bandwidth) — Silverman's
   ``(4/3)^{1/5}\\hat\\sigma n^{-1/5}`` for the Gaussian kernel at degree 0/1, wider at the ``n^{-1/9}``
   rate for degree 2). For a shape-adaptive choice, compute `bandwidth(summary; rule = :sj)` (or `:isj` /
-  `:aic`) yourself and pass the number. The asymmetric `gamma_kernel` / `beta_kernel` take their own scale
+  `:aic`) yourself and pass the number. The asymmetric [`gamma_kernel`](@ref GBGStreamingStatistics.Kernels.gamma_kernel) / [`beta_kernel`](@ref GBGStreamingStatistics.Kernels.beta_kernel) take their own scale
   ``b`` here (rate ``n^{-2/5}``) in place of the symmetric `h`.
 - `kernel` — the smoothing weight ``K`` (any callable with ``\\int K = 1``), default the **symmetric**
   [`gaussian_kernel`](@ref GBGStreamingStatistics.Kernels.gaussian_kernel). The compact-support symmetric
-  `epanechnikov_kernel` and, for **bounded / positive support**, the **asymmetric** `gamma_kernel`
-  (``[0,\\infty)``, e.g. a droplet radius) and `beta_kernel` (``[0,1]``) — boundary-bias-free by
+  [`epanechnikov_kernel`](@ref GBGStreamingStatistics.Kernels.epanechnikov_kernel) and, for **bounded /
+  positive support**, the **asymmetric** `gamma_kernel` (``[0,\\infty)``, e.g. a droplet radius) and
+  `beta_kernel` (``[0,1]``) — boundary-bias-free by
   construction — are catalogued with their supports and constants on [the Kernels page](@ref "Kernels");
   supply a custom [`AsymmetricKernel`](@ref GBGStreamingStatistics.Kernels.AsymmetricKernel) for your own
   bounded support. An asymmetric kernel is its own degree-0, boundary-free estimator, so `degree`,
@@ -481,7 +492,7 @@ julia> round(density(h, 0.4; h = 0.2); digits = 4)   # linear binning centers th
 1.9947
 ```
 
-References:
+# References
 
 - I. S. Abramson (1982), [*On bandwidth variation in kernel estimates—a square root law*](https://doi.org/10.1214/aos/1176345986), Ann. Statist. 10(4) (variable bandwidth).
 - C. R. Loader (1996), [*Local likelihood density estimation*](https://doi.org/10.1214/aos/1032298287), Ann. Statist. 24(4) (the local-log-polynomial estimator).
@@ -684,8 +695,8 @@ pointwise **variability band** is ``\\hat f_h(x) \\pm z \\mathrm{SE}(x)`` (``z =
 band about ``\\mathbb{E}\\hat f_h``, so it covers ``f_X`` where the ``O(h^2)`` smoothing bias is small
 and narrows that coverage at a sharp mode or in a tail.
 
-**It tracks the estimator's options** — pass the *same* options you gave [`density`](@ref
-GBGStreamingStatistics.MarginalDensity.density) and the band is the variance of *that* estimate (or use
+**It tracks the estimator's options** — pass the *same* options you gave `density` and the band is the
+variance of *that* estimate (or use
 [`density_with_standard_error`](@ref
 GBGStreamingStatistics.MarginalDensity.density_with_standard_error) to get the estimate and its band from
 one call). The variance is adjusted per option: `adaptive` replaces ``h`` by the **local** Abramson
@@ -695,11 +706,23 @@ renormalization) replaces ``R(K)`` by the boundary-restricted roughness ``R_a(x)
 \\frac{1}{h}\\int_{\\text{support}} K((x-u)/h)^2\\,\\mathrm du`` and divides by the squared in-support kernel
 mass ``a(x)^2``, inflating the variance near an edge; a parametric `start` leaves the leading variance
 ``R(K)\\hat f/(nh)`` unchanged (the fitted-parameter uncertainty is an ``O(1/n)`` omission). Restricted to
-`degree` 0/1 and a **symmetric** kernel (`degree` ``\\ge 2`` and an asymmetric gamma/beta kernel are not
-supported); a vector of query points returns a vector.
+`degree` 0/1 and a **symmetric** kernel (``\\texttt{degree} \\ge 2`` and an asymmetric gamma/beta kernel
+are not supported); a vector of query points returns a vector.
 
-Arguments: as for [`density`](@ref GBGStreamingStatistics.MarginalDensity.density) — the options specify the
-estimator whose standard error is returned.
+# Arguments
+
+The arguments are as for `density` — the options specify the estimator whose standard error is returned:
+
+- `summary` — the [`Histogram1D`](@ref GBGStreamingStatistics.Histograms.Histogram1D) of ``X``.
+- `x` — the query point(s) (a scalar, or a vector for the band along the curve).
+- `h` — the smoothing bandwidth; `nothing` (the default) selects the normal-reference rule.
+- `kernel` — the symmetric smoothing kernel ``K`` (default `gaussian_kernel`).
+- `degree` — the local-log-polynomial order, `0` (the default) or `1`.
+- `adaptive` — `true` for the Abramson variable bandwidth (the local ``h(x)`` enters the variance).
+- `bounds` — the support `(a, b)` of the Jones renormalization (the boundary-restricted roughness enters).
+- `start` — the parametric start (leading-order neutral for the variance).
+- `normalize` — `true` renormalizes the estimate to ``\\int\\hat f = 1`` before the band is formed.
+- `binning` — `:linear` (the default) or `:simple`, the bin-location rule of the estimate.
 
 ```jldoctest
 julia> h = Histogram1D(-6.0, 6.0, 600);
@@ -751,10 +774,22 @@ The [`density`](@ref GBGStreamingStatistics.MarginalDensity.density) estimate **
 **single option specification** — so the estimate and its error describe the same estimator by
 construction (the estimate is computed once and reused). Returns the `NamedTuple`
 `(value = f̂(x), standard_error = SE(x))`; a vector `x` gives a `(value, standard_error)` of vectors. The
-standard error's estimand and per-option variance are documented at [`density_standard_error`](@ref
-GBGStreamingStatistics.MarginalDensity.density_standard_error).
+standard error's estimand and per-option variance are documented at `density_standard_error`.
 
-Arguments: as for [`density`](@ref GBGStreamingStatistics.MarginalDensity.density).
+# Arguments
+
+The arguments are as for `density`:
+
+- `summary` — the [`Histogram1D`](@ref GBGStreamingStatistics.Histograms.Histogram1D) of ``X``.
+- `x` — the query point(s) (a scalar, or a vector for the curve and its band).
+- `h` — the smoothing bandwidth; `nothing` (the default) selects the normal-reference rule.
+- `kernel` — the symmetric smoothing kernel ``K`` (default [`gaussian_kernel`](@ref GBGStreamingStatistics.Kernels.gaussian_kernel)).
+- `degree` — the local-log-polynomial order, `0` (the default) or `1`.
+- `adaptive` — `true` for the Abramson variable bandwidth.
+- `bounds` — the support `(a, b)` of the Jones renormalization.
+- `start` — the parametric start.
+- `normalize` — `true` renormalizes the estimate to ``\\int\\hat f = 1``.
+- `binning` — `:linear` (the default) or `:simple`, the bin-location rule.
 
 ```jldoctest
 julia> h = Histogram1D(-6.0, 6.0, 600);

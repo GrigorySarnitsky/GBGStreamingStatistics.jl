@@ -1,7 +1,10 @@
+!!! info "Written by AI, not regularly reviewed"
+    This page is written by AI and is not reviewed regularly by a human.
+
 # GBGStreamingStatistics — Architecture and Rationale
 
 This document explains **why** `GBGStreamingStatistics` is built the way it is, in the style of its
-sibling `GBGPeriodicFields` (PF). It is **self-contained**: every symbol — a math symbol or a `code`
+sibling [`GBGPeriodicFields`](https://grigorysarnitsky.github.io/GBGPeriodicFields.jl/) (PF). It is **self-contained**: every symbol — a math symbol or a `code`
 identifier — is introduced in plain language at its first use, and it reads top to bottom. All
 mathematics is rendered LaTeX in standard probability notation. The naming rationale is in §9;
 deliberate absences are stated as invariants in §6; open decisions are flagged **[OPEN]**.
@@ -123,7 +126,7 @@ every estimand is a **degree-zero readout** of it that falls into one of **two f
 shared code atom** — **kernel-weighting** (the *local* / smoothing readouts, through the
 `Kernels._kernel_weight` atom, with `LocalPolynomial.local_fit` the jet readout on it) and **power-sum
 quadrature** (the *global* / moment readouts, the Taylor contraction of the stored ``S_p``). §4.A and §4.B
-exposit the two families. `local_fit` is the kernel-weighting family's primitive, **not** the universal
+exposit the two families. The jet `local_fit` is the kernel-weighting family's primitive, **not** the universal
 one — ``\mathbb{E}[g(X)]`` is a readout with no jet at all — and the package's one nonlinearity (the
 density's log link and normalization) lives in the readout, exactly where the cone homomorphism breaks.
 
@@ -352,12 +355,12 @@ local fit of the squared residuals ``\widehat{\mathbb{E}}[(Y-\hat m)^2\mid x]``,
 curved-``\mathbb{E}[Y^2\mid x]`` smoothing bias the `:plugin` ``\widehat{\mathbb{E}}[Y^2\mid x] - \hat m^2``
 carries). A one-step robust local M-estimator for heavy-tailed channels (Fan & Jiang 2000) is forthcoming.
 
-The general reader `conditional_expectation` ``\equiv \mathbb{E}[g(Y)\mid x]`` subsumes both — a
+The general reader `conditional_expectation` (``\mathbb{E}[g(Y)\mid x]``) subsumes both — a
 per-``X``-column ``y``-quadrature of ``g`` (the §4.B atom) regressed in ``x`` by the same `local_fit`, so it
 joins the two families — with `conditional_mean` its ``g = \mathrm{identity}`` case and the **conditional
 pushforward density** `conditional_pushforward_density` its transformed-response reader (one
-`conditional_expectation` of a composed kernel, no ``g^{-1}``). Each carries a leverage-based
-`conditional_expectation_standard_error` ``= \sqrt{\ell(x) \mathrm{Var}(g(Y)\mid x)}``, the conditional
+`conditional_expectation` of a composed kernel, no ``g^{-1}``). Each carries a leverage-based `conditional_expectation_standard_error`,
+``\sqrt{\ell(x) \mathrm{Var}(g(Y)\mid x)}``, the conditional
 analog of the marginal `expectation_standard_error`. `FORMALIZATION.md` pins the constants and rates.
 
 #### 4.3 Conditional and transition density
@@ -411,17 +414,17 @@ kernel, no query point. Within a bin, ``S_p^{(j)} = \sum_{i\in\text{bin}}(X_i - 
 recovered `mean` / `var` / `central_moment` (§3, the shift formula, the ``g = x^p`` case) — and
 ``O(\Delta^{ \texttt{order}+1})`` for general smooth ``g``. **Built** in `Expectations`:
 
-- `expectation` ``\equiv \mathbb{E}[g(X)]`` for a general smooth `g`. The per-bin coefficients
+- `expectation` (``\mathbb{E}[g(X)]``) for a general smooth `g`. The per-bin coefficients
   ``g^{(p)}(c_j)/p!`` are read off a **degree-``\texttt{order}`` polynomial interpolant of ``g`` on each
   bin** — no automatic differentiation and no new dependency (uniform bins ⇒ one Chebyshev–Vandermonde
   inverse serves every bin), which reduces *exactly* to the shift formula on the monomials. Both
   `expectation` and the recovered moments route through the one shared contraction atom
   `Expectations._quadrature` (the moments supplying closed-form coefficients, `expectation` interpolation
   coefficients) — the literal realization of the two-family lens.
-- `expectation_standard_error` ``= \sqrt{(\mathbb{E}[g^2] - \mathbb{E}[g]^2)/n}`` — the sampling error of
+- `expectation_standard_error`, ``\sqrt{(\mathbb{E}[g^2] - \mathbb{E}[g]^2)/n}`` — the sampling error of
   ``\widehat{\mathbb{E}}[g]``, itself a second quadrature readout (``\mathbb{E}[g^2]`` is `expectation` with
   the smooth integrand ``g^2``).
-- `pushforward_density` ``\equiv f_{g(X)}``, the density of ``Y = g(X)``. Rather than form ``g^{-1}`` or a
+- `pushforward_density` (``f_{g(X)}``), the density of ``Y = g(X)``. Rather than form ``g^{-1}`` or a
   Jacobian, it is written as the **expectation of the composed kernel test function**,
   ``\hat f_{g(X)}(y) = \tfrac{1}{n}\sum_i K_h(g(X_i) - y) = \widehat{\mathbb{E}}[K_h(g(X) - y)]`` — so it is one
   more `expectation` call. A **non-monotone** ``g`` is handled automatically (every preimage contributes),
@@ -516,8 +519,8 @@ Mirrors PF; the deltas are noted.
   with its formula) before the estimator. `conditional_mean` is the reference: lead with
   ``m(x) = \mathbb{E}[Y \mid X = x] = \int y  f_{Y\mid X}(y\mid x)\,\mathrm{d}y`` (the ``L^2`` projection),
   *then* the local-linear ``\hat m_h``. Self-contained pages, **rendered LaTeX in standard notation**, every
-  code object **bound to its math symbol** on first mention (`density` ``\equiv f_X``, `conditional_mean`
-  ``\equiv m(x)``, `transition_density` ``\equiv p_\tau(y\mid x)``).
+  code object **bound to its math symbol** on first mention, in apposition (`density` (``f_X``),
+  `conditional_mean` (``m(x)``), `transition_density` (``p_\tau(y\mid x)``)).
 - **Every estimator reports its standard error.** An estimator approximates a population quantity from a
   finite stream, so it is incomplete without the sampling error of that approximation: every
   population-quantity estimator ships a companion `*_standard_error` (and the one-call paired
@@ -740,7 +743,7 @@ intentional — do not dedupe it).
   (the leading bias is driven by ``(f/p)''``), valuable for the skewed positive shapes the package targets
   (droplet radii). `normalize=true` divides any estimate by its integral over the support so
   ``\int\hat f = 1`` exactly — the finishing step for the non-self-normalizing asymmetric kernels and
-  starts. Both are post-hoc degree-0 options; `start` does not compose with `degree` ``\ge 1``, `adaptive`,
+  starts. Both are post-hoc degree-0 options; `start` does not compose with ``\texttt{degree} \ge 1``, `adaptive`,
   `bounds`, or the asymmetric kernels (the local-likelihood-with-start generalization is a recorded gap).
   The cross-validated start bandwidth (`KernelEstimator.jl`) and the Hjort–Jones *locally parametric*
   generalization were weighed and deferred. The same source pass also corrected the gamma/beta kernels
@@ -894,7 +897,7 @@ intentional — do not dedupe it).
 
 - **ConditionalExpectations §4.2 — general ``\mathbb{E}[g(Y)\mid x]`` + conditional pushforward, built.**
   The general `conditional_expectation` (with `conditional_mean` folded in as ``g = \mathrm{identity}``, and
-  `conditional_pushforward_density` ``= f_{g(Y)\mid X}``) makes the conditional side symmetric with the
+  `conditional_pushforward_density` (``f_{g(Y)\mid X}``)) makes the conditional side symmetric with the
   marginal `Expectations`. **Refines the two-family boundary:** conditional functionals *compose* the atoms
   — a per-``X``-column power-sum quadrature in ``y`` (§4.B) fed as the response to a kernel-weighted
   regression in ``x`` (§4.A). So "each estimator is a readout of *one* atom" (the §4.B entry above) softens
@@ -938,8 +941,9 @@ The load-bearing works the package implements or pins to:
 - J. Fan & J. Jiang (2000), [*Variable bandwidth and one-step local
   M-estimator*](https://doi.org/10.1007/BF02903849), Sci. China Ser. A 43. (Robust heavy-tailed
   channels.)
-- M. Rosenblatt (1969), *Conditional probability density and regression estimators*, in
-  [*Multivariate Analysis II*](https://openlibrary.org/works/OL7299345W); R. J. Hyndman, D. M.
+- M. Rosenblatt (1969), [*Conditional probability density and regression
+  estimators*](https://openlibrary.org/works/OL7299345W) (no DOI), in *Multivariate Analysis II*,
+  Academic Press; R. J. Hyndman, D. M.
   Bashtannyk & G. K. Grunwald (1996), [*Estimating and visualizing conditional
   densities*](https://doi.org/10.1080/10618600.1996.10474715), J. Comput. Graph. Statist. 5(4).
   (Double-kernel conditional density.)

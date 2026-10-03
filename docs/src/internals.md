@@ -14,7 +14,7 @@ solve — the architecture's shared core, [Architecture](architecture.md)).
 ## The local-polynomial jet — `LocalPolynomial.local_fit`
 
 The single linear primitive on which the local smoothers are built (the formalization:
-[Formalization](formalization.md), "Local-polynomial jet primitive"). `conditional_mean` is its
+[Formalization](formalization.md), "Local-polynomial jet primitive"). The estimator `conditional_mean` is its
 ``\beta_0``; the local-likelihood `density` reuses its solve as the iteratively reweighted inner step.
 
 ```@docs

@@ -18,14 +18,15 @@ export Histogram1D, Histogram2D, observe_pairs!, scale!, write_histogram, read_h
     Histogram1D(lower, upper, nbins; order = 4, accumulator = Float64, count = UInt64)
 
 A **finely binned empirical measure** of a scalar variate ``X`` — the canonical summary
-``T(\\hat\\mu_n)``. `nbins` equal-width (WARPing) bins tile the half-open range ``[\\texttt{lower}, \\texttt{upper})``;
+``T(\\hat\\mu_n)``. The `nbins` equal-width (WARPing) bins tile the half-open range ``[\\texttt{lower}, \\texttt{upper})``;
 choosing the range to cover the data (e.g. ``\\pm 5\\sigma`` for the data's standard deviation
 ``\\sigma``) with ``\\gtrsim 10^3`` bins makes the bin width ``b \\approx \\sigma/100`` far below any
 post-hoc smoothing bandwidth ``h`` (``b \\ll h``), so the summary is *approximately sufficient*.
 
 Each bin carries its **count** and the **power-sums** ``S_p = \\sum_{i \\in \\text{bin}}(X_i - c_j)^p``
 about the fixed bin center ``c_j``, for ``p = 1 \\dots \\texttt{order}``. Because ``X_i - c_j`` is small within
-a bin these are well-conditioned, so accumulation is a plain atomic scatter-add (`observe!`) that runs
+a bin these are well-conditioned, so accumulation is a plain atomic scatter-add
+([`observe!`](@ref GBGStreamingStatistics.Accumulators.observe!)) that runs
 identically on CPU and GPU, and `merge!` is elementwise addition. The power-sums use the *actual*
 ``X_i`` (not the center), so the global central moments recovered post hoc (by the shift formula) are
 exact, and stable for the even orders (the odd orders, ``\\approx 0``, keep weaker relative precision).
@@ -37,6 +38,15 @@ and weighted [`merge!`](@ref Base.merge!) require — the cone the hyperstatisti
 exponential forgetting are built from (a fractional weighted count is not an integer).
 
 Samples outside ``[\\texttt{lower}, \\texttt{upper})`` are **skipped** (not counted) — set the range to cover the data.
+
+# Arguments
+
+- `lower`, `upper` — the edges of the half-open range ``[\\texttt{lower}, \\texttt{upper})`` (`upper > lower`).
+- `nbins` — the number of equal-width bins.
+- `order` — the highest power-sum order ``p`` stored per bin (default `4`, recovering up to ``M_4``).
+- `accumulator` — the element type the power-sums are accumulated in (default `Float64`).
+- `count` — the element type of the counts: `UInt64` (the default) or `Float64` for the Float-count
+  variant.
 
 # Fields
 
@@ -50,9 +60,10 @@ The summary's whole **internal state — distinct from the constructor arguments
 - `powersums` — per-bin power-sums, ``\\texttt{order} \\times \\texttt{nbins}`` (row ``p`` is ``S_p``; `order == size(powersums, 1)`).
 
 A freshly constructed summary is **empty**: `counts` and `powersums` are all zeros (the `merge!`
-identity), and you `observe!` data into it. `merge!` adds `counts` and `powersums` elementwise, so
+identity), and you `observe!` data into it; `merge!` adds `counts` and `powersums` elementwise, so
 summaries on the same binning combine by saving and adding these two arrays. The recovered moments are
-read out with `mean`, `var`, `std`, and `central_moment`.
+read out with [`central_moment`](@ref GBGStreamingStatistics.Expectations.central_moment) and, for the
+first two, the `Statistics` extensions `mean`, `var`, and `std`.
 
 ```jldoctest
 julia> summary = Histogram1D(-5.0, 5.0, 1000);       # 1000 bins over [-5, 5)
@@ -125,27 +136,27 @@ _total(h::Histogram1D) = sum(h.counts)
 end
 
 
-function observe!(h::Histogram1D, samples)
-  backend = get_backend(h.counts)
-  _scatter1d!(backend)(h.counts, h.powersums, samples, h.lower, h.scale, _nbins(h), _order(h);
-                       ndrange = length(samples))
+function observe!(summary::Histogram1D, batch)
+  backend = get_backend(summary.counts)
+  _scatter1d!(backend)(summary.counts, summary.powersums, batch, summary.lower, summary.scale,
+                       _nbins(summary), _order(summary); ndrange = length(batch))
   synchronize(backend)
-  return h
+  return summary
 end
 
 
 # Scalar fold — a direct host update (scalar-indexes the summary, so host arrays only; batch on GPU).
-function observe!(h::Histogram1D, x::Real)
-  i = floor(Int, (x - h.lower) * h.scale) + 1
-  (1 ≤ i ≤ _nbins(h)) || return h
-  @inbounds h.counts[i] += one(eltype(h.counts))
-  dx = x - _bincenter(h, i)
+function observe!(summary::Histogram1D, batch::Real)
+  i = floor(Int, (batch - summary.lower) * summary.scale) + 1
+  (1 ≤ i ≤ _nbins(summary)) || return summary
+  @inbounds summary.counts[i] += one(eltype(summary.counts))
+  dx = batch - _bincenter(summary, i)
   dxp = dx
-  @inbounds for p in 1:_order(h)
-    h.powersums[p, i] += dxp
+  @inbounds for p in 1:_order(summary)
+    summary.powersums[p, i] += dxp
     dxp *= dx
   end
-  return h
+  return summary
 end
 
 
@@ -177,11 +188,11 @@ end
 
 # The cone scalar action: reweight every count and power-sum by `weight` in place (hyperstatistics /
 # exponential forgetting). Float counts only — an integer count cannot hold a fractional weight·n.
-function scale!(h::Histogram1D, weight)
-  _require_float_counts(h, "scale!")
-  h.counts .*= weight
-  h.powersums .*= weight
-  return h
+function scale!(summary::Histogram1D, weight)
+  _require_float_counts(summary, "scale!")
+  summary.counts .*= weight
+  summary.powersums .*= weight
+  return summary
 end
 
 
@@ -191,7 +202,7 @@ end
                 accumulator = Float64, count = UInt64)
 
 A **joint binned empirical measure** of ``(X, Y)`` — one per lag ``\\tau`` — for conditional and
-two-time transition densities. ``\\texttt{nx} \\times \\texttt{ny}`` equal-width cells tile
+two-time transition densities. Its ``\\texttt{nx} \\times \\texttt{ny}`` equal-width cells tile
 ``[\\texttt{xlower}, \\texttt{xupper}) \\times [\\texttt{ylower}, \\texttt{yupper})``; each cell `(ix, iy)` (flattened `ix + (iy-1)*nx`) carries its
 **count** and the order-2 bivariate **power-sums** ``S_{rs} = \\sum_{(X,Y)\\in\\text{cell}} (X -
 c^x)^r (Y - c^y)^s`` about the cell center ``(c^x, c^y)`` — ``S_{10}, S_{01}, S_{20}, S_{11},
@@ -201,6 +212,16 @@ For a two-time quantity ``X(t)`` and the response ``Y(t+\\tau)`` are paired *per
 accumulation, `merge!`-by-addition, `Float64` accumulation, and `count = Float64` Float-count / cone
 variant (for [`scale!`](@ref GBGStreamingStatistics.Accumulators.scale!) and weighted
 [`merge!`](@ref Base.merge!)) as [`Histogram1D`](@ref GBGStreamingStatistics.Histograms.Histogram1D).
+
+# Arguments
+
+- `xlower`, `xupper`, `ylower`, `yupper` — the edges of the box
+  ``[\\texttt{xlower}, \\texttt{xupper}) \\times [\\texttt{ylower}, \\texttt{yupper})``.
+- `nx`, `ny` — the numbers of equal-width cells in ``x`` and in ``y``.
+- `lag` — the lag ``\\tau`` the pairs are formed at (default `0`, the static joint).
+- `accumulator` — the element type the power-sums are accumulated in (default `Float64`).
+- `count` — the element type of the counts: `UInt64` (the default) or `Float64` for the Float-count
+  variant.
 
 # Fields
 
@@ -212,7 +233,7 @@ derived, `counts` and `powersums` allocated) — each reachable by dot (`summary
 - `counts` — per-cell counts, length `nx*ny` (cell `(ix, iy)` at `ix + (iy-1)*nx`; `UInt64`, or the `count` type).
 - `powersums` — ``5 \\times (\\texttt{nx} \\cdot \\texttt{ny})``: rows ``S_{10}, S_{01}, S_{20}, S_{11}, S_{02}`` about the cell center.
 
-A freshly constructed summary is **empty** (`counts`, `powersums` all zeros). `merge!` adds `counts`
+A freshly constructed summary is **empty** (`counts`, `powersums` all zeros), and `merge!` adds `counts`
 and `powersums` (requires matching box, cell counts, and `lag`).
 
 ```jldoctest
@@ -324,15 +345,21 @@ two-time statistics. The pairs are binned by an atomic
 scatter-add (one work-item per pair, CPU and GPU alike); everything that *produces* the pairs — the
 snapshot buffer of past ``X(t)``, which sources to sample, which lags to form, the origin cadence — is
 the **consumer's** responsibility, formed at the summary's lag ``\\tau``.
+
+# Arguments
+
+- `summary` — the per-lag joint `Histogram2D` the pairs are folded into.
+- `x_past` — the conditioning values ``X(t)``, one per pair.
+- `y_now` — the response values ``Y(t+\\tau)``, one per pair, in the same order as `x_past`.
 """
-function observe_pairs!(h::Histogram2D, x_past, y_now)
+function observe_pairs!(summary::Histogram2D, x_past, y_now)
   length(x_past) == length(y_now) ||
     throw(ArgumentError("observe_pairs!: x_past and y_now must have equal length"))
-  backend = get_backend(h.counts)
-  _scatter2d!(backend)(h.counts, h.powersums, x_past, y_now,
-                       h.xlower, h.xscale, h.nx, h.ylower, h.yscale, h.ny; ndrange = length(x_past))
+  backend = get_backend(summary.counts)
+  _scatter2d!(backend)(summary.counts, summary.powersums, x_past, y_now,
+                       summary.xlower, summary.xscale, summary.nx, summary.ylower, summary.yscale, summary.ny; ndrange = length(x_past))
   synchronize(backend)
-  return h
+  return summary
 end
 
 
@@ -355,11 +382,11 @@ function merge!(into::Histogram2D, from::Histogram2D; weight = 1)
 end
 
 
-function scale!(h::Histogram2D, weight)
-  _require_float_counts(h, "scale!")
-  h.counts .*= weight
-  h.powersums .*= weight
-  return h
+function scale!(summary::Histogram2D, weight)
+  _require_float_counts(summary, "scale!")
+  summary.counts .*= weight
+  summary.powersums .*= weight
+  return summary
 end
 
 
@@ -381,7 +408,7 @@ so any HDF5 tool can read it. Device (GPU) arrays are copied to the host on writ
 type is preserved, so the `count = Float64` cone variant round-trips. The sugar `parent[name] = summary`
 is equivalent.
 
-`parent` is a handle you opened and own — this never opens or closes a file. Provided by a package
+The handle `parent` is one you opened and own — this never opens or closes a file. Provided by a package
 extension: available only when the `HDF5` package is loaded.
 
 # Arguments
@@ -407,10 +434,8 @@ The reconstructed summary is a host (CPU) object regardless of where the written
 device afterward if needed. Provided by a package extension: available only when the `HDF5` package is
 loaded.
 
-# Arguments
-
-- `parent` — an open HDF5 `File` or `Group` holding the group.
-- `name` — the name (or path) of the histogram group under `parent`.
+The arguments are `parent`, an open HDF5 `File` or `Group` holding the group, and `name`, the name (or
+path) of the histogram group under `parent`.
 """
 function read_histogram end
 

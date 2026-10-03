@@ -11,7 +11,7 @@ Histogram2D
 
 ## Accumulation
 
-`observe!` / `merge!` are the universal [`Accumulators`](Accumulators.md) interface; `observe_pairs!`
+The verbs `observe!` / `merge!` are the universal [`Accumulators`](Accumulators.md) interface; `observe_pairs!`
 folds two-time pairs into a `Histogram2D`.
 
 ```@docs

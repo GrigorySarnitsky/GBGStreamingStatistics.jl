@@ -8,11 +8,3 @@ The lower half ([`Accumulators`](api/Accumulators.md), [`Histograms`](api/Histog
 shared smoothing kernels in [`Kernels`](api/Kernels.md)) holds the summaries and the accumulation
 primitives; the upper half ([`Expectations`](api/Expectations.md) through
 [`Bandwidth`](api/Bandwidth.md)) holds the estimands.
-
-```@index
-Pages = [
-  "api/Accumulators.md", "api/Histograms.md", "api/Kernels.md", "api/Expectations.md",
-  "api/MarginalDensity.md", "api/ConditionalExpectations.md", "api/ConditionalDensity.md",
-  "api/Bandwidth.md", "api/GBGStreamingStatistics.md",
-]
-```

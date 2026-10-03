@@ -1,7 +1,7 @@
 # Expectations
 
 The power-sum quadrature readouts — a smooth functional of ``X`` read straight off the stored
-power-sums, with no kernel and no query point. [`expectation`](@ref) estimates the expectation
+power-sums, with no kernel and no query point. The reader [`expectation`](@ref) estimates the expectation
 ``\mathbb{E}[g(X)]`` of a general smooth `g`; [`expectation_standard_error`](@ref) its sampling standard error
 (paired with the estimate in one call by [`expectation_with_standard_error`](@ref)); and [`pushforward_density`](@ref) the
 density of the transformed variable ``g(X)``. All three are the same power-sum contraction the recovered

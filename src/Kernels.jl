@@ -29,8 +29,9 @@ second moment ``\\mu_2(K) = 1``, roughness ``R(K) = 1/(2\\sqrt{\\pi})``) — the
 The **Epanechnikov** kernel ``K(u) = \\tfrac{3}{4}(1 - u^2)`` for ``|u| \\le 1`` (zero outside) — the
 MSE-optimal second-order kernel (``\\int K = 1``, second moment ``\\mu_2(K) = 1/5``, roughness ``R(K) = 3/5``). Pass
 it as `kernel = epanechnikov_kernel` to [`density`](@ref GBGStreamingStatistics.MarginalDensity.density);
-its compact support touches only the bins within ``h`` of the query point. The `bandwidth` selector is
-**kernel-aware**, so it returns the matched Epanechnikov scale automatically — no manual rescaling.
+its compact support touches only the bins within ``h`` of the query point. The
+[`bandwidth`](@ref GBGStreamingStatistics.Bandwidth.bandwidth) selector is **kernel-aware**, so it returns
+the matched Epanechnikov scale automatically — no manual rescaling.
 """
 @inline epanechnikov_kernel(u) = abs(u) < 1 ? 0.75 * (1 - u^2) : 0.0
 
@@ -64,7 +65,17 @@ A varying-shape **asymmetric kernel** for
 the boundary-bias-free analog of a symmetric smoothing kernel (Chen 1999, 2000). The built-ins are
 [`gamma_kernel`](@ref GBGStreamingStatistics.Kernels.gamma_kernel) for ``[0,\\infty)`` and
 [`beta_kernel`](@ref GBGStreamingStatistics.Kernels.beta_kernel) for ``[0,1]``; construct one
-directly to plug in a custom boundary kernel. The three fields are the construction contract:
+directly to plug in a custom boundary kernel.
+
+# Fields
+
+- `pdf` — the kernel, a callable `(c, x, b)` giving a density in the data argument.
+- `support` — the data domain the kernel covers, a `(lower, upper)` tuple.
+- `weight` — the AMISE local-scale weight ``w(x)``, a callable, or `nothing` when unset.
+
+# Arguments
+
+The constructor arguments are the three fields, and they are the construction contract:
 
 - `pdf(c, x, b)` — the kernel as a **density in the data argument** ``c``, whose shape is set by the
   evaluation point ``x`` and bandwidth ``b`` (normalized: ``\\int \\texttt{pdf}(c, x, b)\\,\\mathrm{d}c = 1``
@@ -75,7 +86,7 @@ directly to plug in a custom boundary kernel. The three fields are the construct
 - `weight(x)` — the AMISE **local-scale weight** ``w(x)``: the leading bias is
   ``\\tfrac{1}{2} b w(x) f''(x)`` and the variance ``\\propto w(x)^{-1/2}`` (``w(x) = x`` for the gamma
   kernel, ``x(1-x)`` for the beta). It is used **only** by
-  [`bandwidth`](@ref GBGStreamingStatistics.Bandwidth.bandwidth)`(…; rule = :plugin)`. The two-argument
+  [`bandwidth(…; rule = :plugin)`](@ref GBGStreamingStatistics.Bandwidth.bandwidth). The two-argument
   constructor leaves it unset (`nothing`): `rule = :plugin` then errors rather than silently use a wrong
   weight, while the ``\\hat\\sigma n^{-2/5}`` rule of thumb (`rule = :normal`) needs no weight and still
   applies.
@@ -91,7 +102,7 @@ mygamma = AsymmetricKernel(
 density(summary, 1.0; kernel = mygamma)
 ```
 
-References:
+# References
 
 - S. X. Chen (1999), [*Beta kernel estimators for density functions*](https://doi.org/10.1016/S0167-9473(99)00010-9), Comput. Statist. Data Anal. 31(2).
 - S. X. Chen (2000), [*Probability density function estimation using gamma kernels*](https://doi.org/10.1023/A:1004165218295), Ann. Inst. Statist. Math. 52(3).
@@ -133,8 +144,8 @@ boundary-bias-free estimate ``\\hat f(x) = \\tfrac{1}{n} \\sum_j n_j \\mathrm{Ga
 self-adapts, tightening toward the edge). Use it for non-negative quantities such as droplet radii — an
 alternative to (and usually sharper than) the `bounds` renormalization. The bandwidth defaults to
 ``\\hat\\sigma n^{-2/5}`` (the gamma-kernel rate; pass `h` to override, or the data-driven Chen plug-in
-[`bandwidth`](@ref GBGStreamingStatistics.Bandwidth.bandwidth)`(summary; rule = :plugin, kernel = gamma_kernel)`,
-which lowers the ISE on skewed data). `degree`, `adaptive`, and `bounds` do not
+[`bandwidth(summary; rule = :plugin, kernel = gamma_kernel)`](@ref GBGStreamingStatistics.Bandwidth.bandwidth),
+which lowers the ISE on skewed data). The options `degree`, `adaptive`, and `bounds` do not
 apply — the kernel is its own degree-0, boundary-free estimator.
 
 Reference: S. X. Chen (2000), [*Probability density function estimation using gamma
