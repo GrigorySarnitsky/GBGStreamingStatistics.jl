@@ -19,4 +19,6 @@ Config(
         "docs/src/testing.md" => "docs/TESTING.md",
         "docs/src/performance.md" => "docs/PERFORMANCE.md",
     ],
+    # The one address this package publishes: its author line and every commit's author field.
+    leak_emails = ["grigory@sarnitsky.se"],
 )
