@@ -384,8 +384,8 @@ trailing paragraph, or not at all, is the defect — this is how `density`'s que
 notation; **(4) Formatted (bidirectional)** — math is LaTeX never backticks, every code identifier
 backticked never bare, and inline ``math`` stays on **one source line** (a wrapped continuation that
 begins with a list/blockquote leader — `- `/`* `/`> `/`1.` — is parsed as a list item and silently
-drops the span out of math mode; `docs/make.jl` lints for this and fails the build, since Documenter
-renders the broken page without complaint); a **formula is a single LaTeX span**, never ``math`` split
+drops the span out of math mode; the rulebook's `RULE.TEX.INLINE_ONE_LINE` checks for this and fails the
+docs build, since Documenter renders the broken page without complaint); a **formula is a single LaTeX span**, never ``math`` split
 onto an adjacent `code` continuation (a code name inside a formula is `\texttt{}`-wrapped), and
 **backticks hold only well-formed Julia** (a name/type/call/expression), never math notation —
 intervals, products, inequalities, `·`/`−`/`≤` glyphs; and **nothing horizontally scrolls** — a long
