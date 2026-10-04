@@ -209,8 +209,6 @@ the modules `test/public_surface.jl` lists), never from a remembered list:
 
 - **Allocation audit** (`test/allocations.jl`). Every in-place operation — `observe!`, `observe_pairs!`,
   `merge!`, `scale!` — has an `@alloc_below` row, and a fifth one fails the suite until it is measured.
-  The exact zero of each `merge!` is pinned by a plain `@allocated` beside its row, since the tool's macro
-  adds its own few bytes there.
 - **Oracle registry** (`test/oracle_registry.jl`). Every public value-returning operation is classified
   by where its ground truth comes from — a closed form, a direct computation on the raw data, an
   invariant — citing the test that holds it; none may rest only on agreement with another operation of

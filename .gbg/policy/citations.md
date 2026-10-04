@@ -1,4 +1,4 @@
-<!-- gbg:managed begin v2.0.0-rc.57 — rewritten by `gbg sync`; do not edit -->
+<!-- gbg:managed begin v2.0.0-rc.58 — rewritten by `gbg sync`; do not edit -->
 # Citations — `RULE.CIT.*`
 
 Author–year in the prose, the full reference where the reader can reach it, a DOI on every title. 6 rules, written from the rule values themselves,

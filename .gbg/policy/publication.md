@@ -1,4 +1,4 @@
-<!-- gbg:managed begin v2.0.0-rc.57 — rewritten by `gbg sync`; do not edit -->
+<!-- gbg:managed begin v2.0.0-rc.58 — rewritten by `gbg sync`; do not edit -->
 # Publication — `RULE.LEAK.*`
 
 What a repository may not publish when it is made public: no credential, nothing personal, nothing never meant for a reader. 9 rules, written from the rule values themselves,

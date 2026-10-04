@@ -5,7 +5,7 @@ GBGStreamingStatistics = "f7630e6d-3fe9-47a8-b85f-33b009215466"
 
 [sources]
 GBGStreamingStatistics = {path = ".."}
-GBGCodingTools = {rev = "v2.0.0-rc.57", url = "https://github.com/GrigorySarnitsky/GBGCodingTools.jl.git"}
+GBGCodingTools = {rev = "v2.0.0-rc.58", url = "https://github.com/GrigorySarnitsky/GBGCodingTools.jl.git"}
 
 [compat]
 GBGCodingTools = "=2.0.0"

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # STOP HOOK — refuses to let the session end while committed work is open.
-# Written by GBGCodingTools v2.0.0-rc.57; do not edit.
+# Written by GBGCodingTools v2.0.0-rc.58; do not edit.
 #
 # CONTRACT. `.claude/WORK_QUEUE.md` holds one line per item, `- [ ]` open, `- [x]` done. While any
 # item is open this exits 2, which Claude Code treats as "do not stop", feeding stderr back as the
