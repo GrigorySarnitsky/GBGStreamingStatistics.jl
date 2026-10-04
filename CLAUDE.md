@@ -267,6 +267,13 @@ the estimand whenever a clean population definition exists; for an intrinsically
   in its own Arguments bullet. Block-vs-Arguments tracks *how many axes*, not primary-vs-secondary — a
   secondary `method` can still earn blocks. *(Recorded so the docstring-structure audit does not re-flag
   the `density`-vs-`bandwidth` asymmetry: it is justified by single- vs multi-axis, not a defect.)*
+- **Standard-error readers list their own arguments — no "as for `f`" delegation.** Every
+  `*_standard_error` and `*_with_standard_error` reader carries its own `# Arguments` list, opened by "The
+  arguments are as for `f`" and naming any option it drops. This supersedes the 2026-07-18 decision
+  (commit `30854bb`) to delegate the whole list to the parent: the rulebook's `RULE.DOC.ARGCOV` /
+  `RULE.DOC.ARGS_FORM` admit no delegation, the docstring must read complete at the REPL, and drift between
+  the copies is caught by `ARGCOV` and `RULE.DOC.SIGNATURE_FIDELITY` (the owner, 2026-10-04). Do not revert
+  to pointers.
 - **Symbol bound to code on first mention:** `density` ``\equiv f_X``, `conditional_mean`
   ``\equiv m(x)``, `transition_density` ``\equiv p_\tau(y\mid x)``, `expectation`
   ``\equiv \mathbb{E}[g(X)]``.
