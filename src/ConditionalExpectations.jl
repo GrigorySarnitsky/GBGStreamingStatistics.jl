@@ -151,8 +151,7 @@ end
     conditional_expectation_standard_error(summary::Histogram2D, g, x;
                                            h, kernel = gaussian_kernel, degree = 1)
 
-**Estimand.** The sampling standard error of the estimator [`conditional_expectation`](@ref
-GBGStreamingStatistics.ConditionalExpectations.conditional_expectation),
+**Estimand.** The sampling standard error of the estimator `conditional_expectation`,
 ``\\mathrm{SE}\\bigl(\\widehat{\\mathbb{E}}[g(Y)\\mid x]\\bigr) =
 \\sqrt{\\ell(x) \\operatorname{Var}(g(Y)\\mid x)}``, with the local-regression **leverage**
 ``\\ell(x) = \\sum_j N_j  w_j(x)^2`` (``N_j`` the per-``x``-column count, ``w_j`` the effective weights of the fit's ``\\beta_0``)
@@ -169,16 +168,8 @@ of ``g(Y)`` — itself two `conditional_expectation` readouts (``\\mathbb{E}[g^2
 ``m(x)``. It is the plug-in sampling error (not the ``O(h^2)`` smoothing bias). `NaN` where no data is
 local to ``x``.
 
-# Arguments
+Arguments: as for [`conditional_expectation`](@ref GBGStreamingStatistics.ConditionalExpectations.conditional_expectation).
 
-The arguments are as for `conditional_expectation`:
-
-- `summary` — the joint [`Histogram2D`](@ref GBGStreamingStatistics.Histograms.Histogram2D) of ``(X, Y)``.
-- `g` — the response functional (any callable ``y \\mapsto g(y)``, smooth on the ``Y``-bin scale).
-- `x` — the conditioning value(s) at which the standard error is evaluated (scalar or vector).
-- `h` — the conditioning (``x``) bandwidth (``h > 0``), supplied.
-- `kernel` — the conditioning (``x``) kernel (default [`gaussian_kernel`](@ref GBGStreamingStatistics.Kernels.gaussian_kernel)).
-- `degree` — the local-polynomial order in ``x``: `0`, `1` (the default), or `2`.
 """
 function conditional_expectation_standard_error(summary::Histogram2D, g, x::Real; h::Real,
                                                 kernel = gaussian_kernel, degree::Integer = 1)
@@ -204,24 +195,16 @@ end
                                                 h, kernel = gaussian_kernel, degree = 1)
 
 The estimate and its standard error from one local-polynomial fit — the `NamedTuple`
-``(\\texttt{value}, \\texttt{standard\\_error})``, with `value` the [`conditional_expectation`](@ref
-GBGStreamingStatistics.ConditionalExpectations.conditional_expectation)
+``(\\texttt{value}, \\texttt{standard\\_error})``, with `value` the `conditional_expectation`
 ``\\widehat{\\mathbb{E}}[g(Y)\\mid x]`` and `standard_error` its
 [`conditional_expectation_standard_error`](@ref
 GBGStreamingStatistics.ConditionalExpectations.conditional_expectation_standard_error). They describe the
 same estimator by construction, sharing the one ``y``-quadrature response and its fit. For a vector `x`,
 returns a `NamedTuple` of vectors.
 
-# Arguments
+Arguments: as for [`conditional_expectation`](@ref
+GBGStreamingStatistics.ConditionalExpectations.conditional_expectation).
 
-The arguments are as for `conditional_expectation`:
-
-- `summary` — the joint [`Histogram2D`](@ref GBGStreamingStatistics.Histograms.Histogram2D) of ``(X, Y)``.
-- `g` — the response functional (any callable ``y \\mapsto g(y)``, smooth on the ``Y``-bin scale).
-- `x` — the conditioning value(s) (scalar or vector).
-- `h` — the conditioning (``x``) bandwidth (``h > 0``), supplied.
-- `kernel` — the conditioning (``x``) kernel (default [`gaussian_kernel`](@ref GBGStreamingStatistics.Kernels.gaussian_kernel)).
-- `degree` — the local-polynomial order in ``x``: `0`, `1` (the default), or `2`.
 """
 function conditional_expectation_with_standard_error(summary::Histogram2D, g, x::Real; h::Real,
                                                      kernel = gaussian_kernel, degree::Integer = 1)
@@ -418,7 +401,7 @@ end
                                         h, kernel = gaussian_kernel, degree = 1)
 
 **Estimand.** The sampling standard error of the conditional variance
-[`conditional_variance`](@ref GBGStreamingStatistics.ConditionalExpectations.conditional_variance),
+`conditional_variance`,
 ``\\mathrm{SE}(\\hat\\sigma^2(x)) = \\sqrt{\\ell(x) \\bigl(\\mu_4(x) - \\sigma^4(x)\\bigr)}`` with the
 local-regression leverage ``\\ell(x)``, the conditional variance ``\\sigma^2(x)``, and the 4th central
 conditional moment ``\\mu_4(x) = \\mathbb{E}[(Y - m(x))^4 \\mid x]``.
@@ -432,16 +415,10 @@ smooth ``(Y - \\hat m(x))^4`` off the order-2 ``Y``-power-sums — so the ``O(\\
 captures the conditional **kurtosis** (a heavy-tailed response widens the band) with no 4th-moment storage.
 It is the leading-order SE, common to the `:residual` and `:plugin` variance methods.
 
-# Arguments
+Arguments: as for [`conditional_variance`](@ref
+GBGStreamingStatistics.ConditionalExpectations.conditional_variance), without `method` (the leading-order
+SE is common to `:residual` and `:plugin`).
 
-The arguments are as for `conditional_variance`, without `method` (the leading-order SE is common to
-`:residual` and `:plugin`):
-
-- `summary` — the joint [`Histogram2D`](@ref GBGStreamingStatistics.Histograms.Histogram2D) of ``(X, Y)``.
-- `x` — the conditioning value(s) at which the standard error is evaluated (scalar or vector).
-- `h` — the smoothing bandwidth (``h > 0``), supplied.
-- `kernel` — the smoothing kernel ``K`` (default [`gaussian_kernel`](@ref GBGStreamingStatistics.Kernels.gaussian_kernel)).
-- `degree` — the local-polynomial order of the underlying fits: `0`, `1` (the default), or `2`.
 """
 function conditional_variance_standard_error(summary::Histogram2D, x::Real; h::Real,
                                              kernel = gaussian_kernel, degree::Integer = 1)
@@ -461,23 +438,15 @@ end
         h, kernel = gaussian_kernel, degree = 1, method = :residual)
 
 The conditional variance
-[`conditional_variance`](@ref GBGStreamingStatistics.ConditionalExpectations.conditional_variance) and its
+`conditional_variance` and its
 standard error — the `NamedTuple` ``(\\texttt{value}, \\texttt{standard\\_error})``, with `value` the
 variance (`method` `:residual` default, or `:plugin`) and `standard_error` its
 [`conditional_variance_standard_error`](@ref
 GBGStreamingStatistics.ConditionalExpectations.conditional_variance_standard_error) (the leading-order
 residual approximation, common to both methods). For a vector `x`, a `NamedTuple` of vectors.
 
-# Arguments
+Arguments: as for [`conditional_variance`](@ref GBGStreamingStatistics.ConditionalExpectations.conditional_variance).
 
-The arguments are as for `conditional_variance`:
-
-- `summary` — the joint [`Histogram2D`](@ref GBGStreamingStatistics.Histograms.Histogram2D) of ``(X, Y)``.
-- `x` — the conditioning value(s) (scalar or vector).
-- `h` — the smoothing bandwidth (``h > 0``), supplied.
-- `kernel` — the smoothing kernel ``K`` (default [`gaussian_kernel`](@ref GBGStreamingStatistics.Kernels.gaussian_kernel)).
-- `degree` — the local-polynomial order of the underlying fits: `0`, `1` (the default), or `2`.
-- `method` — `:residual` (the default, Fan & Yao) or `:plugin`, for the `value`.
 """
 function conditional_variance_with_standard_error(summary::Histogram2D, x::Real; h::Real,
                                                   kernel = gaussian_kernel, degree::Integer = 1,
@@ -592,8 +561,7 @@ end
         hx, hz, kernelx = gaussian_kernel, kernelz = gaussian_kernel, degree = 1)
 
 **Estimand.** The pointwise standard error of the conditional pushforward density
-[`conditional_pushforward_density`](@ref
-GBGStreamingStatistics.ConditionalExpectations.conditional_pushforward_density) ``\\equiv f_{g(Y)\\mid X}``
+`conditional_pushforward_density` ``\\equiv f_{g(Y)\\mid X}``
 — the sampling error of the density of the transformed response ``g(Y)`` at ``z`` given ``x``.
 
 **Estimator.** The two-term ``\\sqrt{\\ell(x) R(K_z)\\hat f/h_z - \\hat f^2/n}``: the local-regression
@@ -604,18 +572,9 @@ GBGStreamingStatistics.ConditionalExpectations.conditional_pushforward_density) 
 [`conditional_density_standard_error`](@ref GBGStreamingStatistics.ConditionalDensity.conditional_density_standard_error)
 of the transformed response. Symmetric `kernelz` only.
 
-# Arguments
+Arguments: as for [`conditional_pushforward_density`](@ref
+GBGStreamingStatistics.ConditionalExpectations.conditional_pushforward_density).
 
-The arguments are as for `conditional_pushforward_density`:
-
-- `summary` — the joint [`Histogram2D`](@ref GBGStreamingStatistics.Histograms.Histogram2D) of ``(X, Y)``.
-- `g` — the transform defining ``Z = g(Y)`` (any callable, smooth on the ``Y``-bin scale).
-- `x` — the conditioning value (a scalar).
-- `z` — the transformed-response point(s) at which the standard error is evaluated (a scalar, or a vector).
-- `hx`, `hz` — the conditioning (``x``) and transformed-response (``z``) bandwidths (both ``> 0``).
-- `kernelx`, `kernelz` — the conditioning and response-direction kernels (default [`gaussian_kernel`](@ref GBGStreamingStatistics.Kernels.gaussian_kernel)); a
-  symmetric `kernelz` only.
-- `degree` — the local-polynomial order in ``x``: `0`, `1` (the default), or `2`.
 """
 function conditional_pushforward_density_standard_error(summary::Histogram2D, g, x::Real, z::Real;
                                                         hx::Real, hz::Real, kernelx = gaussian_kernel,
@@ -639,25 +598,14 @@ end
     conditional_pushforward_density_with_standard_error(summary::Histogram2D, g, x, z;
         hx, hz, kernelx = gaussian_kernel, kernelz = gaussian_kernel, degree = 1)
 
-The conditional pushforward density [`conditional_pushforward_density`](@ref
-GBGStreamingStatistics.ConditionalExpectations.conditional_pushforward_density) and its standard error from
+The conditional pushforward density `conditional_pushforward_density` and its standard error from
 one fit — the `NamedTuple` ``(\\texttt{value}, \\texttt{standard\\_error})``, sharing the fit's leverage with
 [`conditional_pushforward_density_standard_error`](@ref
 GBGStreamingStatistics.ConditionalExpectations.conditional_pushforward_density_standard_error). For a vector
 `z`, a `NamedTuple` of vectors.
 
-# Arguments
-
-The arguments are as for `conditional_pushforward_density`:
-
-- `summary` — the joint [`Histogram2D`](@ref GBGStreamingStatistics.Histograms.Histogram2D) of ``(X, Y)``.
-- `g` — the transform defining ``Z = g(Y)`` (any callable, smooth on the ``Y``-bin scale).
-- `x` — the conditioning value (a scalar).
-- `z` — the transformed-response point(s) (a scalar, or a vector for the curve and its band).
-- `hx`, `hz` — the conditioning (``x``) and transformed-response (``z``) bandwidths (both ``> 0``).
-- `kernelx`, `kernelz` — the conditioning and response-direction kernels (default [`gaussian_kernel`](@ref GBGStreamingStatistics.Kernels.gaussian_kernel)); a
-  symmetric `kernelz` only.
-- `degree` — the local-polynomial order in ``x``: `0`, `1` (the default), or `2`.
+Arguments: as for [`conditional_pushforward_density`](@ref
+GBGStreamingStatistics.ConditionalExpectations.conditional_pushforward_density).
 """
 function conditional_pushforward_density_with_standard_error(summary::Histogram2D, g, x::Real, z::Real;
                                                              hx::Real, hz::Real, kernelx = gaussian_kernel,

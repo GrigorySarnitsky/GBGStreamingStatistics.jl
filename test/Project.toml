@@ -11,7 +11,7 @@ TOML = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [sources]
-GBGCodingTools = {rev = "v2.0.0-rc.58", url = "https://github.com/GrigorySarnitsky/GBGCodingTools.jl.git"}
+GBGCodingTools = {rev = "v2.0.0-rc.59", url = "https://github.com/GrigorySarnitsky/GBGCodingTools.jl.git"}
 
 [compat]
 GBGCodingTools = "=2.0.0"

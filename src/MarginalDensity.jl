@@ -680,7 +680,7 @@ end
                            normalize = false, binning = :linear)   # ≡ SE[f̂(x)]
 
 **Estimand.** The pointwise standard error of the density estimator
-[`density`](@ref GBGStreamingStatistics.MarginalDensity.density) at ``x`` — ``\\mathrm{SE}(x) =
+`density` at ``x`` — ``\\mathrm{SE}(x) =
 \\sqrt{\\operatorname{Var}\\hat f_h(x)}`` with the kernel-density asymptotic variance
 
 ```math
@@ -709,20 +709,8 @@ mass ``a(x)^2``, inflating the variance near an edge; a parametric `start` leave
 `degree` 0/1 and a **symmetric** kernel (``\\texttt{degree} \\ge 2`` and an asymmetric gamma/beta kernel
 are not supported); a vector of query points returns a vector.
 
-# Arguments
-
-The arguments are as for `density` — the options specify the estimator whose standard error is returned:
-
-- `summary` — the [`Histogram1D`](@ref GBGStreamingStatistics.Histograms.Histogram1D) of ``X``.
-- `x` — the query point(s) (a scalar, or a vector for the band along the curve).
-- `h` — the smoothing bandwidth; `nothing` (the default) selects the normal-reference rule.
-- `kernel` — the symmetric smoothing kernel ``K`` (default `gaussian_kernel`).
-- `degree` — the local-log-polynomial order, `0` (the default) or `1`.
-- `adaptive` — `true` for the Abramson variable bandwidth (the local ``h(x)`` enters the variance).
-- `bounds` — the support `(a, b)` of the Jones renormalization (the boundary-restricted roughness enters).
-- `start` — the parametric start (leading-order neutral for the variance).
-- `normalize` — `true` renormalizes the estimate to ``\\int\\hat f = 1`` before the band is formed.
-- `binning` — `:linear` (the default) or `:simple`, the bin-location rule of the estimate.
+Arguments: as for [`density`](@ref GBGStreamingStatistics.MarginalDensity.density) — the options specify the
+estimator whose standard error is returned.
 
 ```jldoctest
 julia> h = Histogram1D(-6.0, 6.0, 600);
@@ -769,27 +757,14 @@ end
                                 adaptive = false, bounds = nothing, start = nothing,
                                 normalize = false, binning = :linear)
 
-The [`density`](@ref GBGStreamingStatistics.MarginalDensity.density) estimate **and** its pointwise
+The `density` estimate **and** its pointwise
 [`density_standard_error`](@ref GBGStreamingStatistics.MarginalDensity.density_standard_error), from a
 **single option specification** — so the estimate and its error describe the same estimator by
 construction (the estimate is computed once and reused). Returns the `NamedTuple`
 `(value = f̂(x), standard_error = SE(x))`; a vector `x` gives a `(value, standard_error)` of vectors. The
 standard error's estimand and per-option variance are documented at `density_standard_error`.
 
-# Arguments
-
-The arguments are as for `density`:
-
-- `summary` — the [`Histogram1D`](@ref GBGStreamingStatistics.Histograms.Histogram1D) of ``X``.
-- `x` — the query point(s) (a scalar, or a vector for the curve and its band).
-- `h` — the smoothing bandwidth; `nothing` (the default) selects the normal-reference rule.
-- `kernel` — the symmetric smoothing kernel ``K`` (default [`gaussian_kernel`](@ref GBGStreamingStatistics.Kernels.gaussian_kernel)).
-- `degree` — the local-log-polynomial order, `0` (the default) or `1`.
-- `adaptive` — `true` for the Abramson variable bandwidth.
-- `bounds` — the support `(a, b)` of the Jones renormalization.
-- `start` — the parametric start.
-- `normalize` — `true` renormalizes the estimate to ``\\int\\hat f = 1``.
-- `binning` — `:linear` (the default) or `:simple`, the bin-location rule.
+Arguments: as for [`density`](@ref GBGStreamingStatistics.MarginalDensity.density).
 
 ```jldoctest
 julia> h = Histogram1D(-6.0, 6.0, 600);

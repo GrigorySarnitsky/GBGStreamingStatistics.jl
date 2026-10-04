@@ -240,7 +240,7 @@ end
                                        kernely = gaussian_kernel)   # ≡ SE[f̂(y∣x)]
 
 **Estimand.** The pointwise standard error of the conditional-density estimator
-[`conditional_density`](@ref GBGStreamingStatistics.ConditionalDensity.conditional_density),
+`conditional_density`,
 ``\\mathrm{SE}(y\\mid x) = \\sqrt{\\operatorname{Var}\\hat f(y\\mid x)}`` with the double-kernel asymptotic
 variance
 
@@ -266,17 +266,9 @@ with the ``x``-window effective sample size ``n h_1 \\hat f_X(x)`` in place of `
 small. Symmetric kernels only (the asymmetric-`kernely` variance is a recorded gap). `NaN` where no data is
 local to ``x``.
 
-# Arguments
-
-The arguments are as for `conditional_density`, without `normalize` (the band is for the un-normalized
-estimate):
-
-- `summary` — the joint [`Histogram2D`](@ref GBGStreamingStatistics.Histograms.Histogram2D) of ``(X, Y)``.
-- `x` — the conditioning value (a scalar).
-- `y` — the response point(s) at which the standard error is evaluated (a scalar, or a vector).
-- `hx`, `hy` — the conditioning (``x``) and response (``y``) bandwidths (both ``> 0``).
-- `kernelx`, `kernely` — the conditioning and response kernels (default [`gaussian_kernel`](@ref GBGStreamingStatistics.Kernels.gaussian_kernel)); symmetric
-  kernels only.
+Arguments: as for [`conditional_density`](@ref
+GBGStreamingStatistics.ConditionalDensity.conditional_density), without `normalize` (the band is for the
+un-normalized estimate); symmetric kernels only.
 
 Reference: R. J. Hyndman, D. M. Bashtannyk & G. K. Grunwald (1996), [*Estimating and visualizing
 conditional densities*](https://doi.org/10.1080/10618600.1996.10474715), J. Comput. Graph. Statist. 5(4).
@@ -305,23 +297,15 @@ end
 
 The estimate and its standard error from one ``x``-profile reduction — the `NamedTuple`
 ``(\\texttt{value}, \\texttt{standard\\_error})``, with `value` the
-[`conditional_density`](@ref GBGStreamingStatistics.ConditionalDensity.conditional_density)
+`conditional_density`
 ``\\hat f(y\\mid x)`` and `standard_error` its
 [`conditional_density_standard_error`](@ref GBGStreamingStatistics.ConditionalDensity.conditional_density_standard_error).
 They share the one profile, so they describe the same estimator by construction. For a vector `y`, returns
 a `NamedTuple` of vectors.
 
-# Arguments
+Arguments: as for [`conditional_density`](@ref GBGStreamingStatistics.ConditionalDensity.conditional_density),
+without `normalize` (the band is for the un-normalized estimate); symmetric kernels only.
 
-The arguments are as for `conditional_density`, without `normalize` (the band is for the un-normalized
-estimate):
-
-- `summary` — the joint [`Histogram2D`](@ref GBGStreamingStatistics.Histograms.Histogram2D) of ``(X, Y)``.
-- `x` — the conditioning value (a scalar).
-- `y` — the response point(s) (a scalar, or a vector for the curve and its band).
-- `hx`, `hy` — the conditioning (``x``) and response (``y``) bandwidths (both ``> 0``).
-- `kernelx`, `kernely` — the conditioning and response kernels (default [`gaussian_kernel`](@ref GBGStreamingStatistics.Kernels.gaussian_kernel)); symmetric
-  kernels only.
 """
 function conditional_density_with_standard_error(summary::Histogram2D, x::Real, y::Real; hx::Real, hy::Real,
                                                  kernelx = gaussian_kernel, kernely = gaussian_kernel)
@@ -347,22 +331,14 @@ end
                                       hx, hy, kernelx = gaussian_kernel,
                                       kernely = gaussian_kernel)
 
-The standard error of [`transition_density`](@ref GBGStreamingStatistics.ConditionalDensity.transition_density)
+The standard error of `transition_density`
 — identical to [`conditional_density_standard_error`](@ref GBGStreamingStatistics.ConditionalDensity.conditional_density_standard_error)
 on the per-lag joint histogram (the name marks the two-time reading), paired with the estimate by
 [`transition_density_with_standard_error`](@ref GBGStreamingStatistics.ConditionalDensity.transition_density_with_standard_error).
 
-# Arguments
+Arguments: as for [`transition_density`](@ref GBGStreamingStatistics.ConditionalDensity.transition_density),
+without `normalize` (the band is for the un-normalized estimate).
 
-The arguments are as for `transition_density`, without `normalize` (the band is for the un-normalized
-estimate):
-
-- `summary` — the per-lag joint [`Histogram2D`](@ref GBGStreamingStatistics.Histograms.Histogram2D) of ``(X_t, X_{t+\\tau})``.
-- `x` — the present state, the conditioning value (a scalar).
-- `y` — the later state(s) at which the standard error is evaluated (a scalar, or a vector).
-- `hx`, `hy` — the conditioning (``x``) and response (``y``) bandwidths (both ``> 0``).
-- `kernelx`, `kernely` — the conditioning and response kernels (default [`gaussian_kernel`](@ref GBGStreamingStatistics.Kernels.gaussian_kernel)); symmetric
-  kernels only.
 """
 transition_density_standard_error(summary::Histogram2D, x::Real, y; hx::Real, hy::Real,
                                   kernelx = gaussian_kernel, kernely = gaussian_kernel) =
@@ -375,21 +351,13 @@ transition_density_standard_error(summary::Histogram2D, x::Real, y; hx::Real, hy
                                            kernely = gaussian_kernel)
 
 The transition density
-[`transition_density`](@ref GBGStreamingStatistics.ConditionalDensity.transition_density) and its standard
+`transition_density` and its standard
 error from one pass (the `(value, standard_error)` `NamedTuple`) — the two-time reading of
 [`conditional_density_with_standard_error`](@ref GBGStreamingStatistics.ConditionalDensity.conditional_density_with_standard_error).
 
-# Arguments
+Arguments: as for [`transition_density`](@ref GBGStreamingStatistics.ConditionalDensity.transition_density),
+without `normalize` (the band is for the un-normalized estimate).
 
-The arguments are as for `transition_density`, without `normalize` (the band is for the un-normalized
-estimate):
-
-- `summary` — the per-lag joint [`Histogram2D`](@ref GBGStreamingStatistics.Histograms.Histogram2D) of ``(X_t, X_{t+\\tau})``.
-- `x` — the present state, the conditioning value (a scalar).
-- `y` — the later state(s) (a scalar, or a vector for the curve and its band).
-- `hx`, `hy` — the conditioning (``x``) and response (``y``) bandwidths (both ``> 0``).
-- `kernelx`, `kernely` — the conditioning and response kernels (default [`gaussian_kernel`](@ref GBGStreamingStatistics.Kernels.gaussian_kernel)); symmetric
-  kernels only.
 """
 transition_density_with_standard_error(summary::Histogram2D, x::Real, y; hx::Real, hy::Real,
                                        kernelx = gaussian_kernel, kernely = gaussian_kernel) =

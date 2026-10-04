@@ -230,8 +230,7 @@ end
 """
     expectation_standard_error(summary::Histogram1D, g)
 
-**Estimand.** The sampling standard error of the estimator [`expectation`](@ref
-GBGStreamingStatistics.Expectations.expectation),
+**Estimand.** The sampling standard error of the estimator `expectation`,
 ``\\mathrm{SE}\\bigl(\\widehat{\\mathbb{E}}[g(X)]\\bigr) = \\sqrt{\\operatorname{Var}(g(X))/n}`` with
 ``\\operatorname{Var}(g(X)) = \\mathbb{E}[g(X)^2] - \\mathbb{E}[g(X)]^2``.
 
@@ -240,7 +239,8 @@ power-sum quadrature (``\\mathbb{E}[g^2]`` is `expectation` with the smooth inte
 sample count. This is the plug-in sampling error of the empirical mean of ``g(X)``; it does not include the
 ``O(\\Delta^{ \\texttt{order}+1})`` quadrature bias, which is separate. `NaN` for an empty summary.
 
-The arguments `summary` and `g` are as for `expectation`.
+Arguments: as for [`expectation`](@ref GBGStreamingStatistics.Expectations.expectation).
+
 """
 function expectation_standard_error(summary::Histogram1D, g)
   n = _total(summary)
@@ -256,12 +256,11 @@ end
     expectation_with_standard_error(summary::Histogram1D, g)
 
 The estimate and its standard error from one power-sum quadrature pass — the `NamedTuple`
-``(\\texttt{value}, \\texttt{standard\\_error})``, with `value` the [`expectation`](@ref
-GBGStreamingStatistics.Expectations.expectation) ``\\widehat{\\mathbb{E}}[g(X)]`` and `standard_error` its
+``(\\texttt{value}, \\texttt{standard\\_error})``, with `value` the `expectation` ``\\widehat{\\mathbb{E}}[g(X)]`` and `standard_error` its
 [`expectation_standard_error`](@ref GBGStreamingStatistics.Expectations.expectation_standard_error). They
 describe the same estimator by construction, and ``\\widehat{\\mathbb{E}}[g]`` is computed once and shared.
 
-The arguments `summary` and `g` are as for `expectation`.
+Arguments: as for [`expectation`](@ref GBGStreamingStatistics.Expectations.expectation).
 
 ```jldoctest
 julia> using GBGStreamingStatistics
@@ -334,8 +333,7 @@ end
     pushforward_density_standard_error(summary::Histogram1D, g, y;
                                        h, kernel = gaussian_kernel)
 
-**Estimand.** The pointwise standard error of the pushforward density [`pushforward_density`](@ref
-GBGStreamingStatistics.Expectations.pushforward_density) ``\\equiv f_{g(X)}``,
+**Estimand.** The pointwise standard error of the pushforward density `pushforward_density` ``\\equiv f_{g(X)}``,
 ``\\mathrm{SE}(y) = \\sqrt{\\operatorname{Var}\\hat f_{g(X)}(y)}`` with the two-term kernel-density variance
 ``\\operatorname{Var}\\hat f_{g(X)}(y) \\approx R(K) f_{g(X)}(y)/(nh) - f_{g(X)}(y)^2/n`` (``R(K) = \\int K^2``).
 
@@ -345,15 +343,8 @@ composed kernel, its standard error is exactly the
 integrand — ``\\sqrt{(\\widehat{\\mathbb{E}}[K_h(g(X)-y)^2] - \\hat f_{g(X)}(y)^2)/n}``, which reduces to the
 two-term form above.
 
-# Arguments
+Arguments: as for [`pushforward_density`](@ref GBGStreamingStatistics.Expectations.pushforward_density).
 
-The arguments are as for `pushforward_density`:
-
-- `summary` — the [`Histogram1D`](@ref GBGStreamingStatistics.Histograms.Histogram1D) of ``X``.
-- `g` — the transform defining ``Y = g(X)`` (any callable, smooth on the bin scale).
-- `y` — the response point(s) at which the standard error is evaluated (a scalar, or a vector).
-- `h` — the response-direction bandwidth (``h > 0``), supplied.
-- `kernel` — the response-direction kernel (default [`gaussian_kernel`](@ref GBGStreamingStatistics.Kernels.gaussian_kernel)).
 """
 function pushforward_density_standard_error(summary::Histogram1D, g, y::Real; h::Real,
                                             kernel = gaussian_kernel)
@@ -373,21 +364,14 @@ end
                                             h, kernel = gaussian_kernel)
 
 The pushforward density
-[`pushforward_density`](@ref GBGStreamingStatistics.Expectations.pushforward_density) and its standard
+`pushforward_density` and its standard
 error from one quadrature pass — the `NamedTuple` ``(\\texttt{value}, \\texttt{standard\\_error})``, sharing
 the composed-kernel integrand with [`pushforward_density_standard_error`](@ref
 GBGStreamingStatistics.Expectations.pushforward_density_standard_error). For a vector `y`, a `NamedTuple` of
 vectors.
 
-# Arguments
+Arguments: as for [`pushforward_density`](@ref GBGStreamingStatistics.Expectations.pushforward_density).
 
-The arguments are as for `pushforward_density`:
-
-- `summary` — the [`Histogram1D`](@ref GBGStreamingStatistics.Histograms.Histogram1D) of ``X``.
-- `g` — the transform defining ``Y = g(X)`` (any callable, smooth on the bin scale).
-- `y` — the response point(s) (a scalar, or a vector for the curve and its band).
-- `h` — the response-direction bandwidth (``h > 0``), supplied.
-- `kernel` — the response-direction kernel (default [`gaussian_kernel`](@ref GBGStreamingStatistics.Kernels.gaussian_kernel)).
 """
 function pushforward_density_with_standard_error(summary::Histogram1D, g, y::Real; h::Real,
                                                  kernel = gaussian_kernel)
