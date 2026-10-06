@@ -42,9 +42,9 @@ Before any structural or design change, read `docs/ARCHITECTURE.md`. It explains
 architecture is the way it is; do not re-litigate recorded decisions without the user. **Design
 changes must be justified by established estimation theory** — not by convenience. "It's
 convenient", "for symmetry", or "for completeness" is never a valid justification (cf. the
-deliberate absences of the invariants). The conceptual model and the writing/docstring conventions
-are recorded once — in `docs/ARCHITECTURE.md` and this file; the umbrella module
-`src/GBGStreamingStatistics.jl` only points there.
+deliberate absences of the invariants). The conceptual model is recorded in `docs/ARCHITECTURE.md`; the
+writing and docstring conventions are the rulebook's (`.gbg/policy/`, imported at the head of this file)
+plus the package's own, below. The umbrella module `src/GBGStreamingStatistics.jl` only points there.
 
 > **Status: lower half complete (CPU + GPU); the two readout families landed.** The summaries `Histogram1D`
 > and `Histogram2D` (`observe!` / `observe_pairs!` as one KernelAbstractions + Atomix scatter-add of counts
@@ -229,33 +229,25 @@ in a stable order — a `method`-style refinement (it tweaks *how*, not *which* 
 primary `rule`-style selector, which leads. For an exported function, (1)–(2) are positional and (3)–(4) keyword — the
 keyword block follows the same bandwidth → kernel → degree → modifiers order. Read it as *what → where →
 how* (the bandwidth is the primary scale, the kernel the weight, the degree the polynomial order). A
-docstring's argument bullets then follow **signature order** — the natural consequence, and what
-`/check-docs` checks.
+docstring's argument bullets then follow **signature order**.
 
 **Docstrings vs comments.** Prefer docstrings; reserve plain comments for non-intuitive *why*
 (the atomic scatter-add, the shift-formula recovery, the power-sums-about-the-bin-center choice,
-"wider-than-data because this is a reduction"). One docstring per operation, on the bare binding:
-`function f end` for package-owned generics, the bare imported name for Base/`Statistics` functions.
+"wider-than-data because this is a reduction").
 
-**Docstrings (and docs) are a code-agreement guard.** Every claim must be true of the *present* code —
-a reader (or `/check-docs`) checks the code against the docstring as a bounded consistency pass. A
-capability that is merely *enabled* or *planned* must be marked (forthcoming / future / a recorded
-gap), never stated as present; that is what keeps the guard sound.
+**Marking what is not yet built.** A capability that is merely *enabled* or *planned* is marked —
+forthcoming / future / a recorded gap — never stated as present.
 
 ## Documentation policy — estimand first, estimator second
 
-This is the user's explicit requirement and the exact mirror of PF's *physical-meaning-first* rule
-(`docs/ARCHITECTURE.md` §2, §7). Because **every operation estimates a population quantity from
-data**:
-
-> A docstring (and every doc-page entry) for an estimator must **state the estimand — the
-> population quantity, in standard probability notation, with its defining formula — *before* the
-> estimator** that approximates it from the accumulated summary.
-
-`conditional_mean` is the intended reference: lead with ``m(x) = \mathbb{E}[Y \mid X = x] = \int y\,
-f_{Y\mid X}(y\mid x)\,\mathrm{d}y`` (the ``L^2`` projection), *then* the local-linear estimator. State
-the estimand whenever a clean population definition exists; for an intrinsically finite-sample object
-(a bandwidth selector, `merge!`) say so plainly rather than forcing a population form.
+Every operation estimates a population quantity from data, so the rulebook's
+`RULE.DOC.LEADING_IDENTITY` binds this package with `leading_identity` set to the **estimand**
+(`.gbg/config.jl`) — the statistics counterpart of PF's *physical meaning first* (`docs/ARCHITECTURE.md`
+§2, §7): the population quantity, in standard probability notation, before the estimator.
+`conditional_mean` is the reference: lead with
+``m(x) = \mathbb{E}[Y \mid X = x] = \int y f_{Y\mid X}(y\mid x)\,\mathrm{d}y`` (the ``L^2``
+projection), *then* the local-linear estimator. The intrinsically finite-sample objects — a bandwidth
+selector, `merge!`, `scale!` — say so rather than force a population form.
 
 - **Estimator-variant blocks vs Arguments — by number of variant axes.** When an estimator has a
   **single** variant axis whose branches are genuinely different estimators — a primary `rule` selector
@@ -267,138 +259,59 @@ the estimand whenever a clean population definition exists; for an intrinsically
   in its own Arguments bullet. Block-vs-Arguments tracks *how many axes*, not primary-vs-secondary — a
   secondary `method` can still earn blocks. *(Recorded so the docstring-structure audit does not re-flag
   the `density`-vs-`bandwidth` asymmetry: it is justified by single- vs multi-axis, not a defect.)*
-- **Symbol bound to code on first mention:** `density` ``\equiv f_X``, `conditional_mean`
-  ``\equiv m(x)``, `transition_density` ``\equiv p_\tau(y\mid x)``, `expectation`
-  ``\equiv \mathbb{E}[g(X)]``.
-- **Math is rendered LaTeX in standard notation** — Documenter KaTeX: inline `` ``…`` `` (backslashes
-  escaped `\\` inside a `"""` docstring), display ` ```math `; never Unicode-glyph approximations,
-  never math in backticks (backticks are for code identifiers only). **And the converse — a code
-  identifier never goes inside a math span**: it renders as a product of italic single letters
-  (`xlo` → x·l·o); backtick it, or wrap it in `\texttt{}` if it must appear inside a formula. **A
-  formula is a single LaTeX span — never ``math`` split onto an adjacent `code` span**: ``1 \le i \le``
-  `nbins` is wrong, write ``1 \le i \le \texttt{nbins}``; the same name is backticked standalone in
-  prose but `\texttt{}`-wrapped inside a formula. **And backticks hold only well-formed Julia** — a
-  name, type, call, or valid expression — never math notation (an interval, a product ``a \times b``,
-  an inequality, a `·`/`−`/`≤` glyph), which is LaTeX. Plain `#` comments stay Unicode.
-- **No horizontal scroll — hand-wrap what the renderer won't.** A rendered **code block** (a docstring
-  signature) and a **display-math block** do not auto-wrap, so a long one overflows the page column with
-  a horizontal scrollbar. **Signatures:** split across lines with a hanging indent aligned under the
-  first argument (the `inspiration/GBGPeriodicFields.jl` convention — its `anterpolate!`), each rendered
-  line within the content column ≈ 84 characters (Documenter strips the 4-space code-block indent, so
-  ≈ 88 source characters). **Display formulas:** break a wide one with a multi-line LaTeX environment —
-  `aligned` (align on `=`), `gathered`, or `split` — never one line packing several equations behind
-  `\qquad`/`\quad`. Inline math reflows with the prose, so it is exempt.
-- **Thin space and group bracing — one idiom, grep-enforced.** A thin space `\,` is used ONLY for the
-  differential `\,\mathrm d` (as in `\int f(x)\,\mathrm dx`); between multiplied factors juxtaposition is
-  standard, so `\hat\sigma\,n` is gratuitous — write `\hat\sigma n`. When removing one, replace it with a
-  **plain space, never delete it** (`\sigma\,x` deleted glues into the invalid `\sigmax`; `\sigma x`
-  renders the same and is safe). And every `\frac` / `\tfrac` / `\boldsymbol` **group argument is braced**
-  — `\tfrac{1}{2}` not `\tfrac12`, `\boldsymbol{u}` not `\boldsymbol u` (both render alike; the braces are
-  the house style). Both are grep-guarded (the `/check-docs` gratuitous-thin-space and unbraced-group
-  scans, which must come back empty). SS carries no vector/tensor notation, so the sibling packages'
-  `\mathbf`→`\boldsymbol` and `\partial_i` house-set guards are deliberately absent here.
-- **Math spacing and command support — standard LaTeX idiom.** These are the conventions a fluent LaTeX
-  author writes by default; the defects they head off — manual spacing, reflexive `\left`/`\right` — are
-  novice tells, not subtle bugs. **Never:** manually space around a relation or binary operator —
-  `\;`/`\:`/`\,` next to `=`/`<`/`\in`/`+`/`-` doubles the space TeX already puts there (write `a = b`, not
-  `a \;=\; b`, and let TeX space it). Never put `\!` before an opening/closing delimiter that follows an
-  operator or name (`\bigl`/`\Bigl`/`\bigr`) — there is already no gap there, so it only jams the delimiter
-  into the name; write `\max\bigl(`. Never `\!\!` before `\sum`/`\int` (it overshoots into an overlap).
-  Never `\mathbb{…}` on anything but a capital `A`–`Z` or `k` — KaTeX's blackboard font covers only those,
-  so `\mathbb{1}` (or any digit) falls back to a plain glyph with the font silently dropped; write
-  `\mathbf{1}` (and consult KaTeX's support table for anything tool-specific). And do not use `\left`/`\right`
-  auto-sized delimiters — size by hand with `\bigl`/`\Bigl` … `\bigr`/`\Bigr` (Open/Close atoms, no spurious
-  gap), the sole exception a system written `\left\{ … \right.`. **These are correct — do NOT "fix":** `\!`
-  before `\left(` (Op–Inner *is* a real thin gap); `\sim\!`; `\,\mathrm{d}x`; `\quad`/`\qquad`;
-  `\mathrm{Re}` vs `\operatorname{Re}` before a delimiter (identical output). **Why:** every rule is standard
-  LaTeX idiom plus a few documented exceptions; when unsure, consult a standard LaTeX reference (and KaTeX's
-  support table for what it supports), never taste.
-- **Neutral reference register — never "knob".** A tunable argument is an **option** (or, where it reads
-  better, a *keyword argument*, a *setting*, or a post-hoc *choice* — e.g. the bandwidth), never a "knob":
-  the reference docs keep a strict, neutral tone, not a colloquial one. Applies to every authored surface —
-  docstrings, the four rationale docs, the doc pages, `#` comments, and `@testset` names.
-- **No internal cross-references on the user-facing surface.** A rendered **docstring** or a **thrown
-  error message** is user-facing: it must not cite a design-doc **section number** (`§4.5`) or a **repo
-  path** (`docs/ARCHITECTURE.md`, `inspiration/…`) — those are dangling, unnavigable, and they renumber.
-  Keep it self-contained; where a rationale pointer earns its place, name the published page in prose
-  ("the Architecture page"), never a `§`-number or path. The `§4.x` estimator map stays in its developer
-  home — `#` comments, `CLAUDE.md`, and the design docs (which cite each other by section freely).
-- **Cross-referencing — discriminating-minimalist; a link earns its place.** Live Documenter `@ref`
-  hyperlinks are the *encouraged* way to point across the docs (the rule above bans only *dead* `§`-numbers
-  and repo paths; a mistyped `@ref` fails the build, so it cannot rot). But a link is navigation, not
-  decoration — **backtick every code identifier; promote it to an `@ref` only where a reader would
-  genuinely jump and there is one clear destination**: (1) link a given target **at most once per
-  docstring** (its first genuine mention — this kills duplicate targets scattered across bullets); (2)
-  **never** link the docstring's own binding, its own argument names, `Symbol`/option tokens (`:linear`),
-  struct fields, or `Base` names; (3) a **family of built-ins** (the kernels, the starts) is **one**
-  catalogue destination, not five — name every member in plain backticks (so `?f` at the REPL still shows
-  the menu), `@ref` the **default** member, carry **one** catalogue link (the owning page or a same-page
-  section, via the quoted-header form `[the Kernels page](@ref "Kernels")`), and `@ref` the **extension
-  type** once with a *supply-your-own* clause (“… or a custom `AsymmetricKernel`”) — 2–3 links per family
-  bullet, never five, never one; (4) the **at-home test** for describe-vs-link — if a sentence would be
-  equally at home in the *target's* own docstring, cut it and link; the function's **own** estimand formula
-  and option-incompatibility clauses always stay (estimand-first outranks DRY); (5) **link forms** —
-  docstring→symbol fully qualified `` [`name`](@ref GBGStreamingStatistics.Module.name) ``,
-  docstring→page/section a quoted-header prose link `[the X](@ref "Header")` (never `@ref` a bare module
-  name for a page — it dangles), page→symbol bare `` [`name`](@ref) ``, page→page relative `[X](X.md)`;
-  never a link inside a formula. The docstring must read **complete at the REPL** where links are dead — a
-  link adds depth one hop away, never a fact the reader needs.
-- **Correctness is its own check, distinct from formatting.** Verify the estimator is **consistent
-  for the stated estimand** under the stated assumptions, and that **every normalization is exact**:
-  the ``1/n``, ``1/(nh)``, ``\int K = 1``, kernel moments ``\mu_2(K) = \int u^2 K``, roughness
-  ``R(K) = \int K^2``, the bias/variance constants. A stray ``1/h`` or kernel-moment factor is the
-  easy slip here (the statistics analog of PF's stray ``1/N`` / Parseval factor). **Category/type errors
-  are their own failure class** — distinct from a normalization slip and invisible to a value-level check
-  (a sentence can be perfectly formatted and glossed yet false by conflating two kinds of object). Guard
-  against conflating a **density** with a **measure** or **CDF** (``f_X`` / ``\mu`` / ``F_X``); an
-  **estimator** with its **estimand** or a single **estimate** (``\hat m(x)`` / ``m(x)`` / the number);
-  ``\mathbb{E}[Y \mid X]`` (a random variable) with ``\mathbb{E}[Y \mid X = x]`` (a number); a
-  **conditional** density with a **joint** or **marginal**; the overloaded "**kernel**" (the smoothing
-  ``K`` vs a transition kernel ``p_\tau``); a **pushforward density** with a **pushforward measure**; and
-  leaving a **convergence mode** implicit (a.s. / in probability / ``L^2`` / in distribution) under a
-  consistency or rate claim. The lightweight check (from the sibling PF): write the statement formally,
-  every object typed from the code (the estimand's domain/codomain, the estimator a functional of the
-  summary, the standard error a positive scalar), and expand it — if it won't type, the prose is imprecise.
-- **Citations:** context-standard author–year; name up to three authors, `First et al.` for four or
-  more; **never cite an inaccessible source** (the private notes under `inspiration/` are working
-  material, not citable). The canonical reference list lives in `docs/ARCHITECTURE.md` §References;
-  docstrings carry the full reference inline, verbatim-consistent with it. **A reference *block* of two
-  or more citations is a bullet list — one citation per `-` line, under a `References:` label and a blank
-  line — never a semicolon-joined paragraph (which is unreadable in a rendered docstring); a lone
-  citation stays inline as `Reference: …`.**
+- **Symbol bound to code on first mention, in apposition** (`RULE.TEX.ONE_SPAN`): `density` (``f_X``),
+  `conditional_mean` (``m(x)``), `transition_density` (``p_\tau(y\mid x)``), `expectation`
+  (``\mathbb{E}[g(X)]``). Where the formula says more than the name, the name goes inside it as
+  `\texttt{…}`.
+- **Math:** never Unicode-glyph approximations on a rendered surface; plain `#` comments stay Unicode.
+- **Signatures and wide formulas:** a long docstring signature is split with a hanging indent aligned under
+  the first argument (PF's `anterpolate!` convention); a wide display formula may also break with `split`.
+- **Removing a thin space:** replace it with a plain space, never delete it (`\sigma\,x` deleted glues
+  into the invalid `\sigmax`).
+- **LaTeX forms that are correct — do not "fix":** `\,\mathrm{d}x`; `\quad`/`\qquad`; `\mathrm{Re}`
+  vs `\operatorname{Re}` before a delimiter; `\sim\!` where it is neither before a sized delimiter nor
+  doubled. When unsure, consult a standard LaTeX reference and KaTeX's support table, never taste.
+- **Register:** the rulebook's "option", never "knob" (`RULE.DOC.REGISTER`) reaches here also the `#`
+  comments, the four rationale docs and the `@testset` names; the bandwidth is a post-hoc *choice*.
+- **No internal cross-references on the user-facing surface.** Beyond the rulebook's ban on section
+  numbers in docstrings: a thrown error message is user-facing too, and neither carries a repo path
+  (`docs/ARCHITECTURE.md`, `inspiration/…`); name the published page in prose ("the Architecture page").
+  The `§4.x` estimator map stays in `#` comments, `CLAUDE.md` and the design docs.
+- **Cross-referencing** follows the rulebook (`RULE.DOC.LINKS`, `RULE.DOC.XLINK`,
+  `RULE.DOC.LINK_UNIFORMITY`); the package adds: never link the docstring's own binding, its own argument
+  names, `Symbol`/option tokens (`:linear`) or struct fields; the **at-home test** — a sentence equally at
+  home in the target's own docstring is cut and linked, but the function's own estimand formula and
+  option-incompatibility clauses always stay (estimand-first outranks DRY); the link forms — docstring to
+  symbol fully qualified, `` [`name`](@ref GBGStreamingStatistics.Module.name) ``; docstring to page a
+  quoted-header prose link, `[the X](@ref "Header")`, never `@ref` on a bare module name; page to symbol
+  bare; page to page relative, `[X](X.md)`; never a link inside a formula. A mistyped `@ref` fails the
+  build, so a link cannot rot; a link adds depth one hop away, never a fact the reader needs.
+- **Standard-error readers delegate their arguments** — "Arguments: as for [`f`](@ref …)", naming any
+  argument of `f` they lack ("without `normalize`") — the form the rulebook sanctions since GBGCodingTools
+  rc.59 (the owner, 2026-07-18 and 2026-10-04). The parent's link sits on that sentence, its one link in the
+  docstring.
+- **Correctness — the package's checklists.** Every estimator is consistent for its stated estimand under
+  the stated assumptions. The normalizations to pin: ``1/n``, ``1/(nh)``, ``\int K = 1``,
+  ``\mu_2(K) = \int u^2 K``, ``R(K) = \int K^2``, the bias and variance constants — a stray ``1/h`` or
+  kernel-moment factor is the easy slip (the statistics analog of PF's stray ``1/N``). The category
+  confusions to guard against: a **density** vs a **measure** or **CDF** (``f_X`` / ``\mu`` / ``F_X``); an
+  **estimator** vs its **estimand** vs a single **estimate** (``\hat m(x)`` / ``m(x)`` / the number);
+  ``\mathbb{E}[Y \mid X]`` (a random variable) vs ``\mathbb{E}[Y \mid X = x]`` (a number); a
+  **conditional** density vs a **joint** or **marginal**; the overloaded "**kernel**" (the smoothing ``K``
+  vs a transition kernel ``p_\tau``); a **pushforward density** vs a **pushforward measure**; and an
+  implicit **convergence mode** (a.s. / in probability / ``L^2`` / in distribution) under a consistency or
+  rate claim.
+- **Citations** follow the rulebook: author–year in the prose, the full entry under `# References`,
+  identical to `docs/ARCHITECTURE.md` §References. The private notes under `inspiration/` are working
+  material, never cited.
 
-**Doc-edit checklist — run all on every documentation change** (most strictly on `ARCHITECTURE.md`):
-**(1) Correct** — every claim/formula/normalization true and precise, the estimator consistent for
-its estimand, **and free of category/type errors** (density vs measure/CDF, estimator vs estimand,
-``\mathbb{E}[Y \mid X]`` vs ``\mathbb{E}[Y \mid X = x]``, conditional vs joint/marginal, an implicit
-convergence mode — type every object, a value-check is blind to these), run as a *positive* per-formula
-verification, not a read-through; **(2) Self-contained**
-— every symbol *bound* to its meaning in plain language at first use (enumerate symbols, cite the
-binding clause), **and every signature argument documented** — positional and keyword alike, enumerated
-*from the signature* (not the prose) so an "obvious" `x` or `h` cannot be skipped: each says what it is
-(and for an option, how to set it), and each as its **own entry in the arguments list** — never relegated
-to surrounding prose while its siblings are bulleted; an argument that surfaces only inside a formula, in a
-trailing paragraph, or not at all, is the defect — this is how `density`'s query point `x` and bandwidth
-`h` slipped past a symbol-only sweep, and its `kernel` sat in a closing paragraph instead of a bullet;
-**(3) Notation** — one symbol per concept and one concept per symbol; standard
-notation; **(4) Formatted (bidirectional)** — math is LaTeX never backticks, every code identifier
-backticked never bare, and inline ``math`` stays on **one source line** (a wrapped continuation that
-begins with a list/blockquote leader — `- `/`* `/`> `/`1.` — is parsed as a list item and silently
-drops the span out of math mode; the rulebook's `RULE.TEX.INLINE_ONE_LINE` checks for this and fails the
-docs build, since Documenter renders the broken page without complaint); a **formula is a single LaTeX span**, never ``math`` split
-onto an adjacent `code` continuation (a code name inside a formula is `\texttt{}`-wrapped), and
-**backticks hold only well-formed Julia** (a name/type/call/expression), never math notation —
-intervals, products, inequalities, `·`/`−`/`≤` glyphs; and **nothing horizontally scrolls** — a long
-docstring signature is split with a hanging indent under the first argument, a wide display formula
-broken with `aligned`/`gathered`/`split` (neither a rendered code block nor display math auto-wraps); and
-**thin spaces and group args follow the house idiom** — `\,` only for the differential `\,\mathrm d`
-(else a plain space, never a delete), and braced `\frac`/`\tfrac`/`\boldsymbol` group arguments
-(`\tfrac{1}{2}`, `\boldsymbol{u}`), both grep-guarded;
-**(5) Current & complete** — no stale *deferred/none-exist* claims, and a
-summary that names only a subset of what the code now provides is stale. "Check the docs" means this
-**complete battery across every surface** (the four rationale docs, every `src/` docstring, every
-`docs/src/` page) — the `.claude/commands/check-docs.md` command (`/check-docs`) encodes it. A
-flagged instance is a sample of a class — fix the class, not the line.
+**Doc-edit checklist — the package's own part.** The rulebook's battery runs in every docs build; this
+is what it cannot run. On every documentation change, most strictly on `ARCHITECTURE.md`: (1) check each
+estimator is consistent for its estimand; (2) enumerate the arguments *from the signature*, not the prose
+— that is how `density`'s query point `x`, bandwidth `h` and `kernel` once slipped past a symbol-only
+sweep; (3) every code identifier is backticked, never bare; (4) a summary that names only a subset of what
+the code now provides is stale — the surfaces are the four rationale docs, every `src/` docstring and every
+`docs/src/` page.
 
 ## Verification workflow
 
@@ -408,7 +321,7 @@ chain is *prose ↔ formalization ↔ test*.
 
 ### Definition of done — for a new or changed operation
 
-Treat the feature as unfinished until each is **done and verified** (not "should work"):
+Treat the feature as unfinished until each is **done and verified**:
 
 1. **Correctness tests** against an *independent* analytic oracle — Gaussian marginals; an
    **Ornstein–Uhlenbeck process** (drift, diffusion, transition density known exactly) for §4.3–4.4
@@ -687,14 +600,7 @@ power-sums could rescue CV later).
 
 ## Working agreements
 
-- The API is not frozen; do not build backward-compatibility shims.
-- **Commit ⇒ push, on `master`.** This is a *private* repo synced across machines through GitHub, so
-  work is committed **directly on `master`** (do not branch) and **pushed in the same step**; the
-  docs site deploys on push. End every commit message with `Co-Authored-By: Claude Opus 4.8
-  <noreply@anthropic.com>`; never use `[skip ci]`.
-- **CI tests do not run on every push — manual + release tags** (`CI.yml` is `workflow_dispatch`
-  plus `push: tags: '*'`): per-commit GitHub Actions test runs are kept off to avoid CI cost, so run
-  the full test matrix **locally** before every push. The matrix runs on GitHub only when triggered
-  by hand (Actions tab) or on a **release tag** — the from-scratch, clean-environment resolve a local
-  run cannot give. This is the shared policy of the sibling GBG packages (GBGIsotropicTurbulence,
-  GBGCloudPhysics). **The docs workflow builds + deploys on every push to `master`.**
+- The git and CI conventions are the rulebook's (`.gbg/policy/git-conventions.md`): commit and push
+  directly on `master`, the versionless trailer, CI tests by hand and on release tags with the full matrix
+  run locally before every push, and the docs built and deployed on every push. The repository is private
+  and synced across the two machines through GitHub.
