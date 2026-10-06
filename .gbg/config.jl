@@ -26,6 +26,12 @@ Config(
     # layering, the invariants and the decision log. No physics and no Fourier scheme (invariant 2), so
     # the turbulence, microphysics and spectral disciplines are deliberately absent.
     disciplines = [:statistical_estimation, :software_architecture],
+    # The leading identity of every docstring is the estimand: this package is all statistics and no
+    # physics, so its counterpart of "the physical meaning first" is the population quantity, in standard
+    # probability notation, stated before the estimator (CLAUDE.md, "estimand first, estimator second").
+    settings = [
+        Setting(rule = Symbol("RULE.DOC.LEADING_IDENTITY"), name = :leading_identity, value = "estimand"),
+    ],
     switches = [
         Switch(target = Symbol("RULE.DOC.COORD_FREE"),
                reason = "No structured space to state a map intrinsically on: every variate is a scalar \
