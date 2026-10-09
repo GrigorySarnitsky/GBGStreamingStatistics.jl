@@ -1,7 +1,7 @@
-<!-- gbg:managed begin v2.0.0-rc.59 — rewritten by `gbg sync`; do not edit -->
+<!-- gbg:managed begin v2.0.0-rc.69 — rewritten by `gbg sync`; do not edit -->
 # Git conventions — `RULE.GIT.*`
 
-What a commit carries, where it goes, and what is never committed. 9 rules, written from the rule values themselves,
+What a commit carries, where it goes, and what is never committed. 11 rules, written from the rule values themselves,
 so a rule reworded here was reworded in the program that checks it.
 
 ### RULE.GIT.BRANCH
@@ -16,6 +16,13 @@ This package may set `branch`; unset, it is `master`.
 CI is manual-only, `workflow_dispatch` and release tags; the matrix runs locally before a commit; docs deploy on push.
 
 Before committing a code change, run the gate locally; a documentation-only change needs a load and the docs build. The docs build is therefore the per-push enforcement point, and the rules that read the built site run inside it.
+
+Covered by a program.
+
+### RULE.GIT.LICENSE
+A package carries the MIT licence in one file at its root, `LICENSE` or `LICENSE.md`: a copyright line naming the year and the holder, then the licence's text word for word.
+
+A repository published without a licence can be read but not legally reused. MIT is what Julia, its standard libraries and nearly every package of the General registry carry, and what each package of the fleet depends on, so it adds nothing a user must check (the owner's ruling, 2026-10-07). The text is compared word for word because an edited licence is a different licence.
 
 Covered by a program.
 
@@ -60,6 +67,13 @@ A cross-package request is a tracked file .gbg/requests/to-<PKG>-<date>-<topic>.
 The requests directory holds what is still awaiting the other package and nothing else.
 
 Covered by a program.
+
+### RULE.GIT.TRACKED
+A package's git tracks only the package and the tool's files: `src/`, `ext/`, `test/`, of `docs/` what its build and site take part in (the pages under `docs/src/`, the build's script, `docs/Project.toml`, `docs/prose_shape.csv`, and each document declared in `copies` or in a rationale file set the config writes out), `examples/`, `benchmark/`, `.github/`, `Project.toml`, `README.md`, a `LICENSE`, `CHANGELOG.md`, `.gitignore` and `CLAUDE.md`; `.gbg/config.jl`, `.gbg/policy/`, `.gbg/requests/`, `.gbg/questions.json`, `.gbg/settled.jl`, `.gbg/runs/` and `.gbg/leak-accepted.txt`; `.claude/settings.json`, `.claude/hooks/`, `.claude/skills/` and `.claude/WORK_QUEUE.md`. A draft or a note between sessions lives in `inspiration/`, which git ignores; any other file is declared with its reason.
+
+Git carried notes between machines because it was the easiest way, and a public release would have published them: one package held a design proposal, notes to other sessions and old review rounds. `inspiration/` reaches both machines through Dropbox, so no note needs git, and a file kept on purpose says why.
+
+Covered by a program in the end-of-turn hook, which reads the branch and the commits not yet pushed — weaker than a build check, since a hook can be skipped and a failing test cannot.
 
 ### RULE.GIT.TRAILER
 Every commit ends with the versionless 'Co-Authored-By: Anthropic Claude <noreply@anthropic.com>' trailer, and no other Co-Authored-By or Claude-Session line; never [skip ci].

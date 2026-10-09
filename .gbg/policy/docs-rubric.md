@@ -1,13 +1,13 @@
-<!-- gbg:managed begin v2.0.0-rc.59 — rewritten by `gbg sync`; do not edit -->
+<!-- gbg:managed begin v2.0.0-rc.69 — rewritten by `gbg sync`; do not edit -->
 # Documentation and API — `RULE.DOC.*`, `RULE.API.*`
 
-What a docstring and an API page contain, in what order and in what shape. 47 rules, written from the rule values themselves,
+What a docstring and an API page contain, in what order and in what shape. 48 rules, written from the rule values themselves,
 so a rule reworded here was reworded in the program that checks it.
 
 ### RULE.API.POSITIONAL
-In an operation, an argument that can change the result is positional, defaults included; an argument that cannot change the result — a performance hint, a builder's cost/accuracy tunable — is a keyword. An exception is a `Switch` on this rule in the package's own config, with its reason.
+In an operation, a required argument is positional or keyword as the package chooses, operation by operation. An argument with a default — an option, a tunable, a hint, a value that parametrises a single method however it is typed — is a keyword, whether or not it changes the result, unless its type selects among the operation's methods: then it is positional, passed as an instance. An operation that extends or mirrors a function of Base, a standard library or another package follows that function's arguments instead, and names it where the operation is documented, so a reader can compare the two signatures. Any other exception is a `Switch` on this rule in the package's own config, with its reason.
 
-In an operation, every argument that affects the result is positional, defaults included; an argument that cannot change the result is a keyword. An exception is a `Switch` on this rule, with its reason.
+A keyword names its value at the call site and may be given in any order or left out; an optional positional can be neither skipped nor named, and each default adds a method to disambiguate. So an argument with a default is a keyword, as in `sort(v; by, rev)`, `round(x; digits)` and `solve(prob, Tsit5(); abstol)`, and no guideline in any language makes one positional for changing the result (researched 2026-10-06). The one exception is an optional argument whose type selects the method: Julia picks a method by its positional arguments, and a keyword reaches dispatch only through a second, internal call, so such an argument stays positional, as an instance so a later option extends it without breaking a call — `round(x, r::RoundingMode = RoundNearest; digits)`, `lu!(A, pivot = RowMaximum(); check)`. On a REQUIRED argument the sources part — Julia's manual gives names for an interface with many arguments, SciML's guide prefers positional and warns against abusing required keywords — and the fleet does both: GBGPeriodicFields passes required arguments positionally, the other three name required parameters, selectors among them (`dealiasing::DealiasingStrategy`, `domain::Domain`). A rule deciding it would report one package or three, so the package decides, operation by operation (the owner, 2026-10-09). A method that extends `Statistics.var` must take `corrected` as a keyword or it is no extension, and `mul!(C, A, B, α, β)`'s weights are positional wherever a package mirrors it: the mirrored function decides, and naming it lets a reader check the claim.
 
 Covered by a reader given source + other documents, because this needs meaning.
 
@@ -90,6 +90,13 @@ Component notation for a genuine fiber algebra is fine; the rule targets flatten
 
 Covered by a differential_geometry reader given other documents, because this needs meaning.
 This package may set `formalization`; unset, it is ``.
+
+### RULE.DOC.COST_STRUCTURAL
+Where a docstring states an operation's cost, it states it by its structure — its complexity, the number of passes, the memory it needs, or a comparison with a named operation — and, where the faster of two choices depends on the case, says which way in words. A measured figure of its speed — a timing, a ratio of times or a throughput — is not stated in a docstring, nor the hardware it was measured on: it goes, dated, to the package's performance document, which the docstring may link.
+
+A measured figure goes stale with every benchmark sweep, and nothing checks a docstring against the next one. In GBGPeriodicFields, a feature commit put that day's ratios into `exponential_convolve!`; later sessions, asked whether a cost note still held, re-derived the figures and wrote more precise ones back, until three docstrings carried paragraphs of ratios by grid size, thread count, element type and GPU model in the middle of the description — and the newer figures existed nowhere else (its request, 2026-10-08). Structure stays true until the code changes, and the reader learns from it which way to choose. A program cannot tell a measured ratio from one derived from the structure (two passes against one), nor a timing from a simulated time (`50 s at dt = 0.05`), so a reader judges it (the owner, 2026-10-08).
+
+Covered by a reader given other documents, because this needs meaning.
 
 ### RULE.DOC.COVERAGE_BASES
 An operation that reduces a field over a measure documents every base the code supports for it — the reduction over a grid and the same reduction over a point set are both stated where the operation is documented.
@@ -278,9 +285,9 @@ A reader meeting the name for the first time must be able to reach it, and a fou
 Covered by a program.
 
 ### RULE.DOC.SIGNATURE_FIDELITY
-The signature a docstring displays and the methods the module defines agree, argument for argument.
+The signature a docstring displays and the methods the module defines agree, argument for argument, in name and in position.
 
-A displayed signature is what a reader calls; one the method table has moved past is a call that fails.
+A displayed signature is what a reader calls and the names a reader learns: one the method table has moved past is a call that fails, and a renamed argument is one the reader looks for in the code and does not find.
 
 Covered by a program.
 

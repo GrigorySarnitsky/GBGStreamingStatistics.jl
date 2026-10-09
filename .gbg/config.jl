@@ -5,7 +5,7 @@
 # default is wrong for this package.
 Config(
     package = "GBGStreamingStatistics",
-    tool = v"2.0.0-rc.59",
+    tool = v"2.0.0-rc.69",
     docs_build = ["julia", "--project=docs", "docs/make.jl"],
     test = ["julia", "--project", "-e", "using Pkg; Pkg.test()"],
     # The one tooling page, written by `Render.pages` during the docs build. No rule reads a generated page.

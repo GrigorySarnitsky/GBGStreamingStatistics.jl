@@ -1,4 +1,4 @@
-<!-- gbg:managed begin v2.0.0-rc.59 — rewritten by `gbg sync`; do not edit -->
+<!-- gbg:managed begin v2.0.0-rc.69 — rewritten by `gbg sync`; do not edit -->
 @.gbg/policy/00-index.md
 
 The rulebook above is the whole of it: the rules, the terms they use, and what GBGStreamingStatistics has
@@ -226,7 +226,9 @@ which picks the whole estimator), then the fixed sub-order **bandwidth → kerne
 `hy` / `b`, then `kernel` / `kernelx` / `kernely`, then `degree`); (4) the **secondary** modifiers and
 refinements (`method`, `adaptive`, `bounds`, `start`, `normalize`, `binning`, `maxorder`, IRLS scratch, …)
 in a stable order — a `method`-style refinement (it tweaks *how*, not *which* estimator) trails, unlike a
-primary `rule`-style selector, which leads. For an exported function, (1)–(2) are positional and (3)–(4) keyword — the
+primary `rule`-style selector, which leads. For an exported function, (1)–(2) are positional and (3)–(4) keyword —
+which is the rulebook's `RULE.API.POSITIONAL` (GBGCodingTools rc.69): a required argument is positional or keyword
+as the package chooses, and every argument with a default is a keyword unless its type selects the method. The
 keyword block follows the same bandwidth → kernel → degree → modifiers order. Read it as *what → where →
 how* (the bandwidth is the primary scale, the kernel the weight, the degree the polynomial order). A
 docstring's argument bullets then follow **signature order**.

@@ -1,10 +1,14 @@
 #!/usr/bin/env bash
 # STOP HOOK — refuses to let the session end while committed work is open.
-# Written by GBGCodingTools v2.0.0-rc.59; do not edit.
+# Written by GBGCodingTools v2.0.0-rc.69; do not edit.
 #
-# CONTRACT. `.claude/WORK_QUEUE.md` holds one line per item, `- [ ]` open, `- [x]` done. While any
-# item is open this exits 2, which Claude Code treats as "do not stop", feeding stderr back as the
-# reason. Closing an item is an edit that shows in the diff, so the queue cannot be silently emptied.
+# CONTRACT. `.claude/WORK_QUEUE.md` lists only what is still to do, one line per item, `- [ ]`. A
+# finished item is DELETED, in the commit that finishes it: the deletion shows in the diff as plainly
+# as a tick would, and git keeps the history. While any item is open, or any done line `- [x]` is
+# left, this exits 2, which Claude Code treats as "do not stop", feeding stderr back as the reason. A
+# blocked item stays open, its text beginning `BLOCKED:` and the reason, and is not counted, so the block
+# stays in sight instead of among the done ones. Ticked lines kept as history grew GBGPeriodicFields'
+# queue to 206 lines with nothing open, and nothing removed them (the owner, 2026-10-08).
 #
 # WHY IT IS A HOOK AND NOT A RULE. Told "continue with everything, don't stop in the middle", a
 # session finished three of five queued items and reported status with the other two labelled
@@ -31,10 +35,54 @@
 # heading: a run's leftovers are the owner's list to act on when he chooses, and holding a session to
 # them would be a review setting a session to work nobody asked for. A section the owner adds below
 # it is his, and counted.
+#
+# EVERY FILE NEWLY IN GIT IS NAMED, and nothing is stopped for it: the files the index holds that it
+# did not at the last turn's end, against a list kept in the ignored `.gbg/scratch/`. Shown to the
+# owner whether the turn ends or is held, and to the session beside the reason when it is held. A package's git once carried a
+# design proposal, notes to other sessions and old review rounds, and no commit of them was ever
+# remarked on (GBGPeriodicFields' request, 2026-10-05); `RULE.GIT.TRACKED` judges them, this only
+# makes each one visible.
 set -uo pipefail
 payload=$(cat)
+gbg_root="${CLAUDE_PROJECT_DIR:-.}"
+note=""; plain=""; news=0
+gbg_json() {
+  local s=$1 out="" c code i bs dq
+  printf -v bs '\134'; printf -v dq '\042'
+  for ((i = 0; i < ${#s}; i++)); do
+    c=${s:i:1}
+    if [[ $c == "$dq" || $c == "$bs" ]]; then
+      out+="$bs$c"
+    else
+      printf -v code '%d' "'$c"
+      (( code >= 0 && code < 32 )) && printf -v c '\\u%04x' "$code"
+      out+=$c
+    fi
+  done
+  printf '%s' "$out"
+}
+if git -C "$gbg_root" rev-parse --git-dir >/dev/null 2>&1; then
+  seen="$gbg_root/.gbg/scratch/tracked-files"
+  mkdir -p "$gbg_root/.gbg/scratch"
+  git -C "$gbg_root" ls-files -z 2>/dev/null | LC_ALL=C sort -z > "$seen.now"
+  if [[ -f "$seen" ]]; then
+    while IFS= read -r -d '' f; do
+      news=$((news + 1))
+      if (( news <= 20 )); then
+        note+="${note:+, }$(gbg_json "$f")"; plain+="${plain:+, }$f"
+      fi
+    done < <(LC_ALL=C comm -z -13 "$seen" "$seen.now" 2>/dev/null)
+  fi
+  mv -f "$seen.now" "$seen"
+fi
+if (( news > 20 )); then note+=", and $((news - 20)) more"; plain+=", and $((news - 20)) more"; fi
+(( news > 0 )) && { note="new in git: $note"; plain="new in git: $plain"; }
+gbg_note() { [[ -n "$note" ]] && printf '{"systemMessage": "%s"}\n' "$note"; return 0; }
+finish() { gbg_note; exit 0; }
+held() { [[ -n "$plain" ]] && printf '%s\n' "$plain" >&2; gbg_note; exit 2; }
+
 if grep -q '"stop_hook_active"[[:space:]]*:[[:space:]]*true' <<<"$payload"; then
-  exit 0
+  finish
 fi
 
 runs="${CLAUDE_PROJECT_DIR:-.}/.gbg/runs"
@@ -56,7 +104,7 @@ if [[ -d "$runs" ]]; then
       echo "Do NOT abandon it to end the turn: 'gbg run abandon' DROPS its findings. That is the"
       echo "owner's call, for a run he does not want continued."
     } >&2
-    exit 2
+    held
   done
 fi
 
@@ -127,29 +175,45 @@ if [[ -n "$git_said" ]]; then
     echo "Push what is committed (commit ⇒ push), on the working branch, with the trailer on every"
     echo "commit — or say why you cannot, so the owner decides. A hook can be skipped; do not."
   } >&2
-  exit 2
+  held
 fi
 
 queue="${CLAUDE_PROJECT_DIR:-.}/.claude/WORK_QUEUE.md"
-[[ -f "$queue" ]] || exit 0
+[[ -f "$queue" ]] || finish
 
 # The leftovers section is the EXACT heading line, up to the next heading of ANY level, and the
 # lines printed carry their number in the file (found in review, 2026-09-23: a section of the
 # owner's under a `#` heading, or one whose name began with the leftovers', went uncounted).
-open_items=$(awk '{ h = $0; sub(/[ 	]+$/, "", h) }
+# An item is any list bullet (`-`, `*`, `+`, `1.`) with a box; a line inside a fenced block is an example, not
+# an item; an open item is BLOCKED only when its text BEGINS `BLOCKED:` and gives a reason (found in review).
+open_items=$(awk '/^[[:space:]]*(```|~~~)/ {f = !f; next} f {next}
+                    { h = $0; sub(/[ 	]+$/, "", h) }
                     h == "## From the last review" || h == "## Code the owner asked for" {skip=1; next}
                     /^#/ {skip=0}
-                    !skip && /^[[:space:]]*- \[ \]/ {print NR ":" $0}' "$queue")
-[[ -z "$open_items" ]] && exit 0
+                    !skip && /^[[:space:]]*([-*+]|[0-9]+[.)])[[:space:]]*\[[[:space:]]*\]/ &&
+                    !/^[[:space:]]*([-*+]|[0-9]+[.)])[[:space:]]*\[[[:space:]]*\][[:space:]]+BLOCKED:[[:space:]]*[^[:space:]]/ {print NR ":" $0}' "$queue")
+# A done line in ANY section, the owner's and the last review's included: the queue keeps no history.
+done_items=$(awk '/^[[:space:]]*(```|~~~)/ {f = !f; next} f {next}
+                    /^[[:space:]]*([-*+]|[0-9]+[.)])[[:space:]]*\[[[:space:]]*[xX][[:space:]]*\]/ {print NR ":" $0}' "$queue")
+[[ -z "$open_items" && -z "$done_items" ]] && finish
 
 {
-  echo "WORK QUEUE IS NOT EMPTY — you committed to finishing these before reporting back:"
-  echo
-  sed 's/^/  /' <<<"$open_items"
-  echo
-  echo "Continue working. Close each item in .claude/WORK_QUEUE.md by changing '- [ ]' to '- [x]'"
-  echo "ONLY when it is actually done and verified — an item closed to end the turn is the defect"
-  echo "this hook exists to prevent. If an item is genuinely blocked, mark it '- [x]' and record the"
-  echo "blocker on the same line, so the block is visible in the diff rather than silent."
+  if [[ -n "$open_items" ]]; then
+    echo "WORK QUEUE IS NOT EMPTY — you committed to finishing these before reporting back:"
+    echo
+    sed 's/^/  /' <<<"$open_items"
+    echo
+    echo "Continue working. DELETE each item's line from .claude/WORK_QUEUE.md, in the commit that"
+    echo "finishes it, ONLY when it is actually done and verified — an item removed to end the turn is"
+    echo "the defect this hook exists to prevent. If an item is genuinely blocked, keep it '- [ ]' and"
+    echo "begin its text with 'BLOCKED:' and the reason; such a line is not counted, and stays in sight."
+  fi
+  if [[ -n "$done_items" ]]; then
+    [[ -n "$open_items" ]] && echo
+    echo "WORK QUEUE HOLDS DONE ITEMS — it lists only what is still to do. Delete these lines (git keeps"
+    echo "the history), in any section, the owner's included:"
+    echo
+    sed 's/^/  /' <<<"$done_items"
+  fi
 } >&2
-exit 2
+held

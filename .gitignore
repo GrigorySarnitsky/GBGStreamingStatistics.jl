@@ -1,4 +1,4 @@
-# gbg:managed begin v2.0.0-rc.59 — rewritten by `gbg sync`; do not edit
+# gbg:managed begin v2.0.0-rc.69 — rewritten by `gbg sync`; do not edit
 .gbg/scratch/
 docs/build/
 docs/src/gbg.md
@@ -7,6 +7,7 @@ test/Manifest.toml
 benchmark/Manifest.toml
 .claude/settings.local.json
 *.cov
+inspiration/
 # gbg:managed end
 
 .ipynb_checkpoints/

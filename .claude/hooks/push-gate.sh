@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # PUSH HOOK — the docs build runs before every push of this package, and a build that fails stops it.
-# Written by GBGCodingTools v2.0.0-rc.59; do not edit.
+# Written by GBGCodingTools v2.0.0-rc.69; do not edit.
 #
 # CONTRACT. Claude Code runs this before every shell command (PreToolUse), with the call as JSON on
 # standard input. A command that pushes this package — `git push` in any spelling, or `gbg release`,
@@ -61,10 +61,14 @@ verdict=$(printf '%s\n' "$cmd" | awk '
       d = substr(s, RSTART, RLENGTH); sub(/^git[ \t]+-C[ \t]+/, "", d); print "DIR\t" d; s = substr(s, RSTART + RLENGTH)
     }
     if (!pushes && line ~ /(^|[;&|( \t])git([ \t]+(-C[ \t]+[^ \t;&|]+|-c[ \t]+[^ \t;&|]+|--[^ \t;&|]+))*[ \t]+commit([^A-Za-z0-9_-]|$)/) commits = 1
+    if (line ~ /(^|[;&|( \t])git([ \t]+(-C[ \t]+[^ \t;&|]+|-c[ \t]+[^ \t;&|]+|--[^ \t;&|]+))*[ \t]+add[ \t]+[^;&|]*[^ \t;&|]/) {
+      a = line; sub(/.*git([ \t]+(-C[ \t]+[^ \t;&|]+|-c[ \t]+[^ \t;&|]+|--[^ \t;&|]+))*[ \t]+add[ \t]+/, "", a); sub(/[;&|].*/, "", a)
+      gsub(/(^|[ \t])(-u|--update)([ \t]|$)/, " ", a); if (a ~ /[^ \t]/) adds = 1
+    }
     if (line ~ /(^|[;&|( \t])git([ \t]+(-C[ \t]+[^ \t;&|]+|-c[ \t]+[^ \t;&|]+|--[^ \t;&|]+))*[ \t]+push([^A-Za-z0-9_-]|$)/ ||
         line ~ /(^|[;&|( \t])gbg(dev)?([ \t]+--dev)?[ \t]+release([ \t;&|]|$)/) pushes = 1
   }
-  END { if (pushes) print "PUSH"; if (pushes && commits) print "COMMITS" }')
+  END { if (pushes) print "PUSH"; if (pushes && commits) print "COMMITS"; if (pushes && commits && adds) print "ADDS" }')
 case "$verdict" in *PUSH*) ;; *) exit 0 ;; esac
 
 # Which repository is pushed: the call's directory, moved by each `cd` and `-C` in turn.
@@ -96,7 +100,31 @@ if [ "$committing" = 0 ] && [ -n "$(git -C "$root" status --porcelain --untracke
   exit 2
 fi
 cd "$root" || exit 0
+# What git tracks is judged before the build, by `RULE.GIT.TRACKED` under the package's own switches:
+# a stray file stops the push (the owner, 2026-10-05), since publishing is when it does harm.
 log=$(mktemp)
+# a command that stages new files, commits and pushes stages them only after this runs: files git
+# neither tracks nor ignores count then too, and only then — `git add -u` stages none (review, 2026-10-05)
+case "$verdict" in *ADDS*) adding=1 ;; *) adding=0 ;; esac
+if ! strays=$(GBG_UNTRACKED="$adding" julia --project=docs --startup-file=no -e 'using GBGCodingTools; const G = GBGCodingTools; foreach(println, G.Engine.Checks.tracked_strays(pwd(), G.ConfigIO.read_config(pwd()); untracked = get(ENV, "GBG_UNTRACKED", "0") == "1"))' 2>"$log"); then
+  {
+    echo "PUSH STOPPED: what git tracks could not be checked (RULE.GIT.TRACKED):"
+    printf '%s\n' "$strays"; grep -E 'ERROR|Error' "$log"
+    echo "The whole output: $log"
+  } >&2
+  exit 2
+fi
+if [ -n "$strays" ]; then
+  {
+    echo "PUSH STOPPED: files the rulebook does not allow in git (RULE.GIT.TRACKED):"
+    printf '%s\n' "$strays" | sed 's/^/  /'
+    echo "Move a draft or a note to inspiration/ (git ignores it) and git rm --cached it, delete it, or ask"
+    echo "the owner for a switch naming it, with its reason, in .gbg/config.jl; then commit, and push in a"
+    echo "separate command — this check reads the index as it stands before the command runs."
+  } >&2
+  rm -f "$log"
+  exit 2
+fi
 if julia --project=docs docs/make.jl >"$log" 2>&1; then
   rm -f "$log"
   exit 0

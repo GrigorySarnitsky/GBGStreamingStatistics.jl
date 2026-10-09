@@ -541,12 +541,12 @@ Mirrors PF; the deltas are noted.
   **consistency / rate tests** (error falls at the theoretical ``n^{-2/5}`` as ``n`` grows),
   **mergeability tests**, the **`@allocated` audit**, and **GPU-vs-CPU parity** under
   `allowscalar(false)`.
-- **A `check-docs` battery** — adapt PF's `.claude/commands/check-docs.md`: the same matrix of
-  (Correct / Self-contained / Notation / Formatted / Current / Cited) × (every surface), with
-  *Correct* extended to **consistency and normalization of every estimator against its estimand** — each
-  estimator consistent for its estimand, every normalization exact (the ``1/n``, ``1/(nh)``,
-  ``\int K = 1``, ``\mu_2(K)``, ``R(K)``); a stray ``1/h`` or kernel-moment factor is the easy slip,
-  separate from formatting.
+- **The documentation checks are the shared tooling's** — the rulebook of
+  [GBGCodingTools](https://grigorysarnitsky.github.io/GBGCodingTools.jl/), run in every docs build, and its
+  documentation review, read by a statistician and a software architect. What the package adds is the
+  **consistency and normalization of every estimator against its estimand** — each estimator consistent
+  for its estimand, every normalization exact (the ``1/n``, ``1/(nh)``, ``\int K = 1``, ``\mu_2(K)``,
+  ``R(K)``); a stray ``1/h`` or kernel-moment factor is the easy slip, separate from formatting.
 
 ---
 
@@ -575,7 +575,7 @@ GBGStreamingStatistics/
   test/   runtests.jl  per-module  oracles.jl(OU/Gaussian)  mergeability.jl  allocations.jl  aqua.jl  jet.jl  gpu/
   benchmark/
   examples/
-  .claude/commands/check-docs.md
+  .gbg/config.jl  .claude/skills/   # the GBGCodingTools wiring (config, rulebook, review skills)
 ```
 
 Internal split, made explicit: **`Accumulators` + `Histograms` are the universal lower half**

@@ -1,4 +1,4 @@
-<!-- gbg:managed begin v2.0.0-rc.59 — rewritten by `gbg sync`; do not edit -->
+<!-- gbg:managed begin v2.0.0-rc.69 — rewritten by `gbg sync`; do not edit -->
 # The rulebook
 
 One text for every package that pins GBGCodingTools, at the version this package pins. Every rule has
@@ -17,12 +17,12 @@ adds for itself is a `PatternRule` in the same file, and is nobody else's.
 
 The files:
 
-- `docs-rubric.md` — What a docstring and an API page contain, in what order and in what shape. (47 rules)
+- `docs-rubric.md` — What a docstring and an API page contain, in what order and in what shape. (48 rules)
 - `latex-idiom.md` — What renders, and how mathematics is written so that it renders the same way everywhere. (18 rules)
 - `citations.md` — Author–year in the prose, the full reference where the reader can reach it, a DOI on every title. (6 rules)
 - `testing-protocol.md` — What a test is for, where its oracle comes from, and when a thing is done. (12 rules)
 - `instruments.md` — What a session runs or sends unasked, and how it reads what a scan prints. (3 rules)
-- `git-conventions.md` — What a commit carries, where it goes, and what is never committed. (9 rules)
+- `git-conventions.md` — What a commit carries, where it goes, and what is never committed. (11 rules)
 - `asking.md` — One decision, short, in his words rather than this package's, with every identifier moved out of the sentence. (5 rules)
 - `publication.md` — What a repository may not publish when it is made public: no credential, nothing personal, nothing never meant for a reader. (9 rules)
 - `glossary.md` — the terms the rules use, bound once.

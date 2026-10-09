@@ -22,7 +22,7 @@ unit,words,longest_paragraph,admonitions
 "ARCHITECTURE.md § 6. Invariants — deliberate absences are statements / item 4",9,9,0
 "ARCHITECTURE.md § 6. Invariants — deliberate absences are statements / item 5",36,36,0
 "ARCHITECTURE.md § 6. Invariants — deliberate absences are statements / item 6",136,82,0
-"ARCHITECTURE.md § 7. Documentation, correctness, and testing conventions",319,312,0
+"ARCHITECTURE.md § 7. Documentation, correctness, and testing conventions",325,318,0
 "ARCHITECTURE.md § 8. Proposed repository layout (mirrors PF)",72,71,0
 "ARCHITECTURE.md § 9. Naming the package",116,64,0
 "ARCHITECTURE.md § Documentation policy — **estimand first, estimator second**",92,40,0
