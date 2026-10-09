@@ -288,7 +288,7 @@ function _plugin_asymmetric(summary::Histogram1D, kernel::AsymmetricKernel)
     throw(ArgumentError("no occupied in-support bins for the plug-in bandwidth; use rule = :normal"))
   weight = kernel.weight
   weight === nothing &&
-    throw(ArgumentError("this `AsymmetricKernel` was built without an AMISE weight, so `rule = :plugin` has no `w(x)` to use; supply it as `AsymmetricKernel(pdf, support, weight)`, or select `rule = :normal`"))
+    throw(ArgumentError("this `AsymmetricKernel` was built without an AMISE weight, so `rule = :plugin` has no `w(x)` to use; supply it as `AsymmetricKernel(pdf, support; weight = w)`, or select `rule = :normal`"))
   σ = _sample_std(summary)
   iqr = _binned_quantile(summary, 0.75) - _binned_quantile(summary, 0.25)
   scale = (iqr > 0) ? min(σ, iqr / 1.349) : σ
@@ -380,8 +380,8 @@ estimated from a pilot KDE's second derivative by grid quadrature (valid at the 
 1.4\\text{–}1.7\\times`` on skewed positive data — where the rule of thumb mis-scales — and is otherwise near
 it. `rule = :plugin` also accepts a custom
 [`AsymmetricKernel`](@ref GBGStreamingStatistics.Kernels.AsymmetricKernel), provided it was built with its
-AMISE weight ``w(x)`` (the three-argument constructor); a weightless (two-argument) `AsymmetricKernel`
-carries no ``w(x)``, so `:plugin` rejects it — use `rule = :normal`. The symmetric selectors `:sj` /
+AMISE weight ``w(x)`` (its `weight` keyword); one built without `weight` carries no ``w(x)``, so
+`:plugin` rejects it — use `rule = :normal`. The symmetric selectors `:sj` /
 `:isj` / `:aic` do not apply to an asymmetric kernel; a fully
 data-adaptive curvature pilot is a recorded refinement.
 
