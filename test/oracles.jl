@@ -30,7 +30,7 @@ include("testoracles.jl"); using .TestOracles
     # OU process  dX = −θ X dt + σ dW : stationary N(0, s²) with s² = σ²/(2θ); the lag-τ transition is
     # exactly  X_{t+τ} | X_t = x ∼ N(x e^{−θτ}, s²(1 − e^{−2θτ})), so exact stationary lagged pairs are
     # sampled directly (no Euler discretization). (The §4.4 Kramers–Moyal drift/diffusion reading of the
-    # same pairs is archived — see archive/.)
+    # same pairs is archived — git commit 37006b5, archive/.)
     Random.seed!(2025)
     θ = 0.8; σ = 1.2; τ = 0.5
     s = ou_stationary_std(theta = θ, sigma = σ)

@@ -38,7 +38,7 @@ include("MarginalDensity.jl")
 include("ConditionalExpectations.jl")
 include("ConditionalDensity.jl")
 include("Bandwidth.jl")
-# include("IncrementMoments.jl")         # [archived] the §4.4 SDE-reading functionals — see archive/
+# include("IncrementMoments.jl")         # [archived] the §4.4 SDE-reading functionals — git commit 37006b5, archive/
 # include("CharacteristicFunctions.jl")  # [deferred] the empirical-characteristic-function summary
 # include("ProjectionInference.jl")      # [deferred] the SFI / ULI projection road
 

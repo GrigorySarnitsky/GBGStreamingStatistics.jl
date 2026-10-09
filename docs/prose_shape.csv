@@ -3,10 +3,10 @@ unit,words,longest_paragraph,admonitions
 "ARCHITECTURE.md § 0. Provenance",83,53,0
 "ARCHITECTURE.md § 1. Purpose and scope",247,74,0
 "ARCHITECTURE.md § 10. Open questions",322,321,0
-"ARCHITECTURE.md § 11. Decision log",3126,598,0
+"ARCHITECTURE.md § 11. Decision log",3199,598,0
 "ARCHITECTURE.md § 2. The central principle: the architecture follows establish",50,50,0
 "ARCHITECTURE.md § 3. The accumulated summary — the universal lower half",1016,466,0
-"ARCHITECTURE.md § 4. Estimand families (estimators — the exportable upper half",96,96,0
+"ARCHITECTURE.md § 4. Estimand families (estimators — the exportable upper half",101,101,0
 "ARCHITECTURE.md § 4.1 Marginal density ``f_X``",172,172,0
 "ARCHITECTURE.md § 4.2 Conditional expectation ``m(x)`` and variance ``\sigma^2",158,89,0
 "ARCHITECTURE.md § 4.3 Conditional and transition density",94,94,0
@@ -134,7 +134,7 @@ unit,words,longest_paragraph,admonitions
 "TESTING.md § Coverage matrix",724,388,0
 "TESTING.md § Declared harness contracts",164,126,0
 "TESTING.md § Layers",774,774,0
-"TESTING.md § Layout",276,149,1
+"TESTING.md § Layout",280,153,1
 "TESTING.md § Testing",25,25,0
 "TESTING.md § The estimator contract",85,71,0
 "TESTING.md § The estimator contract / item 1",11,11,0

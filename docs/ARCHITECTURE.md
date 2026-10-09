@@ -312,7 +312,7 @@ Each estimand is written **estimand first** (per §2), grouped by the **two read
 density §4.1, the conditional mean and variance §4.2, the conditional / transition density §4.3, and
 bandwidth selection §4.5) and **§4.B power-sum quadrature** (the global moment readouts off the stored
 ``S_p`` — `mean` / `var` / `central_moment`, and `expectation` ``\mathbb{E}[g(X)]`` / `pushforward_density`,
-all built). The §4.4 Kramers–Moyal / SDE-reading functionals are **archived** (`archive/`, restore when a
+all built). The §4.4 Kramers–Moyal / SDE-reading functionals are **archived** (in git history at commit `37006b5`, restore when a
 consumer needs them and `Histogram2D` raises its per-cell order); §4.6 is an [OPEN] alternative.
 
 ### 4.A Kernel-weighting readouts
@@ -568,7 +568,7 @@ GBGStreamingStatistics/
     ConditionalExpectations.jl   # §4.2   m(x), σ²(x)  [estimand-first reference module]
     ConditionalDensity.jl        # §4.3   f_{Y|X}, transition p_τ
     Bandwidth.jl                 # §4.5   global + response-aware local plug-in
-    # IncrementMoments.jl        # [archived → archive/] §4.4 increment moments, KM/drift/diffusion
+    # IncrementMoments.jl        # [archived → git 37006b5] §4.4 increment moments, KM/drift/diffusion
     # CharacteristicFunctions.jl # [OPEN, secondary] ECF summary
     # ProjectionInference.jl     # [OPEN] SFI / ULI road
   docs/   ARCHITECTURE.md  FORMALIZATION.md  TESTING.md  PERFORMANCE.md  src/…  make.jl
@@ -669,8 +669,8 @@ intentional — do not dedupe it).
   Verified by the ROCm GPU parity suite.
 
 - **Kramers–Moyal §4.4 — drift and diffusion first, as conditional increment moments** (§4.4).
-  *[Superseded — these functionals were built and OU-tested, then archived to `archive/`; see the archival
-  entry below.]* The first slice implements the increment moments and the finite-``\tau`` Kramers–Moyal coefficients
+  *[Superseded — these functionals were built and OU-tested, then archived; see the archival entries
+  below.]* The first slice implements the increment moments and the finite-``\tau`` Kramers–Moyal coefficients
   drift ``D^{(1)} = M_1/\tau`` and diffusion ``D^{(2)} = M_2/(2\tau)`` directly from the **order-2
   `Histogram2D`**, via ``M_1(x) = \hat m_h(x) - x`` and
   ``M_2(x) = \widehat{\mathbb{E}}[Y^2\mid x] - 2x \hat m_h(x) + x^2`` — reusing the §4.2 local-linear
@@ -904,6 +904,11 @@ intentional — do not dedupe it).
   to "readouts are built from the atoms, sometimes composing them" — `conditional_mean` always did (its
   trivial ``\sum Y`` response is the ``y``-quadrature of the identity); the general ``g`` just makes the
   inner ``y``-readout non-trivial. The order-2 ``Y``-power-sums cap a general ``g`` at ``O(\Delta_y^2)``.
+- **The archive leaves the tree** (2026-10-09). `archive/` held only the archived §4.4 module, its test,
+  and a README with the restore steps — working code waiting for a consumer, not part of the package. The
+  shared tooling's `RULE.GIT.TRACKED` admits only the package's own files, so the folder is removed from
+  git rather than kept under a switch: git's history keeps it exactly at commit `37006b5`, restored with
+  `git checkout 37006b5 -- archive/` and the README's steps.
 
 Open decisions still flagged **[OPEN]** in §10 (the projection road, `HistogramND`, vector-valued
 conditioning, prior-art mirroring) graduate to entries here when they are settled.

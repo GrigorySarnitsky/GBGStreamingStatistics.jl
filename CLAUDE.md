@@ -170,7 +170,8 @@ estimands.
   `HDF5.Group`) live in the extension. Handle-based only — the consumer opens and owns the file.
 - Deferred / archived, recorded as commented-out includes (the rule against speculative structure):
   `# IncrementMoments.jl` (the §4.4 SDE-reading `drift` / `diffusion` / Kramers–Moyal functionals —
-  **archived** to `archive/`, working and OU-tested; restore when a consumer needs them and `Histogram2D`
+  **archived** — kept in git history at commit `37006b5` (`archive/`), working and OU-tested; restore with
+  `git checkout 37006b5 -- archive/` and its README when a consumer needs them and `Histogram2D`
   raises its order for ``n \ge 3``),
   `# CharacteristicFunctions.jl` (the ECF summary — `docs/ARCHITECTURE.md` §2, likely never built),
   `# ProjectionInference.jl` (the SFI / ULI projection road — §4.6).
@@ -434,7 +435,8 @@ Mechanical bar:
    SE = empirical sampling spread across independent datasets).
 7. **`IncrementMoments` — archived** (§4.4). The conditional increment moments and Kramers–Moyal
    functionals (`increment_moment`, `kramers_moyal`, `drift`, `diffusion`; `pawula_quotient` / `markov_test`
-   were stubs) were built and OU-tested, then **moved to `archive/`** to focus the core on the
+   were stubs) were built and OU-tested, then **archived** (in git history at commit `37006b5`, `archive/`; out of
+   the tree since 2026-10-09) to focus the core on the
    summary-as-measure and its two readout families. Restore when a consumer needs them and `Histogram2D`
    raises its per-cell order for ``n \ge 3``.
 8. **`ConditionalDensity`** (§4.3) — `conditional_density` ``\equiv f_{Y\mid X}`` and `transition_density`

@@ -245,7 +245,7 @@ plus the `LoweredCodeUtils` compat pin JET needs).
     curved-mean**, quadratic-mean, and **Ornstein–Uhlenbeck** oracles, mergeability, the uniform
     `check_point_estimator` contract, `density`'s exact affine equivariance, the Marron–Wand claw stress,
     the bounded `@allocated` audit, and **CPU-vs-AMD-GPU parity** (`test/gpu/`, ROCm); `Aqua.test_all` and
-    JET run for real throughout. The Kramers–Moyal / Pawula / Markov diagnostics are archived (see `archive/`), pending a consumer. The
+    JET run for real throughout. The Kramers–Moyal / Pawula / Markov diagnostics are archived (in git history at commit `37006b5`), pending a consumer. The
     conditional-mean ``n^{-2/5}`` and conditional-density ``n^{-2/3}`` rate tests are now implemented
     (`test/conditional_convergence.jl`), alongside the **density** rate test (`test/density_convergence.jl`)
     and the direct kernel-constant oracle (`test/kernels.jl`) — closing the rate column of the matrix.
