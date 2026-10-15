@@ -329,15 +329,37 @@ from counts ``n_j`` at the within-bin **centroid** ``\ell_j = c_j + S_1^{(j)}/n_
 the default — matching the bin's first moment, so the discretization is ``O(\Delta^2)`` in the bin width
 ``\Delta``; ``\ell_j = c_j`` is `binning = :simple`, ``O(\Delta)``), the centroid free from the stored
 ``S_1``. Bandwidth from §4.5; the kernel is pluggable. The tail and shape refinements are all **post-hoc on the one
-summary** and compose freely — the **adaptive** variable bandwidth (cutting tail *variance*), the
-**local-log-polynomial** `degree` (cutting tail *bias*), a **bounded support** (`support`, or an asymmetric
-boundary kernel), a **parametric start**, and exact `normalize` — with `density_standard_error` the
-pointwise variability band; `FORMALIZATION.md` and the API page carry each one's estimand and constants.
+summary** — the **adaptive** variable bandwidth (cutting tail *variance*), the **local-log-polynomial**
+`degree` (cutting tail *bias*), a **bounded support** (`support`, or an asymmetric boundary kernel), a
+**parametric start**, and exact `normalize` — with `density_standard_error` the pointwise variability band;
+`FORMALIZATION.md` and the API page carry each one's estimand and constants. The axes are conceptually
+independent (each cures a different defect of the plain KDE), but not every pair combines: the table after
+this paragraph records which pairs do, which are refused as redundant, and which are refused only because
+the combination is not built.
 Caveats: the fixed range ``[\texttt{lower}, \texttt{upper})``
 drops events beyond it (cover the data — ``\approx \pm 5\sigma`` for light tails, wider for heavy ones,
 with proportionally more bins to keep ``b \ll h``), and uniform bins under-resolve
 power-law tails (the variable bandwidth is the preferred fix — it stays post-hoc, mergeable, and
 estimand-agnostic, which non-uniform bins would not).
+
+The `density` option pairs, as the guards decide them (audited 2026-10-15). "Redundant" means two cures
+for the same defect, where the second has no theory behind it; "not built" means a definable estimator,
+published or a direct composition, that the package has not implemented; every refusal is an
+`ArgumentError` naming the pair.
+
+| Pair | Status | Reason |
+|:--|:--|:--|
+| `degree` × `adaptive` | combine, at every degree | independent corrections: bias order and tail variance |
+| `support` × `degree = 0` (with or without `adaptive`) | combine | the Jones renormalization of the KDE |
+| `support` × `degree ≥ 1` | refused: redundant | the local-log fit is already boundary-adaptive, so the renormalization would be a second correction |
+| `support` × asymmetric kernel | refused: redundant | the kernel's mass inside the support is exactly 1, so the renormalization would divide by 1 |
+| asymmetric kernel × `degree ≥ 1` | refused: redundant, theory open | two boundary cures at once; the local-likelihood bias expansion rests on translation-kernel moments, which a varying-shape kernel lacks |
+| `start` × `degree ≥ 1` | refused: not built | the locally parametric estimator of Hjort & Jones (1996), the named first candidate |
+| `start` × `adaptive` | refused: not built | Abramson's variable bandwidth on the correction's KDE, a direct composition |
+| `start` × asymmetric kernel | refused: not built | a gamma/beta-kernel KDE of the correction, natural for a positive-support start |
+| `start` × `support` | refused: not built | definable; the ratio ``f/p`` near an edge needs study before a claim |
+| asymmetric kernel × `adaptive` | refused: theory open | whether the square-root law cancels the leading bias of a varying-shape kernel is unproved |
+| `normalize`, `binning` × anything | combine | orthogonal to the estimator choice |
 
 #### 4.2 Conditional expectation ``m(x)`` and variance ``\sigma^2(x)``
 
@@ -910,6 +932,22 @@ intentional — do not dedupe it).
   git rather than kept under a switch: git's history keeps it exactly at commit `37006b5`, restored with
   `git checkout 37006b5 -- archive/` and the README's steps.
 
+- **The argument audit** (2026-10-15). Every exported method's arguments and defaults reviewed under the
+  rules the owner adopted from the sibling packages (a keyword shows its real default; `nothing` only for
+  a genuine absence; one name per concept and one concept per name; no placeholder replaced on entry).
+  Done, each its own commit: the histogram constructors' `accumulator_type` / `count_type`; `density`'s
+  `bounds` → `support` (the start's and the kernel's name for the same tuple); the asymmetric kernel's
+  `local_scale_weight` (the cone's `weight` is a different quantity) and `pilot_bandwidth`; the
+  conditional estimators' `degree` defaulting to `0` under an asymmetric kernel, where `1` was refused;
+  and `density`'s `h = nothing`, replaced by its measured equal `bandwidth(summary; kernel, degree)`,
+  which moved the package's argument order to **kernel → degree → bandwidth** everywhere (a default sees
+  only what precedes it). Not done, with reasons: the local plug-in's `pilot_bandwidth = nothing` stays a
+  computed default (a public pilot function for one default is not worth its surface; to reconsider);
+  `h` keeps carrying the asymmetric kernels' scale ``b`` (one smoothing parameter per kernel, the kernel
+  owning its parametrization, as `kde(…; bandwidth, kernel)` does elsewhere); and the `density` variants
+  stay keywords rather than one estimator value — the axes are independent corrections, and the refused
+  pairs are redundancies or undeveloped estimators, now tabulated in §4.1, not a reason to redesign.
+
 Open decisions still flagged **[OPEN]** in §10 (the projection road, `HistogramND`, vector-valued
 conditioning, prior-art mirroring) graduate to entries here when they are settled.
 
@@ -980,6 +1018,9 @@ The load-bearing works the package implements or pins to:
 - N. L. Hjort & I. K. Glad (1995), [*Nonparametric density estimation with a parametric
   start*](https://doi.org/10.1214/aos/1176324627), Ann. Statist. 23(3). (Semiparametric density — the
   parametric model times a KDE of its correction; `density(…; start)`.)
+- N. L. Hjort & M. C. Jones (1996), [*Locally parametric nonparametric density
+  estimation*](https://doi.org/10.1214/aos/1032298288), Ann. Statist. 24(4). (The `start` × local-likelihood
+  combination the package has not built — §4.1's table.)
 - A. Rydin Gorjão et al. (2021), [*Arbitrary-Order Finite-Time Corrections for the Kramers–Moyal
   Operator*](https://doi.org/10.3390/e23050517), Entropy 23(5) — the all-orders Bell-polynomial
   ``\tau``-correction; the [`kramersmoyal`](https://doi.org/10.21105/joss.01693) software lineage.

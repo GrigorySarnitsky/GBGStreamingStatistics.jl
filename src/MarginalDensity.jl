@@ -429,9 +429,10 @@ smoother of the counts ``n_j`` at bin locations ``\\ell_j`` (the within-bin cent
   (``[0,1]``) — boundary-bias-free by
   construction — are catalogued with their supports and constants on [the Kernels page](@ref "Kernels");
   supply a custom [`AsymmetricKernel`](@ref GBGStreamingStatistics.Kernels.AsymmetricKernel) for your own
-  bounded support. An asymmetric kernel is its own degree-0, boundary-free estimator, so `degree`,
-  `adaptive`, `support`, and a parametric `start` do not combine with it, and it takes its own scale ``b``
-  in place of `h`.
+  bounded support. An asymmetric kernel is its own degree-0, boundary-free estimator: `degree` and
+  `support` are refused with it as redundant (a second boundary cure), `adaptive` because the square-root
+  law is unproved for a varying-shape kernel, and a parametric `start` because that composition is not
+  built; it takes its own scale ``b`` in place of `h`.
 - `degree` — the local-polynomial order. `degree = 0` (default) is the binned KDE / WARPing (weighted averaging of rounded points)
   ``\\hat f(x) = \\frac{1}{n} \\sum_j (n_j/h_j)  K((x-\\ell_j)/h_j)`` (``\\int K = 1``). `degree` ``\\ge 1`` is the
   **local-log-polynomial** (local-likelihood) estimator (Loader 1996): fit ``\\log f`` by a
@@ -471,9 +472,10 @@ smoother of the counts ``n_j`` at bin locations ``\\ell_j`` (the within-bin cent
   `lognormal_start`, `gamma_start`, `exponential_start`, or `inverse_gaussian_start` — [the Parametric
   starts section](@ref "Parametric starts") lists each with its moment fit — or supply your own
   [`ParametricStart`](@ref GBGStreamingStatistics.MarginalDensity.ParametricStart) (a moment fit, a
-  log-density, a support). It is a degree-0, fixed-`h`, symmetric-kernel estimator (`degree` ``\\ge 1``,
-  `adaptive`, `support`, and the asymmetric kernels do not combine with it; use `normalize` for
-  ``\\int\\hat f = 1``).
+  log-density, a support). It is a degree-0, fixed-`h`, symmetric-kernel estimator: `degree` ``\\ge 1``,
+  `adaptive`, `support`, and the asymmetric kernels are refused with it, each a definable combination the
+  package has not built (the local-likelihood one is Hjort & Jones 1996); use `normalize` for
+  ``\\int\\hat f = 1``.
 - `normalize` — when `true`, divide the estimate by ``\\int\\hat f`` over the summary's range
   (intersected with the estimator's support), so ``\\int\\hat f = 1`` **exactly**. The symmetric KDE
   already integrates to ``\\approx 1``; the asymmetric kernels and a parametric start do not, so this is

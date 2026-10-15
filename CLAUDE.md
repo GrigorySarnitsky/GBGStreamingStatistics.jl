@@ -265,7 +265,9 @@ selector, `merge!`, `scale!` — say so rather than force a population form.
   out: give **one** unified `**Estimator.**` paragraph that names the branches, and put each axis's formula
   in its own Arguments bullet. Block-vs-Arguments tracks *how many axes*, not primary-vs-secondary — a
   secondary `method` can still earn blocks. *(Recorded so the docstring-structure audit does not re-flag
-  the `density`-vs-`bandwidth` asymmetry: it is justified by single- vs multi-axis, not a defect.)*
+  the `density`-vs-`bandwidth` asymmetry: it is justified by single- vs multi-axis, not a defect.)* The
+  axes are conceptually independent, but not every pair combines: which pairs `density` refuses as
+  redundant and which as not yet built is the table in `docs/ARCHITECTURE.md` §4.1.
 - **Symbol bound to code on first mention, in apposition** (`RULE.TEX.ONE_SPAN`): `density` (``f_X``),
   `conditional_mean` (``m(x)``), `transition_density` (``p_\tau(y\mid x)``), `expectation`
   (``\mathbb{E}[g(X)]``). Where the formula says more than the name, the name goes inside it as
@@ -592,7 +594,10 @@ last one, `conditional_variance_standard_error` (the residual approximation ``\\
   currently-dead ``X``-moments earn their storage (else drop them). Connects to the deferred `Histogram2D`
   order-raise.
 
-Deferred (recorded, not built): the **FFT-amortized post-hoc smoothing** (§4.5 — the ``O(B\\log B)``
+Deferred (recorded, not built): a **public pilot-bandwidth default** for the local
+`bandwidth(::Histogram2D, x; rule = :local)` — its `pilot_bandwidth = nothing` is computed on entry from the
+summary (``\hat\sigma_X n^{-1/9}``), a default no public expression can state; reconsider whether a public
+pilot function should be the written default (the owner, 2026-10-15); the **FFT-amortized post-hoc smoothing** (§4.5 — the ``O(B\\log B)``
 convolution of the bin counts with the kernel, amortized over a bandwidth *grid*; a pure optimization over
 the exact direct summation, itself dwarfed by accumulation — build it when an ``h^\\star(x)`` grid sweep
 makes it bite; `FFTW` stays for the ISJ DCT, the unused `AbstractFFTs` dep was dropped); the ECF summary
