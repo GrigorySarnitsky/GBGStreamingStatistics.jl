@@ -52,16 +52,16 @@ unit,words,longest_paragraph,admonitions
 "ConditionalDensity.jl :: transition_density_standard_error(summary::Histogram2D, x, y",52,27,0
 "ConditionalDensity.jl :: transition_density_with_standard_error(summary::Histogram2D,",46,21,0
 "ConditionalDensity.md § ConditionalDensity",45,45,0
-"ConditionalExpectations.jl :: conditional_expectation(summary::Histogram2D, g, x;",287,78,0
-"ConditionalExpectations.jl :: conditional_expectation_standard_error(summary::Histogram2D,",136,85,0
-"ConditionalExpectations.jl :: conditional_expectation_with_standard_error(summary::Histogr",62,47,0
-"ConditionalExpectations.jl :: conditional_mean(summary::Histogram2D, x;",441,165,0
-"ConditionalExpectations.jl :: conditional_pushforward_density(summary::Histogram2D, g, x, ",288,119,0
-"ConditionalExpectations.jl :: conditional_pushforward_density_standard_error(summary::Hist",107,60,0
-"ConditionalExpectations.jl :: conditional_pushforward_density_with_standard_error(summary:",50,30,0
-"ConditionalExpectations.jl :: conditional_variance(summary::Histogram2D, x;",247,73,0
-"ConditionalExpectations.jl :: conditional_variance_standard_error(summary::Histogram2D, x;",121,69,0
-"ConditionalExpectations.jl :: conditional_variance_with_standard_error(summary::Histogram2",58,41,0
+"ConditionalExpectations.jl :: conditional_expectation(summary::Histogram2D, g, x;   # ≡ E[",310,95,0
+"ConditionalExpectations.jl :: conditional_expectation_standard_error(summary::Histogram2D,",142,85,0
+"ConditionalExpectations.jl :: conditional_expectation_with_standard_error(summary::Histogr",68,47,0
+"ConditionalExpectations.jl :: conditional_mean(summary::Histogram2D, x;   # ≡ m(x)",457,165,0
+"ConditionalExpectations.jl :: conditional_pushforward_density(summary::Histogram2D, g, x, ",311,119,0
+"ConditionalExpectations.jl :: conditional_pushforward_density_standard_error(summary::Hist",113,60,0
+"ConditionalExpectations.jl :: conditional_pushforward_density_with_standard_error(summary:",56,30,0
+"ConditionalExpectations.jl :: conditional_variance(summary::Histogram2D, x;",270,85,0
+"ConditionalExpectations.jl :: conditional_variance_standard_error(summary::Histogram2D, x;",127,69,0
+"ConditionalExpectations.jl :: conditional_variance_with_standard_error(summary::Histogram2",64,41,0
 "ConditionalExpectations.md § ConditionalExpectations",68,68,0
 "Expectations.jl :: central_moment(summary::Histogram1D, p)",75,66,0
 "Expectations.jl :: expectation(summary::Histogram1D, g)   # ≡ 𝔼[g(X)]",223,97,0
