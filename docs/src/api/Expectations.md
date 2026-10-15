@@ -1,6 +1,6 @@
 # Expectations
 
-The power-sum quadrature readouts — a smooth functional of ``X`` read straight off the stored
+The power-sum quadrature readouts read a smooth functional of ``X`` straight off the stored
 power-sums, with no kernel and no query point. The reader [`expectation`](@ref) estimates the expectation
 ``\mathbb{E}[g(X)]`` of a general smooth `g`; [`expectation_standard_error`](@ref) its sampling standard error
 (paired with the estimate in one call by [`expectation_with_standard_error`](@ref)); and [`pushforward_density`](@ref) the
@@ -20,8 +20,8 @@ pushforward_density_with_standard_error
 
 ## Recovered moments
 
-The global marginal moments — the ``g = x^p`` case — recovered post hoc from the power-sums by the shift
-formula (exact), extending `Statistics`.
+The global marginal moments — the ``g = x^p`` case — are recovered post hoc from the power-sums by the
+shift formula, exactly, extending `Statistics`.
 
 ```@docs
 mean(::Histogram1D)
