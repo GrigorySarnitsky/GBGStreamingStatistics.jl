@@ -330,7 +330,7 @@ the default — matching the bin's first moment, so the discretization is ``O(\D
 ``\Delta``; ``\ell_j = c_j`` is `binning = :simple`, ``O(\Delta)``), the centroid free from the stored
 ``S_1``. Bandwidth from §4.5; the kernel is pluggable. The tail and shape refinements are all **post-hoc on the one
 summary** and compose freely — the **adaptive** variable bandwidth (cutting tail *variance*), the
-**local-log-polynomial** `degree` (cutting tail *bias*), a **bounded support** (`bounds`, or an asymmetric
+**local-log-polynomial** `degree` (cutting tail *bias*), a **bounded support** (`support`, or an asymmetric
 boundary kernel), a **parametric start**, and exact `normalize` — with `density_standard_error` the
 pointwise variability band; `FORMALIZATION.md` and the API page carry each one's estimand and constants.
 Caveats: the fixed range ``[\texttt{lower}, \texttt{upper})``
@@ -744,7 +744,7 @@ intentional — do not dedupe it).
   (droplet radii). `normalize=true` divides any estimate by its integral over the support so
   ``\int\hat f = 1`` exactly — the finishing step for the non-self-normalizing asymmetric kernels and
   starts. Both are post-hoc degree-0 options; `start` does not compose with ``\texttt{degree} \ge 1``, `adaptive`,
-  `bounds`, or the asymmetric kernels (the local-likelihood-with-start generalization is a recorded gap).
+  `support`, or the asymmetric kernels (the local-likelihood-with-start generalization is a recorded gap).
   The cross-validated start bandwidth (`KernelEstimator.jl`) and the Hjort–Jones *locally parametric*
   generalization were weighed and deferred. The same source pass also corrected the gamma/beta kernels
   from Chen's naive ``f_1`` to the bias-reduced ``f_2`` (a fix, committed separately).
@@ -970,7 +970,7 @@ The load-bearing works the package implements or pins to:
   Ann. Statist. 24(4). (Local-log-polynomial / local-likelihood density — the tail-shape estimator.)
 - M. C. Jones (1993), [*Simple boundary correction for kernel density
   estimation*](https://doi.org/10.1007/BF00147776), Statist. Comput. 3(3). (Renormalization boundary
-  correction — `density(…; bounds)`.)
+  correction — `density(…; support)`.)
 - S. X. Chen (2000), [*Probability density function estimation using gamma
   kernels*](https://doi.org/10.1023/A:1004165218295), Ann. Inst. Statist. Math. 52(3). (Gamma asymmetric
   kernel for ``[0,\infty)`` — `density(…; kernel=gamma_kernel)`.)

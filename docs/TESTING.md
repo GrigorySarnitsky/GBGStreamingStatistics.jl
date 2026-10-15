@@ -15,7 +15,7 @@ analytic round-trips: estimators are checked against distributions with closed f
   `ou_transition`, and the `trapz` / `ise` helpers), `include`d by every file that needs one. The marginal density `density` is checked across a
   **representative analytic-PDF suite** — Gaussian, uniform (bounded support), exponential, Student-``t``
   ``\nu = 3`` (heavy tail), log-normal (skew), and a bimodal mixture (`test/density_convergence.jl`) — and
-  across its full option grid (KDE / local-log `degree`, fixed / Abramson `adaptive`, the `bounds` boundary
+  across its full option grid (KDE / local-log `degree`, fixed / Abramson `adaptive`, the `support` boundary
   correction, the asymmetric `gamma_kernel` / `beta_kernel`, the parametric `start`, and `normalize`) in
   `test/marginaldensity.jl`. The conditional / transition estimators use **Gaussian** marginals
   (``f_X``, conditional moments) and an **Ornstein–Uhlenbeck** process, whose transition density
@@ -71,7 +71,7 @@ analytic round-trips: estimators are checked against distributions with closed f
   the CPU result — counts exactly, power-sums to round-off, including heavy atomic contention. Verified on
   the AMD RX 6700 XT (ROCm); the vendor stacks (CUDA / AMDGPU) stay test-only dependencies.
 - **Package-quality checks.** `test/aqua.jl` (`Aqua.test_all`: ambiguities, piracy, stale deps, compat
-  bounds, undefined exports) and `test/jet.jl` (JET static analysis of every public estimator path — including
+  support, undefined exports) and `test/jet.jl` (JET static analysis of every public estimator path — including
   the asymmetric-kernel, parametric-start, `normalize`, and bandwidth-selector paths, whose function-typed
   fields are the type-stability risk) run against the loaded package.
 
@@ -93,7 +93,7 @@ check (the failure mode that once left `conditional_mean` without a mergeability
    estimators); a marginal density is defined everywhere and is exempt.
 5. **Argument-domain errors** — a non-positive bandwidth, and **every rejected option combination**, throws.
    The guards are audited for completeness: each `throw(ArgumentError(…))` — the bad `degree` / `binning` /
-   `method` / `rule` symbol, the mutually-exclusive `start` / `adaptive` / `bounds` / asymmetric-kernel
+   `method` / `rule` symbol, the mutually-exclusive `start` / `adaptive` / `support` / asymmetric-kernel
    combinations, the ``\texttt{degree} \ge 2`` and asymmetric-kernel standard-error gaps — carries a
    `@test_throws`.
 
@@ -101,7 +101,7 @@ Characteristics 2–4 are the `check_point_estimator` battery; 1 and 5 are per-e
 `@test_throws`).
 
 **Not swept: the valid option space.** Every *option* is tested against an oracle (vary one, hold the rest
-at default), and the genuinely-**interacting** pairs are tested together (`adaptive`+`bounds` rewrite the
+at default), and the genuinely-**interacting** pairs are tested together (`adaptive`+`support` rewrite the
 same variance; `degree`×`kernel`) — but the full Cartesian product of valid option combinations is
 deliberately **not** exhausted. The options are largely orthogonal (different code paths), the exotic
 combinations have no analytic oracle (only a weak "finite" check), and ``N``-way coverage is a combinatorial
@@ -165,7 +165,7 @@ argument errors) plus the convergence rate:
 | Estimator | Oracle | Scalar==vec | Merge | Off-support | Arg err | Rate |
 |---|---|---|---|---|---|---|
 | `density` | 6-PDF suite + Gaussian | yes | yes | n/a, defined everywhere | yes | yes, ``n^{-2p/(2p+1)}`` |
-| `density_standard_error` / `density_with_standard_error` | two-term variance vs Monte-Carlo spread + band coverage; tracks `adaptive` / `bounds` / `start`; the paired estimate-plus-error consistency | yes | yes | n/a | yes | n/a, variability band |
+| `density_standard_error` / `density_with_standard_error` | two-term variance vs Monte-Carlo spread + band coverage; tracks `adaptive` / `support` / `start`; the paired estimate-plus-error consistency | yes | yes | n/a | yes | n/a, variability band |
 | `conditional_mean` / `conditional_variance` (+ `conditional_variance_standard_error`) | bivariate-Gaussian (+ heteroscedastic curved-mean for Fan–Yao `conditional_variance`); the residual-based variance SE MC-calibrates on the Gaussian and a heavy-tailed Student-``t_5`` (capturing the ``\mu_4`` kurtosis); the SE bands' aggregate 95% oracle coverage | yes | yes | `NaN` | yes | yes, ``n^{-4/5}`` ISE |
 | `conditional_expectation` / `conditional_pushforward_density` (+ their standard errors) | biv-Gaussian ``\mathbb{E}[\cos Y\mid x]`` + lognormal pushforward; the `conditional_mean` fold + degree-0 `conditional_density` coincidence; the pushforward SE matches `conditional_density_standard_error` at degree-0 identity + MC, paired consistency; the SE bands' aggregate 95% oracle coverage (small-``n`` variance-dominated regime for the pushforward) | yes | yes | `NaN` | yes | inherits `conditional_mean` ``n^{-4/5}`` |
 | `conditional_expectation_standard_error` / `conditional_expectation_with_standard_error` | leverage × noise-scale = Monte-Carlo sampling spread (biv-Gaussian) + leading-order closed form; the paired value+error matches the separate calls | yes | yes | `NaN` | yes | n/a, a standard error |

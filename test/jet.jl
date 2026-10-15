@@ -24,7 +24,7 @@ using GBGStreamingStatistics: Histograms, MarginalDensity, Bandwidth, Conditiona
   @test_call target_modules = mods density(h, 0.0; h = 0.5, start = normal_start)
   @test_call target_modules = mods density(h, 0.0; h = 0.5, normalize = true)
   @test_call target_modules = mods density_standard_error(h, 0.0; h = 0.5)
-  @test_call target_modules = mods density_standard_error(h, 0.0; h = 0.5, adaptive = true, bounds = (0.0, Inf))
+  @test_call target_modules = mods density_standard_error(h, 0.0; h = 0.5, adaptive = true, support = (0.0, Inf))
   @test_call target_modules = mods density_with_standard_error(h, 0.0; h = 0.5)
   @test_call target_modules = mods bandwidth(h; rule = :sj)
   @test_call target_modules = mods bandwidth(h; rule = :isj)

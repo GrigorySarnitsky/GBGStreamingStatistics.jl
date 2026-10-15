@@ -1,7 +1,7 @@
 # MarginalDensity — §4.1: the marginal density f_X. A single `density` spans the local-log-polynomial
 # degree (0 = KDE, ≥1 = local likelihood) crossed with a fixed or Abramson-variable bandwidth, plus
 # pluggable kernels (the symmetric gaussian/epanechnikov and the bounded-support asymmetric gamma/beta),
-# the Jones boundary `bounds` renormalization, the Hjort–Glad parametric `start`, exact `normalize`, and
+# the Jones boundary `support` renormalization, the Hjort–Glad parametric `start`, exact `normalize`, and
 # the `density_standard_error` band. Two stages: set the bandwidth, then fit. The bandwidth is
 # *sample-point* (per-bin h_j) for the KDE and *balloon* (one h(x) at the query) for the local-log fit.
 # Written estimand-first (`docs/ARCHITECTURE.md` §2, §4.1).
@@ -164,12 +164,12 @@ end
 
 
 # Reject the options that do not combine with a parametric start (it is the degree-0, fixed-h, symmetric-
-# kernel local-constant estimator of Hjort & Glad; `normalize` is its renormalization, `bounds` its rival).
-function _check_start(kernel, degree, adaptive, bounds)
+# kernel local-constant estimator of Hjort & Glad; `normalize` is its renormalization, `support` its rival).
+function _check_start(kernel, degree, adaptive, support)
   kernel isa AsymmetricKernel &&
     throw(ArgumentError("a parametric `start` pairs with a symmetric kernel; the asymmetric `gamma_kernel`/`beta_kernel` are already boundary-free — drop `start`"))
-  (degree == 0 && !adaptive && bounds === nothing) ||
-    throw(ArgumentError("a parametric `start` is the degree-0, fixed-bandwidth estimator without `bounds`; `degree ≥ 1`, `adaptive`, and `bounds` do not combine with it (use `normalize` to enforce ∫f̂ = 1)"))
+  (degree == 0 && !adaptive && support === nothing) ||
+    throw(ArgumentError("a parametric `start` is the degree-0, fixed-bandwidth estimator without `support`; `degree ≥ 1`, `adaptive`, and `support` do not combine with it (use `normalize` to enforce ∫f̂ = 1)"))
 end
 
 
@@ -193,25 +193,25 @@ end
 # --- exact renormalization: divide the estimate by ∫f̂ over the summary's range ∩ the estimator's support
 # so ∫f̂ = 1 exactly. The symmetric KDE already integrates to ≈1; the asymmetric kernels and a parametric
 # start do not, so `normalize` is their finishing step. A post-hoc functional (off the hot path). ---
-# The estimand's support: the asymmetric kernel's domain, the `bounds`, and/or the start's support, met.
-function _density_support(kernel, bounds, start)
+# The estimand's support: the asymmetric kernel's domain, the `support`, and/or the start's support, met.
+function _density_support(kernel, support, start)
   lower, upper = -Inf, Inf
   kernel isa AsymmetricKernel && ((lower, upper) = kernel.support)
-  bounds === nothing || ((lower, upper) = (max(lower, bounds[1]), min(upper, bounds[2])))
+  support === nothing || ((lower, upper) = (max(lower, support[1]), min(upper, support[2])))
   start === nothing || ((lower, upper) = (max(lower, start.support[1]), min(upper, start.support[2])))
   return lower, upper
 end
 
 
 # Z = ∫ f̂ over [summary.lower, summary.upper] ∩ support, by the trapezoidal rule on a fine grid.
-function _normalization_constant(summary::Histogram1D; degree, h, adaptive, kernel, bounds, start, binning)
-  slower, supper = _density_support(kernel, bounds, start)
+function _normalization_constant(summary::Histogram1D; degree, h, adaptive, kernel, support, start, binning)
+  slower, supper = _density_support(kernel, support, start)
   lower = max(float(summary.lower), slower)
   upper = min(float(summary.upper), supper)
   npts = clamp(4 * _nbins(summary), 512, 8192)
   grid = collect(range(lower, upper; length = npts))
   vals = density(summary, grid; degree = degree, h = h, adaptive = adaptive,
-                 kernel = kernel, bounds = bounds, start = start, normalize = false, binning = binning)
+                 kernel = kernel, support = support, start = start, normalize = false, binning = binning)
   Δ = (upper - lower) / (npts - 1)
   return (sum(vals) - 0.5 * (vals[1] + vals[end])) * Δ
 end
@@ -404,7 +404,7 @@ end
 
 """
     density(summary::Histogram1D, x; h = nothing, kernel = gaussian_kernel, degree = 0,
-            adaptive = false, bounds = nothing, start = nothing, normalize = false,
+            adaptive = false, support = nothing, start = nothing, normalize = false,
             binning = :linear)   # ≡ f_X
 
 **Estimand.** The marginal (Lebesgue) density ``f_X = \\mathrm{d}\\mu_X/\\mathrm{d}\\lambda`` of the
@@ -434,7 +434,7 @@ smoother of the counts ``n_j`` at bin locations ``\\ell_j`` (the within-bin cent
   construction — are catalogued with their supports and constants on [the Kernels page](@ref "Kernels");
   supply a custom [`AsymmetricKernel`](@ref GBGStreamingStatistics.Kernels.AsymmetricKernel) for your own
   bounded support. An asymmetric kernel is its own degree-0, boundary-free estimator, so `degree`,
-  `adaptive`, `bounds`, and a parametric `start` do not combine with it, and it takes its own scale ``b``
+  `adaptive`, `support`, and a parametric `start` do not combine with it, and it takes its own scale ``b``
   in place of `h`.
 - `degree` — the local-polynomial order. `degree = 0` (default) is the binned KDE / WARPing (weighted averaging of rounded points)
   ``\\hat f(x) = \\frac{1}{n} \\sum_j (n_j/h_j)  K((x-\\ell_j)/h_j)`` (``\\int K = 1``). `degree` ``\\ge 1`` is the
@@ -451,11 +451,11 @@ smoother of the counts ``n_j`` at bin locations ``\\ell_j`` (the within-bin cent
   chosen**, so it composes with the data-driven bandwidth — pass `h = bandwidth(summary; rule = :sj)` to
   vary a *shape-adaptive* global scale locally (the chosen `h` becomes the Abramson pilot). (The degree-0
   KDE uses the sample-point ``h_j`` per bin; the local-log fit uses one balloon ``h(x)`` at the query.)
-- `bounds` — the support of the density, passed as the tuple `(lower, upper)` (e.g. `(0.0, Inf)` for
+- `support` — the support of the density, passed as the tuple `(lower, upper)` (e.g. `(0.0, Inf)` for
   a positive quantity such as a droplet radius), or `nothing` (default, unbounded). When given, the
   degree-0 KDE is **renormalized** by the kernel mass inside the support: ``\\hat f(x) \\big/ \\int_a^b K_h(x-u)\\,\\mathrm{d}u`` (Jones 1993). This corrects the boundary bias that otherwise drops the estimate
   to ``\\approx`` half the true value at the edge. (`degree` ``\\ge 1`` is already boundary-adaptive, so
-  `bounds` is a degree-0 option.)
+  `support` is a degree-0 option.)
 - `start` — a **parametric start** (Hjort & Glad 1995), or `nothing` (default). Given one, `density`
   returns the semiparametric estimate
   ``\\hat f(x) = p(x;\\hat\\theta) \\frac{1}{nh}\\sum_j \\frac{n_j}{p(\\ell_j;\\hat\\theta)} K((x-\\ell_j)/h)`` —
@@ -467,7 +467,7 @@ smoother of the counts ``n_j`` at bin locations ``\\ell_j`` (the within-bin cent
   starts section](@ref "Parametric starts") lists each with its moment fit — or supply your own
   [`ParametricStart`](@ref GBGStreamingStatistics.MarginalDensity.ParametricStart) (a moment fit, a
   log-density, a support). It is a degree-0, fixed-`h`, symmetric-kernel estimator (`degree` ``\\ge 1``,
-  `adaptive`, `bounds`, and the asymmetric kernels do not combine with it; use `normalize` for
+  `adaptive`, `support`, and the asymmetric kernels do not combine with it; use `normalize` for
   ``\\int\\hat f = 1``).
 - `normalize` — when `true`, divide the estimate by ``\\int\\hat f`` over the summary's range
   (intersected with the estimator's support), so ``\\int\\hat f = 1`` **exactly**. The symmetric KDE
@@ -496,21 +496,21 @@ julia> round(density(h, 0.4; h = 0.2); digits = 4)   # linear binning centers th
 
 - I. S. Abramson (1982), [*On bandwidth variation in kernel estimates—a square root law*](https://doi.org/10.1214/aos/1176345986), Ann. Statist. 10(4) (variable bandwidth).
 - C. R. Loader (1996), [*Local likelihood density estimation*](https://doi.org/10.1214/aos/1032298287), Ann. Statist. 24(4) (the local-log-polynomial estimator).
-- M. C. Jones (1993), [*Simple boundary correction for kernel density estimation*](https://doi.org/10.1007/BF00147776), Statist. Comput. 3(3) (the `bounds` renormalization).
+- M. C. Jones (1993), [*Simple boundary correction for kernel density estimation*](https://doi.org/10.1007/BF00147776), Statist. Comput. 3(3) (the `support` renormalization).
 - N. L. Hjort & I. K. Glad (1995), [*Nonparametric density estimation with a parametric start*](https://doi.org/10.1214/aos/1176324627), Ann. Statist. 23(3) (the `start` estimator).
 """
 function density(summary::Histogram1D, x::Real; h = nothing, kernel = gaussian_kernel,
-                 degree::Integer = 0, adaptive::Bool = false, bounds = nothing,
+                 degree::Integer = 0, adaptive::Bool = false, support = nothing,
                  start = nothing, normalize::Bool = false, binning::Symbol = :linear)
   if normalize
     Z = _normalization_constant(summary; degree = degree, h = h, adaptive = adaptive,
-                                kernel = kernel, bounds = bounds, start = start, binning = binning)
+                                kernel = kernel, support = support, start = start, binning = binning)
     fx = density(summary, x; degree = degree, h = h, adaptive = adaptive, kernel = kernel,
-                 bounds = bounds, start = start, normalize = false, binning = binning)
+                 support = support, start = start, normalize = false, binning = binning)
     return Z > 0 ? fx / Z : fx
   end
   if start !== nothing
-    _check_start(kernel, degree, adaptive, bounds)
+    _check_start(kernel, degree, adaptive, support)
     n = _total(summary)
     iszero(n) && return 0.0
     hh = h === nothing ? _normal_reference_h(summary, kernel, 0) : float(h)
@@ -521,9 +521,9 @@ function density(summary::Histogram1D, x::Real; h = nothing, kernel = gaussian_k
     return _parametric_start_eval(counts, centers, n, x, hh, kernel, start, params)
   end
   if kernel isa AsymmetricKernel
-    (degree == 0 && !adaptive && bounds === nothing) ||
+    (degree == 0 && !adaptive && support === nothing) ||
       throw(ArgumentError("the asymmetric kernel is its own degree-0, boundary-free estimator; " *
-                          "`degree`, `adaptive`, and `bounds` do not apply"))
+                          "`degree`, `adaptive`, and `support` do not apply"))
     n = _total(summary)
     iszero(n) && return 0.0
     bb = h === nothing ? _asymmetric_default_b(summary) : float(h)
@@ -533,8 +533,8 @@ function density(summary::Histogram1D, x::Real; h = nothing, kernel = gaussian_k
     return _kde_h(counts, centers, n, x, bb, kernel)   # one degree-0 evaluator, any kernel protocol
   end
   degree ≥ 0 || throw(ArgumentError("degree must be ≥ 0 (got $degree)"))
-  (bounds === nothing || degree == 0) ||
-    throw(ArgumentError("`bounds` (boundary renormalization) applies to the degree-0 KDE; " *
+  (support === nothing || degree == 0) ||
+    throw(ArgumentError("`support` (boundary renormalization) applies to the degree-0 KDE; " *
                         "degree ≥ 1 (local-log) is already boundary-adaptive (got degree = $degree)"))
   n = _total(summary)
   iszero(n) && return 0.0
@@ -544,11 +544,11 @@ function density(summary::Histogram1D, x::Real; h = nothing, kernel = gaussian_k
   centers = _bin_locations(summary, counts, binning)
   if degree == 0 && !adaptive
     fx = _kde_h(counts, centers, n, x, hh, kernel)
-    return bounds === nothing ? fx : fx / _kernel_mass(kernel, x, hh, bounds[1], bounds[2])
+    return support === nothing ? fx : fx / _kernel_mass(kernel, x, hh, support[1], support[2])
   elseif degree == 0
     hj, _ = _abramson(counts, centers, n, hh, kernel)
     fx = _kde_adaptive(counts, centers, n, x, hj, kernel)
-    return bounds === nothing ? fx : fx / _kernel_mass(kernel, x, hh, bounds[1], bounds[2])
+    return support === nothing ? fx : fx / _kernel_mass(kernel, x, hh, support[1], support[2])
   end
   g = adaptive ? _abramson(counts, centers, n, hh, kernel)[2] : 1.0
   f0 = _kde_h(counts, centers, n, x, hh, kernel)
@@ -558,17 +558,17 @@ end
 
 function density(summary::Histogram1D, xs::AbstractVector; h = nothing,
                  kernel = gaussian_kernel, degree::Integer = 0, adaptive::Bool = false,
-                 bounds = nothing, start = nothing, normalize::Bool = false,
+                 support = nothing, start = nothing, normalize::Bool = false,
                  binning::Symbol = :linear)
   if normalize
     Z = _normalization_constant(summary; degree = degree, h = h, adaptive = adaptive,
-                                kernel = kernel, bounds = bounds, start = start, binning = binning)
+                                kernel = kernel, support = support, start = start, binning = binning)
     fxs = density(summary, xs; degree = degree, h = h, adaptive = adaptive, kernel = kernel,
-                  bounds = bounds, start = start, normalize = false, binning = binning)
+                  support = support, start = start, normalize = false, binning = binning)
     return Z > 0 ? fxs ./ Z : fxs
   end
   if start !== nothing
-    _check_start(kernel, degree, adaptive, bounds)
+    _check_start(kernel, degree, adaptive, support)
     n = _total(summary)
     iszero(n) && return zeros(Float64, length(xs))
     hh = h === nothing ? _normal_reference_h(summary, kernel, 0) : float(h)
@@ -579,9 +579,9 @@ function density(summary::Histogram1D, xs::AbstractVector; h = nothing,
     return [_parametric_start_eval(counts, centers, n, x, hh, kernel, start, params) for x in xs]
   end
   if kernel isa AsymmetricKernel
-    (degree == 0 && !adaptive && bounds === nothing) ||
+    (degree == 0 && !adaptive && support === nothing) ||
       throw(ArgumentError("the asymmetric kernel is its own degree-0, boundary-free estimator; " *
-                          "`degree`, `adaptive`, and `bounds` do not apply"))
+                          "`degree`, `adaptive`, and `support` do not apply"))
     n = _total(summary)
     iszero(n) && return zeros(Float64, length(xs))
     bb = h === nothing ? _asymmetric_default_b(summary) : float(h)
@@ -591,8 +591,8 @@ function density(summary::Histogram1D, xs::AbstractVector; h = nothing,
     return [_kde_h(counts, centers, n, x, bb, kernel) for x in xs]
   end
   degree ≥ 0 || throw(ArgumentError("degree must be ≥ 0 (got $degree)"))
-  (bounds === nothing || degree == 0) ||
-    throw(ArgumentError("`bounds` (boundary renormalization) applies to the degree-0 KDE; " *
+  (support === nothing || degree == 0) ||
+    throw(ArgumentError("`support` (boundary renormalization) applies to the degree-0 KDE; " *
                         "degree ≥ 1 (local-log) is already boundary-adaptive (got degree = $degree)"))
   n = _total(summary)
   iszero(n) && return zeros(Float64, length(xs))
@@ -602,11 +602,11 @@ function density(summary::Histogram1D, xs::AbstractVector; h = nothing,
   centers = _bin_locations(summary, counts, binning)
   if degree == 0 && !adaptive
     fxs = [_kde_h(counts, centers, n, x, hh, kernel) for x in xs]
-    return bounds === nothing ? fxs : [f / _kernel_mass(kernel, x, hh, bounds[1], bounds[2]) for (f, x) in zip(fxs, xs)]
+    return support === nothing ? fxs : [f / _kernel_mass(kernel, x, hh, support[1], support[2]) for (f, x) in zip(fxs, xs)]
   elseif degree == 0
     hj, _ = _abramson(counts, centers, n, hh, kernel)
     fxs = [_kde_adaptive(counts, centers, n, x, hj, kernel) for x in xs]
-    return bounds === nothing ? fxs : [f / _kernel_mass(kernel, x, hh, bounds[1], bounds[2]) for (f, x) in zip(fxs, xs)]
+    return support === nothing ? fxs : [f / _kernel_mass(kernel, x, hh, support[1], support[2]) for (f, x) in zip(fxs, xs)]
   end
   b = inv(summary.scale)
   g = adaptive ? _abramson(counts, centers, n, hh, kernel)[2] : 1.0
@@ -619,7 +619,7 @@ end
 
 # --- pointwise standard error (§4.1): SE(x) = √(f̂(x)) · scale, the KDE variability band ---
 # The boundary-restricted roughness R_a(x) = ∫_{[a,b]} K((x−u)/h)²/h du (the ∫K² analog of `_kernel_mass`'s
-# a(x)): the CDF of K² up to (x−a)/h minus up to (x−b)/h. Interior / no `bounds` ⇒ the full R(K) = ∫K².
+# a(x)): the CDF of K² up to (x−a)/h minus up to (x−b)/h. Interior / no `support` ⇒ the full R(K) = ∫K².
 _kernel_sq_cdf(kernel, t) = _quad(s -> s ≤ t ? kernel(s)^2 : 0.0)
 
 function _kernel_sq_mass(kernel, x, h, a, b)
@@ -642,10 +642,10 @@ end
 
 # The f̂-independent SE scale, so SE(x) = √(f̂(x)) · scale = √(R_eff(x)·f̂(x)/(n·h_eff(x)))/a(x):
 #   h_eff  the Abramson balloon bandwidth h(x) when `adaptive` (else h), so the variance uses the *local*
-#          bandwidth in the tail; R_eff, a(x)  the boundary-restricted roughness / kernel mass when `bounds`
+#          bandwidth in the tail; R_eff, a(x)  the boundary-restricted roughness / kernel mass when `support`
 #          (else R(K), 1), the Jones renormalization's variance inflation near an edge. `start` leaves the
 #          leading variance unchanged (θ̂'s O(1/n) uncertainty is a documented omission), so needs nothing.
-function _se_scale(summary::Histogram1D, x, hh, kernel, adaptive, bounds, binning)
+function _se_scale(summary::Histogram1D, x, hh, kernel, adaptive, support, binning)
   n = _total(summary)
   heff = hh
   if adaptive
@@ -655,7 +655,7 @@ function _se_scale(summary::Histogram1D, x, hh, kernel, adaptive, bounds, binnin
     pilot = _kde_h(counts, centers, n, x, hh, kernel)
     heff = _balloon(hh, g, pilot, true)
   end
-  slower, supper = bounds === nothing ? (-Inf, Inf) : (float(bounds[1]), float(bounds[2]))
+  slower, supper = support === nothing ? (-Inf, Inf) : (float(support[1]), float(support[2]))
   Reff = _kernel_sq_mass(kernel, x, hh, slower, supper)
   a = _kernel_mass(kernel, x, hh, slower, supper)
   return sqrt(Reff / (n * heff)) / a
@@ -665,9 +665,9 @@ end
 # SE(x) = √(max(Var, 0)), the finite-sample KDE variance Var = R_eff·f̂/(n·h_eff·a²) − f̂²/n: the leading
 # (nh)⁻¹ term (`_se_scale`²) minus the n⁻¹ term (Wand & Jones 1995) that keeps the band from over-widening
 # where f̂ is not small (the mode, the boundary), given the recovered f̂ = `fx`.
-function _se_from(summary::Histogram1D, x, fx, hh, kernel, adaptive, bounds, binning)
+function _se_from(summary::Histogram1D, x, fx, hh, kernel, adaptive, support, binning)
   n = _total(summary)
-  s2 = _se_scale(summary, x, hh, kernel, adaptive, bounds, binning)^2   # R_eff / (n·h_eff·a²)
+  s2 = _se_scale(summary, x, hh, kernel, adaptive, support, binning)^2   # R_eff / (n·h_eff·a²)
   f = max(fx, 0.0)
   return sqrt(max(s2 * f - f^2 / n, 0.0))
 end
@@ -676,7 +676,7 @@ end
 """
     density_standard_error(summary::Histogram1D, x;
                            h = nothing, kernel = gaussian_kernel, degree = 0,
-                           adaptive = false, bounds = nothing, start = nothing,
+                           adaptive = false, support = nothing, start = nothing,
                            normalize = false, binning = :linear)   # ≡ SE[f̂(x)]
 
 **Estimand.** The pointwise standard error of the density estimator
@@ -701,7 +701,7 @@ variance of *that* estimate (or use
 GBGStreamingStatistics.MarginalDensity.density_with_standard_error) to get the estimate and its band from
 one call). The variance is adjusted per option: `adaptive` replaces ``h`` by the **local** Abramson
 bandwidth ``h(x)`` (a wider window — hence smaller variance — in the tail; the sample-point pilot's own
-variability is an unmodelled higher-order term, so the band runs slightly narrow in the deep tail); `bounds` (Jones
+variability is an unmodelled higher-order term, so the band runs slightly narrow in the deep tail); `support` (Jones
 renormalization) replaces ``R(K)`` by the boundary-restricted roughness ``R_a(x) =
 \\frac{1}{h}\\int_{\\text{support}} K((x-u)/h)^2\\,\\mathrm du`` and divides by the squared in-support kernel
 mass ``a(x)^2``, inflating the variance near an edge; a parametric `start` leaves the leading variance
@@ -725,28 +725,28 @@ Reference: M. P. Wand & M. C. Jones (1995), [*Kernel Smoothing*](https://doi.org
 """
 function density_standard_error(summary::Histogram1D, x::Real; h = nothing,
                     kernel = gaussian_kernel, degree::Integer = 0, adaptive::Bool = false,
-                    bounds = nothing, start = nothing, normalize::Bool = false, binning::Symbol = :linear)
+                    support = nothing, start = nothing, normalize::Bool = false, binning::Symbol = :linear)
   _check_se(kernel, degree)
   n = _total(summary)
   iszero(n) && return 0.0
   hh = h === nothing ? _normal_reference_h(summary, kernel, degree) : float(h)
   hh > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
   fx = density(summary, x; h = hh, kernel = kernel, degree = degree, adaptive = adaptive,
-               bounds = bounds, start = start, normalize = normalize, binning = binning)
-  return _se_from(summary, x, fx, hh, kernel, adaptive, bounds, binning)
+               support = support, start = start, normalize = normalize, binning = binning)
+  return _se_from(summary, x, fx, hh, kernel, adaptive, support, binning)
 end
 
 function density_standard_error(summary::Histogram1D, xs::AbstractVector; h = nothing,
                     kernel = gaussian_kernel, degree::Integer = 0, adaptive::Bool = false,
-                    bounds = nothing, start = nothing, normalize::Bool = false, binning::Symbol = :linear)
+                    support = nothing, start = nothing, normalize::Bool = false, binning::Symbol = :linear)
   _check_se(kernel, degree)
   n = _total(summary)
   iszero(n) && return zeros(Float64, length(xs))
   hh = h === nothing ? _normal_reference_h(summary, kernel, degree) : float(h)
   hh > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
   fxs = density(summary, xs; h = hh, kernel = kernel, degree = degree, adaptive = adaptive,
-                bounds = bounds, start = start, normalize = normalize, binning = binning)
-  return [_se_from(summary, x, f, hh, kernel, adaptive, bounds, binning)
+                support = support, start = start, normalize = normalize, binning = binning)
+  return [_se_from(summary, x, f, hh, kernel, adaptive, support, binning)
           for (f, x) in zip(fxs, xs)]
 end
 
@@ -754,7 +754,7 @@ end
 """
     density_with_standard_error(summary::Histogram1D, x;
                                 h = nothing, kernel = gaussian_kernel, degree = 0,
-                                adaptive = false, bounds = nothing, start = nothing,
+                                adaptive = false, support = nothing, start = nothing,
                                 normalize = false, binning = :linear)
 
 The `density` estimate **and** its pointwise
@@ -777,29 +777,29 @@ julia> r = density_with_standard_error(h, 0.5); (r.value > 0, r.standard_error >
 """
 function density_with_standard_error(summary::Histogram1D, x::Real; h = nothing,
                     kernel = gaussian_kernel, degree::Integer = 0, adaptive::Bool = false,
-                    bounds = nothing, start = nothing, normalize::Bool = false, binning::Symbol = :linear)
+                    support = nothing, start = nothing, normalize::Bool = false, binning::Symbol = :linear)
   _check_se(kernel, degree)
   n = _total(summary)
   iszero(n) && return (value = 0.0, standard_error = 0.0)
   hh = h === nothing ? _normal_reference_h(summary, kernel, degree) : float(h)
   hh > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
   fx = density(summary, x; h = hh, kernel = kernel, degree = degree, adaptive = adaptive,
-               bounds = bounds, start = start, normalize = normalize, binning = binning)
+               support = support, start = start, normalize = normalize, binning = binning)
   return (value = fx,
-          standard_error = _se_from(summary, x, fx, hh, kernel, adaptive, bounds, binning))
+          standard_error = _se_from(summary, x, fx, hh, kernel, adaptive, support, binning))
 end
 
 function density_with_standard_error(summary::Histogram1D, xs::AbstractVector; h = nothing,
                     kernel = gaussian_kernel, degree::Integer = 0, adaptive::Bool = false,
-                    bounds = nothing, start = nothing, normalize::Bool = false, binning::Symbol = :linear)
+                    support = nothing, start = nothing, normalize::Bool = false, binning::Symbol = :linear)
   _check_se(kernel, degree)
   n = _total(summary)
   iszero(n) && return (value = zeros(Float64, length(xs)), standard_error = zeros(Float64, length(xs)))
   hh = h === nothing ? _normal_reference_h(summary, kernel, degree) : float(h)
   hh > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
   fxs = density(summary, xs; h = hh, kernel = kernel, degree = degree, adaptive = adaptive,
-                bounds = bounds, start = start, normalize = normalize, binning = binning)
-  ses = [_se_from(summary, x, f, hh, kernel, adaptive, bounds, binning)
+                support = support, start = start, normalize = normalize, binning = binning)
+  ses = [_se_from(summary, x, f, hh, kernel, adaptive, support, binning)
          for (f, x) in zip(fxs, xs)]
   return (value = fxs, standard_error = ses)
 end

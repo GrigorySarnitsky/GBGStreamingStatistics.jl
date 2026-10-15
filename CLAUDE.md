@@ -95,7 +95,7 @@ estimands.
   reached by explicit `using ..LocalPolynomial: local_fit`. Owns `LinearAlgebra`.
 - `src/MarginalDensity.jl` — §4.1 `density` ``\equiv f_X`` — one call over the binned KDE, the
   local-log-polynomial (`degree`), the Abramson variable bandwidth (`adaptive`), boundary
-  renormalization (`bounds`, Jones 1993), the **parametric start** (`start`, Hjort & Glad 1995 — the
+  renormalization (`support`, Jones 1993), the **parametric start** (`start`, Hjort & Glad 1995 — the
   moment-fitted `normal_start` / `lognormal_start` / `gamma_start` / `exponential_start` /
   `inverse_gaussian_start`, or a user-supplied `ParametricStart`), exact `normalize`
   (``\int\hat f = 1``), and the **`binning`** location rule (`:linear` centroid default — ``O(\Delta^2)``
@@ -104,7 +104,7 @@ estimands.
   `beta_kernel` for bounded/positive support), and `density_standard_error` (the pointwise variability
   band ``\mathrm{SE}(x) = \sqrt{R(K)\hat f_h(x)/(nh) - \hat f_h(x)^2/n}``, the two-term KDE variance — it
   **tracks the estimator's options**: the local Abramson ``h(x)`` for `adaptive`, the boundary-restricted
-  ``R_a(x)/a(x)`` for `bounds`, `start` leading-order-neutral; degree-0/1 symmetric-kernel, the asymmetric
+  ``R_a(x)/a(x)`` for `support`, `start` leading-order-neutral; degree-0/1 symmetric-kernel, the asymmetric
   variance a recorded gap), plus `density_with_standard_error` returning the estimate and its band from one
   option specification (a `(value, standard_error)` NamedTuple, drift-proof). `ParametricStart` is exported so consumers can
   plug in custom parametric skeletons (the `AsymmetricKernel` constructor for custom boundary kernels
@@ -225,7 +225,7 @@ arguments **object → query point(s) → smoothing controls → modifiers**: (1
 estimand is evaluated; (3) the smoothing controls — a **primary algorithm-selector** first where the function has one (`rule`,
 which picks the whole estimator), then the fixed sub-order **bandwidth → kernel → degree** (`h` / `hx` /
 `hy` / `b`, then `kernel` / `kernelx` / `kernely`, then `degree`); (4) the **secondary** modifiers and
-refinements (`method`, `adaptive`, `bounds`, `start`, `normalize`, `binning`, `maxorder`, IRLS scratch, …)
+refinements (`method`, `adaptive`, `support`, `start`, `normalize`, `binning`, `maxorder`, IRLS scratch, …)
 in a stable order — a `method`-style refinement (it tweaks *how*, not *which* estimator) trails, unlike a
 primary `rule`-style selector, which leads. For an exported function, (1)–(2) are positional and (3)–(4) keyword —
 which is the rulebook's `RULE.API.POSITIONAL` (GBGCodingTools rc.69): a required argument is positional or keyword
@@ -257,7 +257,7 @@ selector, `merge!`, `scale!` — say so rather than force a population form.
   (`bandwidth`) or a `method` refinement (`conditional_variance`) — give each branch its own
   `**Estimator** (rule = …)` / `**Estimator** (method = …)` block stating that branch's formula. When the
   estimator varies along **several independent axes at once** — `density`'s `degree` (KDE vs
-  local-likelihood) × `start` (semiparametric) × `adaptive` × `bounds` — there is no single axis to break
+  local-likelihood) × `start` (semiparametric) × `adaptive` × `support` — there is no single axis to break
   out: give **one** unified `**Estimator.**` paragraph that names the branches, and put each axis's formula
   in its own Arguments bullet. Block-vs-Arguments tracks *how many axes*, not primary-vs-secondary — a
   secondary `method` can still earn blocks. *(Recorded so the docstring-structure audit does not re-flag
@@ -513,7 +513,7 @@ Mechanical bar:
     shared computation, so the estimate and its error describe the same estimator by construction.
     `density_standard_error` is now the **two-term** Wand–Jones KDE variance
     ``\\sqrt{R(K)\\hat f/(nh) - \\hat f^2/n}`` and **tracks the estimator's options** (`adaptive` → the local
-    Abramson ``h(x)``, `bounds` → the boundary-restricted ``R_a/a^2``, `start` leading-order-neutral;
+    Abramson ``h(x)``, `support` → the boundary-restricted ``R_a/a^2``, `start` leading-order-neutral;
     degree-0/1 symmetric-kernel). The uniform **standard-error contract** (`check_standard_error`,
     `test/testcontracts.jl`) runs on every SE — positivity, scalar ``=`` vector, the exact ``n^{-1/2}``
     copy-merge scaling, the asymptotic ``h^{-1/2}`` bandwidth scaling (`check_se_bandwidth_scaling`, the
@@ -569,9 +569,9 @@ last one, `conditional_variance_standard_error` (the residual approximation ``\\
   deliberate absence); a joint / both-axes pushforward (no joint density readout today); a
   `transition_density` pushforward alias. Output: the filled grid + recorded absences with reasons.
 - **Option parity — every option, both axes.** Tabulate each shared option (`degree`, `kernel`, `adaptive`,
-  `bounds`, `start`, `normalize`, `method`, `binning`) against every estimator, and for the joint estimators
+  `support`, `start`, `normalize`, `method`, `binning`) against every estimator, and for the joint estimators
   against the **``x`` (conditioning) vs ``y`` (response) axis** separately; mark each absence *deliberate*
-  (theory) or a *gap to close*. Known asymmetries to settle: `adaptive` / `bounds` / `start` exist for
+  (theory) or a *gap to close*. Known asymmetries to settle: `adaptive` / `support` / `start` exist for
   `density` but not the conditional densities; `conditional_density` is a fixed degree-0 double-kernel (no
   local-polynomial `degree` on either axis); the asymmetric kernels reach `density` (`kernel`),
   `conditional_density` (`kernely`), and degree-0 `conditional_mean` (`kernel`) — is the ``x`` axis at

@@ -142,10 +142,10 @@ of the edge), so its support matches the data and **no mass leaks past 0**. Pass
 boundary-bias-free estimate ``\\hat f(x) = \\tfrac{1}{n} \\sum_j n_j \\mathrm{Gamma}(c_j; \\rho(x), b)``
 (``O(b)`` bias uniformly, including at the boundary where a symmetric kernel is inconsistent; the variance
 self-adapts, tightening toward the edge). Use it for non-negative quantities such as droplet radii — an
-alternative to (and usually sharper than) the `bounds` renormalization. The bandwidth defaults to
+alternative to (and usually sharper than) the `support` renormalization. The bandwidth defaults to
 ``\\hat\\sigma n^{-2/5}`` (the gamma-kernel rate; pass `h` to override, or the data-driven Chen plug-in
 [`bandwidth(summary; rule = :plugin, kernel = gamma_kernel)`](@ref GBGStreamingStatistics.Bandwidth.bandwidth),
-which lowers the ISE on skewed data). The options `degree`, `adaptive`, and `bounds` do not
+which lowers the ISE on skewed data). The options `degree`, `adaptive`, and `support` do not
 apply — the kernel is its own degree-0, boundary-free estimator.
 
 Reference: S. X. Chen (2000), [*Probability density function estimation using gamma

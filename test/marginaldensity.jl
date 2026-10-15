@@ -182,9 +182,9 @@ end
   @test_throws ArgumentError density_with_standard_error(hg, 0.5; h = bw, degree = 2)
   @test_throws ArgumentError density_with_standard_error(hg, 0.5; h = bw, kernel = gamma_kernel)
 
-  # bounds (Jones renormalization) inflates the variance at the edge vs the un-renormalized KDE there
+  # support (Jones renormalization) inflates the variance at the edge vs the un-renormalized KDE there
   he = Histogram1D(0.0, 12.0, 800); observe!(he, -log.(rand(200_000)))
-  @test density_standard_error(he, 0.1; h = 0.25, bounds = (0.0, Inf)) >
+  @test density_standard_error(he, 0.1; h = 0.25, support = (0.0, Inf)) >
         density_standard_error(he, 0.1; h = 0.25)
 
   # h^{-1/2} bandwidth scaling (asymptotic): a flat density at small h ⇒ SE(2h) ≈ SE(h)/√2
@@ -222,27 +222,27 @@ end
   @test density_standard_error(summaries[1], 0.0; h = bw) ≈ std(ests) rtol = 0.2
 end
 
-@testset "boundary correction (bounds, §4.1)" begin
+@testset "boundary correction (support, §4.1)" begin
   # exponential on [0, ∞) (like droplet radii): the uncorrected KDE drops to ≈ half the true value at the
-  # edge; the renormalized estimate (bounds = (0, Inf)) recovers it (Jones 1993)
+  # edge; the renormalized estimate (support = (0, Inf)) recovers it (Jones 1993)
   Random.seed!(41)
   h = Histogram1D(0.0, 12.0, 1200); observe!(h, -log.(rand(400_000)))
-  @test abs(density(h, 0.02; bounds = (0.0, Inf)) - exponential_pdf(0.02)) < abs(density(h, 0.02) - exponential_pdf(0.02))
-  @test density(h, 0.02; bounds = (0.0, Inf)) ≈ exponential_pdf(0.02)  atol = 7e-2     # corrected ≈ true at the edge
+  @test abs(density(h, 0.02; support = (0.0, Inf)) - exponential_pdf(0.02)) < abs(density(h, 0.02) - exponential_pdf(0.02))
+  @test density(h, 0.02; support = (0.0, Inf)) ≈ exponential_pdf(0.02)  atol = 7e-2     # corrected ≈ true at the edge
   @test density(h, 0.02) < 0.7                                              # uncorrected ≈ half (true 0.98)
 
   # interior is unchanged (the kernel mass is ≈ 1 far from the edge)
-  @test density(h, 2.0; bounds = (0.0, Inf)) ≈ density(h, 2.0)  rtol = 1e-6
+  @test density(h, 2.0; support = (0.0, Inf)) ≈ density(h, 2.0)  rtol = 1e-6
   # the correction preserves normalization (integrates to ≈ 1 over the support)
   xs = range(0.0, 12.0; length = 2001)
-  @test sum(density(h, collect(xs); bounds = (0.0, Inf))) * step(xs) ≈ 1  atol = 2e-2
+  @test sum(density(h, collect(xs); support = (0.0, Inf))) * step(xs) ≈ 1  atol = 2e-2
   # kernel-general: Epanechnikov also lifts the boundary estimate
-  @test density(h, 0.05; bounds = (0.0, Inf), kernel = epanechnikov_kernel) >
+  @test density(h, 0.05; support = (0.0, Inf), kernel = epanechnikov_kernel) >
         density(h, 0.05; kernel = epanechnikov_kernel)
 
-  # vector form; degree ≥ 1 + bounds is rejected (the local-log is already boundary-adaptive)
-  @test density(h, [0.05, 2.0]; bounds = (0.0, Inf)) isa AbstractVector
-  @test_throws ArgumentError density(h, 0.1; degree = 1, bounds = (0.0, Inf))
+  # vector form; degree ≥ 1 + support is rejected (the local-log is already boundary-adaptive)
+  @test density(h, [0.05, 2.0]; support = (0.0, Inf)) isa AbstractVector
+  @test_throws ArgumentError density(h, 0.1; degree = 1, support = (0.0, Inf))
 end
 
 @testset "asymmetric kernels: gamma [0,∞), beta [0,1] (§4.1)" begin
@@ -275,10 +275,10 @@ end
   merge!(a, b)
   @test density(a, 0.5; kernel = gamma_kernel) ≈ density(both, 0.5; kernel = gamma_kernel)
 
-  # the asymmetric kernel is its own estimator: degree / adaptive / bounds / bad-h are rejected
+  # the asymmetric kernel is its own estimator: degree / adaptive / support / bad-h are rejected
   @test_throws ArgumentError density(he, 0.5; kernel = gamma_kernel, degree = 1)
   @test_throws ArgumentError density(he, 0.5; kernel = gamma_kernel, adaptive = true)
-  @test_throws ArgumentError density(he, 0.5; kernel = gamma_kernel, bounds = (0.0, Inf))
+  @test_throws ArgumentError density(he, 0.5; kernel = gamma_kernel, support = (0.0, Inf))
   @test_throws ArgumentError density(he, 0.5; kernel = gamma_kernel, h = -1.0)
 end
 
@@ -361,7 +361,7 @@ end
   # a parametric start is the degree-0, fixed-h, symmetric-kernel estimator — the other options are rejected
   @test_throws ArgumentError density(hg, 0.0; start = normal_start, degree = 1)
   @test_throws ArgumentError density(hg, 0.0; start = normal_start, adaptive = true)
-  @test_throws ArgumentError density(hg, 0.0; start = normal_start, bounds = (0.0, Inf))
+  @test_throws ArgumentError density(hg, 0.0; start = normal_start, support = (0.0, Inf))
   @test_throws ArgumentError density(hg, 0.0; start = normal_start, kernel = gamma_kernel)
   # a positive-support start needs the sample mean inside its support
   hneg = Histogram1D(-10.0, 2.0, 200); observe!(hneg, randn(2_000) .- 4.0)
