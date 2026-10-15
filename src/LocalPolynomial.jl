@@ -19,16 +19,16 @@ using ..Kernels: _kernel_weight, AsymmetricKernel
 
 
 # Kernel-weighted design moments of a binned measure about the query point `x`:
-#   moments[k+1] = Σ_j _kernel_weight(loc_j, x, h, kernel) * weights_j * (loc_j - x)^k,   k = 0 … maxorder.
+#   moments[k+1] = Σ_j _kernel_weight(loc_j, x, kernel, h) * weights_j * (loc_j - x)^k,   k = 0 … maxorder.
 # `weights` is the per-bin weight — the bin counts for the design Gram, a response total for the
 # right-hand side, or the IRLS working weight (μ, or the residual count n - μ) for local likelihood.
 # The weight comes from the shared `_kernel_weight` atom (the 1/h it folds in cancels in the solve);
 # powers are built iteratively in one pass over the bins.
-function _design_moments(locations, weights, x, h, kernel, maxorder)
+function _design_moments(locations, weights, x, kernel, maxorder, h)
   moments = zeros(Float64, maxorder + 1)
   @inbounds for j in eachindex(locations)
     d = locations[j] - x
-    w = _kernel_weight(locations[j], x, h, kernel) * weights[j]
+    w = _kernel_weight(locations[j], x, kernel, h) * weights[j]
     p = w
     moments[1] += p
     for k in 1:maxorder
@@ -61,7 +61,7 @@ end
 
 
 """
-    local_fit(locations, mass, response, x, h, kernel, degree)
+    local_fit(locations, mass, response, x, kernel, degree, h)
 
 The **local-polynomial jet** of a binned 1-D measure at the query point `x`: the kernel-weighted
 least-squares fit of a degree-``d`` polynomial in ``u = \\ell_j - x`` to the bin data, returning the
@@ -96,18 +96,18 @@ kernel-weighted-moment solve as the iteratively reweighted (IRLS) inner step of 
 - `response` — the per-bin response total ``r_j`` (e.g. ``\\sum Y`` over the bin); pass `mass` to fit
   the design itself.
 - `x` — the query point at which the jet is evaluated.
-- `h` — the smoothing bandwidth (``h > 0``); it scales the kernel argument.
 - `kernel` — the smoothing kernel: a symmetric callable ``K`` (admitted at any `degree`), or an
   [`AsymmetricKernel`](@ref GBGStreamingStatistics.Kernels.AsymmetricKernel) (`degree = 0` only). Its normalization cancels in the solve.
 - `degree` — the local-polynomial order ``d``: `0` (local-constant / Nadaraya–Watson), `1`
   (local-linear), or `2` (local-quadratic); the returned jet then has `degree + 1` entries (an asymmetric
   `kernel` restricts it to `0`).
+- `h` — the smoothing bandwidth (``h > 0``); it scales the kernel argument.
 """
-function local_fit(locations, mass, response, x, h, kernel, degree)
+function local_fit(locations, mass, response, x, kernel, degree, h)
   (kernel isa AsymmetricKernel && degree ≥ 1) && throw(ArgumentError(
     "an asymmetric kernel is a degree-0 boundary kernel — it has no jet; `degree` must be 0 (got $degree)"))
-  T = _design_moments(locations, mass, x, float(h), kernel, 2 * degree)
-  P = _design_moments(locations, response, x, float(h), kernel, degree)
+  T = _design_moments(locations, mass, x, kernel, 2 * degree, float(h))
+  P = _design_moments(locations, response, x, kernel, degree, float(h))
   return _hankel_solve(T, P)
 end
 
@@ -119,14 +119,14 @@ end
 # with v_j = K_h(c_j−x)(c_j−x)^{0..d} and M the design Hankel [T_{i+j}], Σ_j N_j w_j² = u' Q u where
 # u = M⁻¹ e_0 and Q is the Hankel of the **squared-kernel** moments Q_ℓ = Σ_j N_j K_h(c_j−x)² (c_j−x)^ℓ
 # (the 1/h in K_h cancels between M and Q). Degenerate design (too little local data) ⇒ NaN.
-function _leverage(locations, weights, x, h, kernel, degree)
+function _leverage(locations, weights, x, kernel, degree, h)
   hf = float(h)
   M = zeros(Float64, 2 * degree + 1)         # plain-kernel design moments Σ N_j K_h (c−x)^ℓ
   Q = zeros(Float64, 2 * degree + 1)         # squared-kernel moments      Σ N_j K_h² (c−x)^ℓ
   @inbounds for j in eachindex(locations)
     wj = weights[j]
     iszero(wj) && continue
-    kw = _kernel_weight(locations[j], x, hf, kernel)
+    kw = _kernel_weight(locations[j], x, kernel, hf)
     iszero(kw) && continue
     dloc = locations[j] - x
     p = 1.0

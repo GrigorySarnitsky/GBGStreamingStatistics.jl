@@ -77,8 +77,8 @@ end
 
 """
     conditional_expectation(summary::Histogram2D, g, x;   # ≡ E[g(Y) ∣ x]
-                            h, kernel = gaussian_kernel,
-                            degree = kernel isa AsymmetricKernel ? 0 : 1)
+                            kernel = gaussian_kernel,
+                            degree = kernel isa AsymmetricKernel ? 0 : 1, h)
 
 **Estimand.** The conditional expectation of a smooth functional of the response,
 ``\\mathbb{E}[g(Y) \\mid X = x] = \\int g(y)  f_{Y\\mid X}(y \\mid x)\\,\\mathrm{d}y``. For
@@ -108,29 +108,33 @@ bias/variance of `conditional_mean`. A vector of query points returns a vector; 
 - `g` — the response functional to average: any callable ``y \\mapsto g(y)`` (smooth on the ``Y``-bin
   scale). `g = identity` recovers the conditional mean, `g = abs2` the conditional ``\\mathbb{E}[Y^2 \\mid x]``.
 - `x` — the conditioning value(s) at which the expectation is evaluated (scalar or vector).
-- `h` — the conditioning (``x``) bandwidth (``h > 0``), supplied.
 - `kernel` — the conditioning (``x``) kernel (any ``\\int K = 1`` callable; default
   [`gaussian_kernel`](@ref GBGStreamingStatistics.Kernels.gaussian_kernel)).
 - `degree` — the local-polynomial order in ``x``: `0` (Nadaraya–Watson), `1` (local-linear), or `2`. The
   default is `1`, or `0` under an asymmetric `kernel`, which has no jet and admits no other order.
+- `h` — the conditioning (``x``) bandwidth (``h > 0``), supplied.
 
 Reference: J. Fan & I. Gijbels (1996), [*Local Polynomial Modelling and Its Applications*](https://doi.org/10.1201/9780203748725),
 Chapman & Hall.
 """
-function conditional_expectation(summary::Histogram2D, g, x::Real; h::Real,
-                                 kernel = gaussian_kernel, degree::Integer = (kernel isa AsymmetricKernel ? 0 : 1))
+function conditional_expectation(summary::Histogram2D, g, x::Real;
+                                 kernel = gaussian_kernel,
+                                 degree::Integer = (kernel isa AsymmetricKernel ? 0 : 1),
+                                 h::Real)
   h > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
   _check_degree(degree)
   cx, N, sumG = _column_response(summary, g)
-  return local_fit(cx, N, sumG, x, h, kernel, degree)[1]
+  return local_fit(cx, N, sumG, x, kernel, degree, h)[1]
 end
 
-function conditional_expectation(summary::Histogram2D, g, xs::AbstractVector; h::Real,
-                                 kernel = gaussian_kernel, degree::Integer = (kernel isa AsymmetricKernel ? 0 : 1))
+function conditional_expectation(summary::Histogram2D, g, xs::AbstractVector;
+                                 kernel = gaussian_kernel,
+                                 degree::Integer = (kernel isa AsymmetricKernel ? 0 : 1),
+                                 h::Real)
   h > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
   _check_degree(degree)
   cx, N, sumG = _column_response(summary, g)
-  return [local_fit(cx, N, sumG, x, h, kernel, degree)[1] for x in xs]
+  return [local_fit(cx, N, sumG, x, kernel, degree, h)[1] for x in xs]
 end
 
 
@@ -138,11 +142,11 @@ end
 # √(leverage · Var(g(Y)|x)), with the plug-in conditional variance Ê[g²|x] − Ê[g|x]² and the leverage
 # Σ_j N_j w_j². Both NaN where the fit is degenerate (no local data). Shared by the standard-error reader
 # and the paired value-plus-error reader, so the two agree by construction.
-function _ce_value_and_se(cx, N, sumG, sumG2, x, h, kernel, degree)
-  eg = local_fit(cx, N, sumG, x, h, kernel, degree)[1]
-  lev = _leverage(cx, N, x, h, kernel, degree)
+function _ce_value_and_se(cx, N, sumG, sumG2, x, kernel, degree, h)
+  eg = local_fit(cx, N, sumG, x, kernel, degree, h)[1]
+  lev = _leverage(cx, N, x, kernel, degree, h)
   (isfinite(eg) && isfinite(lev)) || return (eg, oftype(eg, NaN))
-  eg2 = local_fit(cx, N, sumG2, x, h, kernel, degree)[1]
+  eg2 = local_fit(cx, N, sumG2, x, kernel, degree, h)[1]
   variance = eg2 - eg^2
   return (eg, sqrt(max(variance, zero(variance)) * max(lev, zero(lev))))
 end
@@ -150,8 +154,9 @@ end
 
 """
     conditional_expectation_standard_error(summary::Histogram2D, g, x;
-                                           h, kernel = gaussian_kernel,
-                                           degree = kernel isa AsymmetricKernel ? 0 : 1)
+                                           kernel = gaussian_kernel,
+                                           degree = kernel isa AsymmetricKernel ? 0 : 1,
+                                           h)
 
 **Estimand.** The sampling standard error of the estimator `conditional_expectation`,
 ``\\mathrm{SE}\\bigl(\\widehat{\\mathbb{E}}[g(Y)\\mid x]\\bigr) =
@@ -173,28 +178,32 @@ local to ``x``.
 Arguments: as for [`conditional_expectation`](@ref GBGStreamingStatistics.ConditionalExpectations.conditional_expectation).
 
 """
-function conditional_expectation_standard_error(summary::Histogram2D, g, x::Real; h::Real,
-                                                kernel = gaussian_kernel, degree::Integer = (kernel isa AsymmetricKernel ? 0 : 1))
+function conditional_expectation_standard_error(summary::Histogram2D, g, x::Real;
+                                                kernel = gaussian_kernel,
+                                                degree::Integer = (kernel isa AsymmetricKernel ? 0 : 1),
+                                                h::Real)
   h > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
   _check_degree(degree)
   cx, N, sumG = _column_response(summary, g)
   sumG2 = _column_response(summary, y -> g(y)^2)[3]
-  return _ce_value_and_se(cx, N, sumG, sumG2, x, h, kernel, degree)[2]
+  return _ce_value_and_se(cx, N, sumG, sumG2, x, kernel, degree, h)[2]
 end
 
-function conditional_expectation_standard_error(summary::Histogram2D, g, xs::AbstractVector; h::Real,
-                                                kernel = gaussian_kernel, degree::Integer = (kernel isa AsymmetricKernel ? 0 : 1))
+function conditional_expectation_standard_error(summary::Histogram2D, g, xs::AbstractVector;
+                                                kernel = gaussian_kernel,
+                                                degree::Integer = (kernel isa AsymmetricKernel ? 0 : 1),
+                                                h::Real)
   h > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
   _check_degree(degree)
   cx, N, sumG = _column_response(summary, g)
   sumG2 = _column_response(summary, y -> g(y)^2)[3]
-  return [_ce_value_and_se(cx, N, sumG, sumG2, x, h, kernel, degree)[2] for x in xs]
+  return [_ce_value_and_se(cx, N, sumG, sumG2, x, kernel, degree, h)[2] for x in xs]
 end
 
 
 """
     conditional_expectation_with_standard_error(summary::Histogram2D, g, x;
-        h, kernel = gaussian_kernel, degree = kernel isa AsymmetricKernel ? 0 : 1)
+        kernel = gaussian_kernel, degree = kernel isa AsymmetricKernel ? 0 : 1, h)
 
 The estimate and its standard error from one local-polynomial fit — the `NamedTuple`
 ``(\\texttt{value}, \\texttt{standard\\_error})``, with `value` the `conditional_expectation`
@@ -208,23 +217,27 @@ Arguments: as for [`conditional_expectation`](@ref
 GBGStreamingStatistics.ConditionalExpectations.conditional_expectation).
 
 """
-function conditional_expectation_with_standard_error(summary::Histogram2D, g, x::Real; h::Real,
-                                                     kernel = gaussian_kernel, degree::Integer = (kernel isa AsymmetricKernel ? 0 : 1))
+function conditional_expectation_with_standard_error(summary::Histogram2D, g, x::Real;
+                                                     kernel = gaussian_kernel,
+                                                     degree::Integer = (kernel isa AsymmetricKernel ? 0 : 1),
+                                                     h::Real)
   h > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
   _check_degree(degree)
   cx, N, sumG = _column_response(summary, g)
   sumG2 = _column_response(summary, y -> g(y)^2)[3]
-  v, se = _ce_value_and_se(cx, N, sumG, sumG2, x, h, kernel, degree)
+  v, se = _ce_value_and_se(cx, N, sumG, sumG2, x, kernel, degree, h)
   return (value = v, standard_error = se)
 end
 
-function conditional_expectation_with_standard_error(summary::Histogram2D, g, xs::AbstractVector; h::Real,
-                                                     kernel = gaussian_kernel, degree::Integer = (kernel isa AsymmetricKernel ? 0 : 1))
+function conditional_expectation_with_standard_error(summary::Histogram2D, g, xs::AbstractVector;
+                                                     kernel = gaussian_kernel,
+                                                     degree::Integer = (kernel isa AsymmetricKernel ? 0 : 1),
+                                                     h::Real)
   h > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
   _check_degree(degree)
   cx, N, sumG = _column_response(summary, g)
   sumG2 = _column_response(summary, y -> g(y)^2)[3]
-  vses = [_ce_value_and_se(cx, N, sumG, sumG2, x, h, kernel, degree) for x in xs]
+  vses = [_ce_value_and_se(cx, N, sumG, sumG2, x, kernel, degree, h) for x in xs]
   return (value = [vs[1] for vs in vses], standard_error = [vs[2] for vs in vses])
 end
 
@@ -232,9 +245,8 @@ end
 # conditional_mean is the g = identity case of conditional_expectation, folded in exactly (the y-quadrature
 # of identity is Σ Y, degree 1 ≤ 2 so exact); x may be a scalar or a vector (dispatched by the general one).
 """
-    conditional_mean(summary::Histogram2D, x;   # ≡ m(x)
-                     h, kernel = gaussian_kernel,
-                     degree = kernel isa AsymmetricKernel ? 0 : 1)
+    conditional_mean(summary::Histogram2D, x; kernel = gaussian_kernel,
+                     degree = kernel isa AsymmetricKernel ? 0 : 1, h)   # ≡ m(x)
 
 **Estimand.** The conditional expectation
 ``m(x) = \\mathbb{E}[Y \\mid X = x] = \\int y  f_{Y\\mid X}(y \\mid x)\\,\\mathrm{d}y`` — the
@@ -282,7 +294,6 @@ see [`conditional_density`](@ref GBGStreamingStatistics.ConditionalDensity.condi
 - `summary` — the joint `Histogram2D` of ``(X, Y)``.
 - `x` — the conditioning value(s) at which ``m`` is evaluated (a scalar for one point, or a vector
   for the whole curve).
-- `h` — the smoothing bandwidth (``h > 0``), supplied.
 - `kernel` — the smoothing kernel: a symmetric callable ``K`` (``\\int K = 1``; default
   [`gaussian_kernel`](@ref GBGStreamingStatistics.Kernels.gaussian_kernel), at any `degree`), or an
   asymmetric `gamma_kernel` / `beta_kernel` for a bounded/positive conditioning
@@ -290,12 +301,13 @@ see [`conditional_density`](@ref GBGStreamingStatistics.ConditionalDensity.condi
 - `degree` — the local-polynomial order: `0` (Nadaraya–Watson), `1` (local-linear), or `2`
   (local-quadratic). The default is `1`, or `0` under an asymmetric `kernel`, which has no jet and admits
   no other order.
+- `h` — the smoothing bandwidth (``h > 0``), supplied.
 
 Reference: J. Fan & I. Gijbels (1996), [*Local Polynomial Modelling and Its Applications*](https://doi.org/10.1201/9780203748725),
 Chapman & Hall.
 """
-conditional_mean(summary::Histogram2D, x; h::Real, kernel = gaussian_kernel,
-                 degree::Integer = (kernel isa AsymmetricKernel ? 0 : 1)) =
+conditional_mean(summary::Histogram2D, x; kernel = gaussian_kernel,
+                 degree::Integer = (kernel isa AsymmetricKernel ? 0 : 1), h::Real) =
   conditional_expectation(summary, identity, x; h = h, kernel = kernel, degree = degree)
 
 
@@ -308,11 +320,11 @@ conditional_mean(summary::Histogram2D, x; h::Real, kernel = gaussian_kernel,
 # (exact to O(Δ), the bin width). The column total is then ΣY² − 2 μ_j ΣY + μ_j² N from the stored column
 # sums. A second local fit of this response (≡ Ê[(Y−m̂)²|x]) estimates σ²(x) with the curved-E[Y²|x] bias
 # of the plug-in removed — E[(Y−m)²|x] = σ²(x) is far flatter than E[Y²|x].
-function _residual_response(cx, N, sumY, sumY2, h, kernel, degree)
+function _residual_response(cx, N, sumY, sumY2, kernel, degree, h)
   SR2 = similar(sumY2)
   @inbounds for j in eachindex(cx)
     if N[j] > 0
-      μj = local_fit(cx, N, sumY, cx[j], h, kernel, degree)[1]
+      μj = local_fit(cx, N, sumY, cx[j], kernel, degree, h)[1]
       SR2[j] = sumY2[j] - 2 * μj * sumY[j] + μj^2 * N[j]
     else
       SR2[j] = zero(eltype(SR2))
@@ -323,13 +335,13 @@ end
 
 
 # σ²(x) at a single point by the chosen method, from the pre-reduced column sums.
-function _conditional_variance(cx, N, sumY, sumY2, x, h, kernel, degree, method)
+function _conditional_variance(cx, N, sumY, sumY2, x, kernel, degree, h, method)
   if method === :residual
-    SR2 = _residual_response(cx, N, sumY, sumY2, h, kernel, degree)
-    return _clamp_var(local_fit(cx, N, SR2, x, h, kernel, degree)[1])
+    SR2 = _residual_response(cx, N, sumY, sumY2, kernel, degree, h)
+    return _clamp_var(local_fit(cx, N, SR2, x, kernel, degree, h)[1])
   elseif method === :plugin
-    m = local_fit(cx, N, sumY, x, h, kernel, degree)[1]
-    ey2 = local_fit(cx, N, sumY2, x, h, kernel, degree)[1]
+    m = local_fit(cx, N, sumY, x, kernel, degree, h)[1]
+    ey2 = local_fit(cx, N, sumY2, x, kernel, degree, h)[1]
     return _clamp_var(ey2 - m^2)
   end
   throw(ArgumentError("conditional_variance `method` must be :residual (Fan–Yao, default) or " *
@@ -338,9 +350,8 @@ end
 
 
 """
-    conditional_variance(summary::Histogram2D, x;
-                         h, kernel = gaussian_kernel,
-                         degree = kernel isa AsymmetricKernel ? 0 : 1,
+    conditional_variance(summary::Histogram2D, x; kernel = gaussian_kernel,
+                         degree = kernel isa AsymmetricKernel ? 0 : 1, h,
                          method = :residual)   # ≡ σ²(x)
 
 **Estimand.** The conditional variance
@@ -365,11 +376,11 @@ squared-residual total is recovered exactly from the stored column sums,
 - `summary` — the joint [`Histogram2D`](@ref GBGStreamingStatistics.Histograms.Histogram2D) of
   ``(X, Y)``.
 - `x` — the conditioning value(s) at which ``\\sigma^2`` is evaluated (scalar or vector).
-- `h` — the smoothing bandwidth (``h > 0``), supplied.
 - `kernel` — the smoothing kernel ``K`` (any callable with ``\\int K = 1``; default
   [`gaussian_kernel`](@ref GBGStreamingStatistics.Kernels.gaussian_kernel)).
 - `degree` — the local-polynomial order for the underlying fits: `0`, `1`, or `2`. The default is `1`, or
   `0` under an asymmetric `kernel`, which has no jet and admits no other order.
+- `h` — the smoothing bandwidth (``h > 0``), supplied.
 - `method` — `:residual` (the default, the bias-reduced Fan & Yao two-stage estimator) or `:plugin`
   (the simple ``\\widehat{\\mathbb{E}}[Y^2 \\mid x] - \\hat m^2`` difference).
 
@@ -378,25 +389,28 @@ squared-residual total is recovered exactly from the stored column sums,
 - J. Fan & Q. Yao (1998), [*Efficient estimation of conditional variance functions in stochastic regression*](https://doi.org/10.1093/biomet/85.3.645), Biometrika 85(3) (the residual-based estimator).
 - J. Fan & J. Jiang (2000), [*Variable bandwidth and one-step local M-estimator*](https://doi.org/10.1007/BF02903849), Sci. China Ser. A 43 (a robust one-step M-estimator refinement — further reading, not currently offered).
 """
-function conditional_variance(summary::Histogram2D, x::Real; h::Real,
-                              kernel = gaussian_kernel, degree::Integer = (kernel isa AsymmetricKernel ? 0 : 1), method::Symbol = :residual)
+function conditional_variance(summary::Histogram2D, x::Real; kernel = gaussian_kernel,
+                              degree::Integer = (kernel isa AsymmetricKernel ? 0 : 1),
+                              h::Real, method::Symbol = :residual)
   h > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
   _check_degree(degree)
   cx, N, sumY, sumY2 = _column_sums(summary)
-  return _conditional_variance(cx, N, sumY, sumY2, x, h, kernel, degree, method)
+  return _conditional_variance(cx, N, sumY, sumY2, x, kernel, degree, h, method)
 end
 
-function conditional_variance(summary::Histogram2D, xs::AbstractVector; h::Real,
-                              kernel = gaussian_kernel, degree::Integer = (kernel isa AsymmetricKernel ? 0 : 1), method::Symbol = :residual)
+function conditional_variance(summary::Histogram2D, xs::AbstractVector;
+                              kernel = gaussian_kernel,
+                              degree::Integer = (kernel isa AsymmetricKernel ? 0 : 1),
+                              h::Real, method::Symbol = :residual)
   h > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
   _check_degree(degree)
   cx, N, sumY, sumY2 = _column_sums(summary)
   if method === :residual
-    SR2 = _residual_response(cx, N, sumY, sumY2, h, kernel, degree)
-    return [_clamp_var(local_fit(cx, N, SR2, x, h, kernel, degree)[1]) for x in xs]
+    SR2 = _residual_response(cx, N, sumY, sumY2, kernel, degree, h)
+    return [_clamp_var(local_fit(cx, N, SR2, x, kernel, degree, h)[1]) for x in xs]
   elseif method === :plugin
-    return [_clamp_var(local_fit(cx, N, sumY2, x, h, kernel, degree)[1] -
-                       local_fit(cx, N, sumY, x, h, kernel, degree)[1]^2) for x in xs]
+    return [_clamp_var(local_fit(cx, N, sumY2, x, kernel, degree, h)[1] -
+                       local_fit(cx, N, sumY, x, kernel, degree, h)[1]^2) for x in xs]
   end
   throw(ArgumentError("conditional_variance `method` must be :residual (Fan–Yao, default) or " *
                       ":plugin (got :$method)"))
@@ -405,8 +419,9 @@ end
 
 """
     conditional_variance_standard_error(summary::Histogram2D, x;
-                                        h, kernel = gaussian_kernel,
-                                        degree = kernel isa AsymmetricKernel ? 0 : 1)
+                                        kernel = gaussian_kernel,
+                                        degree = kernel isa AsymmetricKernel ? 0 : 1,
+                                        h)
 
 **Estimand.** The sampling standard error of the conditional variance
 `conditional_variance`,
@@ -428,23 +443,28 @@ GBGStreamingStatistics.ConditionalExpectations.conditional_variance), without `m
 SE is common to `:residual` and `:plugin`).
 
 """
-function conditional_variance_standard_error(summary::Histogram2D, x::Real; h::Real,
-                                             kernel = gaussian_kernel, degree::Integer = (kernel isa AsymmetricKernel ? 0 : 1))
+function conditional_variance_standard_error(summary::Histogram2D, x::Real;
+                                             kernel = gaussian_kernel,
+                                             degree::Integer = (kernel isa AsymmetricKernel ? 0 : 1),
+                                             h::Real)
   m = conditional_mean(summary, x; h = h, kernel = kernel, degree = degree)
   return conditional_expectation_standard_error(summary, y -> (y - m)^2, x; h = h, kernel = kernel,
                                                 degree = degree)
 end
 
-function conditional_variance_standard_error(summary::Histogram2D, xs::AbstractVector; h::Real,
-                                             kernel = gaussian_kernel, degree::Integer = (kernel isa AsymmetricKernel ? 0 : 1))
+function conditional_variance_standard_error(summary::Histogram2D, xs::AbstractVector;
+                                             kernel = gaussian_kernel,
+                                             degree::Integer = (kernel isa AsymmetricKernel ? 0 : 1),
+                                             h::Real)
   return [conditional_variance_standard_error(summary, x; h = h, kernel = kernel, degree = degree) for x in xs]
 end
 
 
 """
     conditional_variance_with_standard_error(summary::Histogram2D, x;
-        h, kernel = gaussian_kernel, degree = kernel isa AsymmetricKernel ? 0 : 1,
-        method = :residual)
+                                             kernel = gaussian_kernel,
+                                             degree = kernel isa AsymmetricKernel ? 0 : 1,
+                                             h, method = :residual)
 
 The conditional variance
 `conditional_variance` and its
@@ -457,17 +477,19 @@ residual approximation, common to both methods). For a vector `x`, a `NamedTuple
 Arguments: as for [`conditional_variance`](@ref GBGStreamingStatistics.ConditionalExpectations.conditional_variance).
 
 """
-function conditional_variance_with_standard_error(summary::Histogram2D, x::Real; h::Real,
-                                                  kernel = gaussian_kernel, degree::Integer = (kernel isa AsymmetricKernel ? 0 : 1),
-                                                  method::Symbol = :residual)
+function conditional_variance_with_standard_error(summary::Histogram2D, x::Real;
+                                                  kernel = gaussian_kernel,
+                                                  degree::Integer = (kernel isa AsymmetricKernel ? 0 : 1),
+                                                  h::Real, method::Symbol = :residual)
   v = conditional_variance(summary, x; h = h, kernel = kernel, degree = degree, method = method)
   se = conditional_variance_standard_error(summary, x; h = h, kernel = kernel, degree = degree)
   return (value = v, standard_error = se)
 end
 
-function conditional_variance_with_standard_error(summary::Histogram2D, xs::AbstractVector; h::Real,
-                                                  kernel = gaussian_kernel, degree::Integer = (kernel isa AsymmetricKernel ? 0 : 1),
-                                                  method::Symbol = :residual)
+function conditional_variance_with_standard_error(summary::Histogram2D, xs::AbstractVector;
+                                                  kernel = gaussian_kernel,
+                                                  degree::Integer = (kernel isa AsymmetricKernel ? 0 : 1),
+                                                  h::Real, method::Symbol = :residual)
   return (value = conditional_variance(summary, xs; h = h, kernel = kernel, degree = degree, method = method),
           standard_error = conditional_variance_standard_error(summary, xs; h = h, kernel = kernel, degree = degree))
 end
@@ -475,9 +497,10 @@ end
 
 """
     conditional_pushforward_density(summary::Histogram2D, g, x, z;   # ≡ f_{g(Y) ∣ X}
-                                    hx, hz, kernelx = gaussian_kernel,
+                                    kernelx = gaussian_kernel,
                                     kernelz = gaussian_kernel,
-                                    degree = kernelx isa AsymmetricKernel ? 0 : 1)
+                                    degree = kernelx isa AsymmetricKernel ? 0 : 1, hx,
+                                    hz)
 
 **Estimand.** The density of the transformed response ``Z = g(Y)`` given ``X = x`` — the **conditional
 pushforward**, change of variables applied to the conditional law,
@@ -512,36 +535,38 @@ conditioning value `x`.
 - `x` — the conditioning value (a scalar).
 - `z` — the transformed-response point(s) at which the density is evaluated (a scalar, or a vector for the
   curve).
-- `hx`, `hz` — the conditioning (``x``) and transformed-response (``z``) bandwidths (both ``> 0``), supplied.
 - `kernelx` — the conditioning (``x``) kernel (any ``\\int K = 1`` callable; default
   [`gaussian_kernel`](@ref GBGStreamingStatistics.Kernels.gaussian_kernel)).
 - `kernelz` — the response-direction (``z``) kernel (default `gaussian_kernel`); a symmetric kernel
   integrates to 1 exactly.
 - `degree` — the local-polynomial order in ``x``: `0`, `1`, or `2`. The default is `1`, or `0` under an
   asymmetric `kernelx`, which has no jet and admits no other order.
+- `hx`, `hz` — the conditioning (``x``) and transformed-response (``z``) bandwidths (both ``> 0``), supplied.
 
 Reference: B. W. Silverman (1986), [*Density Estimation for Statistics and Data Analysis*](https://doi.org/10.1201/9781315140919), Chapman & Hall.
 """
 function conditional_pushforward_density(summary::Histogram2D, g, x::Real, z::Real;
-                                         hx::Real, hz::Real, kernelx = gaussian_kernel,
+                                         kernelx = gaussian_kernel,
                                          kernelz = gaussian_kernel,
-                degree::Integer = (kernelx isa AsymmetricKernel ? 0 : 1))
+                                         degree::Integer = (kernelx isa AsymmetricKernel ? 0 : 1),
+                                         hx::Real, hz::Real)
   hz > 0 || throw(ArgumentError("response bandwidth hz must be positive (got hz = $hz)"))
   return conditional_expectation(summary, y -> kernelz((g(y) - z) / hz) / hz, x;
                                  h = hx, kernel = kernelx, degree = degree)
 end
 
 function conditional_pushforward_density(summary::Histogram2D, g, x::Real, zs::AbstractVector;
-                                         hx::Real, hz::Real, kernelx = gaussian_kernel,
+                                         kernelx = gaussian_kernel,
                                          kernelz = gaussian_kernel,
-                degree::Integer = (kernelx isa AsymmetricKernel ? 0 : 1))
+                                         degree::Integer = (kernelx isa AsymmetricKernel ? 0 : 1),
+                                         hx::Real, hz::Real)
   hz > 0 || throw(ArgumentError("response bandwidth hz must be positive (got hz = $hz)"))
   return [conditional_expectation(summary, y -> kernelz((g(y) - z) / hz) / hz, x;
                                   h = hx, kernel = kernelx, degree = degree) for z in zs]
 end
 
 
-function _check_cpf_se(hx, hz, degree)
+function _check_cpf_se(degree, hx, hz)
   (hx > 0 && hz > 0) ||
     throw(ArgumentError("bandwidths hx, hz must be positive (got hx = $hx, hz = $hz)"))
   _check_degree(degree)
@@ -549,9 +574,9 @@ end
 
 
 # The local-fit leverage ℓ(x) at the conditioning point (z-independent, so formed once per SE call).
-function _cpf_leverage(summary::Histogram2D, x::Real, hx, kernelx, degree)
+function _cpf_leverage(summary::Histogram2D, x::Real, kernelx, degree, hx)
   cx, N, _ = _column_response(summary, identity)   # cx, N do not depend on the response
-  return _leverage(cx, N, x, hx, kernelx, degree)
+  return _leverage(cx, N, x, kernelx, degree, hx)
 end
 
 
@@ -560,7 +585,7 @@ end
 # double-kernel term (the local-fit leverage ℓ(x) times the leading kernel variance R(K_z)f̂/h_z, with the
 # analytic R(K_z) since the order-2 Y-quadrature cannot resolve K_hz²) minus the finite-sample f̂²/n. At
 # degree 0 this is exactly the `conditional_density` standard error. Both NaN where the fit is degenerate.
-function _cpf_value_and_se(summary::Histogram2D, g, x::Real, z::Real, hx, hz, kernelx, kernelz, degree, lev)
+function _cpf_value_and_se(summary::Histogram2D, g, x::Real, z::Real, kernelx, kernelz, degree, hx, hz, lev)
   f = conditional_pushforward_density(summary, g, x, z; hx = hx, hz = hz, kernelx = kernelx,
                                       kernelz = kernelz, degree = degree)
   (isfinite(f) && isfinite(lev)) || return (f, oftype(f, NaN))
@@ -571,8 +596,8 @@ end
 
 """
     conditional_pushforward_density_standard_error(summary::Histogram2D, g, x, z;
-        hx, hz, kernelx = gaussian_kernel, kernelz = gaussian_kernel,
-        degree = kernelx isa AsymmetricKernel ? 0 : 1)
+        kernelx = gaussian_kernel, kernelz = gaussian_kernel,
+        degree = kernelx isa AsymmetricKernel ? 0 : 1, hx, hz)
 
 **Estimand.** The pointwise standard error of the conditional pushforward density
 `conditional_pushforward_density` ``\\equiv f_{g(Y)\\mid X}``
@@ -591,29 +616,31 @@ GBGStreamingStatistics.ConditionalExpectations.conditional_pushforward_density).
 
 """
 function conditional_pushforward_density_standard_error(summary::Histogram2D, g, x::Real, z::Real;
-                                                        hx::Real, hz::Real, kernelx = gaussian_kernel,
+                                                        kernelx = gaussian_kernel,
                                                         kernelz = gaussian_kernel,
-                degree::Integer = (kernelx isa AsymmetricKernel ? 0 : 1))
-  _check_cpf_se(hx, hz, degree)
-  lev = _cpf_leverage(summary, x, hx, kernelx, degree)
-  return _cpf_value_and_se(summary, g, x, z, hx, hz, kernelx, kernelz, degree, lev)[2]
+                                                        degree::Integer = (kernelx isa AsymmetricKernel ? 0 : 1),
+                                                        hx::Real, hz::Real)
+  _check_cpf_se(degree, hx, hz)
+  lev = _cpf_leverage(summary, x, kernelx, degree, hx)
+  return _cpf_value_and_se(summary, g, x, z, kernelx, kernelz, degree, hx, hz, lev)[2]
 end
 
 function conditional_pushforward_density_standard_error(summary::Histogram2D, g, x::Real,
-                                                        zs::AbstractVector; hx::Real, hz::Real,
+                                                        zs::AbstractVector;
                                                         kernelx = gaussian_kernel,
                                                         kernelz = gaussian_kernel,
-                degree::Integer = (kernelx isa AsymmetricKernel ? 0 : 1))
-  _check_cpf_se(hx, hz, degree)
-  lev = _cpf_leverage(summary, x, hx, kernelx, degree)
-  return [_cpf_value_and_se(summary, g, x, z, hx, hz, kernelx, kernelz, degree, lev)[2] for z in zs]
+                                                        degree::Integer = (kernelx isa AsymmetricKernel ? 0 : 1),
+                                                        hx::Real, hz::Real)
+  _check_cpf_se(degree, hx, hz)
+  lev = _cpf_leverage(summary, x, kernelx, degree, hx)
+  return [_cpf_value_and_se(summary, g, x, z, kernelx, kernelz, degree, hx, hz, lev)[2] for z in zs]
 end
 
 
 """
     conditional_pushforward_density_with_standard_error(summary::Histogram2D, g, x, z;
-        hx, hz, kernelx = gaussian_kernel, kernelz = gaussian_kernel,
-        degree = kernelx isa AsymmetricKernel ? 0 : 1)
+        kernelx = gaussian_kernel, kernelz = gaussian_kernel,
+        degree = kernelx isa AsymmetricKernel ? 0 : 1, hx, hz)
 
 The conditional pushforward density `conditional_pushforward_density` and its standard error from
 one fit — the `NamedTuple` ``(\\texttt{value}, \\texttt{standard\\_error})``, sharing the fit's leverage with
@@ -625,23 +652,25 @@ Arguments: as for [`conditional_pushforward_density`](@ref
 GBGStreamingStatistics.ConditionalExpectations.conditional_pushforward_density).
 """
 function conditional_pushforward_density_with_standard_error(summary::Histogram2D, g, x::Real, z::Real;
-                                                             hx::Real, hz::Real, kernelx = gaussian_kernel,
+                                                             kernelx = gaussian_kernel,
                                                              kernelz = gaussian_kernel,
-                degree::Integer = (kernelx isa AsymmetricKernel ? 0 : 1))
-  _check_cpf_se(hx, hz, degree)
-  lev = _cpf_leverage(summary, x, hx, kernelx, degree)
-  v, se = _cpf_value_and_se(summary, g, x, z, hx, hz, kernelx, kernelz, degree, lev)
+                                                             degree::Integer = (kernelx isa AsymmetricKernel ? 0 : 1),
+                                                             hx::Real, hz::Real)
+  _check_cpf_se(degree, hx, hz)
+  lev = _cpf_leverage(summary, x, kernelx, degree, hx)
+  v, se = _cpf_value_and_se(summary, g, x, z, kernelx, kernelz, degree, hx, hz, lev)
   return (value = v, standard_error = se)
 end
 
 function conditional_pushforward_density_with_standard_error(summary::Histogram2D, g, x::Real,
-                                                             zs::AbstractVector; hx::Real, hz::Real,
+                                                             zs::AbstractVector;
                                                              kernelx = gaussian_kernel,
                                                              kernelz = gaussian_kernel,
-                degree::Integer = (kernelx isa AsymmetricKernel ? 0 : 1))
-  _check_cpf_se(hx, hz, degree)
-  lev = _cpf_leverage(summary, x, hx, kernelx, degree)
-  vses = [_cpf_value_and_se(summary, g, x, z, hx, hz, kernelx, kernelz, degree, lev) for z in zs]
+                                                             degree::Integer = (kernelx isa AsymmetricKernel ? 0 : 1),
+                                                             hx::Real, hz::Real)
+  _check_cpf_se(degree, hx, hz)
+  lev = _cpf_leverage(summary, x, kernelx, degree, hx)
+  vses = [_cpf_value_and_se(summary, g, x, z, kernelx, kernelz, degree, hx, hz, lev) for z in zs]
   return (value = [vs[1] for vs in vses], standard_error = [vs[2] for vs in vses])
 end
 

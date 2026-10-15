@@ -45,21 +45,21 @@ unit,words,longest_paragraph,admonitions
 "Bandwidth.jl :: bandwidth(summary::Histogram1D; rule = :normal, kernel = gau",882,120,0
 "Bandwidth.jl :: bandwidth(summary::Histogram2D, x;   # ≡ h⋆(x)",301,127,0
 "Bandwidth.md § Bandwidth",66,66,0
-"ConditionalDensity.jl :: conditional_density(summary::Histogram2D, x, y;",462,151,0
+"ConditionalDensity.jl :: conditional_density(summary::Histogram2D, x, y; kernelx = ga",462,151,0
 "ConditionalDensity.jl :: conditional_density_standard_error(summary::Histogram2D, x, ",189,95,0
 "ConditionalDensity.jl :: conditional_density_with_standard_error(summary::Histogram2D",73,45,0
-"ConditionalDensity.jl :: transition_density(summary::Histogram2D, x, y;",178,80,0
+"ConditionalDensity.jl :: transition_density(summary::Histogram2D, x, y; kernelx = gau",178,80,0
 "ConditionalDensity.jl :: transition_density_standard_error(summary::Histogram2D, x, y",52,27,0
 "ConditionalDensity.jl :: transition_density_with_standard_error(summary::Histogram2D,",46,21,0
 "ConditionalDensity.md § ConditionalDensity",45,45,0
 "ConditionalExpectations.jl :: conditional_expectation(summary::Histogram2D, g, x;   # ≡ E[",310,95,0
 "ConditionalExpectations.jl :: conditional_expectation_standard_error(summary::Histogram2D,",142,85,0
 "ConditionalExpectations.jl :: conditional_expectation_with_standard_error(summary::Histogr",68,47,0
-"ConditionalExpectations.jl :: conditional_mean(summary::Histogram2D, x;   # ≡ m(x)",457,165,0
+"ConditionalExpectations.jl :: conditional_mean(summary::Histogram2D, x; kernel = gaussian_",457,165,0
 "ConditionalExpectations.jl :: conditional_pushforward_density(summary::Histogram2D, g, x, ",311,119,0
 "ConditionalExpectations.jl :: conditional_pushforward_density_standard_error(summary::Hist",113,60,0
 "ConditionalExpectations.jl :: conditional_pushforward_density_with_standard_error(summary:",56,30,0
-"ConditionalExpectations.jl :: conditional_variance(summary::Histogram2D, x;",270,85,0
+"ConditionalExpectations.jl :: conditional_variance(summary::Histogram2D, x; kernel = gauss",270,85,0
 "ConditionalExpectations.jl :: conditional_variance_standard_error(summary::Histogram2D, x;",127,69,0
 "ConditionalExpectations.jl :: conditional_variance_with_standard_error(summary::Histogram2",64,41,0
 "ConditionalExpectations.md § ConditionalExpectations",68,68,0
@@ -68,7 +68,7 @@ unit,words,longest_paragraph,admonitions
 "Expectations.jl :: expectation_standard_error(summary::Histogram1D, g)",67,48,0
 "Expectations.jl :: expectation_with_standard_error(summary::Histogram1D, g)",75,38,0
 "Expectations.jl :: mean(summary::Histogram1D)",52,46,0
-"Expectations.jl :: pushforward_density(summary::Histogram1D, g, y;",205,88,0
+"Expectations.jl :: pushforward_density(summary::Histogram1D, g, y;   # ≡ f_{g(X",205,88,0
 "Expectations.jl :: pushforward_density_standard_error(summary::Histogram1D, g, ",61,30,0
 "Expectations.jl :: pushforward_density_with_standard_error(summary::Histogram1D",42,30,0
 "Expectations.jl :: std(summary::Histogram1D; corrected = true)",54,21,0
@@ -113,11 +113,11 @@ unit,words,longest_paragraph,admonitions
 "Kernels.jl :: gamma_kernel",192,174,0
 "Kernels.jl :: gaussian_kernel(u)",17,16,0
 "Kernels.md § Kernels",91,91,0
-"LocalPolynomial.jl :: local_fit(locations, mass, response, x, h, kernel, degree)",311,113,0
+"LocalPolynomial.jl :: local_fit(locations, mass, response, x, kernel, degree, h)",311,113,0
 "MarginalDensity.jl :: ParametricStart(fit, logpdf, support)",292,94,0
-"MarginalDensity.jl :: density(summary::Histogram1D, x; h = nothing, kernel = gauss",975,759,0
-"MarginalDensity.jl :: density_standard_error(summary::Histogram1D, x;",313,145,0
-"MarginalDensity.jl :: density_with_standard_error(summary::Histogram1D, x;",120,61,0
+"MarginalDensity.jl :: density(summary::Histogram1D, x;   # ≡ f_X",981,763,0
+"MarginalDensity.jl :: density_standard_error(summary::Histogram1D, x; kernel = gau",315,145,0
+"MarginalDensity.jl :: density_with_standard_error(summary::Histogram1D, x; kernel ",122,61,0
 "MarginalDensity.jl :: exponential_start",34,33,0
 "MarginalDensity.jl :: gamma_start",24,23,0
 "MarginalDensity.jl :: inverse_gaussian_start",33,32,0

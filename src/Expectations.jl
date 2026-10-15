@@ -282,8 +282,8 @@ end
 
 
 """
-    pushforward_density(summary::Histogram1D, g, y;
-                        h, kernel = gaussian_kernel)   # ≡ f_{g(X)}
+    pushforward_density(summary::Histogram1D, g, y;   # ≡ f_{g(X)}
+                        kernel = gaussian_kernel, h)
 
 **Estimand.** The density of the transformed variable ``Y = g(X)``, the **pushforward**
 ``f_{g(X)}(y) = \\sum_{x: g(x)=y} f_X(x) / |g'(x)|`` (the change-of-variables sum over the preimages
@@ -311,19 +311,20 @@ over those points.
 - `g` — the transform defining ``Y = g(X)`` (any callable, smooth on the bin scale).
 - `y` — the response point(s) at which the pushforward density is evaluated (a scalar, or a vector for the
   curve).
-- `h` — the response-direction bandwidth (``h > 0``), supplied.
 - `kernel` — the response-direction kernel (any ``\\int K = 1`` callable; default
   [`gaussian_kernel`](@ref GBGStreamingStatistics.Kernels.gaussian_kernel)).
+- `h` — the response-direction bandwidth (``h > 0``), supplied.
 
 Reference: B. W. Silverman (1986), [*Density Estimation for Statistics and Data Analysis*](https://doi.org/10.1201/9781315140919), Chapman & Hall.
 """
-function pushforward_density(summary::Histogram1D, g, y::Real; h::Real, kernel = gaussian_kernel)
+function pushforward_density(summary::Histogram1D, g, y::Real;
+                             kernel = gaussian_kernel, h::Real)
   h > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
   return expectation(summary, x -> kernel((g(x) - y) / h) / h)
 end
 
 function pushforward_density(summary::Histogram1D, g, ys::AbstractVector;
-                             h::Real, kernel = gaussian_kernel)
+                             kernel = gaussian_kernel, h::Real)
   h > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
   return [expectation(summary, x -> kernel((g(x) - y) / h) / h) for y in ys]
 end
@@ -331,7 +332,7 @@ end
 
 """
     pushforward_density_standard_error(summary::Histogram1D, g, y;
-                                       h, kernel = gaussian_kernel)
+                                       kernel = gaussian_kernel, h)
 
 **Estimand.** The pointwise standard error of the pushforward density `pushforward_density` ``\\equiv f_{g(X)}``,
 ``\\mathrm{SE}(y) = \\sqrt{\\operatorname{Var}\\hat f_{g(X)}(y)}`` with the two-term kernel-density variance
@@ -346,14 +347,14 @@ two-term form above.
 Arguments: as for [`pushforward_density`](@ref GBGStreamingStatistics.Expectations.pushforward_density).
 
 """
-function pushforward_density_standard_error(summary::Histogram1D, g, y::Real; h::Real,
-                                            kernel = gaussian_kernel)
+function pushforward_density_standard_error(summary::Histogram1D, g, y::Real;
+                                            kernel = gaussian_kernel, h::Real)
   h > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
   return expectation_standard_error(summary, x -> kernel((g(x) - y) / h) / h)
 end
 
-function pushforward_density_standard_error(summary::Histogram1D, g, ys::AbstractVector; h::Real,
-                                            kernel = gaussian_kernel)
+function pushforward_density_standard_error(summary::Histogram1D, g, ys::AbstractVector;
+                                            kernel = gaussian_kernel, h::Real)
   h > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
   return [expectation_standard_error(summary, x -> kernel((g(x) - y) / h) / h) for y in ys]
 end
@@ -361,7 +362,7 @@ end
 
 """
     pushforward_density_with_standard_error(summary::Histogram1D, g, y;
-                                            h, kernel = gaussian_kernel)
+                                            kernel = gaussian_kernel, h)
 
 The pushforward density
 `pushforward_density` and its standard
@@ -373,14 +374,14 @@ vectors.
 Arguments: as for [`pushforward_density`](@ref GBGStreamingStatistics.Expectations.pushforward_density).
 
 """
-function pushforward_density_with_standard_error(summary::Histogram1D, g, y::Real; h::Real,
-                                                 kernel = gaussian_kernel)
+function pushforward_density_with_standard_error(summary::Histogram1D, g, y::Real;
+                                                 kernel = gaussian_kernel, h::Real)
   h > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
   return expectation_with_standard_error(summary, x -> kernel((g(x) - y) / h) / h)
 end
 
-function pushforward_density_with_standard_error(summary::Histogram1D, g, ys::AbstractVector; h::Real,
-                                                 kernel = gaussian_kernel)
+function pushforward_density_with_standard_error(summary::Histogram1D, g, ys::AbstractVector;
+                                                 kernel = gaussian_kernel, h::Real)
   h > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
   rs = [expectation_with_standard_error(summary, x -> kernel((g(x) - y) / h) / h) for y in ys]
   return (value = [r.value for r in rs], standard_error = [r.standard_error for r in rs])

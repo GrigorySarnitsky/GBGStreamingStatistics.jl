@@ -19,7 +19,7 @@ const gk = gaussian_kernel
 
   @testset "degree 2 recovers (value, slope, ½·curvature)" begin
     for x in (-1.0, 0.0, 0.5, 1.3)
-      β = LP.local_fit(centers, mass, response, x, 0.8, gk, 2)
+      β = LP.local_fit(centers, mass, response, x, gk, 2, 0.8)
       @test β[1] ≈ P(x)       atol = 1e-6     # β₀ = m̂(x)
       @test β[2] ≈ dP(x)      atol = 1e-6     # β₁ = m'(x)
       @test β[3] ≈ ddP / 2    atol = 1e-6     # 2β₂ = m''(x)
@@ -30,7 +30,7 @@ const gk = gaussian_kernel
     Q(c) = -0.5 + 1.5 * c
     resp1 = Q.(centers) .* mass
     for x in (-1.0, 0.0, 1.0)
-      β = LP.local_fit(centers, mass, resp1, x, 0.8, gk, 1)
+      β = LP.local_fit(centers, mass, resp1, x, gk, 1, 0.8)
       @test β[1] ≈ Q(x)  atol = 1e-7
       @test β[2] ≈ 1.5   atol = 1e-7
       @test length(β) == 2
@@ -38,7 +38,7 @@ const gk = gaussian_kernel
   end
 
   @testset "degree 0 is the kernel-weighted (Nadaraya–Watson) ratio" begin
-    β = LP.local_fit(centers, mass, response, 0.4, 0.8, gk, 0)
+    β = LP.local_fit(centers, mass, response, 0.4, gk, 0, 0.8)
     nw = sum(gk((centers[j] - 0.4) / 0.8) * response[j] for j in eachindex(centers)) /
          sum(gk((centers[j] - 0.4) / 0.8) * mass[j]     for j in eachindex(centers))
     @test length(β) == 1
@@ -47,15 +47,15 @@ const gk = gaussian_kernel
 
   @testset "degenerate design ⇒ all-NaN jet" begin
     # A query point with no local support (all kernel weight underflows) cannot be fit.
-    β = LP.local_fit(centers, mass, response, 1.0e6, 0.5, gk, 1)
+    β = LP.local_fit(centers, mass, response, 1.0e6, gk, 1, 0.5)
     @test all(isnan, β)
   end
 
   @testset "kernel normalization cancels in the solve" begin
     raw(u) = exp(-u^2 / 2)                       # the unnormalised Gaussian (no 1/√(2π))
     for x in (-0.7, 0.3)
-      βn = LP.local_fit(centers, mass, response, x, 0.8, gk,  2)
-      βr = LP.local_fit(centers, mass, response, x, 0.8, raw, 2)
+      βn = LP.local_fit(centers, mass, response, x, gk, 2, 0.8)
+      βr = LP.local_fit(centers, mass, response, x, raw, 2, 0.8)
       @test βn ≈ βr  rtol = 1e-10
     end
   end

@@ -16,7 +16,7 @@ using ..Kernels: gaussian_kernel, _quad, AsymmetricKernel
 using ..ConditionalExpectations: _residual_response
 using ..MarginalDensity: _normal_reference_h, _kde_h, _asymmetric_default_b
 
-export bandwidth
+import ..GBGStreamingStatistics: bandwidth
 
 
 # --- Sheather–Jones solve-the-equation plug-in (`rule = :sj`), from the binned summary ---
@@ -471,10 +471,10 @@ end
 
 
 function _hstar_at(cx, N, sumY, SR2, n, x, kernel, pilot_bandwidth, RK, mu2, xrange)
-  fX = _kde_h(N, cx, n, x, pilot_bandwidth, kernel)
+  fX = _kde_h(N, cx, n, x, kernel, pilot_bandwidth)
   fX > 0 || return oftype(fX, NaN)                       # x outside the data's support
-  sigma2 = local_fit(cx, N, SR2, x, pilot_bandwidth, kernel, 1)[1]      # Fan–Yao conditional variance σ²(x)
-  mpp = 2 * local_fit(cx, N, sumY, x, pilot_bandwidth, kernel, 2)[3]    # m''(x) = 2 β₂
+  sigma2 = local_fit(cx, N, SR2, x, kernel, 1, pilot_bandwidth)[1]      # Fan–Yao conditional variance σ²(x)
+  mpp = 2 * local_fit(cx, N, sumY, x, kernel, 2, pilot_bandwidth)[3]    # m''(x) = 2 β₂
   (isfinite(sigma2) && isfinite(mpp)) || return oftype(fX, NaN)
   sigma2 = max(sigma2, 0.0)
   denom = mu2^2 * mpp^2 * fX * n
@@ -492,7 +492,7 @@ function _local_setup(summary::Histogram2D, kernel, pilot_bandwidth)
   RK = _quad(v -> kernel(v)^2)
   mu2 = _quad(v -> v^2 * kernel(v))
   xrange = summary.xupper - summary.xlower
-  SR2 = _residual_response(cx, N, sumY, sumY2, hp, kernel, 1)   # Fan–Yao residual response for σ²(x)
+  SR2 = _residual_response(cx, N, sumY, sumY2, kernel, 1, hp)   # Fan–Yao residual response for σ²(x)
   return cx, N, sumY, SR2, n, hp, RK, mu2, xrange
 end
 

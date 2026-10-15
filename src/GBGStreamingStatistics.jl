@@ -29,6 +29,10 @@ bands for the point estimators. See the API reference for the full, module-by-mo
 module GBGStreamingStatistics
 
 
+# `bandwidth` is declared here, ahead of the modules: `density`'s default bandwidth names it
+# (`h = bandwidth(summary; kernel, degree)`), while its methods live in `Bandwidth`, included last.
+function bandwidth end
+
 include("Accumulators.jl")
 include("Histograms.jl")
 include("Kernels.jl")
@@ -98,10 +102,6 @@ using .ConditionalDensity:
   transition_density,
   transition_density_standard_error,
   transition_density_with_standard_error
-
-
-using .Bandwidth:
-  bandwidth
 
 
 using .Expectations:

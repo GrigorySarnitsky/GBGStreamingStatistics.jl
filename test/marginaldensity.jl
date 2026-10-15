@@ -126,7 +126,8 @@ end
   @test density(ha, 0.0) ≈ density(ha, 0.0; h = bandwidth(ha))               # default h == Silverman
   ys = density(ha, [0.0, 1.0]; degree = 1, adaptive = true, kernel = epanechnikov_kernel)
   @test ys isa AbstractVector && length(ys) == 2 && all(>(0), ys)
-  @test density(Histogram1D(-1.0, 1.0, 4), 0.0) == 0.0                       # empty → 0
+  @test density(Histogram1D(-1.0, 1.0, 4), 0.0; h = 0.5) == 0.0              # empty → 0 (given h)
+  @test_throws ArgumentError density(Histogram1D(-1.0, 1.0, 4), 0.0)          # the default h needs two samples
   @test_throws ArgumentError density(ha, 0.0; h = -1.0)                      # bad bandwidth
   @test_throws ArgumentError density(ha, 0.0; degree = -1)                   # bad degree
   @test_throws ArgumentError density(ha, 0.0; binning = :bogus)              # bad binning symbol
@@ -157,7 +158,8 @@ end
   # vector form; empty; bad inputs
   ses = density_standard_error(hg, [0.0, 1.0, 2.0])
   @test ses isa AbstractVector && length(ses) == 3 && all(>(0), ses)
-  @test density_standard_error(Histogram1D(-1.0, 1.0, 4), 0.0) == 0.0
+  @test density_standard_error(Histogram1D(-1.0, 1.0, 4), 0.0; h = 0.5) == 0.0
+  @test_throws ArgumentError density_standard_error(Histogram1D(-1.0, 1.0, 4), 0.0)   # the default needs two samples
   @test_throws ArgumentError density_standard_error(hg, 0.0; h = -1.0)
   @test_throws ArgumentError density_standard_error(hg, 0.0; degree = 2)
 end
