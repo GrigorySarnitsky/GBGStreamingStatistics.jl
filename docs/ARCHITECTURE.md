@@ -634,7 +634,7 @@ mergeable streaming-moment design is, however, worth mirroring — §10).
 - **Weighted merge — settled, built (the cone).** `scale!` and the weighted
   `merge!(into, from; weight)` make the unnormalised summary a convex **cone** (closed under nonnegative
   linear combinations), not merely an additive monoid — realizing **hyperstatistics** (superstatistics;
-  Beck & Cohen 2003) and **exponential forgetting** as post-hoc reweightings, over a `count = Float64`
+  Beck & Cohen 2003) and **exponential forgetting** as post-hoc reweightings, over a `count_type = Float64`
   summary variant. See the §11 decision-log entry.
 
 ---
@@ -771,7 +771,7 @@ intentional — do not dedupe it).
   Realized as `scale!(summary, weight)` (the scalar action — every count and power-sum ``\times`` weight)
   and the weighted `merge!(into, from; weight)`
   (``\texttt{into} \mathrel{+}= \texttt{weight} \cdot \texttt{from}``; ``\texttt{weight} = 1`` recovers the
-  plain monoid add), on a **Float-count variant** (`count = Float64`; the default `UInt64` counts cannot
+  plain monoid add), on a **Float-count variant** (`count_type = Float64`; the default `UInt64` counts cannot
   hold a fractional ``w n``, so `scale!` and a weighted merge `ArgumentError` on them). The summary storage
   needed almost no change — `observe!`'s atomic scatter already adds `one(eltype(counts))`, so a Float count routes
   through the atomic-*float* add (CPU and GPU), and `merge!` was already an elementwise broadcast. Estimand:

@@ -73,7 +73,7 @@ function read_histogram(parent::HDF5.H5DataStore, name::AbstractString)
     counts = read(g["counts"])
     powersums = read(g["powersums"])
     h = Histogram1D(attrs(g)["lower"], attrs(g)["upper"], length(counts);
-                    order = size(powersums, 1), accumulator = eltype(powersums), count = eltype(counts))
+                    order = size(powersums, 1), accumulator_type = eltype(powersums), count_type = eltype(counts))
     copyto!(h.counts, counts)
     copyto!(h.powersums, powersums)
     return h
@@ -82,7 +82,7 @@ function read_histogram(parent::HDF5.H5DataStore, name::AbstractString)
     powersums = read(g["powersums"])
     h = Histogram2D(attrs(g)["xlower"], attrs(g)["xupper"], Int(attrs(g)["nx"]),
                     attrs(g)["ylower"], attrs(g)["yupper"], Int(attrs(g)["ny"]);
-                    lag = Int(attrs(g)["lag"]), accumulator = eltype(powersums), count = eltype(counts))
+                    lag = Int(attrs(g)["lag"]), accumulator_type = eltype(powersums), count_type = eltype(counts))
     copyto!(h.counts, counts)
     copyto!(h.powersums, powersums)
     return h

@@ -20,7 +20,7 @@ recompute-from-raw reruns. The library is domain-neutral and model-neutral: no s
 parametric structure is a premise — such structure is only ever *tested*, never assumed.
 
 On top of the mergeable **summaries** ([`Histogram1D`](@ref GBGStreamingStatistics.Histograms.Histogram1D) /
-[`Histogram2D`](@ref GBGStreamingStatistics.Histograms.Histogram2D), with a `count = Float64` cone
+[`Histogram2D`](@ref GBGStreamingStatistics.Histograms.Histogram2D), with a `count_type = Float64` cone
 variant for hyperstatistics and forgetting), it provides — post hoc, from that one summary — marginal
 densities, conditional expectations, conditional and two-time transition densities, bandwidth selection,
 the power-sum quadrature readouts (moments, expectations, and pushforward densities), and standard-error

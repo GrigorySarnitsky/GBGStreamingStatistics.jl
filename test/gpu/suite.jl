@@ -50,8 +50,8 @@ function run_gpu_suite(::Type{T}) where {T<:AbstractFloat}
     # the Float-count variant routes observe! through the GPU atomic FLOAT add (distinct from the
     # integer-count atomic path); scale! and the weighted merge! are device broadcasts.
     a = randn(T, 200_000); b = randn(T, 200_000)
-    hh = Histogram1D(-6.0, 6.0, 500; order = 5, count = Float64); observe!(hh, a)
-    hd = on_device(Histogram1D(-6.0, 6.0, 500; order = 5, count = Float64)); observe!(hd, to_device(a))
+    hh = Histogram1D(-6.0, 6.0, 500; order = 5, count_type = Float64); observe!(hh, a)
+    hd = on_device(Histogram1D(-6.0, 6.0, 500; order = 5, count_type = Float64)); observe!(hd, to_device(a))
     @test isapprox(Array(hd.counts), hh.counts; rtol = rtol)
     @test isapprox(Array(hd.powersums), hh.powersums; rtol = rtol)
 
@@ -59,8 +59,8 @@ function run_gpu_suite(::Type{T}) where {T<:AbstractFloat}
     @test isapprox(Array(hd.counts), hh.counts; rtol = rtol)
     @test isapprox(Array(hd.powersums), hh.powersums; rtol = rtol)
 
-    gh = Histogram1D(-6.0, 6.0, 500; order = 5, count = Float64); observe!(gh, b)
-    gd = on_device(Histogram1D(-6.0, 6.0, 500; order = 5, count = Float64)); observe!(gd, to_device(b))
+    gh = Histogram1D(-6.0, 6.0, 500; order = 5, count_type = Float64); observe!(gh, b)
+    gd = on_device(Histogram1D(-6.0, 6.0, 500; order = 5, count_type = Float64)); observe!(gd, to_device(b))
     merge!(hh, gh; weight = 0.3); merge!(hd, gd; weight = 0.3)
     @test isapprox(Array(hd.counts), hh.counts; rtol = rtol)
     @test isapprox(Array(hd.powersums), hh.powersums; rtol = rtol)

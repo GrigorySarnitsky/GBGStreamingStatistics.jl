@@ -6,7 +6,7 @@ include("testoracles.jl"); using .TestOracles
 # A small builder: a fresh Float-count Histogram1D over the same data (deterministic, so the cone laws
 # can be checked by reconstructing each side rather than copying).
 _mk(data; lower = -8.0, upper = 8.0, nbins = 800) =
-  (h = Histogram1D(lower, upper, nbins; count = Float64); observe!(h, data); h)
+  (h = Histogram1D(lower, upper, nbins; count_type = Float64); observe!(h, data); h)
 
 
 @testset "cone: scale! (the scalar action, §10)" begin
@@ -74,7 +74,7 @@ end
   T2 = Histogram1D(-10.0, 10.0, 1000); observe!(T2, randn(200_000) .+ 2.0)
   mix(x; w1 = 0.5) = w1 * gaussian_pdf(x; mu = -2.0) + (1 - w1) * gaussian_pdf(x; mu = 2.0)
 
-  M = Histogram1D(-10.0, 10.0, 1000; count = Float64)
+  M = Histogram1D(-10.0, 10.0, 1000; count_type = Float64)
   merge!(M, T1; weight = 0.5 / sum(T1.counts))     # wₖ/Nₖ — each component normalized to a probability measure
   merge!(M, T2; weight = 0.5 / sum(T2.counts))
   @test sum(M.counts) ≈ 1.0                         # total mass = Σ wₖ
@@ -84,7 +84,7 @@ end
   end
 
   # POST-HOC reweighting: the SAME per-component summaries, a different mixing law, no re-accumulation
-  M73 = Histogram1D(-10.0, 10.0, 1000; count = Float64)
+  M73 = Histogram1D(-10.0, 10.0, 1000; count_type = Float64)
   merge!(M73, T1; weight = 0.7 / sum(T1.counts))
   merge!(M73, T2; weight = 0.3 / sum(T2.counts))
   for x in (-2.0, 0.0, 2.0)
@@ -93,7 +93,7 @@ end
 
   # equal component sizes ⇒ the bare weights wₖ keep the total a real sample count, so the default
   # bandwidth works directly (Nₖ is then a global constant that cancels in the density normalization)
-  Mbare = Histogram1D(-10.0, 10.0, 1000; count = Float64)
+  Mbare = Histogram1D(-10.0, 10.0, 1000; count_type = Float64)
   merge!(Mbare, T1; weight = 0.5); merge!(Mbare, T2; weight = 0.5)
   @test sum(Mbare.counts) ≈ Float64(sum(T1.counts))     # a representative n, not 1
   @test density(Mbare, 0.0) ≈ mix(0.0)  atol = 1e-2
@@ -106,7 +106,7 @@ end
   ν = 5.0
   Random.seed!(131)
   βs = range(0.06, 6.0; length = 60); Δβ = step(βs)
-  M = Histogram1D(-15.0, 15.0, 3000; count = Float64)
+  M = Histogram1D(-15.0, 15.0, 3000; count_type = Float64)
   for β in βs
     w = gamma_pdf(β; shape = ν / 2, scale = 2 / ν) * Δβ
     w < 1e-7 && continue
@@ -131,7 +131,7 @@ end
   dA = randn(80_000) .- 2.0                          # an "old" regime
   dB = randn(50_000) .+ 3.0                          # a "new" regime
   λ = 0.4
-  s = Histogram1D(-12.0, 12.0, 1200; count = Float64)
+  s = Histogram1D(-12.0, 12.0, 1200; count_type = Float64)
   observe!(s, dA); scale!(s, λ); observe!(s, dB)
   analytic = (λ * sum(dA) + sum(dB)) / (λ * length(dA) + length(dB))
   @test mean(s) ≈ analytic  rtol = 1e-10
@@ -145,7 +145,7 @@ end
   Random.seed!(151)
   ρ = 0.6
   x = randn(300_000); y = ρ .* x .+ sqrt(1 - ρ^2) .* randn(300_000)
-  h2 = Histogram2D(-6.0, 6.0, 120, -6.0, 6.0, 120; count = Float64)
+  h2 = Histogram2D(-6.0, 6.0, 120, -6.0, 6.0, 120; count_type = Float64)
   observe_pairs!(h2, x, y)
   m_before = conditional_mean(h2, 1.0; h = 0.3)
   scale!(h2, 5.0)
@@ -154,8 +154,8 @@ end
 
   # the structural cone laws hold cell-wise, exactly as for Histogram1D
   @test_throws ArgumentError scale!(Histogram2D(-6.0, 6.0, 120, -6.0, 6.0, 120), 0.5)
-  a = Histogram2D(-6.0, 6.0, 120, -6.0, 6.0, 120; count = Float64); observe_pairs!(a, x, y)
-  w1 = Histogram2D(-6.0, 6.0, 120, -6.0, 6.0, 120; count = Float64); observe_pairs!(w1, x, y); merge!(w1, a; weight = 1)
-  plain = Histogram2D(-6.0, 6.0, 120, -6.0, 6.0, 120; count = Float64); observe_pairs!(plain, x, y); merge!(plain, a)
+  a = Histogram2D(-6.0, 6.0, 120, -6.0, 6.0, 120; count_type = Float64); observe_pairs!(a, x, y)
+  w1 = Histogram2D(-6.0, 6.0, 120, -6.0, 6.0, 120; count_type = Float64); observe_pairs!(w1, x, y); merge!(w1, a; weight = 1)
+  plain = Histogram2D(-6.0, 6.0, 120, -6.0, 6.0, 120; count_type = Float64); observe_pairs!(plain, x, y); merge!(plain, a)
   @test w1.counts == plain.counts && w1.powersums == plain.powersums
 end

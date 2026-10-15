@@ -151,7 +151,7 @@ beyond two) *and* at the summary level (`test/mergeability.jl`, `test/histograms
 laws), for both the estimates and their standard errors.
 
 **HDF5 persistence (`test/hdf5.jl`).** The weak-dependency extension round-trips a summary through an HDF5
-group: the reload is **bit-exact** for a `Histogram1D`, the `count = Float64` cone variant (element type
+group: the reload is **bit-exact** for a `Histogram1D`, the `count_type = Float64` cone variant (element type
 preserved), and a lagged `Histogram2D` (fields, element types, array shapes); estimators (`density`,
 `mean`) are identical after reload; the reload is still mergeable (merging into it matches merging into the
 original); the attributes are readable as plain HDF5 (self-describing); and the error paths throw

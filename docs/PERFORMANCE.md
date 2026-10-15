@@ -42,7 +42,7 @@ The package has a single performance-critical path: the **per-sample accumulatio
   ``O(B)`` in-place elementwise broadcasts over the ``B`` bins — per combination, not per sample — so the
   hyperstatistical mixture (one weighted `merge!` per parameter value) and exponential forgetting (one
   `scale!` per block) cost a bin-sweep each, negligible beside the per-sample accumulation, and
-  allocation-free like `merge!`. The `count = Float64` variant routes `observe!` through the GPU
+  allocation-free like `merge!`. The `count_type = Float64` variant routes `observe!` through the GPU
   atomic-*float* add — the same memory-/atomic-bound profile as the integer-count path.
 
 ## Benchmark coverage contract

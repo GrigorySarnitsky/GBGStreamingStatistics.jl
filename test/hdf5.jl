@@ -12,7 +12,7 @@ using Random
 
     Random.seed!(1)
     h1 = Histogram1D(-8.0, 8.0, 200; order = 4); observe!(h1, randn(50_000))
-    hc = Histogram1D(-8.0, 8.0, 200; order = 3, count = Float64)   # the Float-count cone variant
+    hc = Histogram1D(-8.0, 8.0, 200; order = 3, count_type = Float64)   # the Float-count cone variant
     observe!(hc, randn(30_000)); scale!(hc, 0.5)
     xs = randn(40_000)
     h2 = Histogram2D(-6.0, 6.0, 60, -6.0, 6.0, 60; lag = 4)

@@ -99,8 +99,8 @@ unit,words,longest_paragraph,admonitions
 "FORMALIZATION.md § The kernel-weighting atom & local-polynomial jet (`Kernels._",307,307,0
 "GBGStreamingStatistics.jl :: GBGStreamingStatistics",171,66,0
 "GBGStreamingStatistics.md § GBGStreamingStatistics",19,19,0
-"Histograms.jl :: Histogram1D <: AbstractAccumulator",508,168,0
-"Histograms.jl :: Histogram2D <: AbstractAccumulator",342,111,0
+"Histograms.jl :: Histogram1D <: AbstractAccumulator",506,168,0
+"Histograms.jl :: Histogram2D <: AbstractAccumulator",340,111,0
 "Histograms.jl :: observe_pairs!(summary::Histogram2D, x_past, y_now) -> summa",114,75,0
 "Histograms.jl :: read_histogram(parent, name) -> Histogram1D or Histogram2D",129,62,0
 "Histograms.jl :: write_histogram(parent, name, summary) -> group",187,67,0

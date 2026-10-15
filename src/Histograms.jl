@@ -15,7 +15,8 @@ export Histogram1D, Histogram2D, observe_pairs!, scale!, write_histogram, read_h
 
 """
     Histogram1D <: AbstractAccumulator
-    Histogram1D(lower, upper, nbins; order = 4, accumulator = Float64, count = UInt64)
+    Histogram1D(lower, upper, nbins; order = 4, accumulator_type = Float64,
+                count_type = UInt64)
 
 A **finely binned empirical measure** of a scalar variate ``X`` — the canonical summary
 ``T(\\hat\\mu_n)``. The `nbins` equal-width (WARPing) bins tile the half-open range ``[\\texttt{lower}, \\texttt{upper})``;
@@ -33,7 +34,7 @@ exact, and stable for the even orders (the odd orders, ``\\approx 0``, keep weak
 The default `order = 4` recovers up to ``M_4``; an even higher moment such as ``M_6`` needs `order = 6`.
 Counts are `UInt64` by default (the additive monoid) and power-sums are accumulated in `accumulator`
 (`Float64` by default) regardless of the input element type — *accumulate wider than the data*. Set
-`count = Float64` for the **Float-count variant** that [`scale!`](@ref GBGStreamingStatistics.Accumulators.scale!)
+`count_type = Float64` for the **Float-count variant** that [`scale!`](@ref GBGStreamingStatistics.Accumulators.scale!)
 and weighted [`merge!`](@ref Base.merge!) require — the cone the hyperstatistical parameter-mixture and
 exponential forgetting are built from (a fractional weighted count is not an integer).
 
@@ -44,8 +45,8 @@ Samples outside ``[\\texttt{lower}, \\texttt{upper})`` are **skipped** (not coun
 - `lower`, `upper` — the edges of the half-open range ``[\\texttt{lower}, \\texttt{upper})`` (`upper > lower`).
 - `nbins` — the number of equal-width bins.
 - `order` — the highest power-sum order ``p`` stored per bin (default `4`, recovering up to ``M_4``).
-- `accumulator` — the element type the power-sums are accumulated in (default `Float64`).
-- `count` — the element type of the counts: `UInt64` (the default) or `Float64` for the Float-count
+- `accumulator_type` — the element type the power-sums are accumulated in (default `Float64`).
+- `count_type` — the element type of the counts: `UInt64` (the default) or `Float64` for the Float-count
   variant.
 
 # Fields
@@ -56,7 +57,7 @@ The summary's whole **internal state — distinct from the constructor arguments
 - `lower`, `upper` — the range edges (`upper > lower`).
 - `scale` — the precomputed binning factor `nbins / (upper - lower)`, stored (not recomputed) so that
   the binning map is a single multiply.
-- `counts` — per-bin counts, length `nbins` (`UInt64`, or the `count` type; `nbins == length(counts)`).
+- `counts` — per-bin counts, length `nbins` (`UInt64`, or `count_type`; `nbins == length(counts)`).
 - `powersums` — per-bin power-sums, ``\\texttt{order} \\times \\texttt{nbins}`` (row ``p`` is ``S_p``; `order == size(powersums, 1)`).
 
 A freshly constructed summary is **empty**: `counts` and `powersums` are all zeros (the `merge!`
@@ -84,15 +85,15 @@ end
 
 
 function Histogram1D(lower::Real, upper::Real, nbins::Integer;
-                     order::Integer = 4, accumulator::Type{<:AbstractFloat} = Float64,
-                     count::Type{<:Real} = UInt64)
+                     order::Integer = 4, accumulator_type::Type{<:AbstractFloat} = Float64,
+                     count_type::Type{<:Real} = UInt64)
   upper > lower || throw(ArgumentError("Histogram1D requires upper > lower (got lower = $lower, upper = $upper)"))
   nbins ≥ 1 || throw(ArgumentError("Histogram1D requires nbins ≥ 1 (got $nbins)"))
   order ≥ 2 || throw(ArgumentError("Histogram1D requires order ≥ 2 (got $order)"))
   lowerT, upperT = promote(float(lower), float(upper))
   scale = oftype(lowerT, nbins) / (upperT - lowerT)
-  counts = zeros(count, nbins)
-  powersums = zeros(accumulator, order, nbins)
+  counts = zeros(count_type, nbins)
+  powersums = zeros(accumulator_type, order, nbins)
   return Histogram1D(lowerT, upperT, scale, counts, powersums)
 end
 
@@ -165,10 +166,10 @@ _compatible(a::Histogram1D, b::Histogram1D) =
 
 
 # scale! and a weighted merge! produce fractional counts, so they need a Float-count summary
-# (`count = Float64`); the default UInt64 counts would truncate a weighted count w·n. Guard, clearly.
+# (`count_type = Float64`); the default UInt64 counts would truncate a weighted count w·n. Guard, clearly.
 _require_float_counts(h, op) =
   eltype(h.counts) <: AbstractFloat || throw(ArgumentError(
-    "$op needs a Float-count summary: construct with `count = Float64` (the default `UInt64` counts cannot hold a fractional weighted count)"))
+    "$op needs a Float-count summary: construct with `count_type = Float64` (the default `UInt64` counts cannot hold a fractional weighted count)"))
 
 
 function merge!(into::Histogram1D, from::Histogram1D; weight = 1)
@@ -199,7 +200,7 @@ end
 """
     Histogram2D <: AbstractAccumulator
     Histogram2D(xlower, xupper, nx, ylower, yupper, ny; lag = 0,
-                accumulator = Float64, count = UInt64)
+                accumulator_type = Float64, count_type = UInt64)
 
 A **joint binned empirical measure** of ``(X, Y)`` — one per lag ``\\tau`` — for conditional and
 two-time transition densities. Its ``\\texttt{nx} \\times \\texttt{ny}`` equal-width cells tile
@@ -209,7 +210,7 @@ c^x)^r (Y - c^y)^s`` about the cell center ``(c^x, c^y)`` — ``S_{10}, S_{01}, 
 S_{02}`` — the local sufficient statistic for the joint density and for local-linear conditioning.
 For a two-time quantity ``X(t)`` and the response ``Y(t+\\tau)`` are paired *per source*; the lag
 ``\\tau`` is an explicit label on the summary. Pairs outside the box are skipped. Same atomic-scatter
-accumulation, `merge!`-by-addition, `Float64` accumulation, and `count = Float64` Float-count / cone
+accumulation, `merge!`-by-addition, `Float64` accumulation, and `count_type = Float64` Float-count / cone
 variant (for [`scale!`](@ref GBGStreamingStatistics.Accumulators.scale!) and weighted
 [`merge!`](@ref Base.merge!)) as [`Histogram1D`](@ref GBGStreamingStatistics.Histograms.Histogram1D).
 
@@ -219,8 +220,8 @@ variant (for [`scale!`](@ref GBGStreamingStatistics.Accumulators.scale!) and wei
   ``[\\texttt{xlower}, \\texttt{xupper}) \\times [\\texttt{ylower}, \\texttt{yupper})``.
 - `nx`, `ny` — the numbers of equal-width cells in ``x`` and in ``y``.
 - `lag` — the lag ``\\tau`` the pairs are formed at (default `0`, the static joint).
-- `accumulator` — the element type the power-sums are accumulated in (default `Float64`).
-- `count` — the element type of the counts: `UInt64` (the default) or `Float64` for the Float-count
+- `accumulator_type` — the element type the power-sums are accumulated in (default `Float64`).
+- `count_type` — the element type of the counts: `UInt64` (the default) or `Float64` for the Float-count
   variant.
 
 # Fields
@@ -230,7 +231,7 @@ derived, `counts` and `powersums` allocated) — each reachable by dot (`summary
 - `xlower`, `xupper`, `ylower`, `yupper`, `nx`, `ny` — the box and cell counts.
 - `xscale`, `yscale` — the precomputed binning factors `nx/(xupper-xlower)`, `ny/(yupper-ylower)`, stored.
 - `lag` — the lag ``\\tau`` this joint summary is accumulated at (`0` for the static joint).
-- `counts` — per-cell counts, length `nx*ny` (cell `(ix, iy)` at `ix + (iy-1)*nx`; `UInt64`, or the `count` type).
+- `counts` — per-cell counts, length `nx*ny` (cell `(ix, iy)` at `ix + (iy-1)*nx`; `UInt64`, or `count_type`).
 - `powersums` — ``5 \\times (\\texttt{nx} \\cdot \\texttt{ny})``: rows ``S_{10}, S_{01}, S_{20}, S_{11}, S_{02}`` about the cell center.
 
 A freshly constructed summary is **empty** (`counts`, `powersums` all zeros), and `merge!` adds `counts`
@@ -257,8 +258,8 @@ end
 
 
 function Histogram2D(xlower::Real, xupper::Real, nx::Integer, ylower::Real, yupper::Real, ny::Integer;
-                     lag::Integer = 0, accumulator::Type{<:AbstractFloat} = Float64,
-                     count::Type{<:Real} = UInt64)
+                     lag::Integer = 0, accumulator_type::Type{<:AbstractFloat} = Float64,
+                     count_type::Type{<:Real} = UInt64)
   (xupper > xlower && yupper > ylower) ||
     throw(ArgumentError("Histogram2D requires xupper > xlower and yupper > ylower"))
   (nx ≥ 1 && ny ≥ 1) || throw(ArgumentError("Histogram2D requires nx ≥ 1 and ny ≥ 1"))
@@ -266,8 +267,8 @@ function Histogram2D(xlower::Real, xupper::Real, nx::Integer, ylower::Real, yupp
   T = typeof(xlowerT)
   xscale = T(nx) / (xupperT - xlowerT)
   yscale = T(ny) / (yupperT - ylowerT)
-  counts = zeros(count, nx * ny)
-  powersums = zeros(accumulator, 5, nx * ny)
+  counts = zeros(count_type, nx * ny)
+  powersums = zeros(accumulator_type, 5, nx * ny)
   return Histogram2D(xlowerT, xupperT, xscale, ylowerT, yupperT, yscale, Int(nx), Int(ny), Int(lag), counts, powersums)
 end
 
@@ -405,7 +406,7 @@ across runs; the reload is exact.
 The group is **self-describing**: the arrays become datasets (`counts`, `powersums`) and the scalar
 parameters become attributes (`type`, `version`, the range edges, `nbins` / `nx` / `ny`, `order`, `lag`),
 so any HDF5 tool can read it. Device (GPU) arrays are copied to the host on write, and the count element
-type is preserved, so the `count = Float64` cone variant round-trips. The sugar `parent[name] = summary`
+type is preserved, so the `count_type = Float64` cone variant round-trips. The sugar `parent[name] = summary`
 is equivalent.
 
 The handle `parent` is one you opened and own — this never opens or closes a file. Provided by a package

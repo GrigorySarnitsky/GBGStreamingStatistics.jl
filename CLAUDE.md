@@ -75,7 +75,7 @@ estimands.
   about the bin center** ``S_p`` / ``S_{rs}`` (the local sufficient statistic for moments and
   local-polynomial fitting). Accumulated by one **KernelAbstractions + Atomix atomic scatter-add**
   (`observe!` / `observe_pairs!`, one work-item per sample, CPU and GPU alike); `merge!` is elementwise
-  addition (and `scale!` / weighted `merge!` elementwise scaling — the cone, on the `count = Float64`
+  addition (and `scale!` / weighted `merge!` elementwise scaling — the cone, on the `count_type = Float64`
   Float-count variant); `bin_index` (the binning map) is **archived**, the pre-quantization / index-ingestion path deferred. The **pure summary**
   (accumulate / `merge!` / `scale!` / bin) — the shift-formula moment recovery (`mean` / `var` / `std` /
   `central_moment`) and the general quadrature moved to `Expectations` (§4.B); the power-sums it stores are
@@ -191,7 +191,7 @@ The PF discipline: a missing capability encodes a decision (`docs/ARCHITECTURE.m
    unnormalized summary is additive over the stream. No non-mergeable accumulator is admitted. The
    unnormalized summary is also **scalable** (`scale!`), so it lives in a convex cone — equal-weight
    `merge!` is the built special case, the weighted `merge!(into, from; weight)` and `scale!` the cone
-   operations (§10 hyperstatistics / exponential forgetting, on the `count = Float64` variant). Tested:
+   operations (§10 hyperstatistics / exponential forgetting, on the `count_type = Float64` variant). Tested:
    accumulate-then-merge `=` accumulate-together, and the cone laws.
 4. **The hot path is allocation-free and backend-agnostic.** `observe!(summary, batch)` allocates only
    a bounded amount (the kernel launch), never an ``O(n)``/``O(bins)`` temporary (enforced by an
@@ -459,7 +459,7 @@ Mechanical bar:
    summaries are scalable, so they form a convex cone, not merely an additive monoid: `scale!(summary, w)`
    reweights every count and power-sum (the scalar action), and `merge!(into, from; weight)` forms
    ``\text{into} \mathrel{+}= \text{weight}\cdot\text{from}`` (the default `weight = 1` the plain monoid
-   add). On a **Float-count variant** (`count = Float64`; the default `UInt64` cannot hold a fractional
+   add). On a **Float-count variant** (`count_type = Float64`; the default `UInt64` cannot hold a fractional
    ``w\,n``) for both histograms. Realizes the **hyperstatistical** parameter-mixture density
    ``P(x) = \sum_k w_k f_k(x) = \sum_k (w_k/N_k) T_k`` (superstatistics; Beck & Cohen 2003) — keep one
    summary per ``\beta``, choose the mixing law ``f(\beta)`` *post hoc*, re-weight without re-accumulating —
@@ -534,7 +534,7 @@ Mechanical bar:
     summary` setindex! sugar) map a `Histogram1D` / `Histogram2D` to a self-describing HDF5 **group** (the
     arrays → `counts` / `powersums` datasets, the scalars → attributes, a `type` / `version` tag).
     **Handle-based only** — the consumer opens and owns the file, so summaries land beside other data in one
-    file, many groups. Device arrays move to host on write; the count element type (the `count = Float64`
+    file, many groups. Device arrays move to host on write; the count element type (the `count_type = Float64`
     cone variant) is preserved; the reload is **bit-exact** and still merges. Tested in `test/hdf5.jl`
     (1-D / cone / 2-D exact round-trip, the setindex! sugar, functional equality after reload,
     reload-preserves-merge, self-describing attributes, the error paths).

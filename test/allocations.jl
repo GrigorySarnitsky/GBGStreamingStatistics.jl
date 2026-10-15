@@ -28,8 +28,8 @@ include("public_surface.jl")
   @alloc_below 1 merge!(a, b)
 
   # the cone operations (scale! and the weighted merge!) are in-place broadcasts — also allocation-free
-  c = Histogram1D(-8.0, 8.0, 1000; order = 6, count = Float64); observe!(c, batch)
-  f = Histogram1D(-8.0, 8.0, 1000; order = 6, count = Float64); observe!(f, batch)
+  c = Histogram1D(-8.0, 8.0, 1000; order = 6, count_type = Float64); observe!(c, batch)
+  f = Histogram1D(-8.0, 8.0, 1000; order = 6, count_type = Float64); observe!(f, batch)
   @alloc_below 1 scale!(c, 0.9)
   @alloc_below 1 merge!(c, f; weight = 0.5)
 

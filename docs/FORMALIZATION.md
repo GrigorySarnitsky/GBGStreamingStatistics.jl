@@ -88,7 +88,7 @@ recorded in `ARCHITECTURE.md` §4 meanwhile.
   under all nonnegative linear combinations ``\sum_k w_k T_k`` (the weighted
   `merge!(into, from; weight)`, ``\texttt{into} \mathrel{+}= \texttt{weight} \cdot \texttt{from}``; the
   default ``\texttt{weight} = 1`` the plain ``\oplus``). Carried on a **Float-count variant**
-  (`count = Float64`): a weighted count ``w n`` is not an integer.
+  (`count_type = Float64`): a weighted count ``w n`` is not an integer.
 - **Estimand (hyperstatistics; Beck & Cohen 2003).** the parameter-mixture (superstatistical) density over
   a slowly varying parameter ``\beta`` with mixing law ``f(\beta)``,
 

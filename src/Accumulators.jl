@@ -82,7 +82,7 @@ assemble ``\\sum_k (w_k / N_k) T_k`` by weighted `merge!` (``N_k = \\texttt{sum(
 each component to a probability measure; the conditional / transition estimators then carry the local
 mixing weight automatically, being ratios of linear functionals). This is **post hoc** — re-weight without
 re-accumulating, exactly as bandwidth is a post-hoc choice. A weighted merge (``\\texttt{weight} \\ne 1``)
-requires a Float-count `into` (`count = Float64`).
+requires a Float-count `into` (`count_type = Float64`).
 
 Being intrinsically a finite-sample operation, `merge!` has no population estimand of its own; its
 specification is the monoid (and, weighted, the cone) law, tested as *accumulate-then-merge `=`
@@ -115,7 +115,7 @@ window ``1/(1-\\lambda)``). **Hyperstatistics** — the scalar building block of
 density assembled by weighted `merge!` (the estimand and recipe are documented there;
 Beck & Cohen 2003).
 
-Requires a **Float-count summary** (`count = Float64`; the default `UInt64` counts cannot hold a
+Requires a **Float-count summary** (`count_type = Float64`; the default `UInt64` counts cannot hold a
 fractional ``\\texttt{weight} \\cdot n``) — an `ArgumentError` otherwise. The value ``\\texttt{weight} = 1``
 is the identity. Like `merge!`, an intrinsically finite-sample operation with no population estimand; specified
 by the cone laws (`scale!(scale!(s, a), b)` equals scaling by ``ab``; `scale!` distributes over `merge!`)
