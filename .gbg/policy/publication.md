@@ -1,4 +1,4 @@
-<!-- gbg:managed begin v2.0.0-rc.69 — rewritten by `gbg sync`; do not edit -->
+<!-- gbg:managed begin v2.0.0-rc.73 — rewritten by `gbg sync`; do not edit -->
 # Publication — `RULE.LEAK.*`
 
 What a repository may not publish when it is made public: no credential, nothing personal, nothing never meant for a reader. 9 rules, written from the rule values themselves,
@@ -33,9 +33,9 @@ A repository made public publishes every commit it ever held, on every branch an
 Covered by a program.
 
 ### RULE.LEAK.NEVER_PUBLISHED
-No file that is never published — an environment file, a private key or certificate, a credentials file, a session transcript, a local settings file — is in any commit.
+No file that is never published — an environment file, a private key or certificate, a credentials file, a session transcript — is in any commit.
 
-A repository made public publishes every commit it ever held, on every branch and tag, deleted files included; a later commit that removes a thing does not unpublish it. Such a file is judged by its name and kind, whatever it holds: its holding nothing today says nothing of the commit that held something.
+A repository made public publishes every commit it ever held, on every branch and tag, deleted files included; a later commit that removes a thing does not unpublish it. Such a file exists to hold a secret, so it is judged by its name and kind, whatever it holds: its holding nothing today says nothing of the commit that held something. A file that only may hold one — an editor's or an assistant's local settings, as `.claude/settings.local.json` — is judged by what it holds, by the other rules, in every commit: GBGPeriodicFields' was blocking by its name alone while the scan found no credential in any of its versions (the owner, 2026-10-09). `RULE.GIT.TRACKED` keeps it out of git from now on.
 
 Covered by a program.
 

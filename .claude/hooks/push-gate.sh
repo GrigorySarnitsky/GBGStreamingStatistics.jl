@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # PUSH HOOK — the docs build runs before every push of this package, and a build that fails stops it.
-# Written by GBGCodingTools v2.0.0-rc.69; do not edit.
+# Written by GBGCodingTools v2.0.0-rc.73; do not edit.
 #
 # CONTRACT. Claude Code runs this before every shell command (PreToolUse), with the call as JSON on
 # standard input. A command that pushes this package — `git push` in any spelling, or `gbg release`,
@@ -100,6 +100,36 @@ if [ "$committing" = 0 ] && [ -n "$(git -C "$root" status --porcelain --untracke
   exit 2
 fi
 cd "$root" || exit 0
+# A session link stops the push (the owner, 2026-10-09): `RULE.GIT.TRAILER` forbids the harness's
+# `Claude-Session:` line, and the end-of-turn hook that reported it holds a session only once, so a
+# package published one with nearly every commit. Read first, since it needs no Julia: every commit of
+# every local branch and tag that no remote holds, and the commit this command makes — its `-m`,
+# `--trailer` and `-F` file (found in review, 2026-10-09).
+links=$(git rev-list --branches --tags --not --remotes 2>/dev/null | while read -r c; do
+  git log -1 --format=%B "$c" | grep -q '^Claude-Session:' && git log -1 --format='%h %s' "$c"
+done)
+if [ "$committing" = 1 ]; then
+  made=$(printf '%s\n' "$cmd")
+  for f in $(printf '%s\n' "$cmd" | grep -oE '(^|[[:space:]])(-[A-Za-z]*F|--file)[[:space:]=]+[^[:space:];&|]+' | sed -E 's/^[[:space:]]*(-[A-Za-z]*F|--file)[[:space:]=]+//'); do
+    f=${f#\"}; f=${f%\"}; f=${f#\'}; f=${f%\'}
+    case "$f" in /*) ;; *) f="${where:-$root}/$f" ;; esac
+    [ -f "$f" ] && made=$(printf '%s\n%s' "$made" "$(cat "$f")")
+  done
+  printf '%s\n' "$made" | grep -qE '(^|["='"'"'])[[:space:]]*Claude-Session:' &&
+    links=$(printf '%s\n%s' "$links" "the commit this command makes")
+fi
+links=$(printf '%s\n' "$links" | sed '/^$/d')
+if [ -n "$links" ]; then
+  {
+    echo "PUSH STOPPED: a commit carries a Claude-Session line, a link to an assistant's session, which"
+    echo "RULE.GIT.TRAILER forbids by the owner's ruling, whatever the harness asks, and which would be published:"
+    printf '%s\n' "$links" | sed 's/^/  /'
+    echo "Remove the line from each: 'git commit --amend' for the last commit, or for every commit no remote holds"
+    echo "  git filter-branch -f --msg-filter \"sed '/^Claude-Session:/d'\" -- --branches --tags --not --remotes"
+    echo "and end every commit with the one trailer 'Co-Authored-By: Anthropic Claude <noreply@anthropic.com>'."
+  } >&2
+  exit 2
+fi
 # What git tracks is judged before the build, by `RULE.GIT.TRACKED` under the package's own switches:
 # a stray file stops the push (the owner, 2026-10-05), since publishing is when it does harm.
 log=$(mktemp)

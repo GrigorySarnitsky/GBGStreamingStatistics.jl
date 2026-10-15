@@ -1,4 +1,4 @@
-<!-- gbg:managed begin v2.0.0-rc.69 — rewritten by `gbg sync`; do not edit -->
+<!-- gbg:managed begin v2.0.0-rc.73 — rewritten by `gbg sync`; do not edit -->
 # /documentation-review
 
 Documentation is true to the code, correct, consistent and self-contained; the change guard, the checks and a verifier agent check each fix.
