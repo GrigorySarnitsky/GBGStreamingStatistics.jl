@@ -286,9 +286,9 @@ function _plugin_asymmetric(summary::Histogram1D, kernel::AsymmetricKernel)
   occ = [j for j in eachindex(counts) if counts[j] > 0 && klower < centers[j] < kupper]
   isempty(occ) &&
     throw(ArgumentError("no occupied in-support bins for the plug-in bandwidth; use rule = :normal"))
-  weight = kernel.weight
+  weight = kernel.local_scale_weight
   weight === nothing &&
-    throw(ArgumentError("this `AsymmetricKernel` was built without an AMISE weight, so `rule = :plugin` has no `w(x)` to use; supply it as `AsymmetricKernel(pdf, support; weight = w)`, or select `rule = :normal`"))
+    throw(ArgumentError("this `AsymmetricKernel` was built without an AMISE weight, so `rule = :plugin` has no `w(x)` to use; supply it as `AsymmetricKernel(pdf, support; local_scale_weight = w)`, or select `rule = :normal`"))
   σ = _sample_std(summary)
   iqr = _binned_quantile(summary, 0.75) - _binned_quantile(summary, 0.25)
   scale = (iqr > 0) ? min(σ, iqr / 1.349) : σ
@@ -380,7 +380,7 @@ estimated from a pilot KDE's second derivative by grid quadrature (valid at the 
 1.4\\text{–}1.7\\times`` on skewed positive data — where the rule of thumb mis-scales — and is otherwise near
 it. `rule = :plugin` also accepts a custom
 [`AsymmetricKernel`](@ref GBGStreamingStatistics.Kernels.AsymmetricKernel), provided it was built with its
-AMISE weight ``w(x)`` (its `weight` keyword); one built without `weight` carries no ``w(x)``, so
+AMISE weight ``w(x)`` (its `local_scale_weight` keyword); one built without it carries no ``w(x)``, so
 `:plugin` rejects it — use `rule = :normal`. The symmetric selectors `:sj` /
 `:isj` / `:aic` do not apply to an asymmetric kernel; a fully
 data-adaptive curvature pilot is a recorded refinement.
@@ -470,11 +470,11 @@ function _local_pilot(cx, N, n)
 end
 
 
-function _hstar_at(cx, N, sumY, SR2, n, x, kernel, hpilot, RK, mu2, xrange)
-  fX = _kde_h(N, cx, n, x, hpilot, kernel)
+function _hstar_at(cx, N, sumY, SR2, n, x, kernel, pilot_bandwidth, RK, mu2, xrange)
+  fX = _kde_h(N, cx, n, x, pilot_bandwidth, kernel)
   fX > 0 || return oftype(fX, NaN)                       # x outside the data's support
-  sigma2 = local_fit(cx, N, SR2, x, hpilot, kernel, 1)[1]      # Fan–Yao conditional variance σ²(x)
-  mpp = 2 * local_fit(cx, N, sumY, x, hpilot, kernel, 2)[3]    # m''(x) = 2 β₂
+  sigma2 = local_fit(cx, N, SR2, x, pilot_bandwidth, kernel, 1)[1]      # Fan–Yao conditional variance σ²(x)
+  mpp = 2 * local_fit(cx, N, sumY, x, pilot_bandwidth, kernel, 2)[3]    # m''(x) = 2 β₂
   (isfinite(sigma2) && isfinite(mpp)) || return oftype(fX, NaN)
   sigma2 = max(sigma2, 0.0)
   denom = mu2^2 * mpp^2 * fX * n
@@ -483,12 +483,12 @@ function _hstar_at(cx, N, sumY, SR2, n, x, kernel, hpilot, RK, mu2, xrange)
 end
 
 
-function _local_setup(summary::Histogram2D, kernel, hpilot)
+function _local_setup(summary::Histogram2D, kernel, pilot_bandwidth)
   cx, N, sumY, sumY2 = _column_sums(summary)
   n = sum(N)
   n ≥ 2 || throw(ArgumentError("bandwidth needs at least 2 samples (got n = $n)"))
-  hp = hpilot === nothing ? _local_pilot(cx, N, n) : float(hpilot)
-  hp > 0 || throw(ArgumentError("pilot bandwidth hpilot must be positive (got hpilot = $hp)"))
+  hp = pilot_bandwidth === nothing ? _local_pilot(cx, N, n) : float(pilot_bandwidth)
+  hp > 0 || throw(ArgumentError("pilot bandwidth pilot_bandwidth must be positive (got pilot_bandwidth = $hp)"))
   RK = _quad(v -> kernel(v)^2)
   mu2 = _quad(v -> v^2 * kernel(v))
   xrange = summary.xupper - summary.xlower
@@ -498,8 +498,8 @@ end
 
 
 """
-    bandwidth(summary::Histogram2D, x;
-              rule = :local, kernel = gaussian_kernel, hpilot = nothing)   # ≡ h⋆(x)
+    bandwidth(summary::Histogram2D, x;   # ≡ h⋆(x)
+              rule = :local, kernel = gaussian_kernel, pilot_bandwidth = nothing)
 
 **Estimand.** The response-aware **local** AMISE-optimal bandwidth ``h^\\star(x)`` for the conditional
 mean [`conditional_mean`](@ref GBGStreamingStatistics.ConditionalExpectations.conditional_mean) ``m(x)`` — the
@@ -535,27 +535,27 @@ bandwidth is unbounded, so it is capped at the X-range. A vector `x` returns a v
   summary.
 - `kernel` — the smoothing kernel ``K`` (any callable with ``\\int K = 1``; default
   [`gaussian_kernel`](@ref GBGStreamingStatistics.Kernels.gaussian_kernel)).
-- `hpilot` — the pilot bandwidth for the ``\\sigma^2(x)``, ``m''(x)``, ``f_X(x)`` estimates; `nothing`
+- `pilot_bandwidth` — the pilot bandwidth for the ``\\sigma^2(x)``, ``m''(x)``, ``f_X(x)`` estimates; `nothing`
   (default) uses the curvature-rate rule of thumb ``\\hat\\sigma_X  n^{-1/9}``.
 
 Reference: J. Fan & I. Gijbels (1996), [*Local Polynomial Modelling and Its Applications*](https://doi.org/10.1201/9780203748725),
 Chapman & Hall.
 """
 function bandwidth(summary::Histogram2D, x::Real; rule::Symbol = :local,
-                   kernel = gaussian_kernel, hpilot = nothing)
+                   kernel = gaussian_kernel, pilot_bandwidth = nothing)
   rule === :local ||
     throw(ArgumentError("a joint summary supports only rule = :local (the response-aware local " *
                         "plug-in); got :$rule"))
-  cx, N, sumY, SR2, n, hp, RK, mu2, xrange = _local_setup(summary, kernel, hpilot)
+  cx, N, sumY, SR2, n, hp, RK, mu2, xrange = _local_setup(summary, kernel, pilot_bandwidth)
   return _hstar_at(cx, N, sumY, SR2, n, x, kernel, hp, RK, mu2, xrange)
 end
 
 function bandwidth(summary::Histogram2D, xs::AbstractVector; rule::Symbol = :local,
-                   kernel = gaussian_kernel, hpilot = nothing)
+                   kernel = gaussian_kernel, pilot_bandwidth = nothing)
   rule === :local ||
     throw(ArgumentError("a joint summary supports only rule = :local (the response-aware local " *
                         "plug-in); got :$rule"))
-  cx, N, sumY, SR2, n, hp, RK, mu2, xrange = _local_setup(summary, kernel, hpilot)
+  cx, N, sumY, SR2, n, hp, RK, mu2, xrange = _local_setup(summary, kernel, pilot_bandwidth)
   return [_hstar_at(cx, N, sumY, SR2, n, x, kernel, hp, RK, mu2, xrange) for x in xs]
 end
 

@@ -23,33 +23,33 @@ using Random
 
   @testset "recovers the closed-form h⋆(x) near the centre" begin
     for x in (-0.3, 0.0, 0.3)
-      @test bandwidth(hist, x; rule = :local, hpilot = hp) ≈ hstar_true(x) rtol = 0.12
+      @test bandwidth(hist, x; rule = :local, pilot_bandwidth = hp) ≈ hstar_true(x) rtol = 0.12
     end
   end
 
   @testset "positive and finite on support; NaN off it; rejected rules" begin
     for x in -1.5:0.5:1.5
-      h = bandwidth(hist, x; rule = :local, hpilot = hp)
+      h = bandwidth(hist, x; rule = :local, pilot_bandwidth = hp)
       @test isfinite(h) && h > 0
     end
-    @test isnan(bandwidth(hist, 100.0; rule = :local, hpilot = hp))     # off the data's support
+    @test isnan(bandwidth(hist, 100.0; rule = :local, pilot_bandwidth = hp))     # off the data's support
     @test_throws ArgumentError bandwidth(hist, 0.0; rule = :sj)         # only :local on a joint summary
-    @test_throws ArgumentError bandwidth(hist, 0.0; rule = :local, hpilot = -1.0)
+    @test_throws ArgumentError bandwidth(hist, 0.0; rule = :local, pilot_bandwidth = -1.0)
   end
 
   @testset "scalar == vector" begin
     xs = [-0.3, 0.0, 0.3, 0.8]
-    hs = bandwidth(hist, xs; rule = :local, hpilot = hp)
-    @test hs ≈ [bandwidth(hist, x; rule = :local, hpilot = hp) for x in xs]
+    hs = bandwidth(hist, xs; rule = :local, pilot_bandwidth = hp)
+    @test hs ≈ [bandwidth(hist, x; rule = :local, pilot_bandwidth = hp) for x in xs]
   end
 
   @testset "default pilot (curvature-rate rule of thumb) is sane" begin
-    # With no hpilot the σ̂_X·n^{-1/9} pilot is used; h⋆ should still be finite, positive, and within a
+    # With no pilot_bandwidth the σ̂_X·n^{-1/9} pilot is used; h⋆ should still be finite, positive, and within a
     # small factor of the explicit-pilot value near the centre.
     for x in (-0.3, 0.0, 0.3)
       h = bandwidth(hist, x; rule = :local)
       @test isfinite(h) && h > 0
-      @test 0.3 < h / bandwidth(hist, x; rule = :local, hpilot = hp) < 3.0
+      @test 0.3 < h / bandwidth(hist, x; rule = :local, pilot_bandwidth = hp) < 3.0
     end
   end
 
@@ -61,8 +61,8 @@ using Random
     observe_pairs!(b, view(X, half + 1:n), view(Y, half + 1:n))
     merge!(a, b)
     for x in (-0.3, 0.0, 0.5)
-      @test bandwidth(a, x; rule = :local, hpilot = hp) ≈
-            bandwidth(hist, x; rule = :local, hpilot = hp)
+      @test bandwidth(a, x; rule = :local, pilot_bandwidth = hp) ≈
+            bandwidth(hist, x; rule = :local, pilot_bandwidth = hp)
     end
   end
 end

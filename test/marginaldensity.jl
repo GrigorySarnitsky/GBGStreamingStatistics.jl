@@ -386,7 +386,7 @@ end
   he = Histogram1D(0.0, 12.0, 1200); observe!(he, -log.(rand(300_000)))
   gamma_pdf_fn(c, x, b) =
     c > 0 ? (ρ = x < 2b ? (x / b)^2 / 4 + 1 : x / b; exp((ρ - 1) * log(c) - c / b - ρ * log(b) - loggamma(ρ))) : 0.0
-  my_gamma = AsymmetricKernel(gamma_pdf_fn, (0.0, Inf); weight = x -> x)
+  my_gamma = AsymmetricKernel(gamma_pdf_fn, (0.0, Inf); local_scale_weight = x -> x)
   for x in (0.1, 1.0, 3.0)
     @test density(he, x; kernel = my_gamma) ≈ density(he, x; kernel = gamma_kernel)  rtol = 1e-12
   end
@@ -395,7 +395,7 @@ end
   # built without the plug-in weight: `density` and the rule of thumb still work, but `:plugin` fails
   # loud rather than use a wrong w(x). The weight is a keyword only — no positional third argument.
   my_gamma_noweight = AsymmetricKernel(gamma_pdf_fn, (0.0, Inf))
-  @test my_gamma_noweight.weight === nothing
+  @test my_gamma_noweight.local_scale_weight === nothing
   @test_throws MethodError AsymmetricKernel(gamma_pdf_fn, (0.0, Inf), x -> x)
   @test density(he, 1.0; kernel = my_gamma_noweight) ≈ density(he, 1.0; kernel = gamma_kernel)  rtol = 1e-12
   @test bandwidth(he; rule = :normal, kernel = my_gamma_noweight) > 0

@@ -43,7 +43,7 @@ unit,words,longest_paragraph,admonitions
 "Accumulators.md § Accumulators",55,55,0
 "Accumulators.md § Operations",20,20,0
 "Bandwidth.jl :: bandwidth(summary::Histogram1D; rule = :normal, kernel = gau",882,120,0
-"Bandwidth.jl :: bandwidth(summary::Histogram2D, x;",301,127,0
+"Bandwidth.jl :: bandwidth(summary::Histogram2D, x;   # ≡ h⋆(x)",301,127,0
 "Bandwidth.md § Bandwidth",66,66,0
 "ConditionalDensity.jl :: conditional_density(summary::Histogram2D, x, y;",462,151,0
 "ConditionalDensity.jl :: conditional_density_standard_error(summary::Histogram2D, x, ",189,95,0
@@ -107,7 +107,7 @@ unit,words,longest_paragraph,admonitions
 "Histograms.md § Accumulation",17,17,0
 "Histograms.md § Histograms",23,23,0
 "Histograms.md § Persistence (HDF5)",70,70,0
-"Kernels.jl :: AsymmetricKernel(pdf, support; weight = nothing)",362,139,0
+"Kernels.jl :: AsymmetricKernel(pdf, support; local_scale_weight = nothing)",362,139,0
 "Kernels.jl :: beta_kernel",90,73,0
 "Kernels.jl :: epanechnikov_kernel(u)",58,57,0
 "Kernels.jl :: gamma_kernel",192,174,0

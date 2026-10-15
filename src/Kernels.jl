@@ -57,7 +57,7 @@ end
 # symmetric kernel's O(h) inconsistency at an endpoint). Still a reduction over the bin counts (post-hoc,
 # mergeable). The marker type routes these to the asymmetric estimator in `density`.
 """
-    AsymmetricKernel(pdf, support; weight = nothing)
+    AsymmetricKernel(pdf, support; local_scale_weight = nothing)
 
 A varying-shape **asymmetric kernel** for
 [`density`](@ref GBGStreamingStatistics.MarginalDensity.density) on a bounded or half-line support —
@@ -70,11 +70,11 @@ directly to plug in a custom boundary kernel.
 
 - `pdf` — the kernel, a callable `(c, x, b)` giving a density in the data argument.
 - `support` — the data domain the kernel covers, a `(lower, upper)` tuple.
-- `weight` — the AMISE local-scale weight ``w(x)``, a callable, or `nothing` when unset.
+- `local_scale_weight` — the AMISE local-scale weight ``w(x)``, a callable, or `nothing` when unset.
 
 # Arguments
 
-The constructor takes the three fields, `weight` as a keyword, and they are the construction contract:
+The constructor takes the three fields, `local_scale_weight` as a keyword, and they are the construction contract:
 
 - `pdf(c, x, b)` — the kernel as a **density in the data argument** ``c``, whose shape is set by the
   evaluation point ``x`` and bandwidth ``b`` (normalized: ``\\int \\texttt{pdf}(c, x, b)\\,\\mathrm{d}c = 1``
@@ -82,7 +82,7 @@ The constructor takes the three fields, `weight` as a keyword, and they are the 
   ``\\hat f(x) = \\tfrac{1}{n} \\sum_j n_j \\texttt{pdf}(c_j, x, b)`` over the bin counts ``n_j`` at centers
   ``c_j`` — post hoc and mergeable.
 - `support` — the data domain the kernel covers, as a `(lower, upper)` tuple (e.g. `(0.0, Inf)`).
-- `weight` — the AMISE **local-scale weight** ``w(x)``, a callable `x -> w(x)`: the leading bias is
+- `local_scale_weight` — the AMISE **local-scale weight** ``w(x)``, a callable `x -> w(x)`: the leading bias is
   ``\\tfrac{1}{2} b w(x) f''(x)`` and the variance ``\\propto w(x)^{-1/2}`` (``w(x) = x`` for the gamma
   kernel, ``x(1-x)`` for the beta). It is used **only** by
   [`bandwidth(…; rule = :plugin)`](@ref GBGStreamingStatistics.Bandwidth.bandwidth). Left unset
@@ -96,7 +96,7 @@ mygamma = AsymmetricKernel(
     (c, x, b) -> c > 0 ? (ρ = x < 2b ? (x / b)^2 / 4 + 1 : x / b;
                           exp((ρ - 1) * log(c) - c / b - ρ * log(b) - loggamma(ρ))) : 0.0,
     (0.0, Inf);
-    weight = x -> x)              # the AMISE weight w(x) = x, for rule = :plugin
+    local_scale_weight = x -> x)              # the AMISE weight w(x) = x, for rule = :plugin
 density(summary, 1.0; kernel = mygamma)
 ```
 
@@ -108,15 +108,15 @@ density(summary, 1.0; kernel = mygamma)
 struct AsymmetricKernel{F,W}
   pdf::F                            # (c, x, b) → a density in the data argument c
   support::Tuple{Float64,Float64}   # the data domain the kernel covers
-  weight::W                         # the AMISE local-scale weight w(x) (x for the gamma kernel, x(1−x)
+  local_scale_weight::W                         # the AMISE local-scale weight w(x) (x for the gamma kernel, x(1−x)
                                     # for the beta): both the leading bias ½b·w(x)f''(x) and the variance
                                     # ∝ w(x)^{-1/2} carry it. Used by the §4.5 plug-in bandwidth.
                                     # `nothing` (no weight given) ⇒ rule=:plugin is unavailable.
 
   # The weight has a default — a custom kernel that only needs the rule-of-thumb bandwidth omits it — so
   # it is a keyword (RULE.API.POSITIONAL); this one constructor replaces the positional defaults.
-  AsymmetricKernel(pdf, support; weight = nothing) =
-    new{typeof(pdf), typeof(weight)}(pdf, support, weight)
+  AsymmetricKernel(pdf, support; local_scale_weight = nothing) =
+    new{typeof(pdf), typeof(local_scale_weight)}(pdf, support, local_scale_weight)
 end
 
 @inline (k::AsymmetricKernel)(c, x, b) = k.pdf(c, x, b)
@@ -151,7 +151,7 @@ apply — the kernel is its own degree-0, boundary-free estimator.
 Reference: S. X. Chen (2000), [*Probability density function estimation using gamma
 kernels*](https://doi.org/10.1023/A:1004165218295), Ann. Inst. Statist. Math. 52(3).
 """
-const gamma_kernel = AsymmetricKernel(_gamma_pdf, (0.0, Inf); weight = x -> x)
+const gamma_kernel = AsymmetricKernel(_gamma_pdf, (0.0, Inf); local_scale_weight = x -> x)
 
 
 # Chen's modified beta shape: interior (x/b, (1-x)/b); a √-correction within 2b of an edge (mean ≈ x).
@@ -177,7 +177,7 @@ restrictions, and the ``n^{-2/5}`` rate are as for `gamma_kernel`.
 Reference: S. X. Chen (1999), [*Beta kernel estimators for density
 functions*](https://doi.org/10.1016/S0167-9473(99)00010-9), Comput. Statist. Data Anal. 31(2).
 """
-const beta_kernel = AsymmetricKernel(_beta_pdf, (0.0, 1.0); weight = x -> x * (1 - x))
+const beta_kernel = AsymmetricKernel(_beta_pdf, (0.0, 1.0); local_scale_weight = x -> x * (1 - x))
 
 
 # The kernel-weighting atom — the one place the two kernel protocols live. Given a bin/data location `c`,
