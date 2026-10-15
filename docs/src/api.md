@@ -1,6 +1,6 @@
 # API overview
 
-The complete public API, grouped by module on the pages that follow. Every estimator is documented
+The pages that follow list the complete public API, grouped by module. Every estimator is documented
 **estimand first** — the population quantity, in standard probability notation, before the estimator
 that approximates it from the accumulated summary.
 
