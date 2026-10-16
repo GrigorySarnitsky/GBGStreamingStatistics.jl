@@ -1,4 +1,4 @@
-<!-- gbg:managed regressions-note v2.0.0-rc.73 — rewritten by `gbg sync`; do not edit -->
+<!-- gbg:managed regressions-note v2.0.0-rc.76 — rewritten by `gbg sync`; do not edit -->
 # `test/regressions/` — the failing tests of defects that were fixed
 
 Each file here began as the FAILING TEST of a bug hunt: a self-contained `@testset` asserting the
