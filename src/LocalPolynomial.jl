@@ -63,10 +63,10 @@ end
 """
     local_fit(locations, mass, response, x, kernel, degree, h)
 
-The **local-polynomial jet** of a binned 1-D measure at the query point `x`: the kernel-weighted
+The **local-polynomial jet** of a binned 1-D measure at the query point `x` is the kernel-weighted
 least-squares fit of a degree-``d`` polynomial in ``u = \\ell_j - x`` to the bin data, returning the
 coefficient vector (jet) ``\\beta = (\\beta_0, \\dots, \\beta_d)`` (with ``d`` the `degree` argument).
-From bin locations ``\\ell_j``, design weights (counts) ``w_j`` (`mass`) and response totals ``r_j``
+From bin locations ``\\ell_j``, design weights ``w_j`` (`mass`) and response totals ``r_j``
 (`response`), and the bandwidth-scaled kernel ``K_h(u) \\propto K(u/h)``, form the design and response
 moments
 
@@ -79,11 +79,10 @@ P_\\ell &= \\sum_j K_h(\\ell_j - x)  r_j  (\\ell_j - x)^\\ell,
 
 and solve the normal equations ``[ T_{i+\\ell} ]_{i,\\ell=0}^{d} \\beta = (P_0, \\dots, P_d)``. The
 jet is the local Taylor expansion: ``\\beta_0`` is the fitted value, ``\\beta_1`` the slope, and
-``2\\beta_2`` the curvature — so a regression fit gives ``\\hat m(x) = \\beta_0`` and
-``\\hat m''(x) = 2\\beta_2``. The weight is the shared `Kernels._kernel_weight` atom (its normalization
-cancels in the solve), so any **symmetric** callable `kernel` works at any `degree`; an **asymmetric**
-boundary kernel has no jet and is admitted only at `degree = 0` (the Nadaraya–Watson ratio), rejected
-above it. A degenerate local design (too little data near `x`) returns an all-NaN jet.
+``2\\beta_2`` the curvature — so a regression fit gives the regression-function estimate
+``\\hat m(x) = \\beta_0`` and ``\\hat m''(x) = 2\\beta_2``. The kernel weight's normalization cancels in
+the solve, so any **symmetric** callable `kernel` works at any `degree`; an **asymmetric** boundary
+kernel has no jet and is admitted only at `degree = 0` (the Nadaraya–Watson ratio). A degenerate local design (too little data near `x`) returns an all-NaN jet.
 
 This is the shared linear primitive of the local smoothers:
 ``\\hat m(x)`` is ``\\beta_0`` of one `local_fit`, and the local-likelihood density reuses the same
@@ -91,16 +90,17 @@ kernel-weighted-moment solve as the iteratively reweighted (IRLS) inner step of 
 
 # Arguments
 
-- `locations` — the bin locations ``\\ell_j`` (geometric centers or recovered centroids).
+- `locations` — the bin locations ``\\ell_j`` (bin centers, or centroids from the stored first
+  power-sum).
 - `mass` — the per-bin design weight ``w_j`` (the bin counts).
-- `response` — the per-bin response total ``r_j`` (e.g. ``\\sum Y`` over the bin); pass `mass` to fit
-  the design itself.
+- `response` — the per-bin response total ``r_j`` (e.g. ``\\sum Y`` of the response over the bin); `mass`
+  here smooths the counts themselves, as the local-likelihood density does, giving a count level, not a
+  response mean.
 - `x` — the query point at which the jet is evaluated.
 - `kernel` — the smoothing kernel: a symmetric callable ``K`` (admitted at any `degree`), or an
-  [`AsymmetricKernel`](@ref GBGStreamingStatistics.Kernels.AsymmetricKernel) (`degree = 0` only). Its normalization cancels in the solve.
+  [`AsymmetricKernel`](@ref GBGStreamingStatistics.Kernels.AsymmetricKernel) (`degree = 0` only).
 - `degree` — the local-polynomial order ``d``: `0` (local-constant / Nadaraya–Watson), `1`
-  (local-linear), or `2` (local-quadratic); the returned jet then has `degree + 1` entries (an asymmetric
-  `kernel` restricts it to `0`).
+  (local-linear), or `2` (local-quadratic); the returned jet then has `degree + 1` entries.
 - `h` — the smoothing bandwidth (``h > 0``); it scales the kernel argument.
 """
 function local_fit(locations, mass, response, x, kernel, degree, h)

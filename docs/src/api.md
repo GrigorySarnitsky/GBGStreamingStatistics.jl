@@ -1,8 +1,9 @@
 # API overview
 
-The pages that follow list the complete public API, grouped by module. Every estimator is documented
+These pages list the public API by module. Every estimator is documented
 **estimand first** — the population quantity, in standard probability notation, before the estimator
-that approximates it from the accumulated summary.
+that approximates it from the accumulated summary, the stream's binned record read in place of the
+samples.
 
 The lower half ([`Accumulators`](api/Accumulators.md), [`Histograms`](api/Histograms.md), with the
 shared smoothing kernels in [`Kernels`](api/Kernels.md)) holds the summaries and the accumulation
