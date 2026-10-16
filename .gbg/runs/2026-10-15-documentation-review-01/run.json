@@ -15,7 +15,8 @@
         "2026-10-15-documentation-review-01-003",
         "2026-10-15-documentation-review-01-071",
         "2026-10-15-documentation-review-01-092",
-        "2026-10-15-documentation-review-01-011"
+        "2026-10-15-documentation-review-01-011",
+        "2026-10-15-documentation-review-01-032"
     ],
     "covered": [
         "2026-10-15-documentation-review-01-045\t2026-10-15-documentation-review-01-014",
@@ -139,9 +140,9 @@
             ],
             "id": "2026-10-15-documentation-review-01-032-code",
             "decision": "This finding needs a change only you may make. Will you make it?",
-            "direction": "",
+            "direction": "In conditional_density, replace the approximately-equal sign used as a word by the word 'approximately' (only approximately normalized in y), and compare the conditional MISE rate with a marginal density's rate rather than with a density. Change no other formula.",
             "context": "Replacing the approximately-equal sign by the word removes an inline math span, which the change guard refuses as a mathematics change (clause 6); the rate sentence's rewording follows once the owner rules.",
-            "answer": null
+            "answer": "fix it on my ruling"
         },
         {
             "options": [
