@@ -87,10 +87,11 @@ end
 ``g(y) = y^2`` it is ``\\mathbb{E}[Y^2 \\mid x]``, the plug-in ingredient of
 [`conditional_variance`](@ref GBGStreamingStatistics.ConditionalExpectations.conditional_variance).
 
-**Estimator.** A local-polynomial regression **in ``x``** of a per-``X``-column **``y``-quadrature** of
-``g``. For each ``X``-column the response ``\\sum_i g(Y_i)`` is recovered from the stored order-2
-``Y``-power-sums (exact for ``g`` of degree ``\\le 2``) by the same quadrature the marginal
-[`expectation`](@ref GBGStreamingStatistics.Expectations.expectation) uses, then smoothed across ``x`` by a
+**Estimator.** The estimate is a local-polynomial regression **in ``x``** of a per-``X``-column
+**``y``-quadrature** of ``g``. Per ``X``-column (a conditioning bin) the response ``\\sum_i g(Y_i)`` is
+recovered from the stored order-2 ``Y``-power-sums (per-cell sums of the response and its square; exact
+for ``g`` of degree ``\\le 2``) by the marginal
+[`expectation`](@ref GBGStreamingStatistics.Expectations.expectation)'s quadrature, then smoothed across ``x`` by a
 local-polynomial fit of order `degree`; the estimate is the fitted value ``\\beta_0``. It thus applies
 kernel-weighting in ``x`` after power-sum quadrature in ``y``, and reduces to `conditional_mean` at
 ``g = \\mathrm{identity}``.
@@ -98,20 +99,22 @@ kernel-weighting in ``x`` after power-sum quadrature in ``y``, and reduces to `c
 Because a [`Histogram2D`](@ref GBGStreamingStatistics.Histograms.Histogram2D) stores only the order-2
 ``Y``-power-sums, the ``y``-quadrature is **exact for ``g`` of degree ``\\le 2`` in ``y``** (so
 ``\\mathbb{E}[Y \\mid x]`` and ``\\mathbb{E}[Y^2 \\mid x]`` are exact) and ``O(\\Delta_y^2)`` for a general
-smooth ``g`` — the price of the fixed order-2 joint summary. The ``x``-side carries the local-polynomial
-bias/variance of `conditional_mean`. A vector of query points returns a vector; where no data is local to
-``x`` the estimate is `NaN`.
+smooth ``g``. The ``x``-side carries the local-polynomial
+bias/variance of `conditional_mean`. A vector of query points returns a vector, `NaN` where no data is local to
+``x``.
 
 # Arguments
 
 - `summary` — the joint `Histogram2D` of ``(X, Y)``.
 - `g` — the response functional to average: any callable ``y \\mapsto g(y)`` (smooth on the ``Y``-bin
-  scale). `g = identity` recovers the conditional mean, `g = abs2` the conditional ``\\mathbb{E}[Y^2 \\mid x]``.
-- `x` — the conditioning value(s) at which the expectation is evaluated (scalar or vector).
-- `kernel` — the conditioning (``x``) kernel (any ``\\int K = 1`` callable; default
-  [`gaussian_kernel`](@ref GBGStreamingStatistics.Kernels.gaussian_kernel)).
+  scale). `g = identity` gives the conditional mean, `g = abs2` the conditional ``\\mathbb{E}[Y^2 \\mid x]``.
+- `x` — the conditioning value(s) where the expectation is evaluated (scalar or vector).
+- `kernel` — the conditioning (``x``) kernel: any ``\\int K = 1`` callable (default
+  [`gaussian_kernel`](@ref GBGStreamingStatistics.Kernels.gaussian_kernel)) or an
+  [`AsymmetricKernel`](@ref GBGStreamingStatistics.Kernels.AsymmetricKernel) (`gamma_kernel` /
+  `beta_kernel`, for bounded conditioning).
 - `degree` — the local-polynomial order in ``x``: `0` (Nadaraya–Watson), `1` (local-linear), or `2`. The
-  default is `1`, or `0` under an asymmetric `kernel`, which has no jet and admits no other order.
+  default is `1`, or `0` under an asymmetric `kernel` (which fits no polynomial — no jet).
 - `h` — the conditioning (``x``) bandwidth (``h > 0``), supplied.
 
 Reference: J. Fan & I. Gijbels (1996), [*Local Polynomial Modelling and Its Applications*](https://doi.org/10.1201/9780203748725),
@@ -165,15 +168,16 @@ end
 and the conditional variance of the transformed response
 ``\\operatorname{Var}(g(Y)\\mid x) = \\mathbb{E}[g(Y)^2\\mid x] - \\mathbb{E}[g(Y)\\mid x]^2``.
 
-**Estimator.** The **leverage × noise-scale** readout
+**Estimator.** The estimate is the leverage times the noise scale,
 ``\\sqrt{\\hat\\ell(x) (\\widehat{\\mathbb{E}}[g^2\\mid x] - \\widehat{\\mathbb{E}}[g\\mid x]^2)}``: the
 leverage ``\\hat\\ell(x)`` of the local fit (correct at any `degree`) times the plug-in conditional variance
-of ``g(Y)`` — itself two `conditional_expectation` readouts (``\\mathbb{E}[g^2\\mid x]`` the ``g^2`` reader). This is the exact analog of the marginal
+of ``g(Y)`` — itself two evaluations of `conditional_expectation` (``\\mathbb{E}[g^2\\mid x]`` with ``g^2`` for the
+functional). This is the analog of the marginal
 [`expectation_standard_error`](@ref GBGStreamingStatistics.Expectations.expectation_standard_error),
 ``\\sqrt{\\operatorname{Var}(g(X)) / n}``, with the global-mean leverage ``1/n`` replaced by the local
 ``\\sum_j N_j w_j^2``; at ``g = \\mathrm{identity}`` it is the standard error of the conditional mean
-``m(x)``. It is the plug-in sampling error (not the ``O(h^2)`` smoothing bias). `NaN` where no data is
-local to ``x``.
+``m(x)``. It is the plug-in sampling error (not the ``O(h^2)`` smoothing bias). It is `NaN` where no data
+is local to ``x``.
 
 Arguments: as for [`conditional_expectation`](@ref GBGStreamingStatistics.ConditionalExpectations.conditional_expectation).
 
@@ -205,12 +209,13 @@ end
     conditional_expectation_with_standard_error(summary::Histogram2D, g, x;
         kernel = gaussian_kernel, degree = kernel isa AsymmetricKernel ? 0 : 1, h)
 
-The estimate and its standard error from one local-polynomial fit — the `NamedTuple`
+Returns the estimate and its standard error from two column reductions (the functional, then its
+square) on one local-polynomial design — the `NamedTuple`
 ``(\\texttt{value}, \\texttt{standard\\_error})``, with `value` the `conditional_expectation`
 ``\\widehat{\\mathbb{E}}[g(Y)\\mid x]`` and `standard_error` its
 [`conditional_expectation_standard_error`](@ref
 GBGStreamingStatistics.ConditionalExpectations.conditional_expectation_standard_error). They describe the
-same estimator by construction, sharing the one ``y``-quadrature response and its fit. For a vector `x`,
+same estimator by construction, their ``y``-quadrature responses fitted on one design. For a vector `x`,
 returns a `NamedTuple` of vectors.
 
 Arguments: as for [`conditional_expectation`](@ref
@@ -253,7 +258,7 @@ end
 ``L^2(\\sigma(X))`` projection of the response ``Y`` onto the conditioning variable ``X``, i.e. the
 regression function.
 
-**Estimator** (local-polynomial; Fan & Gijbels). From the joint `summary` (a
+**Estimator** (local-polynomial; Fan & Gijbels 1996). From the joint `summary` (a
 [`Histogram2D`](@ref GBGStreamingStatistics.Histograms.Histogram2D) of ``(X, Y)``) form the
 kernel-weighted design and response sums ``T_\\ell(x) = \\sum_i K_h(X_i-x)(X_i-x)^\\ell`` and
 ``P_\\ell(x) = \\sum_i K_h(X_i-x)(X_i-x)^\\ell Y_i`` — recovered from the per-X-column counts and
@@ -284,7 +289,7 @@ first-order correct near the edge with the symmetric `kernel`, because the local
 local-linear it is also unbiased for a linear mean). A `degree = 0` asymmetric `kernel`
 ([`gamma_kernel`](@ref GBGStreamingStatistics.Kernels.gamma_kernel) /
 [`beta_kernel`](@ref GBGStreamingStatistics.Kernels.beta_kernel)) is *admitted* too — the uniform degree-0 boundary kernel, no jet, so `degree = 0` only — but
-the Chen kernels are a **density** boundary tool whose asymmetry interacts with the regression design
+these boundary kernels are a **density** tool whose asymmetry interacts with the regression design
 density, so they do **not** generally improve the conditional mean; prefer `degree = 1` for a bounded
 conditioning variable. A bounded *response* is the other case: there the response kernel can be asymmetric —
 see [`conditional_density`](@ref GBGStreamingStatistics.ConditionalDensity.conditional_density).
@@ -299,8 +304,8 @@ see [`conditional_density`](@ref GBGStreamingStatistics.ConditionalDensity.condi
   asymmetric `gamma_kernel` / `beta_kernel` for a bounded/positive conditioning
   variable (`degree = 0` only).
 - `degree` — the local-polynomial order: `0` (Nadaraya–Watson), `1` (local-linear), or `2`
-  (local-quadratic). The default is `1`, or `0` under an asymmetric `kernel`, which has no jet and admits
-  no other order.
+  (local-quadratic). The default is `1`, or `0` under an asymmetric `kernel`, which fits no polynomial (no jet) and admits only
+  `0`.
 - `h` — the smoothing bandwidth (``h > 0``), supplied.
 
 Reference: J. Fan & I. Gijbels (1996), [*Local Polynomial Modelling and Its Applications*](https://doi.org/10.1201/9780203748725),
@@ -367,9 +372,10 @@ smoothing bias of the curved ``\\mathbb{E}[Y^2 \\mid x]`` that the plug-in carri
 squared-residual total is recovered exactly from the stored column sums,
 ``\\sum Y^2 - 2\\hat m \\sum Y + \\hat m^2 N``.
 
-**Estimator** (`method = :plugin`). The simple difference ``\\widehat{\\mathbb{E}}[Y^2 \\mid x] -
-\\hat m_h(x)^2`` (the same local fit applied to the ``Y^2`` response), clamped non-negative — cheaper
-(no first stage), but it carries the curved-``\\mathbb{E}[Y^2 \\mid x]`` smoothing bias.
+**Estimator** (`method = :plugin`). The estimate is the difference ``\\widehat{\\mathbb{E}}[Y^2 \\mid x] -
+\\hat m_h(x)^2`` (the same local fit applied to the ``Y^2`` response), clamped non-negative; cheaper
+(no first stage), it carries the curved-``\\mathbb{E}[Y^2 \\mid x]`` smoothing bias. A vector `x` returns a
+vector, `NaN` where no data is local.
 
 # Arguments
 
@@ -379,7 +385,7 @@ squared-residual total is recovered exactly from the stored column sums,
 - `kernel` — the smoothing kernel ``K`` (any callable with ``\\int K = 1``; default
   [`gaussian_kernel`](@ref GBGStreamingStatistics.Kernels.gaussian_kernel)).
 - `degree` — the local-polynomial order for the underlying fits: `0`, `1`, or `2`. The default is `1`, or
-  `0` under an asymmetric `kernel`, which has no jet and admits no other order.
+  `0` under an asymmetric `kernel`, which fits no polynomial (no jet) and admits only `0`.
 - `h` — the smoothing bandwidth (``h > 0``), supplied.
 - `method` — `:residual` (the default, the bias-reduced Fan & Yao two-stage estimator) or `:plugin`
   (the simple ``\\widehat{\\mathbb{E}}[Y^2 \\mid x] - \\hat m^2`` difference).
@@ -387,7 +393,7 @@ squared-residual total is recovered exactly from the stored column sums,
 # References
 
 - J. Fan & Q. Yao (1998), [*Efficient estimation of conditional variance functions in stochastic regression*](https://doi.org/10.1093/biomet/85.3.645), Biometrika 85(3) (the residual-based estimator).
-- J. Fan & J. Jiang (2000), [*Variable bandwidth and one-step local M-estimator*](https://doi.org/10.1007/BF02903849), Sci. China Ser. A 43 (a robust one-step M-estimator refinement — further reading, not currently offered).
+- J. Fan & J. Jiang (2000), [*Variable bandwidth and one-step local M-estimator*](https://doi.org/10.1007/BF02903849), Sci. China Ser. A 43 (a robust one-step M-estimator refinement, not offered).
 """
 function conditional_variance(summary::Histogram2D, x::Real; kernel = gaussian_kernel,
                               degree::Integer = (kernel isa AsymmetricKernel ? 0 : 1),
@@ -436,7 +442,8 @@ GBGStreamingStatistics.ConditionalExpectations.conditional_expectation_standard_
 ``\\sqrt{\\ell(x) (\\hat\\mu_4(x) - \\hat\\sigma^4(x))}``, with ``\\hat\\mu_4`` the ``y``-quadrature of the
 smooth ``(Y - \\hat m(x))^4`` off the order-2 ``Y``-power-sums — so the ``O(\\Delta_y^2)`` quadrature
 captures the conditional **kurtosis** (a heavy-tailed response widens the band) with no 4th-moment storage.
-It is the leading-order SE, common to the `:residual` and `:plugin` variance methods.
+It is the leading-order SE common to both variance methods. A vector `x` returns a vector, `NaN` where
+no data is local.
 
 Arguments: as for [`conditional_variance`](@ref
 GBGStreamingStatistics.ConditionalExpectations.conditional_variance), without `method` (the leading-order
@@ -469,10 +476,10 @@ end
 The conditional variance
 `conditional_variance` and its
 standard error — the `NamedTuple` ``(\\texttt{value}, \\texttt{standard\\_error})``, with `value` the
-variance (`method` `:residual` default, or `:plugin`) and `standard_error` its
+variance (`method = :residual`, the default, or `:plugin`) and `standard_error` its
 [`conditional_variance_standard_error`](@ref
 GBGStreamingStatistics.ConditionalExpectations.conditional_variance_standard_error) (the leading-order
-residual approximation, common to both methods). For a vector `x`, a `NamedTuple` of vectors.
+residual approximation, common to both methods). For a vector `x` it returns a `NamedTuple` of vectors.
 
 Arguments: as for [`conditional_variance`](@ref GBGStreamingStatistics.ConditionalExpectations.conditional_variance).
 
@@ -506,26 +513,26 @@ end
 pushforward**, change of variables applied to the conditional law,
 ``f_{g(Y)\\mid X}(z \\mid x) = \\sum_{y: g(y)=z} f_{Y\\mid X}(y \\mid x) / |g'(y)|``.
 
-**Estimator.** The conditional kernel density of ``g(Y)``, written as a conditional expectation and
-evaluated by [`conditional_expectation`](@ref
+**Estimator.** The estimate is the conditional kernel density of ``g(Y)``, written as a conditional
+expectation and evaluated by [`conditional_expectation`](@ref
 GBGStreamingStatistics.ConditionalExpectations.conditional_expectation):
 
 ```math
 \\hat f_{g(Y)\\mid X}(z \\mid x) = \\widehat{\\mathbb{E}}\\bigl[  K_{h_z}(g(Y) - z) \\mid x  \\bigr] ,
 ```
 
-i.e. `conditional_expectation(summary, y -> K_hz(g(y) - z), x)`. No inverse ``g^{-1}`` and no explicit
+i.e. `conditional_expectation` of the composed kernel. No inverse ``g^{-1}`` and no explicit
 Jacobian is formed; a **non-monotone** ``g`` contributes from every preimage automatically, ``g'=0`` is an
 integrable caustic, and a symmetric response kernel ``K_z`` (`kernelz`, ``\\int K = 1``) makes
-``\\int \\hat f\\,\\mathrm dz = 1`` exactly. Two smoothing directions: the ``x``-conditioning regression
+``\\int \\hat f\\,\\mathrm dz = 1`` exactly. It smooths in two directions: the ``x``-conditioning regression
 (`hx`, `kernelx`, `degree` — **degree-aware** in ``x``, unlike the degree-0 double-kernel
 [`conditional_density`](@ref GBGStreamingStatistics.ConditionalDensity.conditional_density)) and the ``z``
-smoothing (`hz`, `kernelz`). At ``g = \\mathrm{identity}`` with `degree = 0` it coincides with
-`conditional_density` — which stays
-the specialized native estimator (with the bounded-response asymmetric `kernely` and `normalize`); use it
-directly for the untransformed response. Needs ``g`` smooth on the ``Y``-bin scale and the response
-bandwidth ``h_z \\gtrsim |g'| \\Delta_y``. A vector `z` returns the density curve at the fixed
-conditioning value `x`.
+smoothing (`hz`, `kernelz`). At ``g = \\mathrm{identity}`` with `degree = 0` it agrees with
+`conditional_density` to second order in the response bin width (the within-cell correction) — the
+native estimator for the untransformed response (with the bounded-response asymmetric `kernely` and
+`normalize`). Needs ``g`` smooth on the ``Y``-bin scale and the response
+bandwidth ``h_z \\gtrsim |g'| \\Delta_y``. A vector `z` returns the curve at the fixed conditioning
+value `x`.
 
 # Arguments
 
@@ -533,14 +540,14 @@ conditioning value `x`.
   ``(X, Y)``.
 - `g` — the transform defining ``Z = g(Y)`` (any callable, smooth on the ``Y``-bin scale).
 - `x` — the conditioning value (a scalar).
-- `z` — the transformed-response point(s) at which the density is evaluated (a scalar, or a vector for the
+- `z` — the transformed-response point(s) at which the density is evaluated (scalar, or a vector for the
   curve).
 - `kernelx` — the conditioning (``x``) kernel (any ``\\int K = 1`` callable; default
   [`gaussian_kernel`](@ref GBGStreamingStatistics.Kernels.gaussian_kernel)).
-- `kernelz` — the response-direction (``z``) kernel (default `gaussian_kernel`); a symmetric kernel
-  integrates to 1 exactly.
+- `kernelz` — the response-direction (``z``) kernel (default `gaussian_kernel`; a symmetric one integrates
+  to 1 exactly).
 - `degree` — the local-polynomial order in ``x``: `0`, `1`, or `2`. The default is `1`, or `0` under an
-  asymmetric `kernelx`, which has no jet and admits no other order.
+  asymmetric `kernelx`, which fits no polynomial (no jet) and admits only `0`.
 - `hx`, `hz` — the conditioning (``x``) and transformed-response (``z``) bandwidths (both ``> 0``), supplied.
 
 Reference: B. W. Silverman (1986), [*Density Estimation for Statistics and Data Analysis*](https://doi.org/10.1201/9781315140919), Chapman & Hall.
@@ -584,7 +591,7 @@ end
 # DENSITY of the transformed response, so its two-term variance is ℓ(x)·(R(K_z)f̂/h_z) − f̂²/n: the leading
 # double-kernel term (the local-fit leverage ℓ(x) times the leading kernel variance R(K_z)f̂/h_z, with the
 # analytic R(K_z) since the order-2 Y-quadrature cannot resolve K_hz²) minus the finite-sample f̂²/n. At
-# degree 0 this is exactly the `conditional_density` standard error. Both NaN where the fit is degenerate.
+# degree 0 this reduces asymptotically to the `conditional_density` standard error. Both NaN where the fit is degenerate.
 function _cpf_value_and_se(summary::Histogram2D, g, x::Real, z::Real, kernelx, kernelz, degree, hx, hz, lev)
   f = conditional_pushforward_density(summary, g, x, z; hx = hx, hz = hz, kernelx = kernelx,
                                       kernelz = kernelz, degree = degree)
@@ -599,17 +606,16 @@ end
         kernelx = gaussian_kernel, kernelz = gaussian_kernel,
         degree = kernelx isa AsymmetricKernel ? 0 : 1, hx, hz)
 
-**Estimand.** The pointwise standard error of the conditional pushforward density
-`conditional_pushforward_density` ``\\equiv f_{g(Y)\\mid X}``
-— the sampling error of the density of the transformed response ``g(Y)`` at ``z`` given ``x``.
+**Estimand.** The estimand is the pointwise standard error of the conditional pushforward density
+`conditional_pushforward_density` ``\\equiv f_{g(Y)\\mid X}``, the sampling error of the density of the transformed response ``g(Y)`` at ``z`` given ``x``.
 
-**Estimator.** The two-term ``\\sqrt{\\ell(x) R(K_z)\\hat f/h_z - \\hat f^2/n}``: the local-regression
+**Estimator.** The band is the two-term ``\\sqrt{\\ell(x) R(K_z)\\hat f/h_z - \\hat f^2/n}``: the local-regression
 **leverage** ``\\ell(x)`` of the fit in ``x`` (correct at any `degree`) times the leading kernel variance
 ``R(K_z)\\hat f/h_z`` — ``R(K_z) = \\int K_z^2`` by quadrature, the analytic form since the order-2
 ``Y``-quadrature cannot resolve the squared narrow kernel ``K_{h_z}^2`` — minus the finite-sample
-``\\hat f^2/n``. At `degree` 0 it coincides with the
+``\\hat f^2/n``. At `degree` 0 it reduces asymptotically to the
 [`conditional_density_standard_error`](@ref GBGStreamingStatistics.ConditionalDensity.conditional_density_standard_error)
-of the transformed response. Symmetric `kernelz` only.
+of the transformed response. Only a symmetric `kernelz` is supported.
 
 Arguments: as for [`conditional_pushforward_density`](@ref
 GBGStreamingStatistics.ConditionalExpectations.conditional_pushforward_density).
@@ -646,7 +652,7 @@ The conditional pushforward density `conditional_pushforward_density` and its st
 one fit — the `NamedTuple` ``(\\texttt{value}, \\texttt{standard\\_error})``, sharing the fit's leverage with
 [`conditional_pushforward_density_standard_error`](@ref
 GBGStreamingStatistics.ConditionalExpectations.conditional_pushforward_density_standard_error). For a vector
-`z`, a `NamedTuple` of vectors.
+`z` it returns a `NamedTuple` of vectors.
 
 Arguments: as for [`conditional_pushforward_density`](@ref
 GBGStreamingStatistics.ConditionalExpectations.conditional_pushforward_density).

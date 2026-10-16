@@ -365,7 +365,7 @@ published or a direct composition, that the package has not implemented; every r
 
 **Estimand.** ``m(x) = \mathbb{E}[Y\mid X=x]`` (the ``L^2(\sigma(X))`` projection; §2) and
 ``\sigma^2(x) = \mathrm{Var}(Y\mid X=x) = \mathbb{E}[Y^2\mid X=x] - m(x)^2``.
-**Estimator** (local-linear; Fan & Gijbels): from the joint `Histogram2D`'s kernel-weighted power-sums
+**Estimator** (local-linear; Fan & Gijbels 1996): from the joint `Histogram2D`'s kernel-weighted power-sums
 ``T_\ell = \sum_i K_h(X_i-x)(X_i-x)^\ell`` and ``P_\ell = \sum_i K_h(X_i-x)(X_i-x)^\ell Y_i``,
 ```math
 \hat m_h(x) = \frac{T_2 P_0 - T_1 P_1}{T_0 T_2 - T_1^{2}}

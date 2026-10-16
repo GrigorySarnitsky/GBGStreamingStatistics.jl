@@ -93,10 +93,10 @@ _sample_std(h::Histogram1D) = sqrt(_sample_variance(h))
 """
     mean(summary::Histogram1D)
 
-**Estimand.** The population mean ``\\mathbb{E}[X]``.
+**Estimand.** The estimand is the population mean ``\\mathbb{E}[X]``.
 
-**Estimator.** The sample mean ``\\bar X = \\frac{1}{n} \\sum_i X_i`` — recovered **exactly** (not a smoothed
-estimate) host-side from the per-bin counts and first power-sums by the shift formula (the power-sums use
+**Estimator.** The estimator is the sample mean ``\\bar X = \\frac{1}{n} \\sum_i X_i``, recovered **exactly**
+(not a smoothed estimate) from the per-bin counts and first power-sums by the shift formula (the power-sums use
 the actual ``X_i``, not the bin center; the ``g = x`` case of [`expectation`](@ref
 GBGStreamingStatistics.Expectations.expectation)). Extends `Statistics.mean`; an empty summary gives `NaN`.
 """
@@ -108,7 +108,7 @@ mean(summary::Histogram1D) = _sample_mean(summary)
 
 **Estimand.** The population variance ``\\operatorname{Var}(X) = \\mathbb{E}\\bigl[(X - \\mathbb{E}[X])^2\\bigr]``.
 
-**Estimator.** The recovered sample variance (``\\bar X`` the recovered mean). With `corrected = true`
+**Estimator.** The estimator is the recovered sample variance (``\\bar X`` the recovered mean). With `corrected = true`
 (the default, matching `Statistics.var`) the **unbiased** ``\\frac{1}{n-1} \\sum_i (X_i - \\bar X)^2``
 (Bessel's correction; `NaN` for ``n \\le 1``); `corrected = false` the ``\\frac{1}{n} \\sum_i (X_i - \\bar X)^2``
 order-2 central moment (`central_moment` at ``p = 2``). Exact via the shift formula. Extends
@@ -132,7 +132,7 @@ end
 
 **Estimand.** The population standard deviation ``\\sigma = \\sqrt{\\operatorname{Var}(X)}``.
 
-**Estimator.** The recovered sample standard deviation ``\\sqrt{s^2}``, where ``s^2`` is the recovered
+**Estimator.** The estimator is the recovered sample standard deviation ``\\sqrt{s^2}``, where ``s^2`` is the recovered
 variance (`var`). Exact via the shift formula. Extends `Statistics.std`.
 
 # Arguments
@@ -148,12 +148,13 @@ std(summary::Histogram1D; corrected::Bool = true) = sqrt(var(summary; corrected 
 
 **Estimand.** The population ``p``-th central moment ``\\mu_p = \\mathbb{E}\\bigl[(X - \\mathbb{E}[X])^p\\bigr]``.
 
-**Estimator.** The sample central moment ``\\frac{1}{n} \\sum_i (X_i - \\bar X)^p`` (``\\bar X`` the recovered
-mean), recovered **exactly** from the power-sums by the shift formula — not a smoothed estimate — for
+**Estimator.** The estimator is the sample central moment ``\\frac{1}{n} \\sum_i (X_i - \\bar X)^p`` (``\\bar X``
+the recovered mean), recovered **exactly** from the power-sums by the shift formula — not a smoothed estimate — for
 ``2 \\le p \\le \\texttt{order}``. The order ``p = 2`` is the uncorrected variance (`var` with `corrected = false`);
 even orders recover stably, odd orders (``\\approx 0``) to weaker relative precision. This is the
 ``g = (x - \\bar X)^p`` case of the power-sum quadrature [`expectation`](@ref
-GBGStreamingStatistics.Expectations.expectation), with which it shares the contraction atom.
+GBGStreamingStatistics.Expectations.expectation), with which it shares the weighted sum over the
+power-sums.
 """
 central_moment(summary::Histogram1D, p::Integer) = _sample_central_moment(summary, p)
 
@@ -177,7 +178,8 @@ end
 
 **Estimator** (power-sum quadrature). From the [`Histogram1D`](@ref
 GBGStreamingStatistics.Histograms.Histogram1D) `summary`, whose bin ``j`` (center ``c_j``) carries the
-count ``n_j`` and its per-bin power-sums ``S_p^{(j)}`` about the center (with ``S_0^{(j)} = n_j``),
+count ``n_j`` and its per-bin power-sums ``S_p^{(j)}`` about the center — the summed powers of its
+samples' offsets (with ``S_0^{(j)} = n_j``) —
 Taylor-expanding ``g`` about each center gives
 
 ```math
@@ -186,16 +188,17 @@ Taylor-expanding ``g`` about each center gives
 ```
 
 which is **exact** for a polynomial ``g`` of degree ``\\le \\texttt{order}`` (the remainder terminates —
-this is the shift formula behind `mean` / `var` / `central_moment`, the ``g = x^p`` case) and
+this is the shift formula behind `mean` / `var` / `central_moment` — the binomial re-expansion from the
+bin center to the sample mean — the ``g = x^p`` case) and
 ``O(\\Delta^{ \\texttt{order}+1})`` in the bin width ``\\Delta`` for a general smooth ``g``. The local
 coefficients ``g^{(p)}(c_j)/p!`` are read off a degree-``\\texttt{order}`` polynomial interpolant of ``g``
-on each bin (no automatic differentiation), so any callable `g` works; `g` is probed only on non-empty
+on each bin, so any callable `g` works; `g` is probed only on non-empty
 bins, hence only within the data range. The estimand needs ``g`` smooth on the bin scale and the mass
 inside the summary's range. An empty summary gives `NaN`.
 
 The arguments are `summary`, the `Histogram1D` of ``X``, and `g`, the functional to average: any callable
 ``x \\mapsto g(x)`` (smooth on the bin scale) — the moments are the ``g = x^p`` case (`mean` is
-`g = identity`); `g = sin`, `g = exp`, etc. are the general case.
+`g = identity`).
 
 ```jldoctest
 julia> h = Histogram1D(-4.0, 4.0, 800);
@@ -234,9 +237,9 @@ end
 ``\\mathrm{SE}\\bigl(\\widehat{\\mathbb{E}}[g(X)]\\bigr) = \\sqrt{\\operatorname{Var}(g(X))/n}`` with
 ``\\operatorname{Var}(g(X)) = \\mathbb{E}[g(X)^2] - \\mathbb{E}[g(X)]^2``.
 
-**Estimator.** ``\\sqrt{(\\widehat{\\mathbb{E}}[g^2] - \\widehat{\\mathbb{E}}[g]^2)/n}`` — both moments the same
-power-sum quadrature (``\\mathbb{E}[g^2]`` is `expectation` with the smooth integrand ``g^2``), ``n`` the
-sample count. This is the plug-in sampling error of the empirical mean of ``g(X)``; it does not include the
+**Estimator.** The estimator is ``\\sqrt{(\\widehat{\\mathbb{E}}[g^2] - \\widehat{\\mathbb{E}}[g]^2)/n}``, both
+moments by the same power-sum quadrature (``\\mathbb{E}[g^2]`` is `expectation` with the smooth integrand
+``g^2``), with ``n`` the sample count. This is the plug-in sampling error of the empirical mean of ``g(X)``; it does not include the
 ``O(\\Delta^{ \\texttt{order}+1})`` quadrature bias, which is separate. `NaN` for an empty summary.
 
 Arguments: as for [`expectation`](@ref GBGStreamingStatistics.Expectations.expectation).
@@ -255,7 +258,8 @@ end
 """
     expectation_with_standard_error(summary::Histogram1D, g)
 
-The estimate and its standard error from one power-sum quadrature pass — the `NamedTuple`
+Returns the estimate and its standard error from two power-sum quadrature passes (the functional, then
+its square) — the `NamedTuple`
 ``(\\texttt{value}, \\texttt{standard\\_error})``, with `value` the `expectation` ``\\widehat{\\mathbb{E}}[g(X)]`` and `standard_error` its
 [`expectation_standard_error`](@ref GBGStreamingStatistics.Expectations.expectation_standard_error). They
 describe the same estimator by construction, and ``\\widehat{\\mathbb{E}}[g]`` is computed once and shared.
@@ -342,7 +346,7 @@ end
 composed kernel, its standard error is exactly the
 [`expectation_standard_error`](@ref GBGStreamingStatistics.Expectations.expectation_standard_error) of that
 integrand — ``\\sqrt{(\\widehat{\\mathbb{E}}[K_h(g(X)-y)^2] - \\hat f_{g(X)}(y)^2)/n}``, which reduces to the
-two-term form above.
+two-term form above. A vector `y` returns a vector of standard errors.
 
 Arguments: as for [`pushforward_density`](@ref GBGStreamingStatistics.Expectations.pushforward_density).
 
@@ -364,9 +368,8 @@ end
     pushforward_density_with_standard_error(summary::Histogram1D, g, y;
                                             kernel = gaussian_kernel, h)
 
-The pushforward density
-`pushforward_density` and its standard
-error from one quadrature pass — the `NamedTuple` ``(\\texttt{value}, \\texttt{standard\\_error})``, sharing
+Returns the pushforward density `pushforward_density` and its standard error from two quadrature passes
+(the composed kernel, then its square) — the `NamedTuple` ``(\\texttt{value}, \\texttt{standard\\_error})``, sharing
 the composed-kernel integrand with [`pushforward_density_standard_error`](@ref
 GBGStreamingStatistics.Expectations.pushforward_density_standard_error). For a vector `y`, a `NamedTuple` of
 vectors.
