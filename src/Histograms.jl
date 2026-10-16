@@ -51,16 +51,6 @@ Samples outside ``[\\texttt{lower}, \\texttt{upper})`` are **skipped** (not coun
 - `count_type` — the element type of the counts: `UInt64` (the default) or `Float64` for the Float-count
   variant.
 
-# Fields
-
-The fields hold the summary's whole **internal state**, distinct from the constructor arguments (`scale`
-is derived, `counts` and `powersums` allocated); each is reachable by dot (`summary.lower`,
-`summary.scale`, `summary.counts`, …), for serialization, inspection, or building one by hand:
-- `lower`, `upper` — the range edges (`upper > lower`).
-- `scale` — the precomputed binning factor `nbins / (upper - lower)`, stored (not recomputed) so that
-  the binning map is a single multiply.
-- `counts` — per-bin counts, length `nbins` (`UInt64`, or `count_type`; `nbins == length(counts)`).
-- `powersums` — per-bin power-sums, ``\\texttt{order} \\times \\texttt{nbins}`` (row ``p`` is ``S_p``; `order == size(powersums, 1)`).
 
 A freshly constructed summary is **empty**: `counts` and `powersums` are all zeros (the `merge!`
 identity), and you `observe!` data into it; `merge!` adds `counts` and `powersums` elementwise, so
@@ -76,6 +66,17 @@ julia> observe!(summary, [0.3, -1.2, 0.3, 2.1]);     # fold in a stream, never s
 julia> Int(sum(summary.counts))                      # the four in-range samples counted
 4
 ```
+
+# Fields
+
+The fields hold the summary's whole **internal state**, distinct from the constructor arguments (`scale`
+is derived, `counts` and `powersums` allocated); each is reachable by dot (`summary.lower`,
+`summary.scale`, `summary.counts`, …), for serialization, inspection, or building one by hand:
+- `lower`, `upper` — the range edges (`upper > lower`).
+- `scale` — the precomputed binning factor `nbins / (upper - lower)`, stored (not recomputed) so that
+  the binning map is a single multiply.
+- `counts` — per-bin counts, length `nbins` (`UInt64`, or `count_type`; `nbins == length(counts)`).
+- `powersums` — per-bin power-sums, ``\\texttt{order} \\times \\texttt{nbins}`` (row ``p`` is ``S_p``; `order == size(powersums, 1)`).
 """
 struct Histogram1D{T<:AbstractFloat,C<:AbstractVector,M<:AbstractMatrix} <: AbstractAccumulator
   lower::T          # lower edge of the binned range
@@ -228,16 +229,6 @@ are as for [`Histogram1D`](@ref GBGStreamingStatistics.Histograms.Histogram1D).
 - `count_type` — the element type of the counts: `UInt64` (the default) or `Float64` for the Float-count
   variant.
 
-# Fields
-
-The fields hold the summary's whole **internal state**, distinct from the constructor arguments
-(`xscale`/`yscale` derived, `counts` and `powersums` allocated); each is reachable by dot
-(`summary.xlower`, `summary.xscale`, `summary.lag`, …):
-- `xlower`, `xupper`, `ylower`, `yupper`, `nx`, `ny` — the box and cell counts.
-- `xscale`, `yscale` — the precomputed binning factors `nx/(xupper-xlower)`, `ny/(yupper-ylower)`, stored.
-- `lag` — the lag ``\\tau`` this joint summary is accumulated at (`0` for the static joint).
-- `counts` — per-cell counts, length `nx*ny` (cell `(ix, iy)` at `ix + (iy-1)*nx`; `UInt64`, or `count_type`).
-- `powersums` — ``5 \\times (\\texttt{nx} \\cdot \\texttt{ny})``: rows ``S_{10}, S_{01}, S_{20}, S_{11}, S_{02}`` about the cell center.
 
 A freshly constructed summary is **empty** (`counts`, `powersums` all zeros), and `merge!` adds `counts`
 and `powersums` (requires matching box, cell counts, and `lag`).
@@ -250,6 +241,17 @@ julia> observe_pairs!(joint, [0.3, -1.2], [0.5, 0.4]);        # (X, Y) pairs, pa
 julia> Int(sum(joint.counts))                                 # the two in-box pairs counted
 2
 ```
+
+# Fields
+
+The fields hold the summary's whole **internal state**, distinct from the constructor arguments
+(`xscale`/`yscale` derived, `counts` and `powersums` allocated); each is reachable by dot
+(`summary.xlower`, `summary.xscale`, `summary.lag`, …):
+- `xlower`, `xupper`, `ylower`, `yupper`, `nx`, `ny` — the box and cell counts.
+- `xscale`, `yscale` — the precomputed binning factors `nx/(xupper-xlower)`, `ny/(yupper-ylower)`, stored.
+- `lag` — the lag ``\\tau`` this joint summary is accumulated at (`0` for the static joint).
+- `counts` — per-cell counts, length `nx*ny` (cell `(ix, iy)` at `ix + (iy-1)*nx`; `UInt64`, or `count_type`).
+- `powersums` — ``5 \\times (\\texttt{nx} \\cdot \\texttt{ny})``: rows ``S_{10}, S_{01}, S_{20}, S_{11}, S_{02}`` about the cell center.
 """
 struct Histogram2D{T<:AbstractFloat,C<:AbstractVector,M<:AbstractMatrix} <: AbstractAccumulator
   xlower::T; xupper::T; xscale::T     # X range and nx/(xupper−xlower)

@@ -45,11 +45,6 @@ kernel-of-the-ratio bias where it does not. The built-ins are
 [`inverse_gaussian_start`](@ref GBGStreamingStatistics.MarginalDensity.inverse_gaussian_start);
 construct one directly to plug in a custom parametric model.
 
-# Fields
-
-- `fit` — the moment fit, a callable `(mean, variance)` returning the parameter tuple.
-- `logpdf` — the model log-density, a callable `(x, params)`.
-- `support` — the domain the model is positive on, a `(lower, upper)` tuple.
 
 # Arguments
 
@@ -75,6 +70,12 @@ true
 
 Reference: N. L. Hjort & I. K. Glad (1995), [*Nonparametric density estimation with a parametric
 start*](https://doi.org/10.1214/aos/1176324627), Ann. Statist. 23(3).
+
+# Fields
+
+- `fit` — the moment fit, a callable `(mean, variance)` returning the parameter tuple.
+- `logpdf` — the model log-density, a callable `(x, params)`.
+- `support` — the domain the model is positive on, a `(lower, upper)` tuple.
 """
 struct ParametricStart{F,G}
   fit::F                            # (mean, variance) → params (a tuple), by method of moments
