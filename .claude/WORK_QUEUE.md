@@ -50,7 +50,3 @@
 - [ ] 2026-10-15-documentation-review-01-090 Symbols appear unbound: the lag $\tau$ in $p_\tau(y\mid x)$, the response $Y$ and conditioning value $x$ in $\mathbb{E}[g(Y)\mid x]$ (and the pair $(X, Y)$ generally), and the kernel $K$ in $\int K = 1$. — `docs/src/index.md` (GBGStreamingStatistics.jl / Main components) "two-time transition density `transition_density` ($p_\tau(y\mid x)$; double-kernel)" — waits on the owner's answer: `gbg answer 2026-10-15-documentation-review-01-090-code "<option>"`
 - [ ] 2026-10-15-documentation-review-01-092 The letter \ell is bound to two different things inside one display: the bin location \ell_j and the moment order (the subscript of T_\ell, P_\ell and the exponent), so the formula reads as if the exponent were a location. — `src/LocalPolynomial.jl` (local_fit) "T_\ell &= \sum_j K_h(\ell_j - x)" — waits on the owner's answer: `gbg answer 2026-10-15-documentation-review-01-092-code "<option>"`
 - [ ] 2026-10-15-documentation-review-01-097 Step 1 calls the variate of a one-dimensional marginal summary a 'conditioning variable', a role the page only introduces in step 4. — `docs/src/tutorial.md` (Getting started / The workflow) "a finely binned empirical measure of a conditioning variable $X$ — the canonical summary."
-
-## Code the owner asked for
-
-- [x] 2026-10-15-documentation-review-01-008 The internal kernel-moment quadrature `_quad` takes two defaulted arguments (`L`, `npts`) positionally, though neither's type selects a method. — done in 07bb9e4
