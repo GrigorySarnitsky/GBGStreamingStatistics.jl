@@ -10,7 +10,7 @@ AbstractAccumulator
 
 ## Operations
 
-The additive monoid (`observe!`, `merge!`) and its conic extension (`scale!` and weighted `merge!`) — the algebra behind hyperstatistics and exponential forgetting.
+They form the additive monoid (`observe!`, `merge!`) and its conic extension (`scale!`, weighted `merge!`) — the algebra of hyperstatistics (mixing parameter-indexed summaries post hoc) and exponential forgetting (down-weighting the past).
 
 ```@docs
 observe!
