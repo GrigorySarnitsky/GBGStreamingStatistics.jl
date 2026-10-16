@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # STOP HOOK — refuses to let the session end while committed work is open.
-# Written by GBGCodingTools v2.0.0-rc.73; do not edit.
+# Written by GBGCodingTools v2.0.0-rc.76; do not edit.
 #
 # CONTRACT. `.claude/WORK_QUEUE.md` lists only what is still to do, one line per item, `- [ ]`. A
 # finished item is DELETED, in the commit that finishes it: the deletion shows in the diff as plainly

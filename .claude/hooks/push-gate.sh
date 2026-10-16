@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # PUSH HOOK — the docs build runs before every push of this package, and a build that fails stops it.
-# Written by GBGCodingTools v2.0.0-rc.73; do not edit.
+# Written by GBGCodingTools v2.0.0-rc.76; do not edit.
 #
 # CONTRACT. Claude Code runs this before every shell command (PreToolUse), with the call as JSON on
 # standard input. A command that pushes this package — `git push` in any spelling, or `gbg release`,

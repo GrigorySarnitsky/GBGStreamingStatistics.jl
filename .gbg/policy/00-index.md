@@ -1,4 +1,4 @@
-<!-- gbg:managed begin v2.0.0-rc.73 — rewritten by `gbg sync`; do not edit -->
+<!-- gbg:managed begin v2.0.0-rc.76 — rewritten by `gbg sync`; do not edit -->
 # The rulebook
 
 One text for every package that pins GBGCodingTools, at the version this package pins. Every rule has

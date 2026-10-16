@@ -1,4 +1,4 @@
-<!-- gbg:managed begin v2.0.0-rc.73 — rewritten by `gbg sync`; do not edit -->
+<!-- gbg:managed begin v2.0.0-rc.76 — rewritten by `gbg sync`; do not edit -->
 # /documentation-review
 
 Documentation is true to the code, correct, consistent and self-contained; the change guard, the checks and a verifier agent check each fix.
@@ -31,17 +31,27 @@ that stopped in the middle has spent its agents for nothing.
    `gbg run next`, which moves to the next stage and says what it wants. Repeat 2 to 4 until it says
    the run is ready to close.
 5. At a FIX stage it writes the open findings instead of launching agents. Fix each in the
-   documentation and commit it with `gbg docfix commit --message "…" --finding <id>`, which asks the
+   documentation and commit it with `gbg docfix commit --message "…" --finding <id>` — a change that
+   fixes several findings names them all, `--finding <id>,<id>` — which asks the
    change guard first and refuses a change that breaks a rule the run opened clean on; it also names
    every cross-reference it cannot resolve, as a warning. Never edit code or the config here, and
    never change a formula — what the page renders as mathematics;
    turning a code span into a math span with the same text, or back, is the one respelling allowed.
    A finding whose fix needs any of those is PARKED for the owner with
    `gbg run park <id> --why "<what it would change>"`: a question about it stands, and no pass works
-   on it until he answers. `gbg run next` then builds the site, and a red build names the pass's
-   commits that touched the files it complains about: fix those with further docfix commits. One
-   verifier per place then judges the pass's fixes with the diff; a pass that committed nothing
-   closes the run instead.
+   on it until he answers; park also a finding you believe is no defect, and say why, since his
+   answers include "not a defect". A finding a fix already committed turned out to fix too is
+   recorded with `gbg run covered <id> --by <the finding that commit names>`; one fixed by a commit
+   made with git alone, outside `gbg docfix commit`, with `gbg run covered <id> --by-commit <sha>`,
+   which has the guard read that commit first and refuses it on any code. EVERY finding of the
+   pass is committed, covered or parked before `gbg run next`, which refuses otherwise and names
+   those left — a run has one fix pass, so a finding left untouched is never worked on. One the
+   owner answered "fix it on my ruling" and you could not fix goes on, named, to be judged. `gbg run next` then builds the site, and a red build
+   names the pass's commits that touched the files it complains about: fix those with further
+   docfix commits. One verifier per place then judges the pass's fixes with the diff; a pass that
+   committed nothing closes the run instead. A verify stage none of whose verifiers has written —
+   launched by mistake, or reached before this refusal existed — goes back to its fix stage with
+   `gbg run back`.
 6. `gbg run close` — writes the record and the report, and puts what is still open on the owner's
    work queue. COMMIT `.gbg/runs/<id>/` yourself, and `.gbg/questions.json` if it changed:
    `gbg docfix commit` leaves both out on purpose, and nothing else commits them. A fix may grow a unit of prose by a small allowance — ten words, or five
