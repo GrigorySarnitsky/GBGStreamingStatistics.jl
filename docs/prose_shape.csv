@@ -150,8 +150,8 @@ unit,words,longest_paragraph,admonitions
 "internals.md § Internals",103,71,1
 "internals.md § The local-polynomial jet — `LocalPolynomial.local_fit`",44,44,0
 "notation.md § Estimands",88,88,0
-"notation.md § Kernels",74,74,0
 "notation.md § Notation",27,27,0
+"notation.md § Smoothing kernels",74,74,0
 "notation.md § The local fit",67,67,0
 "notation.md § The samples",70,70,0
 "notation.md § The summary",118,118,0

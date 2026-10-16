@@ -25,7 +25,7 @@ docstring that uses a symbol differently is the one that changes.
 | ``\tilde c_j`` | the location of bin ``j``'s mass: ``c_j``, or the centroid ``c_j + S_1^{(j)}/n_j`` |
 | ``r_j`` | the response total of bin ``j`` in the local fit |
 
-## Kernels
+## Smoothing kernels
 
 | Symbol | Meaning |
 |:--|:--|
