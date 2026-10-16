@@ -53,4 +53,4 @@
 
 ## Code the owner asked for
 
-- [ ] 2026-10-15-documentation-review-01-008 The internal kernel-moment quadrature `_quad` takes two defaulted arguments (`L`, `npts`) positionally, though neither's type selects a method.
+- [x] 2026-10-15-documentation-review-01-008 The internal kernel-moment quadrature `_quad` takes two defaulted arguments (`L`, `npts`) positionally, though neither's type selects a method. — done in 07bb9e4
