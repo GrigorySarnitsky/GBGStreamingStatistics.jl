@@ -18,7 +18,8 @@
         "2026-10-15-documentation-review-01-011",
         "2026-10-15-documentation-review-01-032",
         "2026-10-15-documentation-review-01-009",
-        "2026-10-15-documentation-review-01-010"
+        "2026-10-15-documentation-review-01-010",
+        "2026-10-15-documentation-review-01-004"
     ],
     "covered": [
         "2026-10-15-documentation-review-01-045\t2026-10-15-documentation-review-01-014",
@@ -331,9 +332,9 @@
             ],
             "id": "2026-10-15-documentation-review-01-004-code",
             "decision": "This finding needs a change only you may make. Will you make it?",
-            "direction": "",
+            "direction": "Move the Fields section of the AsymmetricKernel docstring to the end, after the References section, as in the other three struct docstrings; its text is unchanged.",
             "context": "Three of the four Fields sections now close their docstrings (Histogram1D, Histogram2D, ParametricStart, committed). AsymmetricKernel's Fields section holds a formula that would move past the Arguments section's formulas, which the change guard refuses as reordered mathematics (clause 6); the owner moves that one or rules it stays.",
-            "answer": null
+            "answer": "fix it on my ruling"
         },
         {
             "options": [
