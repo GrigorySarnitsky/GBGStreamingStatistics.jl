@@ -3,6 +3,15 @@
     ],
     "model": "session",
     "ruled": [
+        "2026-10-15-documentation-review-01-017",
+        "2026-10-15-documentation-review-01-037",
+        "2026-10-15-documentation-review-01-038",
+        "2026-10-15-documentation-review-01-050",
+        "2026-10-15-documentation-review-01-055",
+        "2026-10-15-documentation-review-01-062",
+        "2026-10-15-documentation-review-01-070",
+        "2026-10-15-documentation-review-01-078",
+        "2026-10-15-documentation-review-01-090"
     ],
     "covered": [
         "2026-10-15-documentation-review-01-045\t2026-10-15-documentation-review-01-014",
@@ -45,9 +54,9 @@
             ],
             "id": "2026-10-15-documentation-review-01-090-code",
             "decision": "This finding needs a change only you may make. Will you make it?",
-            "direction": "",
+            "direction": "Bind each unbound symbol in apposition at its first use in each docstring or page, as a short gloss (e.g. \"``\\Delta_y`` the response bin width\"); add glosses only, and change, move or remove no existing formula.",
             "context": "Binding the lag, the response, the conditioning value and the kernel symbol on the home page adds inline math spans (the lag symbol, the response symbol, the kernel symbol), which the change guard refuses as a mathematics change (clause 6); the owner decides whether these bindings are added.",
-            "answer": null
+            "answer": "fix it on my ruling"
         },
         {
             "options": [
@@ -99,9 +108,9 @@
             ],
             "id": "2026-10-15-documentation-review-01-017-code",
             "decision": "This finding needs a change only you may make. Will you make it?",
-            "direction": "",
+            "direction": "Bind each unbound symbol in apposition at its first use in each docstring or page, as a short gloss (e.g. \"``\\Delta_y`` the response bin width\"); add glosses only, and change, move or remove no existing formula.",
             "context": "Binding the empirical measure, the per-bin power-sum with its defining sum, and the mixture density's parameter spacing inside the accumulation docstrings adds inline math spans, which the change guard refuses as a mathematics change (clause 6); the owner decides whether these bindings are added.",
-            "answer": null
+            "answer": "fix it on my ruling"
         },
         {
             "options": [
@@ -153,9 +162,9 @@
             ],
             "id": "2026-10-15-documentation-review-01-037-code",
             "decision": "This finding needs a change only you may make. Will you make it?",
-            "direction": "",
+            "direction": "Bind each unbound symbol in apposition at its first use in each docstring or page, as a short gloss (e.g. \"``\\Delta_y`` the response bin width\"); add glosses only, and change, move or remove no existing formula.",
             "context": "Binding the response bin width in the three conditional docstrings adds an inline math span, which the change guard refuses as a mathematics change (clause 6); the owner decides whether the binding is added.",
-            "answer": null
+            "answer": "fix it on my ruling"
         },
         {
             "options": [
@@ -180,9 +189,9 @@
             ],
             "id": "2026-10-15-documentation-review-01-038-code",
             "decision": "This finding needs a change only you may make. Will you make it?",
-            "direction": "",
+            "direction": "Bind each unbound symbol in apposition at its first use in each docstring or page, as a short gloss (e.g. \"``\\Delta_y`` the response bin width\"); add glosses only, and change, move or remove no existing formula.",
             "context": "Binding the scaled kernel, the sample count, the marginal density, the kernel moments and the column count in conditional_mean and conditional_variance adds inline math spans, which the change guard refuses as a mathematics change (clause 6); the owner decides whether these bindings are added.",
-            "answer": null
+            "answer": "fix it on my ruling"
         },
         {
             "options": [
@@ -207,9 +216,9 @@
             ],
             "id": "2026-10-15-documentation-review-01-050-code",
             "decision": "This finding needs a change only you may make. Will you make it?",
-            "direction": "",
+            "direction": "Bind each unbound symbol in apposition at its first use in each docstring or page, as a short gloss (e.g. \"``\\Delta_y`` the response bin width\"); add glosses only, and change, move or remove no existing formula.",
             "context": "Binding the summary order, the sample count and the scaled kernel in expectation and pushforward_density adds inline math spans, which the change guard refuses as a mathematics change (clause 6); the owner decides whether these bindings are added.",
-            "answer": null
+            "answer": "fix it on my ruling"
         },
         {
             "options": [
@@ -234,9 +243,9 @@
             ],
             "id": "2026-10-15-documentation-review-01-055-code",
             "decision": "This finding needs a change only you may make. Will you make it?",
-            "direction": "",
+            "direction": "Bind each unbound symbol in apposition at its first use in each docstring or page, as a short gloss (e.g. \"``\\Delta_y`` the response bin width\"); add glosses only, and change, move or remove no existing formula.",
             "context": "Binding the summary map, the empirical measure and the central moments of order 4 and 6 in the Histogram1D docstring adds inline math spans, which the change guard refuses as a mathematics change (clause 6); the owner decides whether these bindings are added or the identity sentence drops the map.",
-            "answer": null
+            "answer": "fix it on my ruling"
         },
         {
             "options": [
@@ -261,9 +270,9 @@
             ],
             "id": "2026-10-15-documentation-review-01-062-code",
             "decision": "This finding needs a change only you may make. Will you make it?",
-            "direction": "",
+            "direction": "Bind each unbound symbol in apposition at its first use in each docstring or page, as a short gloss (e.g. \"``\\Delta_y`` the response bin width\"); add glosses only, and change, move or remove no existing formula.",
             "context": "Binding the bandwidth, the sample size, the bin counts and centers, the sample standard deviation and the symmetric bandwidth in the kernel docstrings adds inline math spans, which the change guard refuses as a mathematics change (clause 6); the owner decides whether these bindings are added.",
-            "answer": null
+            "answer": "fix it on my ruling"
         },
         {
             "options": [
@@ -450,9 +459,9 @@
             ],
             "id": "2026-10-15-documentation-review-01-078-code",
             "decision": "This finding needs a change only you may make. Will you make it?",
-            "direction": "",
+            "direction": "Bind each unbound symbol in apposition at its first use in each docstring or page, as a short gloss (e.g. \"``\\Delta_y`` the response bin width\"); add glosses only, and change, move or remove no existing formula.",
             "context": "Binding the stored power-sums, the leverage, the canonical kernel factor, the fit intercept, the lag and grid counts and the Kramers–Moyal coefficients at their first use on the Architecture page adds inline math spans, which the change guard refuses as a mathematics change (clause 6); the owner decides whether these bindings are added.",
-            "answer": null
+            "answer": "fix it on my ruling"
         },
         {
             "options": [
@@ -477,9 +486,9 @@
             ],
             "id": "2026-10-15-documentation-review-01-070-code",
             "decision": "This finding needs a change only you may make. Will you make it?",
-            "direction": "",
+            "direction": "Bind each unbound symbol in apposition at its first use in each docstring or page, as a short gloss (e.g. \"``\\Delta_y`` the response bin width\"); add glosses only, and change, move or remove no existing formula.",
             "context": "Binding the per-bin bandwidth, the sample count, the fitted intercept, the support limits and the scaled kernel in density's formulas adds inline math spans or rewrites the displayed formulas, which the change guard refuses as a mathematics change (clause 6); the log-normal start's parameters are already named in prose (committed). The owner decides whether these bindings are added.",
-            "answer": null
+            "answer": "fix it on my ruling"
         },
         {
             "options": [
@@ -5534,6 +5543,7 @@
     ],
     "fixes": [
         {
+            "quote": "",
             "blind": "FIXED",
             "finding": "2026-10-15-documentation-review-01-001",
             "with_diff": null,
@@ -5544,6 +5554,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "FIXED",
             "finding": "2026-10-15-documentation-review-01-002",
             "with_diff": null,
@@ -5554,6 +5565,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "FIXED",
             "finding": "2026-10-15-documentation-review-01-005",
             "with_diff": null,
@@ -5564,6 +5576,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "FIXED",
             "finding": "2026-10-15-documentation-review-01-006",
             "with_diff": null,
@@ -5574,6 +5587,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "FIXED",
             "finding": "2026-10-15-documentation-review-01-007",
             "with_diff": null,
@@ -5584,6 +5598,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "FIXED",
             "finding": "2026-10-15-documentation-review-01-012",
             "with_diff": null,
@@ -5594,6 +5609,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "FIXED",
             "finding": "2026-10-15-documentation-review-01-013",
             "with_diff": null,
@@ -5604,6 +5620,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "NOT_FIXED",
             "finding": "2026-10-15-documentation-review-01-014",
             "with_diff": null,
@@ -5614,6 +5631,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "FIXED",
             "finding": "2026-10-15-documentation-review-01-015",
             "with_diff": null,
@@ -5624,6 +5642,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "FIXED",
             "finding": "2026-10-15-documentation-review-01-016",
             "with_diff": null,
@@ -5634,6 +5653,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "NOT_FIXED",
             "finding": "2026-10-15-documentation-review-01-018",
             "with_diff": null,
@@ -5644,6 +5664,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "FIXED",
             "finding": "2026-10-15-documentation-review-01-019",
             "with_diff": null,
@@ -5654,6 +5675,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "NOT_FIXED",
             "finding": "2026-10-15-documentation-review-01-020",
             "with_diff": null,
@@ -5664,6 +5686,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "NOT_FIXED",
             "finding": "2026-10-15-documentation-review-01-021",
             "with_diff": null,
@@ -5674,6 +5697,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "FIXED",
             "finding": "2026-10-15-documentation-review-01-022",
             "with_diff": null,
@@ -5684,6 +5708,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "FIXED",
             "finding": "2026-10-15-documentation-review-01-023",
             "with_diff": null,
@@ -5694,6 +5719,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "FIXED",
             "finding": "2026-10-15-documentation-review-01-024",
             "with_diff": null,
@@ -5704,6 +5730,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "FIXED",
             "finding": "2026-10-15-documentation-review-01-025",
             "with_diff": null,
@@ -5714,6 +5741,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "NOT_FIXED",
             "finding": "2026-10-15-documentation-review-01-026",
             "with_diff": null,
@@ -5724,6 +5752,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "FIXED",
             "finding": "2026-10-15-documentation-review-01-027",
             "with_diff": null,
@@ -5734,6 +5763,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "FIXED",
             "finding": "2026-10-15-documentation-review-01-028",
             "with_diff": null,
@@ -5744,6 +5774,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "NOT_FIXED",
             "finding": "2026-10-15-documentation-review-01-029",
             "with_diff": null,
@@ -5754,6 +5785,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "LINE_ONLY",
             "finding": "2026-10-15-documentation-review-01-030",
             "with_diff": null,
@@ -5764,6 +5796,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "FIXED",
             "finding": "2026-10-15-documentation-review-01-031",
             "with_diff": null,
@@ -5774,6 +5807,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "FIXED",
             "finding": "2026-10-15-documentation-review-01-033",
             "with_diff": null,
@@ -5784,6 +5818,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "FIXED",
             "finding": "2026-10-15-documentation-review-01-034",
             "with_diff": null,
@@ -5794,6 +5829,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "FIXED",
             "finding": "2026-10-15-documentation-review-01-035",
             "with_diff": null,
@@ -5804,6 +5840,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "NOT_FIXED",
             "finding": "2026-10-15-documentation-review-01-036",
             "with_diff": null,
@@ -5814,6 +5851,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "NOT_FIXED",
             "finding": "2026-10-15-documentation-review-01-039",
             "with_diff": null,
@@ -5824,6 +5862,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "NOT_FIXED",
             "finding": "2026-10-15-documentation-review-01-040",
             "with_diff": null,
@@ -5834,6 +5873,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "NOT_FIXED",
             "finding": "2026-10-15-documentation-review-01-041",
             "with_diff": null,
@@ -5844,6 +5884,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "NOT_FIXED",
             "finding": "2026-10-15-documentation-review-01-042",
             "with_diff": null,
@@ -5854,6 +5895,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "NOT_FIXED",
             "finding": "2026-10-15-documentation-review-01-043",
             "with_diff": null,
@@ -5864,6 +5906,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "FIXED",
             "finding": "2026-10-15-documentation-review-01-044",
             "with_diff": null,
@@ -5874,6 +5917,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "NOT_FIXED",
             "finding": "2026-10-15-documentation-review-01-045",
             "with_diff": null,
@@ -5884,6 +5928,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "NOT_FIXED",
             "finding": "2026-10-15-documentation-review-01-046",
             "with_diff": null,
@@ -5894,6 +5939,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "FIXED",
             "finding": "2026-10-15-documentation-review-01-047",
             "with_diff": null,
@@ -5904,6 +5950,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "FIXED",
             "finding": "2026-10-15-documentation-review-01-048",
             "with_diff": null,
@@ -5914,6 +5961,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "NOT_FIXED",
             "finding": "2026-10-15-documentation-review-01-049",
             "with_diff": null,
@@ -5924,6 +5972,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "NOT_FIXED",
             "finding": "2026-10-15-documentation-review-01-051",
             "with_diff": null,
@@ -5934,6 +5983,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "FIXED",
             "finding": "2026-10-15-documentation-review-01-052",
             "with_diff": null,
@@ -5944,6 +5994,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "FIXED",
             "finding": "2026-10-15-documentation-review-01-053",
             "with_diff": null,
@@ -5954,6 +6005,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "FIXED",
             "finding": "2026-10-15-documentation-review-01-054",
             "with_diff": null,
@@ -5964,6 +6016,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "FIXED",
             "finding": "2026-10-15-documentation-review-01-056",
             "with_diff": null,
@@ -5974,6 +6027,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "FIXED",
             "finding": "2026-10-15-documentation-review-01-057",
             "with_diff": null,
@@ -5984,6 +6038,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "FIXED",
             "finding": "2026-10-15-documentation-review-01-058",
             "with_diff": null,
@@ -5994,6 +6049,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "NOT_FIXED",
             "finding": "2026-10-15-documentation-review-01-059",
             "with_diff": null,
@@ -6004,6 +6060,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "FIXED",
             "finding": "2026-10-15-documentation-review-01-060",
             "with_diff": null,
@@ -6014,6 +6071,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "FIXED",
             "finding": "2026-10-15-documentation-review-01-061",
             "with_diff": null,
@@ -6024,6 +6082,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "NOT_FIXED",
             "finding": "2026-10-15-documentation-review-01-063",
             "with_diff": null,
@@ -6034,6 +6093,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "FIXED",
             "finding": "2026-10-15-documentation-review-01-064",
             "with_diff": null,
@@ -6044,6 +6104,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "FIXED",
             "finding": "2026-10-15-documentation-review-01-065",
             "with_diff": null,
@@ -6054,6 +6115,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "FIXED",
             "finding": "2026-10-15-documentation-review-01-066",
             "with_diff": null,
@@ -6064,6 +6126,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "NOT_FIXED",
             "finding": "2026-10-15-documentation-review-01-067",
             "with_diff": null,
@@ -6074,6 +6137,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "NOT_FIXED",
             "finding": "2026-10-15-documentation-review-01-068",
             "with_diff": null,
@@ -6084,6 +6148,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "FIXED",
             "finding": "2026-10-15-documentation-review-01-069",
             "with_diff": null,
@@ -6094,6 +6159,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "NOT_FIXED",
             "finding": "2026-10-15-documentation-review-01-072",
             "with_diff": null,
@@ -6104,6 +6170,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "FIXED",
             "finding": "2026-10-15-documentation-review-01-073",
             "with_diff": null,
@@ -6114,6 +6181,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "FIXED",
             "finding": "2026-10-15-documentation-review-01-074",
             "with_diff": null,
@@ -6124,6 +6192,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "FIXED",
             "finding": "2026-10-15-documentation-review-01-075",
             "with_diff": null,
@@ -6134,6 +6203,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "NOT_FIXED",
             "finding": "2026-10-15-documentation-review-01-076",
             "with_diff": null,
@@ -6144,6 +6214,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "NOT_FIXED",
             "finding": "2026-10-15-documentation-review-01-077",
             "with_diff": null,
@@ -6154,6 +6225,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "FIXED",
             "finding": "2026-10-15-documentation-review-01-079",
             "with_diff": null,
@@ -6164,6 +6236,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "NOT_FIXED",
             "finding": "2026-10-15-documentation-review-01-080",
             "with_diff": null,
@@ -6174,6 +6247,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "LINE_ONLY",
             "finding": "2026-10-15-documentation-review-01-081",
             "with_diff": null,
@@ -6184,6 +6258,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "FIXED",
             "finding": "2026-10-15-documentation-review-01-082",
             "with_diff": null,
@@ -6194,6 +6269,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "NOT_FIXED",
             "finding": "2026-10-15-documentation-review-01-083",
             "with_diff": null,
@@ -6204,6 +6280,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "FIXED",
             "finding": "2026-10-15-documentation-review-01-084",
             "with_diff": null,
@@ -6214,6 +6291,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "NOT_FIXED",
             "finding": "2026-10-15-documentation-review-01-085",
             "with_diff": null,
@@ -6224,6 +6302,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "LINE_ONLY",
             "finding": "2026-10-15-documentation-review-01-086",
             "with_diff": null,
@@ -6234,6 +6313,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "FIXED",
             "finding": "2026-10-15-documentation-review-01-087",
             "with_diff": null,
@@ -6244,6 +6324,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "FIXED",
             "finding": "2026-10-15-documentation-review-01-088",
             "with_diff": null,
@@ -6254,6 +6335,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "FIXED",
             "finding": "2026-10-15-documentation-review-01-089",
             "with_diff": null,
@@ -6264,6 +6346,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "FIXED",
             "finding": "2026-10-15-documentation-review-01-091",
             "with_diff": null,
@@ -6274,6 +6357,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "FIXED",
             "finding": "2026-10-15-documentation-review-01-093",
             "with_diff": null,
@@ -6284,6 +6368,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "FIXED",
             "finding": "2026-10-15-documentation-review-01-094",
             "with_diff": null,
@@ -6294,6 +6379,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "FIXED",
             "finding": "2026-10-15-documentation-review-01-095",
             "with_diff": null,
@@ -6304,6 +6390,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "FIXED",
             "finding": "2026-10-15-documentation-review-01-096",
             "with_diff": null,
@@ -6314,6 +6401,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "NOT_FIXED",
             "finding": "2026-10-15-documentation-review-01-097",
             "with_diff": null,
@@ -6324,6 +6412,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "FIXED",
             "finding": "2026-10-15-documentation-review-01-098",
             "with_diff": null,
@@ -6334,6 +6423,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "FIXED",
             "finding": "2026-10-15-documentation-review-01-099",
             "with_diff": null,
@@ -6344,6 +6434,7 @@
             "agreeing_code": null
         },
         {
+            "quote": "",
             "blind": "FIXED",
             "finding": "2026-10-15-documentation-review-01-100",
             "with_diff": null,
