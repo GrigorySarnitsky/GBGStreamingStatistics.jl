@@ -252,7 +252,7 @@ module = "Bandwidth"
 [module]
 Accumulators = 1
 Histograms = 33
-Kernels = 10
+Kernels = 8      # 10 → 8 on 2026-10-17: `_quad`'s two defaults became keywords, so its three positional-default methods are one
 Expectations = 21
 LocalPolynomial = 4
 MarginalDensity = 28

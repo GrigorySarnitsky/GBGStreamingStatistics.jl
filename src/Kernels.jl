@@ -40,7 +40,7 @@ the matched Epanechnikov scale automatically — no manual rescaling.
 # any user-supplied kernel's constants (``R(K)``, ``\mu_2(K)``, ``\mu_4(K)``, the CDF, …) follow by
 # quadrature. The shipped kernels sit well inside the range (Gaussian ≈ ±8, Epanechnikov ±1); this runs
 # once per `density` / `bandwidth` call, off the hot path. Internal (reached by explicit `using`).
-function _quad(g, L::Float64 = 16.0, npts::Int = 32_769)
+function _quad(g; L::Float64 = 16.0, npts::Int = 32_769)
   Δ = 2L / (npts - 1)
   acc = 0.5 * (g(-L) + g(L))
   @inbounds for i in 1:npts-2
