@@ -90,8 +90,8 @@ of that summary, where ``S_h`` is a **smoothing** operator (a choice of kernel, 
 secondary smoothing). The load-bearing decision:
 
 > **The summary ``T`` is accumulated online and is estimand-agnostic; the smoothing ``S_h`` is applied
-> entirely post hoc.** Accumulation knows nothing of bandwidth, kernel, or which response channel
-> will be asked for. This separation is the architectural invariant of the package — the analog of
+> entirely post hoc.** Accumulation knows nothing of bandwidth, kernel, or which response channel —
+> which response variable, each with its own summary — will be asked for. This separation is the architectural invariant of the package — the analog of
 > PF's representation/operator split — and it is exactly what delivers the user's requirement:
 > *no state storage* (only ``T`` survives a step) and *no reruns* (every ``h``, every channel, every
 > secondary smoothing is computed from the one stored ``T``).
@@ -124,7 +124,8 @@ is *why* "no reruns" forces the smoothing post hoc.
 The lens also fixes the shape of the estimators: the universal object is the **summary-as-measure**, and
 every estimand is a **degree-zero readout** of it that falls into one of **two families, each with one
 shared code atom** — **kernel-weighting** (the *local* / smoothing readouts, through the
-`Kernels._kernel_weight` atom, with `LocalPolynomial.local_fit` the jet readout on it) and **power-sum
+`Kernels._kernel_weight` atom, with `LocalPolynomial.local_fit` the jet readout on it — the jet being the fit's local Taylor
+coefficients) and **power-sum
 quadrature** (the *global* / moment readouts, the Taylor contraction of the stored ``S_p``). §4.A and §4.B
 exposit the two families. The jet `local_fit` is the kernel-weighting family's primitive, **not** the universal
 one — ``\mathbb{E}[g(X)]`` is a readout with no jet at all — and the package's one nonlinearity (the
@@ -159,8 +160,8 @@ detailed in §4:
   coefficients, drift/diffusion, Pawula / Q diagnostics — domain-neutral functionals of the above; the SDE
   *reading* stays consumer-side.
 - **Bandwidth selection** (cross-cutting) — global and the **response-aware local** ``h^\star(x)`` (both built).
-- **[OPEN]** a streaming **projection road** (basis projection à la Stochastic Force Inference /
-  ULI) as an alternative accumulator.
+- **[OPEN]** a streaming **projection road** (basis projection à la Stochastic Force Inference (SFI) /
+  Underdamped Langevin Inference (ULI)) as an alternative accumulator.
 
 ### The histogram is the summary; the ECF is deferred (likely never needed)
 
@@ -222,11 +223,12 @@ transfer verbatim to every consumer.
   **count** and **per-bin power-sums about the bin center** ``S_p = \sum_{i\in\text{bin}}(X_i -
   c_j)^p`` for ``p = 1 \dots P`` (default ``P = 4``; raise ``P`` for the heavy-tailed channels — a high
   marginal central moment such as ``M_6`` needs ``P = 6``, and its *sampling variance* reaches the 12th
-  moment; the *conditional* increment moments of the Pawula ``Q`` instead need the `Histogram2D`
+  moment; the *conditional* increment moments of the Pawula quotient ``Q`` (the fourth increment
+  moment over thrice the squared second, §11) instead need the `Histogram2D`
   order-raise, §11). Because the
   offset ``X_i - c_j`` is small within a bin (``\lesssim b/2 \approx \sigma/200``), the local
-  power-sums are **well-conditioned**: they are accumulated by a plain atomic scatter-add — single-pass
-  and numerically stable, with **no compensated summation needed**. The global central moments are
+  power-sums are **well-conditioned**: they are accumulated by a plain atomic scatter-add — single-pass,
+  numerically stable, with **no compensated summation needed**. The global central moments are
   recovered post hoc by the **shift formula** (the binscatter / WARPing local-moment construction;
   Scott 2015; Cattaneo et al. 2024), *exactly* (the power-sums use the actual ``X_i``, not the center)
   and stably for the even high-order moments the consumers need.
@@ -279,7 +281,7 @@ arithmetic is hidden behind the memory- and atomic-bound accumulation (§5), not
 **Two-time samples / lag handling — settled: the package bins pairs; the consumer produces them.**
 For a two-time quantity like ``m_\tau(u) = \mathbb{E}[Y_{t+\tau}\mid X_t = u]`` the conditioning
 value ``X(t)`` and the response ``Y(t+\tau)`` must be paired **per source** — two separate marginal
-histograms cannot recover the joint (for the OU oracle both marginals are the *same* stationary
+histograms cannot recover the joint (for the Ornstein–Uhlenbeck (OU) oracle both marginals are the *same* stationary
 Gaussian; the entire ``\tau``-dependence lives in the pair). The one histogram entry is made at the
 response step, into the bin of ``X(t)``. The package surface for this is just the **memoryless**
 `observe_pairs!(stat, x_past, y_now)` — it bins a batch of pre-formed pairs into the per-lag summary (the
@@ -351,10 +353,10 @@ published or a direct composition, that the package has not implemented; every r
 |:--|:--|:--|
 | `degree` × `adaptive` | combine, at every degree | independent corrections: bias order and tail variance |
 | `support` × `degree = 0` (with or without `adaptive`) | combine | the Jones renormalization of the KDE |
-| `support` × `degree ≥ 1` | refused: redundant | the local-log fit is already boundary-adaptive, so the renormalization would be a second correction |
+| `support` × `degree >= 1` | refused: redundant | the local-log fit is already boundary-adaptive, so the renormalization would be a second correction |
 | `support` × asymmetric kernel | refused: redundant | the kernel's mass inside the support is exactly 1, so the renormalization would divide by 1 |
-| asymmetric kernel × `degree ≥ 1` | refused: redundant, theory open | two boundary cures at once; the local-likelihood bias expansion rests on translation-kernel moments, which a varying-shape kernel lacks |
-| `start` × `degree ≥ 1` | refused: not built | the locally parametric estimator of Hjort & Jones (1996), the named first candidate |
+| asymmetric kernel × `degree >= 1` | refused: redundant, theory open | two boundary cures at once; the local-likelihood bias expansion rests on translation-kernel moments, which a varying-shape kernel lacks |
+| `start` × `degree >= 1` | refused: not built | the locally parametric estimator of Hjort & Jones (1996), the named first candidate |
 | `start` × `adaptive` | refused: not built | Abramson's variable bandwidth on the correction's KDE, a direct composition |
 | `start` × asymmetric kernel | refused: not built | a gamma/beta-kernel KDE of the correction, natural for a positive-support start |
 | `start` × `support` | refused: not built | definable; the ratio ``f/p`` near an edge needs study before a claim |
@@ -402,9 +404,9 @@ local-linear `conditional_mean` is boundary-adaptive, §4.2).
 
 #### 4.5 Bandwidth selection (cross-cutting)
 
-**Estimand.** the AMISE-optimal bandwidth (AMISE = asymptotic mean integrated squared error) — the ``h`` asymptotically minimising ``\mathrm{MISE}(h) = \int \mathbb{E}[(\hat f_h - f_X)^2]``
+**Estimand.** The estimand is the AMISE-optimal bandwidth (AMISE = asymptotic mean integrated squared error), the ``h`` asymptotically minimising ``\mathrm{MISE}(h) = \int \mathbb{E}[(\hat f_h - f_X)^2]``
 for a kernel ``K`` and local-polynomial degree ``d``.
-**Estimator.** for a marginal, the **kernel- and degree-aware normal-reference rule**
+**Estimator.** For a marginal the package uses the **kernel- and degree-aware normal-reference rule**
 ``h = C(K,d) \hat\sigma n^{-1/(2p+1)}`` (bias order ``p = 2`` at degree 0/1, ``p = 4`` at degree 2/3; the
 kernel enters through one canonical factor ``[R(K)/\mu_2(K)^2]^{1/5}`` by quadrature — Silverman
 ``(4/3)^{1/5}`` the Gaussian/degree-0 case, Epanechnikov ``\approx 2.34``), plus the data-driven
@@ -580,30 +582,39 @@ GBGStreamingStatistics/
   README.md  Project.toml
   src/
     GBGStreamingStatistics.jl    # umbrella
-    Accumulators.jl              # foundation: AbstractAccumulator, observe!/merge! monoid interface
-    Histograms.jl                # Histogram1D / Histogram2D, WARP binning, power-sums about the bin
-                                 #   center, the KA/Atomix scatter kernel (the pure summary)
-    Kernels.jl                   # all the smoothing kernels (symmetric + asymmetric) + _quad quadrature
-    Expectations.jl              # §4.B   E[g(X)], moments (mean/var/…), pushforward — power-sum quadrature
-    LocalPolynomial.jl           # the shared local-polynomial jet primitive (local_fit) — §2, §11
+    Accumulators.jl              # foundation: AbstractAccumulator, the
+                                 #   observe!/merge! monoid interface
+    Histograms.jl                # Histogram1D / Histogram2D, WARP binning,
+                                 #   power-sums about the bin center, the
+                                 #   KA/Atomix scatter kernel (the pure summary)
+    Kernels.jl                   # all the smoothing kernels (symmetric +
+                                 #   asymmetric) + _quad quadrature
+    Expectations.jl              # §4.B   E[g(X)], moments (mean/var/…),
+                                 #   pushforward — power-sum quadrature
+    LocalPolynomial.jl           # the shared local-polynomial jet primitive
+                                 #   (local_fit) — §2, §11
     MarginalDensity.jl           # §4.1   f_X
-    ConditionalExpectations.jl   # §4.2   m(x), σ²(x)  [estimand-first reference module]
+    ConditionalExpectations.jl   # §4.2   m(x), σ²(x)  [estimand-first reference]
     ConditionalDensity.jl        # §4.3   f_{Y|X}, transition p_τ
     Bandwidth.jl                 # §4.5   global + response-aware local plug-in
-    # IncrementMoments.jl        # [archived → git 37006b5] §4.4 increment moments, KM/drift/diffusion
+    # IncrementMoments.jl        # [archived → git 37006b5] §4.4 increment
+                                 #   moments, KM/drift/diffusion
     # CharacteristicFunctions.jl # [OPEN, secondary] ECF summary
     # ProjectionInference.jl     # [OPEN] SFI / ULI road
-  docs/   ARCHITECTURE.md  FORMALIZATION.md  TESTING.md  PERFORMANCE.md  src/…  make.jl
-  test/   runtests.jl  per-module  oracles.jl(OU/Gaussian)  mergeability.jl  allocations.jl  aqua.jl  jet.jl  gpu/
+  docs/   ARCHITECTURE.md  FORMALIZATION.md  TESTING.md  PERFORMANCE.md
+          src/…  make.jl
+  test/   runtests.jl  per-module  oracles.jl(OU/Gaussian)  mergeability.jl
+          allocations.jl  aqua.jl  jet.jl  gpu/
   benchmark/
   examples/
-  .gbg/config.jl  .claude/skills/   # the GBGCodingTools wiring (config, rulebook, review skills)
+  .gbg/config.jl  .claude/skills/   # the GBGCodingTools wiring (config,
+                                    #   rulebook, review skills)
 ```
 
 Internal split, made explicit: **`Accumulators` + `Histograms` are the universal lower half**
 (every domain shares them verbatim, and they hold the hard, write-once numerics — the GPU
 atomic scatter-add of counts and per-bin power-sums); **`MarginalDensity` through `Bandwidth` are the estimator upper half**
-(turbulence-leaning but genuinely cross-domain — MD's van Hove function is `ConditionalDensity` with
+(turbulence-leaning but genuinely cross-domain — molecular dynamics' van Hove function is `ConditionalDensity` with
 a different sampler). Keeping the halves separable lets a consumer that only wants marginal PDFs
 avoid the SDE machinery.
 
@@ -824,7 +835,7 @@ intentional — do not dedupe it).
   is conceivable but not built.
 
 - **Estimator architecture — the linear jet-smoother is the primitive, local likelihood a consumer;
-  and the measure-algebra lens** (§2, §4). *A framing decision, landed in the code over Stages 1–3.* Two
+  and the measure-algebra lens** (§2, §4). *A framing decision, landed in the code.* Two
   settlements taken together. **(1) The lens.** The spine is given an algebraic reading (§2): the
   summaries are the **cone of measures**, ``T`` is the linear cone homomorphism (so `merge!` is
   addition), and every reported estimand is **homogeneous of degree zero in the measure**, descending
@@ -859,7 +870,7 @@ intentional — do not dedupe it).
 
 - **Kernels — the asymmetric kernels consolidated into the foundation module** (§4.1, §4.3). The
   varying-shape boundary kernels (`gamma_kernel`, `beta_kernel`, the `AsymmetricKernel` type; Chen 1999,
-  2000) moved from `MarginalDensity` to `Kernels`, joining the symmetric `gaussian_kernel` /
+  2000) were moved from `MarginalDensity` to `Kernels`, joining the symmetric `gaussian_kernel` /
   `epanechnikov_kernel`. They had stayed in `MarginalDensity` only because, when `Kernels` was first
   extracted, `density` was their sole consumer — a historical artifact, not a design boundary. **A kernel
   is a kernel**: an asymmetric boundary kernel is a smoothing kernel for bounded / positive support, so it
@@ -875,7 +886,7 @@ intentional — do not dedupe it).
 - **Kernels / LocalPolynomial — the kernel-weighting atom `_kernel_weight`; the lens corrected to two
   readout families** (§2, §4). The symmetric/asymmetric kernel protocols, previously re-coded inline at four
   sites (`local_fit`, the density KDE, its asymmetric branch, the conditional density), are unified in one
-  `Kernels._kernel_weight` (the ``1/h`` folded in, so every readout — count sum, NW ratio, jet — is uniform;
+  `Kernels._kernel_weight` (the ``1/h`` folded in, so every readout — count sum, Nadaraya–Watson ratio, jet — is uniform;
   the fold is ``\beta``-invariant for the local-polynomial solve, so symmetric results are bit-unchanged).
   `local_fit` carries the **one** guard: an asymmetric kernel has no jet, so it is admitted at ``\texttt{degree} = 0``
   only (a clean `ArgumentError`, not the former `MethodError`). This made degree-0 `conditional_mean` accept
