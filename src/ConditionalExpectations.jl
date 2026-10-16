@@ -111,8 +111,9 @@ bias/variance of `conditional_mean`. A vector of query points returns a vector, 
 - `x` — the conditioning value(s) where the expectation is evaluated (scalar or vector).
 - `kernel` — the conditioning (``x``) kernel: any ``\\int K = 1`` callable (default
   [`gaussian_kernel`](@ref GBGStreamingStatistics.Kernels.gaussian_kernel)) or an
-  [`AsymmetricKernel`](@ref GBGStreamingStatistics.Kernels.AsymmetricKernel) (`gamma_kernel` /
-  `beta_kernel`, for bounded conditioning).
+  [`AsymmetricKernel`](@ref GBGStreamingStatistics.Kernels.AsymmetricKernel)
+  ([`gamma_kernel`](@ref GBGStreamingStatistics.Kernels.gamma_kernel) /
+  [`beta_kernel`](@ref GBGStreamingStatistics.Kernels.beta_kernel), for bounded conditioning).
 - `degree` — the local-polynomial order in ``x``: `0` (Nadaraya–Watson), `1` (local-linear), or `2`. The
   default is `1`, or `0` under an asymmetric `kernel` (which fits no polynomial — no jet).
 - `h` — the conditioning (``x``) bandwidth (``h > 0``), supplied.
