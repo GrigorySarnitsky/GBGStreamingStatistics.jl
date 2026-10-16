@@ -3,7 +3,7 @@ unit,words,longest_paragraph,admonitions
 "ARCHITECTURE.md § 0. Provenance",83,53,0
 "ARCHITECTURE.md § 1. Purpose and scope",247,74,0
 "ARCHITECTURE.md § 10. Open questions",322,321,0
-"ARCHITECTURE.md § 11. Decision log",3418,598,0
+"ARCHITECTURE.md § 11. Decision log",3416,598,0
 "ARCHITECTURE.md § 2. The central principle: the architecture follows establish",50,50,0
 "ARCHITECTURE.md § 3. The accumulated summary — the universal lower half",1027,476,0
 "ARCHITECTURE.md § 4. Estimand families (estimators — the exportable upper half",101,101,0
@@ -38,14 +38,14 @@ unit,words,longest_paragraph,admonitions
 "ARCHITECTURE.md § Why a fine histogram is the canonical ``T`` (and the honest ",133,133,0
 "Accumulators.jl :: AbstractAccumulator",99,69,0
 "Accumulators.jl :: merge!(into::AbstractAccumulator, from::AbstractAccumulator;",338,100,0
-"Accumulators.jl :: observe!(summary::AbstractAccumulator, batch) -> summary",172,80,0
+"Accumulators.jl :: observe!(summary::AbstractAccumulator, batch) -> summary",172,79,0
 "Accumulators.jl :: scale!(summary::AbstractAccumulator, weight) -> summary",169,57,0
 "Accumulators.md § Accumulators",55,55,0
 "Accumulators.md § Operations",29,29,0
 "Bandwidth.jl :: bandwidth(summary::Histogram1D; rule = :normal, kernel = gau",917,129,0
-"Bandwidth.jl :: bandwidth(summary::Histogram2D, x;   # ≡ h⋆(x)",301,127,0
+"Bandwidth.jl :: bandwidth(summary::Histogram2D, x; rule = :local, kernel = g",313,85,0
 "Bandwidth.md § Bandwidth",74,74,0
-"ConditionalDensity.jl :: conditional_density(summary::Histogram2D, x, y; kernelx = ga",484,151,0
+"ConditionalDensity.jl :: conditional_density(summary::Histogram2D, x, y; kernelx = ga",484,133,0
 "ConditionalDensity.jl :: conditional_density_standard_error(summary::Histogram2D, x, ",194,101,0
 "ConditionalDensity.jl :: conditional_density_with_standard_error(summary::Histogram2D",74,46,0
 "ConditionalDensity.jl :: transition_density(summary::Histogram2D, x, y; kernelx = gau",188,80,0
@@ -55,7 +55,7 @@ unit,words,longest_paragraph,admonitions
 "ConditionalExpectations.jl :: conditional_expectation(summary::Histogram2D, g, x;   # ≡ E[",317,103,0
 "ConditionalExpectations.jl :: conditional_expectation_standard_error(summary::Histogram2D,",150,93,0
 "ConditionalExpectations.jl :: conditional_expectation_with_standard_error(summary::Histogr",77,56,0
-"ConditionalExpectations.jl :: conditional_mean(summary::Histogram2D, x; kernel = gaussian_",458,165,0
+"ConditionalExpectations.jl :: conditional_mean(summary::Histogram2D, x; kernel = gaussian_",458,164,0
 "ConditionalExpectations.jl :: conditional_pushforward_density(summary::Histogram2D, g, x, ",319,124,0
 "ConditionalExpectations.jl :: conditional_pushforward_density_standard_error(summary::Hist",123,67,0
 "ConditionalExpectations.jl :: conditional_pushforward_density_with_standard_error(summary:",58,32,0
@@ -96,14 +96,14 @@ unit,words,longest_paragraph,admonitions
 "FORMALIZATION.md § Power-sum quadrature — sampling standard error (§4.B) — `exp",101,101,0
 "FORMALIZATION.md § Response-aware local bandwidth (§4.5) — `bandwidth(::Histogr",156,136,0
 "FORMALIZATION.md § The cone — `scale!`, weighted `merge!`, hyperstatistics (§10",370,278,0
-"FORMALIZATION.md § The kernel-weighting atom & local-polynomial jet (`Kernels._",307,307,0
-"GBGStreamingStatistics.jl :: GBGStreamingStatistics",171,75,0
+"FORMALIZATION.md § The kernel-weighting atom & local-polynomial jet (`Kernels._",309,309,0
+"GBGStreamingStatistics.jl :: GBGStreamingStatistics",159,75,0
 "GBGStreamingStatistics.md § GBGStreamingStatistics",19,19,0
-"Histograms.jl :: Histogram1D <: AbstractAccumulator",524,168,0
-"Histograms.jl :: Histogram2D <: AbstractAccumulator",356,111,0
+"Histograms.jl :: Histogram1D <: AbstractAccumulator",524,116,0
+"Histograms.jl :: Histogram2D <: AbstractAccumulator",356,86,0
 "Histograms.jl :: observe_pairs!(summary::Histogram2D, x_past, y_now) -> summa",122,83,0
-"Histograms.jl :: read_histogram(parent, name) -> Histogram1D or Histogram2D",129,62,0
-"Histograms.jl :: write_histogram(parent, name, summary) -> group",187,67,0
+"Histograms.jl :: read_histogram(parent, name)",126,62,0
+"Histograms.jl :: write_histogram(parent, name, summary)",186,67,0
 "Histograms.md § Accumulation",17,17,0
 "Histograms.md § Histograms",23,23,0
 "Histograms.md § Persistence (HDF5)",70,70,0
@@ -116,7 +116,7 @@ unit,words,longest_paragraph,admonitions
 "LocalPolynomial.jl :: local_fit(locations, mass, response, x, kernel, degree, h)",312,119,0
 "MarginalDensity.jl :: ParametricStart(fit, logpdf, support)",300,102,0
 "MarginalDensity.jl :: density(summary::Histogram1D, x;   # ≡ f_X",1035,806,0
-"MarginalDensity.jl :: density_standard_error(summary::Histogram1D, x; kernel = gau",315,145,0
+"MarginalDensity.jl :: density_standard_error(summary::Histogram1D, x; kernel = gau",312,145,0
 "MarginalDensity.jl :: density_with_standard_error(summary::Histogram1D, x; kernel ",125,64,0
 "MarginalDensity.jl :: exponential_start",36,35,0
 "MarginalDensity.jl :: gamma_start",27,26,0
@@ -149,6 +149,12 @@ unit,words,longest_paragraph,admonitions
 "index.md § Main components",414,388,0
 "internals.md § Internals",103,71,1
 "internals.md § The local-polynomial jet — `LocalPolynomial.local_fit`",44,44,0
+"notation.md § Estimands",88,88,0
+"notation.md § Kernels",74,74,0
+"notation.md § Notation",27,27,0
+"notation.md § The local fit",67,67,0
+"notation.md § The samples",70,70,0
+"notation.md § The summary",118,118,0
 "tutorial.md § Getting started",79,50,1
 "tutorial.md § The workflow",159,52,0
 "tutorial.md § Where to go next",26,26,0

@@ -85,7 +85,7 @@ recorded in `ARCHITECTURE.md` §4 meanwhile.
 - **Object.** the summary monoid ``(\mathcal{S}, \oplus, 0)`` of the previous entry, equipped also with a
   nonnegative scalar action ``w \cdot T`` (`scale!` — multiply every count and power-sum by ``w \ge 0``),
   making ``\mathcal{S}`` a **convex cone**: closed under ``\oplus`` and under nonnegative scaling, hence
-  under all nonnegative linear combinations ``\sum_k w_k T_k`` (the weighted
+  under all nonnegative linear combinations ``\sum_k \pi_k T_k`` (the weighted
   `merge!(into, from; weight)`, ``\texttt{into} \mathrel{+}= \texttt{weight} \cdot \texttt{from}``; the
   default ``\texttt{weight} = 1`` the plain ``\oplus``). Carried on a **Float-count variant**
   (`count_type = Float64`): a weighted count ``w n`` is not an integer.
@@ -93,17 +93,17 @@ recorded in `ARCHITECTURE.md` §4 meanwhile.
   a slowly varying parameter ``\beta`` with mixing law ``f(\beta)``,
 
   ```math
-  P(x) = \int f(\beta) P(x \mid \beta)\,\mathrm{d}\beta \approx \sum_k w_k  f_k(x),
-  \qquad w_k = f(\beta_k) \Delta\beta,
+  P(x) = \int f(\beta) P(x \mid \beta)\,\mathrm{d}\beta \approx \sum_k \pi_k  f_k(x),
+  \qquad \pi_k = f(\beta_k) \Delta\beta,
   ```
 
   with ``f_k = P(\cdot \mid \beta_k)`` the per-parameter density.
 - **Estimator.** keep one summary ``T_k`` per ``\beta_k`` (accumulated independently, ``N_k`` samples),
-  form the cone combination ``M = \sum_k (w_k / N_k)  T_k`` by weighted `merge!`, and read out any
+  form the cone combination ``M = \sum_k (\pi_k / N_k)  T_k`` by weighted `merge!`, and read out any
   smoothing functional ``E_h`` of ``M``. Since ``E_h`` normalizes by the total mass
-  ``N_M = \sum_j m_j = \sum_k w_k``, this yields ``E_h(M) = (\sum_k w_k f_k(x)) / \sum_k w_k`` — the
-  mixture (exactly, when the ``w_k`` sum to one); the ``1/N_k`` normalizes each component to a probability
-  measure before mixing, and the conditional / transition estimators carry the local weight ``w_k f_k(x)``
+  ``N_M = \sum_j m_j = \sum_k \pi_k``, this yields ``E_h(M) = (\sum_k \pi_k f_k(x)) / \sum_k \pi_k`` — the
+  mixture (exactly, when the ``\pi_k`` sum to one); the ``1/N_k`` normalizes each component to a probability
+  measure before mixing, and the conditional / transition estimators carry the local weight ``\pi_k f_k(x)``
   automatically (ratios of linear functionals). **Post hoc**: ``f(\beta)`` is chosen after the runs,
   re-weighting without re-accumulating.
 - **Cone laws (the spec; the operations have no population estimand).** `scale!` is the monoid action —
@@ -114,7 +114,7 @@ recorded in `ARCHITECTURE.md` §4 meanwhile.
 - **Exponential forgetting.** for a non-stationary stream, `scale!(s, λ)` with ``0 < \lambda < 1`` before
   folding the next block gives a geometrically down-weighted summary (effective window ``1/(1-\lambda)``);
   the recovered mean is the exact ``\lambda``-weighted mean of the blocks.
-- **Caveat.** ``N_M = \sum_k w_k`` (``\approx 1`` for a normalized law), so ``M``'s *default* bandwidth
+- **Caveat.** ``N_M = \sum_k \pi_k`` (``\approx 1`` for a normalized law), so ``M``'s *default* bandwidth
   reads ``n \approx 1``; pass an explicit ``h`` (or pre-scale the weights to a representative sample size).
   An effective-sample-size rule (Kish ``(\sum_i w_i)^2 / \sum_i w_i^2``) is a recorded refinement.
 - **Test.** `test/hyperstatistics.jl` — the cone laws (`scale!` homogeneity / distributivity, weighted
@@ -128,21 +128,22 @@ recorded in `ARCHITECTURE.md` §4 meanwhile.
 
 ## The kernel-weighting atom & local-polynomial jet (`Kernels._kernel_weight`, `LocalPolynomial.local_fit`)
 
-- **Kernel-weighting atom (`_kernel_weight`).** the single per-bin weight ``w_j`` at a query point ``x``
-  and bandwidth ``h``, in one of two protocols: **symmetric** ``w_j = K((c_j - x)/h)/h`` (the ``1/h``
-  folded in, normalized), or **asymmetric** ``w_j = K(c_j; x, h)`` (a varying-shape density in the data
-  argument, its own normalization). Every smoothing readout consumes ``w_j`` — a count sum (`density`), a
+- **Kernel-weighting atom (`_kernel_weight`).** the single per-bin kernel weight at a query point ``x``
+  and bandwidth ``h``, in one of two protocols: **symmetric** ``K_h(c_j - x) = K((c_j - x)/h)/h`` (the
+  ``1/h`` folded in, normalized), or **asymmetric** ``K(c_j; x, h)`` (a varying-shape density in the data
+  argument, its own normalization). Every smoothing readout consumes this weight — a count sum (`density`), a
   ratio (the jet below), a ratio of ratios (`conditional_density`) — so the two protocols live in exactly
   one place. Folding the ``1/h`` into the weight is ``\beta``-invariant for the local-polynomial solve
   (both the design matrix and the right-hand side scale by ``1/h``), so it leaves every symmetric estimate
   unchanged.
 - **Jet (`local_fit`).** the kernel-weighted local-polynomial **jet** at ``x``: the degree-``d``
-  weighted-least-squares fit of a polynomial in ``u = \ell_j - x`` to a binned 1-D measure (locations
-  ``\ell_j``, design weights ``w_j``, response totals ``r_j``), returning ``\beta = (\beta_0, \dots,
+  weighted-least-squares fit of a polynomial in ``u = \tilde c_j - x`` to a binned 1-D measure (locations
+  ``\tilde c_j``, design weights ``n_j``, response totals ``r_j``), returning ``\beta = (\beta_0, \dots,
   \beta_d)`` — ``\beta_0`` the value, ``\beta_1`` the slope, ``2\beta_2`` the curvature. Form the design and
-  response moments ``T_\ell = \sum_j w_j (\ell_j - x)^\ell`` (``\ell = 0 \dots 2d``) and
-  ``P_\ell = \sum_j w_j r_j (\ell_j - x)^\ell`` (``\ell = 0 \dots d``), the ``w_j`` from `_kernel_weight`,
-  and solve the ``(d+1)\times(d+1)`` Hankel normal equations ``[ T_{i+\ell} ] \beta = (P_0, \dots, P_d)``
+  response moments ``T_k = \sum_j K_h(\tilde c_j - x) n_j (\tilde c_j - x)^k`` (``k = 0 \dots 2d``) and
+  ``P_k = \sum_j K_h(\tilde c_j - x) r_j (\tilde c_j - x)^k`` (``k = 0 \dots d``), the kernel weight from
+  `_kernel_weight`, and solve the ``(d+1)\times(d+1)`` Hankel normal equations
+  ``[ T_{i+k} ] \beta = (P_0, \dots, P_d)``
   (a small solve, never an explicit inverse); a degenerate (singular) design returns an all-NaN jet.
   `conditional_mean` is ``\beta_0`` of one fit; the local-likelihood `density` reuses the solve as its IRLS
   inner step. **An asymmetric kernel has no jet** (it is not a translation kernel), so `local_fit` admits
@@ -158,15 +159,15 @@ recorded in `ARCHITECTURE.md` §4 meanwhile.
 ## Marginal density (§4.1) — `density`
 
 - **Estimand.** ``f_X = \mathrm{d}\mu_X/\mathrm{d}\lambda``, the Lebesgue density of ``X``.
-- **Estimator.** the binned KDE ``\hat f_h(x) = \frac{1}{nh}\sum_j n_j K\Bigl(\frac{x-\ell_j}{h}\Bigr)``
-  (``\int K = 1``, Gaussian ``K``) from the bin counts ``n_j`` at bin locations ``\ell_j`` — the within-bin
-  **centroid** ``\ell_j = c_j + S_1^{(j)}/n_j`` (linear binning, the default `binning = :linear`) or the
-  geometric center ``\ell_j = c_j`` (`binning = :simple`) — with ``h`` from `bandwidth`
+- **Estimator.** the binned KDE ``\hat f_h(x) = \frac{1}{nh}\sum_j n_j K\Bigl(\frac{x-\tilde c_j}{h}\Bigr)``
+  (``\int K = 1``, Gaussian ``K``) from the bin counts ``n_j`` at bin locations ``\tilde c_j`` — the within-bin
+  **centroid** ``\tilde c_j = c_j + S_1^{(j)}/n_j`` (linear binning, the default `binning = :linear`) or the
+  geometric center ``\tilde c_j = c_j`` (`binning = :simple`) — with ``h`` from `bandwidth`
   (Silverman ``h = (4/3)^{1/5}\hat\sigma n^{-1/5}``).
 - **Consistency claim** (``h \to 0``, ``nh \to \infty``): ``\operatorname{bias}\hat f_h(x) \approx
   \tfrac{1}{2} h^2 \mu_2(K)  f_X''(x)`` and ``\operatorname{Var}\hat f_h(x) \approx R(K) f_X(x)/(n h)``;
   the binning error converges to the exact KDE at ``O(\Delta^2)`` in the bin width ``\Delta`` for linear
-  binning — the centroid matches the within-bin first moment, ``\sum_{i\in j}(X_i - \ell_j) = 0``, so the
+  binning — the centroid matches the within-bin first moment, ``\sum_{i\in j}(X_i - \tilde c_j) = 0``, so the
   leading ``O(\Delta)`` discretization term vanishes — and at ``O(\Delta)`` for simple binning; either is
   dominated by the ``O(h^2)`` smoothing bias when ``\Delta`` is small.
 - **Test.** `test/oracles.jl` (recovers the ``N(0,1)`` pdf to ``< 3\times10^{-3}`` over ``[-3,3]``,
@@ -193,7 +194,7 @@ recorded in `ARCHITECTURE.md` §4 meanwhile.
   weights ``K((c_j-x)/h_j)``, by Newton/IRLS — and report ``\hat f(x) = e^{\hat\beta_0}`` (Loader 1996).
   Degree 1 is exact for an exponential density (tracks exponential tails), degree 2 for a Gaussian. The
   two options compose. On a **bounded support** the degree-0 KDE accepts `support = (a, b)`, renormalizing
-  by the kernel mass ``\int_a^b K_h(x-u)\,\mathrm{d}u`` inside the support (Jones 1993) to remove the
+  by the kernel mass ``\int_{\texttt{lower}}^{\texttt{upper}} K_h(x-u)\,\mathrm{d}u`` inside the support (Jones 1993) to remove the
   ``O(1)`` boundary bias that otherwise halves the estimate at the edge.
 - **Test.** `test/marginaldensity.jl` (every grid corner recovers the ``N(0,1)`` pdf into the tail and
   integrates to ``\approx 1``; the variable bandwidth resolves the sharp Laplace cusp the fixed KDE
@@ -235,8 +236,8 @@ recorded in `ARCHITECTURE.md` §4 meanwhile.
 - **Estimand.** ``m(x) = \mathbb{E}[Y \mid X = x] = \int y  f_{Y\mid X}(y \mid x)\,\mathrm{d}y``,
   the ``L^2(\sigma(X))`` projection of the response onto the conditioning variable.
 - **Estimator.** the local-linear fit ``\hat m_h(x) = (T_2 P_0 - T_1 P_1)/(T_0 T_2 - T_1^2)`` from
-  the kernel-weighted power-sums ``T_\ell = \sum_i K_h(X_i-x)(X_i-x)^\ell`` and
-  ``P_\ell = \sum_i K_h(X_i-x)(X_i-x)^\ell Y_i`` — recovered from the joint `Histogram2D`'s per-X-column
+  the kernel-weighted power-sums ``T_k = \sum_i K_h(X_i-x)(X_i-x)^k`` and
+  ``P_k = \sum_i K_h(X_i-x)(X_i-x)^k Y_i`` — recovered from the joint `Histogram2D`'s per-X-column
   counts and response totals ``\sum Y`` (exact from the per-cell power-sums); the ``g = \mathrm{identity}``
   case of `conditional_expectation`.
 - **Consistency claim** (interior ``x``, ``h \to 0``, ``nh \to \infty``):
@@ -336,16 +337,16 @@ recorded in `ARCHITECTURE.md` §4 meanwhile.
 
 - **Estimand.** the sampling standard error of ``\widehat{\mathbb{E}}[g(Y)\mid x]``,
   ``\mathrm{SE} = \sqrt{\ell(x) \operatorname{Var}(g(Y)\mid x)}`` with the local-regression **leverage**
-  ``\ell(x) = \sum_j N_j w_j(x)^2`` (``w_j`` the effective weights of the fit's ``\beta_0``) and
+  ``\ell(x) = \sum_j N_j \omega_j(x)^2`` (``\omega_j`` the effective weights of the fit's ``\beta_0``) and
   ``\operatorname{Var}(g(Y)\mid x) = \mathbb{E}[g^2\mid x] - \mathbb{E}[g\mid x]^2``.
 - **Estimator.** ``\sqrt{\hat\ell(x) (\widehat{\mathbb{E}}[g^2\mid x] - \widehat{\mathbb{E}}[g\mid x]^2)}``,
   the **leverage × noise-scale** readout: ``\hat\ell(x) = u^\top Q  u`` with ``u = M^{-1} e_0`` (``M`` the
   design Hankel ``[T_{i+j}]``) and ``Q`` the Hankel of the **squared-kernel** moments
-  ``Q_\ell = \sum_j N_j K_h(c_j-x)^2 (c_j-x)^\ell`` (the `LocalPolynomial._leverage` primitive — the reference
+  ``Q_k = \sum_j N_j K_h(c_j-x)^2 (c_j-x)^k`` (the `LocalPolynomial._leverage` primitive — the reference
   mechanism for the kernel-family SE), times the plug-in conditional variance of ``g(Y)`` (two
   `conditional_expectation` readouts). It is the exact analog of the marginal `expectation_standard_error`,
   ``\sqrt{\operatorname{Var}(g(X))/n}``, with the global-mean leverage ``1/n`` replaced by
-  ``\sum_j N_j w_j^2``; at ``g = \mathrm{identity}`` it is the conditional mean's standard error. The paired
+  ``\sum_j N_j \omega_j^2``; at ``g = \mathrm{identity}`` it is the conditional mean's standard error. The paired
   `conditional_expectation_with_standard_error` returns this error with the estimate
   ``\widehat{\mathbb{E}}[g(Y)\mid x]`` from one shared fit (the ``(\texttt{value}, \texttt{standard\_error})``
   `NamedTuple`).

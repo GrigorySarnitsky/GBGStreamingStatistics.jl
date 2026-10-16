@@ -420,7 +420,7 @@ Mechanical bar:
    (see the §11 decision log), and a fully-adaptive curvature pilot is a recorded refinement.
 6. **`ConditionalExpectations`** (§4.2) — `conditional_mean` ``\equiv m(x)`` and `conditional_variance`
    ``\equiv \sigma^2(x)`` by local-polynomial regression from `Histogram2D` over the shared
-   `LocalPolynomial.local_fit` (the ``T_\ell``/``P_\ell`` from per-X-column counts and response totals),
+   `LocalPolynomial.local_fit` (the ``T_k``/``P_k`` from per-X-column counts and response totals),
    with the `degree` (0/1/2) and `kernel` options; `conditional_variance` defaults to the bias-reduced
    **Fan & Yao** residual estimator (`method = :residual`; the plug-in is `:plugin`), with the residual-based
    `conditional_variance_standard_error` ``= \sqrt{\ell(x)\,(\mu_4-\sigma^4)}`` (the SE of the squared-residual
@@ -433,7 +433,7 @@ Mechanical bar:
    ``\equiv f_{g(Y)\mid X}`` land too — `conditional_mean` folded in as the ``g = \text{identity}`` case,
    both **composing the two atoms** (a per-X-column y-quadrature response regressed in x). The sampling
    `conditional_expectation_standard_error` ``= \sqrt{\ell(x)\,\mathrm{Var}(g(Y)\mid x)}`` lands with them —
-   the local-regression **leverage** ``\ell(x) = \sum_j N_j w_j^2`` a new `LocalPolynomial._leverage` readout
+   the local-regression **leverage** ``\ell(x) = \sum_j N_j \omega_j^2`` a new `LocalPolynomial._leverage` readout
    (the design's plain **and squared-kernel** moments) — the reference SE mechanism for the whole kernel
    family; the marginal `expectation_standard_error`'s ``1/n`` leverage becomes the local one. Tested against
    the bivariate-Gaussian ``\mathbb{E}[\cos Y\mid x]`` and lognormal-pushforward oracles, the exact fold, the
@@ -467,7 +467,7 @@ Mechanical bar:
    ``\text{into} \mathrel{+}= \text{weight}\cdot\text{from}`` (the default `weight = 1` the plain monoid
    add). On a **Float-count variant** (`count_type = Float64`; the default `UInt64` cannot hold a fractional
    ``w\,n``) for both histograms. Realizes the **hyperstatistical** parameter-mixture density
-   ``P(x) = \sum_k w_k f_k(x) = \sum_k (w_k/N_k) T_k`` (superstatistics; Beck & Cohen 2003) — keep one
+   ``P(x) = \sum_k \pi_k f_k(x) = \sum_k (\pi_k/N_k) T_k`` (superstatistics; Beck & Cohen 2003) — keep one
    summary per ``\beta``, choose the mixing law ``f(\beta)`` *post hoc*, re-weight without re-accumulating —
    and **exponential forgetting** (`scale!(s, λ)` before the next block). Tested (`test/hyperstatistics.jl`):
    the cone laws, the discrete Gaussian-mixture oracle, the **χ²-superstatistics → Student-``t``** Beck–Cohen
