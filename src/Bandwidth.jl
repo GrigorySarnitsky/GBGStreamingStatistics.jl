@@ -318,8 +318,8 @@ asymptotically minimising ``\\mathrm{MISE}(\\hat f_h) = \\int \\mathbb{E}\\bigl[
 (the AMISE is its leading-order large-``n`` expansion, which has the closed form the plug-in uses) for the
 smoothing `kernel` ``K`` and local-polynomial `degree` ``d``.
 
-**Estimator** (`rule = :normal`, the kernel- and degree-aware normal-reference plug-in). From the
-recovered ``\\hat\\sigma`` and the sample size ``n``,
+**Estimator** (`rule = :normal`, the kernel- and degree-aware normal-reference plug-in). From the sample
+standard deviation ``\\hat\\sigma``, read back from the summary's stored moments, and the sample size ``n``,
 
 ```math
 h = C(K, d) \\hat\\sigma n^{-1/(2p+1)},
@@ -327,7 +327,8 @@ h = C(K, d) \\hat\\sigma n^{-1/(2p+1)},
 
 where ``p`` is the estimator's leading **bias order** — ``p = 2`` for `degree` 0 or 1 (the rate
 ``n^{-1/5}``), ``p = 4`` for `degree` 2 or 3 (a higher-order, ``O(h^4)``, fit, hence the wider, more
-slowly shrinking rate ``n^{-1/9}``). At `degree` 0/1 the constant is the **canonical bandwidth**
+slowly shrinking rate ``n^{-1/9}``). At `degree` 0/1 the constant is the **canonical bandwidth**, and at
+`degree` 2/3 the analogous fourth-order **equivalent-kernel** one (Loader 1996):
 
 ```math
 \\begin{aligned}
@@ -337,26 +338,26 @@ R(K) &= \\int K^2, \\qquad \\mu_2(K) = \\int u^2 K(u)\\,\\mathrm{d}u,
 \\end{aligned}
 ```
 
-At `degree` 2/3 the constant is the analogous fourth-order **equivalent-kernel** one (Loader 1996). The
-constants ``R(K)`` and ``\\mu_2(K)`` are computed by quadrature, so any ``K`` is supported. For the Gaussian kernel at
+where ``R(K)`` and ``\\mu_2(K)`` are computed by quadrature, so any ``K`` is supported. For the Gaussian kernel at
 `degree` 0 this is **Silverman's rule** ``(4/3)^{1/5}\\hat\\sigma n^{-1/5}``; for the Epanechnikov
 kernel it is ``\\approx 2.34 \\hat\\sigma n^{-1/5}`` (``2.214\\times`` the Gaussian ``h``). Every
-input is read back from the *one* stored summary, post hoc.
+input is read back from the *one* stored summary after accumulation.
 
 **Estimator** (`rule = :sj`, the data-driven Sheather–Jones plug-in; `degree` 0/1). The curvature
-``\\psi_4 = R(f'')`` and its ``\\psi_6`` pilot are estimated from the bin counts as Hermite-weighted
-reductions, and the **solve-the-equation** bandwidth (Sheather & Jones 1991) is found by root-finding;
-the eval kernel then enters as the same canonical ``\\delta(K)`` rescale as for `:normal` (the curvature
-is a Gaussian-pilot estimate, kernel-independent). It adapts to the true shape — on a bimodal sample,
+``\\psi_4 = R(f'')`` and its pilot ``\\psi_6`` (the third derivative's roughness) are estimated from the
+bin counts as sums weighted by Hermite polynomials, and the **solve-the-equation** bandwidth (Sheather &
+Jones 1991) is found by root-finding; the evaluation kernel (the `kernel` the density is smoothed with,
+not the Gaussian pilot behind the curvature) then enters as the canonical ``\\delta(K)``
+rescale, as for `:normal`. It adapts to the true shape — on a bimodal sample,
 where the normal reference oversmooths from an inflated ``\\hat\\sigma``, it picks a much smaller ``h``.
-Both functionals are reductions of the bin counts, so they are mergeable; `:sj` is a degree-0/1 selector,
+Both functionals are sums over the bin counts, so they merge (separately accumulated summaries select as one); `:sj` is a degree-0/1 selector,
 so for a `degree` ``\\ge 2`` fit use `rule = :normal`.
 
 **Estimator** (`rule = :isj`, the **Improved Sheather–Jones** plug-in; Botev, Grotowski & Kroese 2010;
-`degree` 0/1). The same solve-the-equation idea, but the curvature norms ``\\|f^{(s)}\\|^2`` are read off
-the **DCT** of the bin counts (Plancherel) rather than from a normal-reference pilot — so it stays
-reliable on strongly multimodal data, where the pilot scale of `:sj` can mislead. The eval kernel again
-enters as the ``\\delta(K)`` rescale.
+`degree` 0/1). The same solve-the-equation idea, but the curvature norms ``\\|f^{(s)}\\|^2`` of the successive
+derivatives are read off the **discrete cosine transform (DCT)** of the bin counts (Plancherel) rather
+than from a normal-reference pilot — so it stays reliable on strongly multimodal data, where the pilot
+scale of `:sj` can mislead. The evaluation kernel again enters as the ``\\delta(K)`` rescale.
 
 **Estimator** (`rule = :aic`, the fit-based information criterion; `degree` 0/1). Over a log-spaced
 ``h``-grid around the normal reference, minimise ``\\mathrm{AIC}(h) = -2\\sum_j n_j \\log \\hat f_h(c_j) + 2\\mathrm{df}(h)`` of the binned **Gaussian** KDE (the sum runs over bins ``j``, ``n_j`` the count and ``c_j`` the center of bin ``j``), with the **effective degrees of freedom** ``\\mathrm{df}(h) = (\\varphi(0)/h)\\sum_j n_j/(n\\hat f_h(c_j))`` — the kernel smoother's self-influence trace, which stands in for the parameter count in the criterion (``\\varphi`` the Gaussian). Both terms diverge as ``h \\to 0``, so the optimum is a stable interior point, and the eval kernel enters only as the canonical ``\\delta(K)`` rescale of the selected ``h``. The leave-one-out **cross-validation** selectors (likelihood-CV and least-squares LSCV) are not offered — binning ties drive their optimum to ``h \\to 0``; use `:sj` or `:isj` for a data-driven alternative.
@@ -366,7 +367,7 @@ enters as the ``\\delta(K)`` rescale.
 varying shape, so they take their own scale ``b`` (rate ``n^{-2/5}``), not the symmetric ``h``, and accept
 two rules. `rule = :normal` (default) is the ``\\hat\\sigma n^{-2/5}`` rule of thumb. `rule = :plugin`
 is the **Chen plug-in**, the asymmetric analog of Silverman's rule: from the AMISE ``A b^2 + C b^{-1/2}/n``
-(Chen 1999, 2000; the modified ``f_2`` kernels) with ``A = \\tfrac{1}{4}\\int w(x)^2 f''(x)^2\\,\\mathrm{d}x``
+(Chen 1999, 2000; the boundary-modified kernels, Chen's ``f_2`` variant) with ``A = \\tfrac{1}{4}\\int w(x)^2 f''(x)^2\\,\\mathrm{d}x``
 and ``C = (2\\sqrt\\pi)^{-1} \\mathbb{E}[w(X)^{-1/2}]``, where ``w(x) = x`` (gamma) or ``x(1-x)`` (beta)
 is the kernel's local-scale weight,
 
@@ -383,7 +384,7 @@ it. `rule = :plugin` also accepts a custom
 AMISE weight ``w(x)`` (its `local_scale_weight` keyword); one built without it carries no ``w(x)``, so
 `:plugin` rejects it — use `rule = :normal`. The symmetric selectors `:sj` /
 `:isj` / `:aic` do not apply to an asymmetric kernel; a fully
-data-adaptive curvature pilot is a recorded refinement.
+data-adaptive curvature pilot is not yet offered.
 
 The response-aware *local* plug-in ``h^\\star(x) = \\bigl[R(K) \\sigma^2(x) /
 (\\mu_2(K)^2  m''(x)^2  f_X(x)  n)\\bigr]^{1/5}`` — each conditioning value its own bandwidth from
@@ -393,7 +394,7 @@ joint-summary selector `bandwidth(summary::Histogram2D, x; rule = :local)` (belo
 # Arguments
 
 - `summary` — the [`Histogram1D`](@ref GBGStreamingStatistics.Histograms.Histogram1D) of ``X``; its
-  recovered ``\\hat\\sigma`` (and, for the data-driven rules, its bin counts) are the inputs.
+  sample standard deviation ``\\hat\\sigma`` (and, for the data-driven rules, its bin counts) are the inputs.
 - `rule` — the selector (each described above): `:normal` (default), `:sj`, `:isj`, or `:aic` for a
   symmetric `kernel`; `:normal` (default) or `:plugin` for an asymmetric one.
 - `kernel` — the smoothing kernel the bandwidth is for (default
@@ -498,8 +499,8 @@ end
 
 
 """
-    bandwidth(summary::Histogram2D, x;   # ≡ h⋆(x)
-              rule = :local, kernel = gaussian_kernel, pilot_bandwidth = nothing)
+    bandwidth(summary::Histogram2D, x; rule = :local, kernel = gaussian_kernel,
+              pilot_bandwidth = nothing) -> h
 
 **Estimand.** The response-aware **local** AMISE-optimal bandwidth ``h^\\star(x)`` for the conditional
 mean [`conditional_mean`](@ref GBGStreamingStatistics.ConditionalExpectations.conditional_mean) ``m(x)`` — the
@@ -519,8 +520,9 @@ each at a single pilot bandwidth: the conditional variance ``\\sigma^2(x)`` from
 Yao [`conditional_variance`](@ref GBGStreamingStatistics.ConditionalExpectations.conditional_variance)
 (its default residual estimator), the curvature ``m''(x) = 2\\beta_2`` (twice the second-order coefficient
 of the degree-2 local-polynomial fit), and ``f_X(x)`` from the binned KDE of the X-marginal. The constants
-``R(K)`` and ``\\mu_2(K)`` are computed by quadrature, so any `kernel` works. Because estimating a second derivative
-needs a wider window than the final fit, the default pilot is the curvature-rate rule of thumb
+``R(K)`` and ``\\mu_2(K)`` are computed by quadrature, so any `kernel` works.
+
+Because estimating a second derivative needs a wider window than the final fit, the default pilot is the curvature-rate rule of thumb
 ``\\hat\\sigma_X  n^{-1/9}``; where the regression is locally linear (``m''(x) \\to 0``) the optimal
 bandwidth is unbounded, so it is capped at the X-range. A vector `x` returns a vector; `NaN` marks an
 ``x`` off the data's support.
@@ -536,7 +538,8 @@ bandwidth is unbounded, so it is capped at the X-range. A vector `x` returns a v
 - `kernel` — the smoothing kernel ``K`` (any callable with ``\\int K = 1``; default
   [`gaussian_kernel`](@ref GBGStreamingStatistics.Kernels.gaussian_kernel)).
 - `pilot_bandwidth` — the pilot bandwidth for the ``\\sigma^2(x)``, ``m''(x)``, ``f_X(x)`` estimates; `nothing`
-  (default) uses the curvature-rate rule of thumb ``\\hat\\sigma_X  n^{-1/9}``.
+  (default) uses the curvature-rate rule of thumb ``\\hat\\sigma_X  n^{-1/9}`` (the conditioning variable's
+  sample standard deviation times that power of the sample size).
 
 Reference: J. Fan & I. Gijbels (1996), [*Local Polynomial Modelling and Its Applications*](https://doi.org/10.1201/9780203748725),
 Chapman & Hall.
