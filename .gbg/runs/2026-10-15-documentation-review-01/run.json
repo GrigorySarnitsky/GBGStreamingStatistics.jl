@@ -14,7 +14,8 @@
         "2026-10-15-documentation-review-01-090",
         "2026-10-15-documentation-review-01-003",
         "2026-10-15-documentation-review-01-071",
-        "2026-10-15-documentation-review-01-092"
+        "2026-10-15-documentation-review-01-092",
+        "2026-10-15-documentation-review-01-011"
     ],
     "covered": [
         "2026-10-15-documentation-review-01-045\t2026-10-15-documentation-review-01-014",
@@ -435,9 +436,9 @@
             ],
             "id": "2026-10-15-documentation-review-01-011-code",
             "decision": "This finding needs a change only you may make. Will you make it?",
-            "direction": "",
+            "direction": "One equation per display row: give each second equation set after \\qquad its own row (a line break in an aligned block; a stacked pair for a single-line display). Change no symbol, number or sign.",
             "context": "Giving the second equation of each display its own row rewrites the display formulas (bandwidth, merge!, conditional_density_standard_error), which the change guard refuses as a mathematics change (clause 6); the owner splits them or records the where-clause as the sanctioned form.",
-            "answer": null
+            "answer": "fix it on my ruling"
         },
         {
             "options": [
