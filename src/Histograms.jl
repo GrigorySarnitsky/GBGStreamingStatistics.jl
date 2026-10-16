@@ -19,7 +19,7 @@ export Histogram1D, Histogram2D, observe_pairs!, scale!, write_histogram, read_h
                 count_type = UInt64)
 
 A **finely binned empirical measure** of a scalar variate ``X`` — the canonical summary
-``T(\\hat\\mu_n)``. The `nbins` equal-width (WARPing) bins tile the half-open range ``[\\texttt{lower}, \\texttt{upper})``;
+``T(\\hat\\mu_n)``. The `nbins` equal-width bins (WARPing — weighted averaging of rounded points) tile the half-open range ``[\\texttt{lower}, \\texttt{upper})``;
 choosing the range to cover the data (e.g. ``\\pm 5\\sigma`` for the data's standard deviation
 ``\\sigma``) with ``\\gtrsim 10^3`` bins makes the bin width ``b \\approx \\sigma/100`` far below any
 post-hoc smoothing bandwidth ``h`` (``b \\ll h``), so the summary is *approximately sufficient*.
@@ -29,16 +29,18 @@ about the fixed bin center ``c_j``, for ``p = 1 \\dots \\texttt{order}``. Becaus
 a bin these are well-conditioned, so accumulation is a plain atomic scatter-add
 ([`observe!`](@ref GBGStreamingStatistics.Accumulators.observe!)) that runs
 identically on CPU and GPU, and `merge!` is elementwise addition. The power-sums use the *actual*
-``X_i`` (not the center), so the global central moments recovered post hoc (by the shift formula) are
-exact, and stable for the even orders (the odd orders, ``\\approx 0``, keep weaker relative precision).
+``X_i`` (not the center), so the global central moments recovered post hoc (by the shift formula — the binomial re-centering
+from the bin center to the sample mean) are exact, and stable for the even orders (the odd orders, ``\\approx 0``, keep weaker relative precision).
 The default `order = 4` recovers up to ``M_4``; an even higher moment such as ``M_6`` needs `order = 6`.
-Counts are `UInt64` by default (the additive monoid) and power-sums are accumulated in `accumulator`
+
+Counts are `UInt64` by default (summaries add) and power-sums are accumulated in `accumulator_type`
 (`Float64` by default) regardless of the input element type — *accumulate wider than the data*. Set
 `count_type = Float64` for the **Float-count variant** that [`scale!`](@ref GBGStreamingStatistics.Accumulators.scale!)
-and weighted [`merge!`](@ref Base.merge!) require — the cone the hyperstatistical parameter-mixture and
-exponential forgetting are built from (a fractional weighted count is not an integer).
+and weighted [`merge!`](@ref Base.merge!) require — the convex cone (summaries add and scale) that
+post-hoc re-weighting of a family of summaries (hyperstatistics) and down-weighting old data
+(exponential forgetting) need (a fractional weighted count is not an integer).
 
-Samples outside ``[\\texttt{lower}, \\texttt{upper})`` are **skipped** (not counted) — set the range to cover the data.
+Samples outside ``[\\texttt{lower}, \\texttt{upper})`` are **skipped** (not counted).
 
 # Arguments
 
@@ -51,9 +53,9 @@ Samples outside ``[\\texttt{lower}, \\texttt{upper})`` are **skipped** (not coun
 
 # Fields
 
-The summary's whole **internal state — distinct from the constructor arguments** (`scale` is derived,
-`counts` and `powersums` are allocated) — each reachable by dot (`summary.lower`, `summary.scale`,
-`summary.counts`, …), for serialization, inspection, or building one by hand:
+The fields hold the summary's whole **internal state**, distinct from the constructor arguments (`scale`
+is derived, `counts` and `powersums` allocated); each is reachable by dot (`summary.lower`,
+`summary.scale`, `summary.counts`, …), for serialization, inspection, or building one by hand:
 - `lower`, `upper` — the range edges (`upper > lower`).
 - `scale` — the precomputed binning factor `nbins / (upper - lower)`, stored (not recomputed) so that
   the binning map is a single multiply.
@@ -62,7 +64,7 @@ The summary's whole **internal state — distinct from the constructor arguments
 
 A freshly constructed summary is **empty**: `counts` and `powersums` are all zeros (the `merge!`
 identity), and you `observe!` data into it; `merge!` adds `counts` and `powersums` elementwise, so
-summaries on the same binning combine by saving and adding these two arrays. The recovered moments are
+same-binning summaries combine by adding these two arrays. The recovered moments are
 read out with [`central_moment`](@ref GBGStreamingStatistics.Expectations.central_moment) and, for the
 first two, the `Statistics` extensions `mean`, `var`, and `std`.
 
@@ -208,11 +210,13 @@ two-time transition densities. Its ``\\texttt{nx} \\times \\texttt{ny}`` equal-w
 **count** and the order-2 bivariate **power-sums** ``S_{rs} = \\sum_{(X,Y)\\in\\text{cell}} (X -
 c^x)^r (Y - c^y)^s`` about the cell center ``(c^x, c^y)`` — ``S_{10}, S_{01}, S_{20}, S_{11},
 S_{02}`` — the local sufficient statistic for the joint density and for local-linear conditioning.
-For a two-time quantity ``X(t)`` and the response ``Y(t+\\tau)`` are paired *per source*; the lag
-``\\tau`` is an explicit label on the summary. Pairs outside the box are skipped. Same atomic-scatter
-accumulation, `merge!`-by-addition, `Float64` accumulation, and `count_type = Float64` Float-count / cone
-variant (for [`scale!`](@ref GBGStreamingStatistics.Accumulators.scale!) and weighted
-[`merge!`](@ref Base.merge!)) as [`Histogram1D`](@ref GBGStreamingStatistics.Histograms.Histogram1D).
+
+For a two-time quantity, the value ``X(t)`` and the later response ``Y(t+\\tau)`` of one source (a stream
+trajectory) are paired; the lag ``\\tau`` is an explicit label on the summary. Pairs outside
+the box are skipped. Accumulation (atomic scatter), `merge!` by addition, `Float64` accumulation and the
+`count_type = Float64` Float-count / cone variant (for
+[`scale!`](@ref GBGStreamingStatistics.Accumulators.scale!) and weighted [`merge!`](@ref Base.merge!))
+are as for [`Histogram1D`](@ref GBGStreamingStatistics.Histograms.Histogram1D).
 
 # Arguments
 
@@ -226,8 +230,9 @@ variant (for [`scale!`](@ref GBGStreamingStatistics.Accumulators.scale!) and wei
 
 # Fields
 
-The summary's whole **internal state — distinct from the constructor arguments** (`xscale`/`yscale`
-derived, `counts` and `powersums` allocated) — each reachable by dot (`summary.xlower`, `summary.xscale`, `summary.lag`, …):
+The fields hold the summary's whole **internal state**, distinct from the constructor arguments
+(`xscale`/`yscale` derived, `counts` and `powersums` allocated); each is reachable by dot
+(`summary.xlower`, `summary.xscale`, `summary.lag`, …):
 - `xlower`, `xupper`, `ylower`, `yupper`, `nx`, `ny` — the box and cell counts.
 - `xscale`, `yscale` — the precomputed binning factors `nx/(xupper-xlower)`, `ny/(yupper-ylower)`, stored.
 - `lag` — the lag ``\\tau`` this joint summary is accumulated at (`0` for the static joint).
@@ -341,11 +346,11 @@ end
     observe_pairs!(summary::Histogram2D, x_past, y_now) -> summary
 
 Fold a batch of **pre-formed pairs** ``\\bigl(X(t),  Y(t+\\tau)\\bigr)`` into the per-lag summary in
-place (`x_past` holds ``X(t)``, `y_now` holds ``Y(t+\\tau)``, equal length) — the memoryless surface for
-two-time statistics. The pairs are binned by an atomic
-scatter-add (one work-item per pair, CPU and GPU alike); everything that *produces* the pairs — the
-snapshot buffer of past ``X(t)``, which sources to sample, which lags to form, the origin cadence — is
-the **consumer's** responsibility, formed at the summary's lag ``\\tau``.
+place (`x_past` holds ``X(t)``, `y_now` holds ``Y(t+\\tau)``, equal length) — the entry point that stores
+no sample. The pairs are binned by an atomic scatter-add (one work-item per pair, CPU or GPU);
+everything that *produces* the pairs — the buffer of past ``X(t)`` snapshots, which sources (stream
+trajectories) to sample, which lags to form, how often to start a pair — is the **consumer's** (the
+calling code's) responsibility, formed at the summary's lag ``\\tau``.
 
 # Arguments
 
@@ -396,7 +401,7 @@ end
 # automatically when the HDF5 package is. ---
 
 """
-    write_histogram(parent, name, summary) -> group
+    write_histogram(parent, name, summary)
 
 Persist a `Histogram1D` or `Histogram2D` `summary` as a **new HDF5 group** `name` under `parent` (an open
 HDF5 `File` or `Group`), returning that group. The summary is the durable artifact of the streaming design
@@ -409,8 +414,8 @@ so any HDF5 tool can read it. Device (GPU) arrays are copied to the host on writ
 type is preserved, so the `count_type = Float64` cone variant round-trips. The sugar `parent[name] = summary`
 is equivalent.
 
-The handle `parent` is one you opened and own — this never opens or closes a file. Provided by a package
-extension: available only when the `HDF5` package is loaded.
+The handle `parent` is one you opened and own — this never opens or closes a file. A package extension
+provides this method; it is available only when `HDF5` is loaded.
 
 # Arguments
 
@@ -422,7 +427,7 @@ function write_histogram end
 
 
 """
-    read_histogram(parent, name) -> Histogram1D or Histogram2D
+    read_histogram(parent, name)
 
 Reconstruct the summary written by
 [`write_histogram`](@ref GBGStreamingStatistics.Histograms.write_histogram) from the HDF5 group `name`
@@ -432,8 +437,8 @@ under `parent` (an open HDF5 `File` or `Group`), dispatching on the stored `type
 the same shape.
 
 The reconstructed summary is a host (CPU) object regardless of where the written one lived; move it to a
-device afterward if needed. Provided by a package extension: available only when the `HDF5` package is
-loaded.
+device afterward if needed. A package extension provides this method; it is available only when `HDF5`
+is loaded.
 
 The arguments are `parent`, an open HDF5 `File` or `Group` holding the group, and `name`, the name (or
 path) of the histogram group under `parent`.

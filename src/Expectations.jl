@@ -149,8 +149,8 @@ std(summary::Histogram1D; corrected::Bool = true) = sqrt(var(summary; corrected 
 **Estimand.** The population ``p``-th central moment ``\\mu_p = \\mathbb{E}\\bigl[(X - \\mathbb{E}[X])^p\\bigr]``.
 
 **Estimator.** The estimator is the sample central moment ``\\frac{1}{n} \\sum_i (X_i - \\bar X)^p`` (``\\bar X``
-the recovered mean), recovered **exactly** from the power-sums by the shift formula — not a smoothed estimate — for
-``2 \\le p \\le \\texttt{order}``. The order ``p = 2`` is the uncorrected variance (`var` with `corrected = false`);
+the recovered mean), recovered **exactly** from the power-sums by the shift formula for ``2 \\le p \\le \\texttt{order}``
+(any other order throws an `ArgumentError`). The order ``p = 2`` is the uncorrected variance (`var` with `corrected = false`);
 even orders recover stably, odd orders (``\\approx 0``) to weaker relative precision. This is the
 ``g = (x - \\bar X)^p`` case of the power-sum quadrature [`expectation`](@ref
 GBGStreamingStatistics.Expectations.expectation), with which it shares the weighted sum over the
