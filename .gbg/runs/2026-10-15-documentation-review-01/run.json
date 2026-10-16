@@ -11,7 +11,10 @@
         "2026-10-15-documentation-review-01-062",
         "2026-10-15-documentation-review-01-070",
         "2026-10-15-documentation-review-01-078",
-        "2026-10-15-documentation-review-01-090"
+        "2026-10-15-documentation-review-01-090",
+        "2026-10-15-documentation-review-01-003",
+        "2026-10-15-documentation-review-01-071",
+        "2026-10-15-documentation-review-01-092"
     ],
     "covered": [
         "2026-10-15-documentation-review-01-045\t2026-10-15-documentation-review-01-014",
@@ -81,9 +84,9 @@
             ],
             "id": "2026-10-15-documentation-review-01-092-code",
             "decision": "This finding needs a change only you may make. Will you make it?",
-            "direction": "",
+            "direction": "One letter, one meaning: bin width Delta everywhere (Delta_x, Delta_y in 2-D); b only the gamma/beta kernel scale; density boundary limits written lower/upper, not a/b; bin mass location \\tilde c_j (center c_j or centroid c_j + S_1/n_j); local-fit power index k; leverage l(x) unchanged; local-fit design weight n_j; effective regression weights \\omega_j(x); Chen local-scale weight w(x) unchanged; mixing weights \\pi_k. Add a Notation page listing each symbol once.",
             "context": "Renaming the bin location or the moment index in local_fit's display formula and normal equations rewrites mathematics, which the change guard refuses (clause 6); the owner chooses which letter changes.",
-            "answer": null
+            "answer": "fix it on my ruling"
         },
         {
             "options": [
@@ -297,9 +300,9 @@
             ],
             "id": "2026-10-15-documentation-review-01-003-code",
             "decision": "This finding needs a change only you may make. Will you make it?",
-            "direction": "",
+            "direction": "One letter, one meaning: bin width Delta everywhere (Delta_x, Delta_y in 2-D); b only the gamma/beta kernel scale; density boundary limits written lower/upper, not a/b; bin mass location \\tilde c_j (center c_j or centroid c_j + S_1/n_j); local-fit power index k; leverage l(x) unchanged; local-fit design weight n_j; effective regression weights \\omega_j(x); Chen local-scale weight w(x) unchanged; mixing weights \\pi_k. Add a Notation page listing each symbol once.",
             "context": "One symbol per concept across every surface (the bin width, the asymmetric scale, the bin location, the moment index, the four weights) rewrites formulas on every page and docstring, which the change guard refuses as a mathematics change (clause 6), and a notation page is a new page the owner decides on.",
-            "answer": null
+            "answer": "fix it on my ruling"
         },
         {
             "options": [
@@ -513,9 +516,9 @@
             ],
             "id": "2026-10-15-documentation-review-01-071-code",
             "decision": "This finding needs a change only you may make. Will you make it?",
-            "direction": "",
+            "direction": "One letter, one meaning: bin width Delta everywhere (Delta_x, Delta_y in 2-D); b only the gamma/beta kernel scale; density boundary limits written lower/upper, not a/b; bin mass location \\tilde c_j (center c_j or centroid c_j + S_1/n_j); local-fit power index k; leverage l(x) unchanged; local-fit design weight n_j; effective regression weights \\omega_j(x); Chen local-scale weight w(x) unchanged; mixing weights \\pi_k. Add a Notation page listing each symbol once.",
             "context": "Writing the support integral's limits as the tuple's own names, or renaming the asymmetric scale, rewrites a formula in density's docstring, which the change guard refuses as a mathematics change (clause 6); the owner chooses which symbol changes.",
-            "answer": null
+            "answer": "fix it on my ruling"
         }
     ],
     "rulebook": "93bc193e104cb3a372fb5bbe433c88743581d6450cd34cb0bc67204eef81d54a",
