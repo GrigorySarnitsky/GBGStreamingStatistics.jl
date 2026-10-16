@@ -1,8 +1,8 @@
 # MarginalDensity
 
-The marginal density ``\equiv f_X``: the [`density`](@ref) estimator, its pointwise variability band
-[`density_standard_error`](@ref) and the paired [`density_with_standard_error`](@ref), and the parametric
-starts for its semiparametric mode. The estimator `density` accepts any symmetric or bounded-support kernel from the
+The marginal density ``\equiv f_X`` is estimated by [`density`](@ref), with its pointwise variability
+band [`density_standard_error`](@ref), the paired [`density_with_standard_error`](@ref), and the
+parametric starts for its semiparametric mode. The estimator `density` accepts any symmetric or bounded-support kernel from the
 [Kernels](Kernels.md) page.
 
 ## Density
@@ -15,8 +15,8 @@ density_with_standard_error
 
 ## Parametric starts
 
-The moment-fitted [`ParametricStart`](@ref) models for the Hjort–Glad semiparametric
-`density(…; start = …)`, each documented below.
+The moment-fitted [`ParametricStart`](@ref) models serve the Hjort–Glad semiparametric
+`density(…; start = …)`; each is documented below.
 
 ```@docs
 normal_start

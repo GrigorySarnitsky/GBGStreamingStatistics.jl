@@ -33,7 +33,7 @@ export density, density_standard_error, density_with_standard_error,
 """
     ParametricStart(fit, logpdf, support)
 
-A **parametric start** for the Hjort–Glad semiparametric density (Hjort & Glad 1995). Passed as
+A **parametric start** serves the Hjort–Glad semiparametric density (Hjort & Glad 1995): passed as
 [`density(…; start = …)`](@ref GBGStreamingStatistics.MarginalDensity.density), it multiplies the
 moment-fitted model ``p(\\cdot;\\hat\\theta)`` by a kernel estimate of the **correction** ``f_X/p`` —
 near-exact where the model fits (the bias is driven by ``(f_X/p)''``, not ``f_X''``), degrading only to a
@@ -57,7 +57,7 @@ The constructor arguments are the three fields, and they are the construction co
 
 - `fit(mean, variance)` — fit the model parameters from the **recovered moments** by method of moments,
   returning a parameter tuple. Fitting from the mean and variance (not the raw data) is what keeps the whole
-  estimate **mergeable**: ``\\hat\\theta`` is itself a post-hoc functional of the summary.
+  estimate **mergeable** (two summaries' estimates combine by adding the summaries): ``\\hat\\theta`` is itself a post-hoc functional of the summary.
 - `logpdf(x, params)` — the model log-density ``\\log p(x;\\hat\\theta)``, returning ``-\\infty`` off the
   support. `density` reweights each bin by ``1/p(\\ell_j;\\hat\\theta)`` at the bin location ``\\ell_j`` through
   this log form (stable in the tails, where ``p`` is tiny).
@@ -86,8 +86,8 @@ end
 """
     normal_start
 
-A Gaussian (normal) [`ParametricStart`](@ref GBGStreamingStatistics.MarginalDensity.ParametricStart) on
-``(-\\infty,\\infty)``: ``p(x;\\hat\\mu,\\hat\\sigma^2)`` with ``\\hat\\mu``, ``\\hat\\sigma^2`` the
+The Gaussian (normal) [`ParametricStart`](@ref GBGStreamingStatistics.MarginalDensity.ParametricStart) on
+``(-\\infty,\\infty)`` takes ``p(x;\\hat\\mu,\\hat\\sigma^2)`` with ``\\hat\\mu``, ``\\hat\\sigma^2`` the
 recovered sample mean and variance. Pass `start = normal_start` to
 [`density`](@ref GBGStreamingStatistics.MarginalDensity.density).
 """
@@ -100,9 +100,9 @@ const normal_start = ParametricStart(
 """
     lognormal_start
 
-A log-normal [`ParametricStart`](@ref GBGStreamingStatistics.MarginalDensity.ParametricStart) on
-``(0,\\infty)``, parameters by method of moments (``s^2 = \\log(1+\\hat\\sigma^2/\\hat\\mu^2)``,
-``m = \\log\\hat\\mu - s^2/2``). A natural start for a **positively skewed** quantity such as a droplet
+The log-normal [`ParametricStart`](@ref GBGStreamingStatistics.MarginalDensity.ParametricStart) on
+``(0,\\infty)`` fits its parameters by method of moments (the log-variance
+``s^2 = \\log(1+\\hat\\sigma^2/\\hat\\mu^2)``, the log-mean ``m = \\log\\hat\\mu - s^2/2``). It is a natural start for a **positively skewed** quantity such as a droplet
 radius; pass `start = lognormal_start`.
 """
 const lognormal_start = ParametricStart(
@@ -114,9 +114,9 @@ const lognormal_start = ParametricStart(
 """
     gamma_start
 
-A gamma [`ParametricStart`](@ref GBGStreamingStatistics.MarginalDensity.ParametricStart) on ``(0,\\infty)``,
-shape ``k = \\hat\\mu^2/\\hat\\sigma^2`` and scale ``\\theta = \\hat\\sigma^2/\\hat\\mu`` by method of
-moments. For a non-negative quantity; pass `start = gamma_start`.
+The gamma [`ParametricStart`](@ref GBGStreamingStatistics.MarginalDensity.ParametricStart) on ``(0,\\infty)``
+fits the shape ``k = \\hat\\mu^2/\\hat\\sigma^2`` and scale ``\\theta = \\hat\\sigma^2/\\hat\\mu`` by method of
+moments. It suits a non-negative quantity; pass `start = gamma_start`.
 """
 const gamma_start = ParametricStart(
   (mean, variance) -> (mean^2 / variance, variance / mean),
@@ -127,9 +127,9 @@ const gamma_start = ParametricStart(
 """
     exponential_start
 
-An exponential [`ParametricStart`](@ref GBGStreamingStatistics.MarginalDensity.ParametricStart) on
-``[0,\\infty)``, rate ``\\hat\\lambda = 1/\\hat\\mu`` (a one-parameter start fit from the mean alone).
-Pass `start = exponential_start`; pairs with the `degree = 1` log-linear fit as the two
+The exponential [`ParametricStart`](@ref GBGStreamingStatistics.MarginalDensity.ParametricStart) on
+``[0,\\infty)`` fits the rate ``\\hat\\lambda = 1/\\hat\\mu`` (a one-parameter start, from the mean alone).
+Pass `start = exponential_start`; it pairs with the `degree = 1` log-linear fit as the two
 exponential-tail tools.
 """
 const exponential_start = ParametricStart(
@@ -141,9 +141,9 @@ const exponential_start = ParametricStart(
 """
     inverse_gaussian_start
 
-An inverse-Gaussian [`ParametricStart`](@ref GBGStreamingStatistics.MarginalDensity.ParametricStart) on
-``(0,\\infty)``, mean ``\\hat\\mu`` and shape ``\\hat\\lambda = \\hat\\mu^3/\\hat\\sigma^2`` by method of
-moments — a positive start with an exponentially decaying right tail (lighter than the log-normal's).
+The inverse-Gaussian [`ParametricStart`](@ref GBGStreamingStatistics.MarginalDensity.ParametricStart) on
+``(0,\\infty)`` fits the mean ``\\hat\\mu`` and shape ``\\hat\\lambda = \\hat\\mu^3/\\hat\\sigma^2`` by method of
+moments; it is a positive start with an exponentially decaying right tail (lighter than the log-normal's).
 Pass `start = inverse_gaussian_start`.
 """
 const inverse_gaussian_start = ParametricStart(
@@ -411,11 +411,12 @@ end
             support = nothing, start = nothing, normalize = false, binning = :linear)
 
 **Estimand.** The marginal (Lebesgue) density ``f_X = \\mathrm{d}\\mu_X/\\mathrm{d}\\lambda`` of the
-conditioning variable ``X``, defined by ``P(X \\in A) = \\int_A f_X\\,\\mathrm{d}\\lambda``.
+variate ``X``, defined by ``P(X \\in A) = \\int_A f_X\\,\\mathrm{d}\\lambda``.
 
-**Estimator.** The smoothed estimate ``\\hat f_h(x)`` from the accumulated `summary` — a binned local
-smoother of the counts ``n_j`` at bin locations ``\\ell_j`` (the within-bin centroid by default; see the
-`binning` option), a KDE / WARPing, or a local-log-polynomial fit of ``\\log f`` at `degree` ``\\ge 1``.
+**Estimator.** The estimator is the smoothed estimate ``\\hat f_h(x)`` from the accumulated `summary`: a
+binned local smoother of the counts ``n_j`` at bin locations ``\\ell_j`` (the within-bin centroid by
+default; see the `binning` option) — a binned KDE (WARPing, weighted averaging of rounded points) at
+`degree = 0`, or a local-log-polynomial fit of ``\\log f`` at `degree` ``\\ge 1``.
 
 # Arguments
 
@@ -433,7 +434,7 @@ smoother of the counts ``n_j`` at bin locations ``\\ell_j`` (the within-bin cent
   `support` are refused with it as redundant (a second boundary cure), `adaptive` because the square-root
   law is unproved for a varying-shape kernel, and a parametric `start` because that composition is not
   built; it takes its own scale ``b`` in place of `h`.
-- `degree` — the local-polynomial order. `degree = 0` (default) is the binned KDE / WARPing (weighted averaging of rounded points)
+- `degree` — the local-polynomial order. `degree = 0` (default) is the binned KDE / WARPing
   ``\\hat f(x) = \\frac{1}{n} \\sum_j (n_j/h_j)  K((x-\\ell_j)/h_j)`` (``\\int K = 1``). `degree` ``\\ge 1`` is the
   **local-log-polynomial** (local-likelihood) estimator (Loader 1996): fit ``\\log f`` by a
   degree-`degree` polynomial through a binned **local Poisson** likelihood and report
@@ -482,7 +483,7 @@ smoother of the counts ``n_j`` at bin locations ``\\ell_j`` (the within-bin cent
   their finishing step.
 - `binning` — where each bin's mass sits for the post-hoc evaluation. `:linear` (the default) places
   it at the recovered within-bin **centroid** ``\\ell_j = c_j + S_1^{(j)}/n_j`` (from the stored first power-sum
-  ``S_1``), which matches the bin's own first moment, so the binned estimate converges to the exact KDE at
+  ``S_1``, the sum over the bin's samples of their offsets from its center), which matches the bin's own first moment, so the binned estimate converges to the exact KDE at
   ``O(\\Delta^2)`` in the bin width ``\\Delta``; `:simple` places it at the geometric bin center ``\\ell_j = c_j``,
   the ``O(\\Delta)`` mass-at-center approximation. The centroid is read from data already in the summary, so
   the higher-order accuracy is free; it applies to every path (KDE, local-log, start, asymmetric kernel).
@@ -685,7 +686,7 @@ end
     density_standard_error(summary::Histogram1D, x; kernel = gaussian_kernel,
                            degree = 0, h = bandwidth(summary; kernel, degree),
                            adaptive = false, support = nothing, start = nothing,
-                           normalize = false, binning = :linear)   # ≡ SE[f̂(x)]
+                           normalize = false, binning = :linear)
 
 **Estimand.** The pointwise standard error of the density estimator
 `density` at ``x`` — ``\\mathrm{SE}(x) =
@@ -775,7 +776,7 @@ The `density` estimate **and** its pointwise
 [`density_standard_error`](@ref GBGStreamingStatistics.MarginalDensity.density_standard_error), from a
 **single option specification** — so the estimate and its error describe the same estimator by
 construction (the estimate is computed once and reused). Returns the `NamedTuple`
-`(value = f̂(x), standard_error = SE(x))`; a vector `x` gives a `(value, standard_error)` of vectors. The
+`(value, standard_error)`, `value` the estimate and `standard_error` its band; a vector `x` gives a `(value, standard_error)` of vectors. The
 standard error's estimand and per-option variance are documented at `density_standard_error`.
 
 Arguments: as for [`density`](@ref GBGStreamingStatistics.MarginalDensity.density).
