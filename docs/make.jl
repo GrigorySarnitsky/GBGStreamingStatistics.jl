@@ -56,6 +56,7 @@ GBGCodingTools.makedocs(ROOT;
       "Bandwidth"               => "api/Bandwidth.md",
     ],
     "Design & Internals" => Any[
+      "Notation"      => "notation.md",
       "Architecture"  => "architecture.md",
       "Formalization" => "formalization.md",
       "Testing"       => "testing.md",
