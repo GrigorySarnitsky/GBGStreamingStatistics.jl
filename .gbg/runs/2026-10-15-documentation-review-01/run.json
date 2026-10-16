@@ -361,7 +361,7 @@
             "decision": "This finding needs a change only you may make. Will you make it?",
             "direction": "",
             "context": "Making the quadrature's two defaulted arguments keywords changes code (the internal _quad signature and its call sites); the owner decides whether the positional rule reaches internals.",
-            "answer": null
+            "answer": "I make the change"
         },
         {
             "options": [
