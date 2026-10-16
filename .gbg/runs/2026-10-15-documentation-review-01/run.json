@@ -16,7 +16,9 @@
         "2026-10-15-documentation-review-01-071",
         "2026-10-15-documentation-review-01-092",
         "2026-10-15-documentation-review-01-011",
-        "2026-10-15-documentation-review-01-032"
+        "2026-10-15-documentation-review-01-032",
+        "2026-10-15-documentation-review-01-009",
+        "2026-10-15-documentation-review-01-010"
     ],
     "covered": [
         "2026-10-15-documentation-review-01-045\t2026-10-15-documentation-review-01-014",
@@ -383,9 +385,9 @@
             ],
             "id": "2026-10-15-documentation-review-01-009-code",
             "decision": "This finding needs a change only you may make. Will you make it?",
-            "direction": "",
+            "direction": "Bring every code-block line within the page column (86 characters): move each trailing comment onto its own line above its statement, and split a long input line in two; the printed outputs stay identical, and the docs build re-runs every doctest.",
             "context": "The tutorial, the Architecture layout block and the AsymmetricKernel example are rewrapped (committed under other findings). The remaining long lines sit inside jldoctest blocks (expectation, expectation_with_standard_error, Histogram2D, density, ParametricStart), which the change guard refuses to edit as executed blocks (clause 5); the owner rewraps those or rules them acceptable.",
-            "answer": null
+            "answer": "fix it on my ruling"
         },
         {
             "options": [
@@ -410,9 +412,9 @@
             ],
             "id": "2026-10-15-documentation-review-01-010-code",
             "decision": "This finding needs a change only you may make. Will you make it?",
-            "direction": "",
+            "direction": "Bring every code-block line within the page column (86 characters): move each trailing comment onto its own line above its statement, and split a long input line in two; the printed outputs stay identical, and the docs build re-runs every doctest.",
             "context": "The three signature comments and the Architecture layout block are fixed (committed under other findings). The remaining lines sit inside jldoctest blocks (Histogram1D, Histogram2D), which the change guard refuses to edit as executed blocks (clause 5); the owner rewraps those or rules them acceptable.",
-            "answer": null
+            "answer": "fix it on my ruling"
         },
         {
             "options": [
