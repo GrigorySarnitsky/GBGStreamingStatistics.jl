@@ -1,7 +1,7 @@
-<!-- gbg:managed begin v2.0.0-rc.77 — rewritten by `gbg sync`; do not edit -->
+<!-- gbg:managed begin v2.0.0-rc.83 — rewritten by `gbg sync`; do not edit -->
 # Documentation and API — `RULE.DOC.*`, `RULE.API.*`
 
-What a docstring and an API page contain, in what order and in what shape. 48 rules, written from the rule values themselves,
+What a docstring and an API page contain, in what order and in what shape. 50 rules, written from the rule values themselves,
 so a rule reworded here was reworded in the program that checks it.
 
 ### RULE.API.POSITIONAL
@@ -58,7 +58,7 @@ Covered by a program.
 ### RULE.DOC.ARG_BULLET
 An argument or field bullet names its argument in a plain code span, never a bold one.
 
-Bold marks emphasis; a name set in bold reads as a heading over the paragraph rather than as the argument.
+Bold marks structure (`RULE.DOC.EMPHASIS`); a name set in bold reads as a heading over the paragraph rather than as the argument.
 
 Covered by a program.
 
@@ -112,6 +112,20 @@ A citation of something renamed or removed reads exactly like one that resolves,
 
 Covered by a program.
 
+### RULE.DOC.EMPHASIS
+Bold marks structure alone: a heading, an admonition's title, a table's header row, and a run-in head that opens a paragraph, a list item, a quotation or a table cell. Bold anywhere else in a sentence, and bold italic, is never used; what it marked is stress or a term at its definition, which are italic, or a sentence that should carry its weight by its order.
+
+One mark doing three jobs tells the reader none of them: in one package bold opened bullets, introduced defined terms and stressed `not`, hundreds of times inside a sentence. The authorities agree that emphasis and a defined term are italic and bold is for structure — Knuth slants the emphasised `not` and never bolds it (The TeXbook, ch. 4), LaTeX's `\emph` sets italic, SIAM's style manual says "Bold is not used for emphasis", and the Chicago, Google, Microsoft and Apple guides and Wikipedia agree — and a reader finds a run-in head by where bold stands, which bold scattered through the sentences hides. A journal's volume in a reference is plain as well: some citation styles bold it, and no rule here asks for it (the owner, 2026-10-17). Where a bold span stands decides the question, so a program does; whether its italic is earned is `RULE.DOC.EMPHASIS_RARE`'s (the owner, 2026-10-16, on GBGHomogeneousTurbulence's request).
+
+Covered by a program.
+
+### RULE.DOC.EMPHASIS_RARE
+Emphasis is italic, and rare: a sentence carries its weight by its order first, and a word is set in italic only where, read aloud, it would be stressed against what the reader expects, or where a term is defined. Italic is never set inside italic, where it does not show, nor beside bold or quotation marks on the same words; capitals and underlining are never emphasis.
+
+Emphasis marked everywhere marks nothing: the authorities who agree that it is italic agree that it is occasional, and that a sentence places its stress first by putting the stressed words at its end or its start (Fowler's ITALICS, 1926; Strunk's rule 18; Gopen and Swan, 1990). A defined term is italic where it is defined and roman after. Markdown has no underline, and on a Documenter page italic inside italic stays italic, so the reversal LaTeX makes is lost. Whether a stress is earned, or a word is a definition, is a reading of the sentence, so a reader judges it; where bold may stand is `RULE.DOC.EMPHASIS`'s (the owner, 2026-10-16).
+
+Covered by a reader given nothing, because this needs meaning.
+
 ### RULE.DOC.FENCED_CODE
 A code block in a page or a rationale document is fenced with three backticks, never indented; a docstring's indented signature is exempt.
 
@@ -163,9 +177,9 @@ Covered by a reader given other documents, because this needs meaning.
 This package may set `leading_identity`; unset, it is `physical meaning`.
 
 ### RULE.DOC.LINKS
-Cross-referencing is discriminating: a target is linked at most once in one docstring, at its first genuine mention.
+Cross-referencing is discriminating: a target is linked at most once in one docstring, or in the prose of one section of a page under `docs/src/` outside its tables, at its first genuine mention; a heading begins a section and is not prose.
 
-A second link to the same target is invisible in the rendered text and tells the reader nothing new.
+A link draws the eye and says the target is worth following; a second one to the same target adds nothing a reader of the same docstring or section has not just met, and dilutes the links that matter. A long page is read from the middle — a reader lands in a section from a search, a heading's link or the sidebar — so a page's count starts again at each heading (the owner, 2026-10-18). A table is not held to it, since a row stands alone and is read alone. A target is a binding, one target under any text that reaches it, qualified or bare; a link to a heading is a way around the site, which no rule here counts.
 
 Covered by a program.
 
@@ -285,7 +299,7 @@ A reader meeting the name for the first time must be able to reach it, and a fou
 Covered by a program.
 
 ### RULE.DOC.SIGNATURE_FIDELITY
-The signature a docstring displays and the methods the module defines agree, argument for argument, in name and in position.
+The signature a docstring displays — in its leading block, or listed in its body — and the methods the module defines agree, argument for argument, in name and in position.
 
 A displayed signature is what a reader calls and the names a reader learns: one the method table has moved past is a call that fails, and a renamed argument is one the reader looks for in the code and does not find.
 
@@ -342,9 +356,9 @@ A plausible 'X is just Y' is a false claim until the expansion matches. Run this
 Covered by a reader given source, because this needs meaning.
 
 ### RULE.DOC.XLINK
-A name another module owns, mentioned on its own, is linked at its first mention in a docstring, qualified so the link resolves; a name inside a code expression owes no link.
+A name another module owns, mentioned on its own, is linked at its first mention in a docstring; in the prose of a page under `docs/src/`, every name a module of the package exports and documents is linked at its first mention there. Each link is qualified so it resolves; a name inside a code expression owes no link, and a heading is not prose.
 
-A reader meeting a name from elsewhere has nowhere to go: the docstring in front of him does not define it.
+A reader meeting a name from elsewhere has nowhere to go: the docstring in front of him does not define it, and a page defines nothing of itself — its section leads, module maps and tables send him to docstrings he cannot reach without the link (one package's pages named 85 such names plain, 2026-10-18). A design document is not such a page: it is read raw as well, where a link to a docstring does not resolve. Documenter's build checks that a link resolves. An argument that shares a documented name is written as the expression it is — `depth > 1`, `depth = 3` — which owes no link, since a program cannot tell the argument from the binding.
 
 Covered by a program.
 

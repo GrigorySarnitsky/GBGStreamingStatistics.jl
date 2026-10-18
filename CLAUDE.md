@@ -1,4 +1,4 @@
-<!-- gbg:managed begin v2.0.0-rc.77 — rewritten by `gbg sync`; do not edit -->
+<!-- gbg:managed begin v2.0.0-rc.83 — rewritten by `gbg sync`; do not edit -->
 @.gbg/policy/00-index.md
 
 The rulebook above is the whole of it: the rules, the terms they use, and what GBGStreamingStatistics has
