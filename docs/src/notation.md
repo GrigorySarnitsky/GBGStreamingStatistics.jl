@@ -69,7 +69,7 @@ Axis names are lower-case: an ``x``-column, the ``y``-quadrature.
 | ``\omega_j(x)`` | the effective weight the fitted value ``\hat\beta_0`` places on each sample of column ``j`` |
 | ``\ell(x)`` | the leverage of the local fit, ``\sum_j N_j \omega_j(x)^2 = e_0^\top U^{-1} W U^{-1} e_0`` |
 
-## Estimands and parameters
+## Estimands
 
 | Symbol | Meaning |
 |:--|:--|
@@ -82,6 +82,11 @@ Axis names are lower-case: an ``x``-column, the ``y``-quadrature.
 | ``\mathbb{E}[g(X)]`` | the expectation of a smooth functional ``g``; ``\mathbb{E}`` is the only expectation |
 | ``f_{g(X)}``, ``f_{g(Y) \mid X}`` | the density of a transformed variable, marginal and conditional |
 | ``P_l`` | the conditional density's kernel-weighted ``y``-profile |
+
+## Parameters
+
+| Symbol | Meaning |
+|:--|:--|
 | ``\theta``, ``f_\theta`` | the parameter of a parametric family and its density |
 | ``\pi_k``, ``\pi(\theta)`` | the mixing weight of component ``k`` and the mixing law of a parameter mixture |
 
@@ -92,7 +97,7 @@ A density symbol always carries its subscript, and an estimate its hat: ``\hat f
 | Symbol | Meaning |
 |:--|:--|
 | ``\bar X`` | the sample mean, an estimate of ``\mathbb{E}[X]`` |
-| ``\mu_p(X)``, ``\hat\mu_p`` | the central moment ``\mathbb{E}[(X - \mathbb{E}X)^p]``, and its estimate ``\tfrac1n \sum_i (X_i - \bar X)^p`` |
+| ``\mu_p(X)``, ``\hat\mu_p`` | the central moment ``\mathbb{E}[(X - \mathbb{E}X)^p]``, and its estimate ``\tfrac{1}{n} \sum_i (X_i - \bar X)^p`` |
 | ``\sigma_X``, ``\hat\sigma_X`` | the standard deviation of ``X``, and its estimate |
 
 ## Orders
@@ -108,4 +113,4 @@ A density symbol always carries its subscript, and an estimate its hat: ``\hat f
 Operators are upright: ``\operatorname{Var}``, ``\operatorname{bias}``, ``\operatorname{SE}``,
 ``\operatorname{MISE}``, ``\operatorname{AMISE}``, ``\operatorname{AIC}``, ``\mathrm{d}x``. So are named laws:
 ``\mathrm{Gamma}``, ``\mathrm{Exp}``, ``\mathrm{t}_\nu``, with ``\mathcal{N}`` for the normal law.
-Conditioning is written in full, ``\mathbb{E}[\,\cdot \mid X = x]``.
+Conditioning is written in full, ``\mathbb{E}[\cdot \mid X = x]``.

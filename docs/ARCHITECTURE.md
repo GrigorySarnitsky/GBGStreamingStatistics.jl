@@ -814,7 +814,7 @@ intentional — do not dedupe it).
   through the atomic-*float* add (CPU and GPU), and `merge!` was already an elementwise broadcast. Estimand:
   the hyperstatistical parameter-mixture density
   ``f_X(x) = \int \pi(\theta) f_\theta(x)\,\mathrm{d}\theta \approx \sum_k \pi_k f_{\theta_k}(x)``, read off the mixed summary
-  ``T = \sum_k (\pi_k/n(T_k))\,T_k`` with ``n(T_k)`` the total count of ``T_k``
+  ``T = \sum_k (\pi_k/n(T_k)) T_k`` with ``n(T_k)`` the total count of ``T_k``
   (superstatistics; Beck & Cohen 2003) — keep one summary ``T_k`` per ``\theta_k``, choose the mixing law
   ``\pi(\theta)`` post hoc, re-weight without re-accumulating; and exponential forgetting (`scale!(s, λ)`
   before the next block). Oracle-tested by the ``\chi^2``-superstatistics → Student-``\mathrm{t}`` result (a Gamma-weighted

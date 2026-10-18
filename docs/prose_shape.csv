@@ -3,63 +3,63 @@ unit,words,longest_paragraph,admonitions
 "ARCHITECTURE.md § 0. Provenance",83,53,0
 "ARCHITECTURE.md § 1. Purpose and scope",247,74,0
 "ARCHITECTURE.md § 10. Open questions",322,321,0
-"ARCHITECTURE.md § 11. Decision log",3416,598,0
+"ARCHITECTURE.md § 11. Decision log",3450,603,0
 "ARCHITECTURE.md § 2. The central principle: the architecture follows establish",50,50,0
-"ARCHITECTURE.md § 3. The accumulated summary — the universal lower half",1027,476,0
+"ARCHITECTURE.md § 3. The accumulated summary — the universal lower half",1040,480,0
 "ARCHITECTURE.md § 4. Estimand families (estimators — the exportable upper half",101,101,0
-"ARCHITECTURE.md § 4.1 Marginal density ``f_X``",522,257,0
-"ARCHITECTURE.md § 4.2 Conditional expectation ``m(x)`` and variance ``\sigma^2",159,90,0
-"ARCHITECTURE.md § 4.3 Conditional and transition density",94,94,0
-"ARCHITECTURE.md § 4.5 Bandwidth selection (cross-cutting)",221,221,0
-"ARCHITECTURE.md § 4.6 Projection road [OPEN, alternative]",72,71,0
+"ARCHITECTURE.md § 4.1 Marginal density ``f_X``",531,260,0
+"ARCHITECTURE.md § 4.2 Conditional expectation ``m(x)`` and variance ``\sigma^2",159,82,0
+"ARCHITECTURE.md § 4.3 Conditional and transition density",96,86,0
+"ARCHITECTURE.md § 4.5 Bandwidth selection (cross-cutting)",221,194,0
+"ARCHITECTURE.md § 4.6 Projection road [OPEN, alternative]",78,77,0
 "ARCHITECTURE.md § 4.A Kernel-weighting readouts",20,20,0
 "ARCHITECTURE.md § 4.B Power-sum quadrature readouts",255,158,0
-"ARCHITECTURE.md § 5. Backend-agnosticism and the hot-loop contract",280,232,0
+"ARCHITECTURE.md § 5. Backend-agnosticism and the hot-loop contract",285,237,0
 "ARCHITECTURE.md § 6. Invariants — deliberate absences are statements",12,12,0
 "ARCHITECTURE.md § 6. Invariants — deliberate absences are statements / item 1",42,42,0
 "ARCHITECTURE.md § 6. Invariants — deliberate absences are statements / item 2",53,53,0
 "ARCHITECTURE.md § 6. Invariants — deliberate absences are statements / item 3",55,55,0
 "ARCHITECTURE.md § 6. Invariants — deliberate absences are statements / item 4",9,9,0
 "ARCHITECTURE.md § 6. Invariants — deliberate absences are statements / item 5",36,36,0
-"ARCHITECTURE.md § 6. Invariants — deliberate absences are statements / item 6",136,82,0
+"ARCHITECTURE.md § 6. Invariants — deliberate absences are statements / item 6",150,96,0
 "ARCHITECTURE.md § 7. Documentation, correctness, and testing conventions",325,318,0
 "ARCHITECTURE.md § 8. Proposed repository layout (mirrors PF)",73,72,0
 "ARCHITECTURE.md § 9. Naming the package",116,64,0
-"ARCHITECTURE.md § Documentation policy — **estimand first, estimator second**",92,40,0
+"ARCHITECTURE.md § Documentation policy — estimand first, estimator second",92,40,0
 "ARCHITECTURE.md § Estimand families (the operation taxonomy)",115,87,0
 "ARCHITECTURE.md § GBGStreamingStatistics — Architecture and Rationale",75,74,0
 "ARCHITECTURE.md § Naming conventions",86,82,0
-"ARCHITECTURE.md § References",665,619,0
-"ARCHITECTURE.md § The algebra of measures — a structural lens",389,126,0
-"ARCHITECTURE.md § The histogram is the summary; the ECF is deferred (likely ne",219,147,0
-"ARCHITECTURE.md § The spine: empirical measure → summary → post-hoc-smoothed e",66,66,0
+"ARCHITECTURE.md § References",670,624,0
+"ARCHITECTURE.md § The algebra of measures — a structural lens",396,126,0
+"ARCHITECTURE.md § The histogram is the summary; the ECF is deferred (likely ne",229,147,0
+"ARCHITECTURE.md § The spine: empirical measure → summary → post-hoc-smoothed e",79,79,0
 "ARCHITECTURE.md § The spine: empirical measure → summary → post-hoc-smoothed e / item 1",62,62,0
-"ARCHITECTURE.md § The spine: empirical measure → summary → post-hoc-smoothed e / item 2",145,94,0
+"ARCHITECTURE.md § The spine: empirical measure → summary → post-hoc-smoothed e / item 2",148,94,0
 "ARCHITECTURE.md § Why a fine histogram is the canonical ``T`` (and the honest ",133,133,0
-"Accumulators.jl :: AbstractAccumulator",99,69,0
-"Accumulators.jl :: merge!(into::AbstractAccumulator, from::AbstractAccumulator;",338,100,0
+"Accumulators.jl :: AbstractAccumulator",103,68,0
+"Accumulators.jl :: merge!(into::AbstractAccumulator, from::AbstractAccumulator;",341,100,0
 "Accumulators.jl :: observe!(summary::AbstractAccumulator, batch) -> summary",172,79,0
-"Accumulators.jl :: scale!(summary::AbstractAccumulator, weight) -> summary",169,57,0
+"Accumulators.jl :: scale!(summary::AbstractAccumulator, weight) -> summary",172,60,0
 "Accumulators.md § Accumulators",55,55,0
 "Accumulators.md § Operations",29,29,0
-"Bandwidth.jl :: bandwidth(summary::Histogram1D; rule = :normal, kernel = gau",917,129,0
+"Bandwidth.jl :: bandwidth(summary::Histogram1D; rule = :normal, kernel = gau",919,129,0
 "Bandwidth.jl :: bandwidth(summary::Histogram2D, x; rule = :local, kernel = g",313,85,0
 "Bandwidth.md § Bandwidth",74,74,0
-"ConditionalDensity.jl :: conditional_density(summary::Histogram2D, x, y; kernelx = ga",484,133,0
-"ConditionalDensity.jl :: conditional_density_standard_error(summary::Histogram2D, x, ",194,101,0
+"ConditionalDensity.jl :: conditional_density(summary::Histogram2D, x, y; kernelx = ga",485,133,0
+"ConditionalDensity.jl :: conditional_density_standard_error(summary::Histogram2D, x, ",195,102,0
 "ConditionalDensity.jl :: conditional_density_with_standard_error(summary::Histogram2D",74,46,0
 "ConditionalDensity.jl :: transition_density(summary::Histogram2D, x, y; kernelx = gau",188,80,0
 "ConditionalDensity.jl :: transition_density_standard_error(summary::Histogram2D, x, y",53,28,0
 "ConditionalDensity.jl :: transition_density_with_standard_error(summary::Histogram2D,",47,22,0
 "ConditionalDensity.md § ConditionalDensity",49,49,0
-"ConditionalExpectations.jl :: conditional_expectation(summary::Histogram2D, g, x;   # ≡ E[",317,103,0
+"ConditionalExpectations.jl :: conditional_expectation(summary::Histogram2D, g, x;   # ≡ 𝔼[",319,103,0
 "ConditionalExpectations.jl :: conditional_expectation_standard_error(summary::Histogram2D,",150,93,0
 "ConditionalExpectations.jl :: conditional_expectation_with_standard_error(summary::Histogr",77,56,0
 "ConditionalExpectations.jl :: conditional_mean(summary::Histogram2D, x; kernel = gaussian_",458,164,0
-"ConditionalExpectations.jl :: conditional_pushforward_density(summary::Histogram2D, g, x, ",319,124,0
+"ConditionalExpectations.jl :: conditional_pushforward_density(summary::Histogram2D, g, x, ",317,124,0
 "ConditionalExpectations.jl :: conditional_pushforward_density_standard_error(summary::Hist",123,67,0
 "ConditionalExpectations.jl :: conditional_pushforward_density_with_standard_error(summary:",58,32,0
-"ConditionalExpectations.jl :: conditional_variance(summary::Histogram2D, x; kernel = gauss",281,86,0
+"ConditionalExpectations.jl :: conditional_variance(summary::Histogram2D, x; kernel = gauss",283,86,0
 "ConditionalExpectations.jl :: conditional_variance_standard_error(summary::Histogram2D, x;",136,78,0
 "ConditionalExpectations.jl :: conditional_variance_with_standard_error(summary::Histogram2",68,45,0
 "ConditionalExpectations.md § ConditionalExpectations",77,77,0
@@ -68,20 +68,20 @@ unit,words,longest_paragraph,admonitions
 "Expectations.jl :: expectation_standard_error(summary::Histogram1D, g)",72,53,0
 "Expectations.jl :: expectation_with_standard_error(summary::Histogram1D, g)",81,44,0
 "Expectations.jl :: mean(summary::Histogram1D)",57,48,0
-"Expectations.jl :: pushforward_density(summary::Histogram1D, g, y;   # ≡ f_{g(X",205,88,0
+"Expectations.jl :: pushforward_density(summary::Histogram1D, g, y;   # ≡ f_{g(X",204,87,0
 "Expectations.jl :: pushforward_density_standard_error(summary::Histogram1D, g, ",70,39,0
 "Expectations.jl :: pushforward_density_with_standard_error(summary::Histogram1D",49,37,0
-"Expectations.jl :: std(summary::Histogram1D; corrected = true)",57,24,0
+"Expectations.jl :: std(summary::Histogram1D; corrected = true)",59,26,0
 "Expectations.jl :: var(summary::Histogram1D; corrected = true)",75,46,0
 "Expectations.md § Expectations",113,113,0
 "Expectations.md § Recovered moments",21,21,0
 "FORMALIZATION.md § (preamble)",22,22,1
-"FORMALIZATION.md § Asymmetric kernels (§4.1) — `density`'s `gamma_kernel` / `be",157,157,0
-"FORMALIZATION.md § Bandwidth selection (§4.5) — `bandwidth`",650,650,0
-"FORMALIZATION.md § Conditional & transition density (§4.3) — `conditional_densi",319,251,0
+"FORMALIZATION.md § Asymmetric kernels (§4.1) — `density`'s `gamma_kernel` / `be",166,166,0
+"FORMALIZATION.md § Bandwidth selection (§4.5) — `bandwidth`",657,657,0
+"FORMALIZATION.md § Conditional & transition density (§4.3) — `conditional_densi",325,257,0
 "FORMALIZATION.md § Conditional density standard error (§4.3) — `conditional_den",187,187,0
-"FORMALIZATION.md § Conditional expectation of a functional (§4.2) — `conditiona",150,150,0
-"FORMALIZATION.md § Conditional expectation standard error (§4.2) — `conditional",184,184,0
+"FORMALIZATION.md § Conditional expectation of a functional (§4.2) — `conditiona",153,153,0
+"FORMALIZATION.md § Conditional expectation standard error (§4.2) — `conditional",181,181,0
 "FORMALIZATION.md § Conditional pushforward density (§4.2) — `conditional_pushfo",174,174,0
 "FORMALIZATION.md § Conditional variance (§4.2) — `conditional_variance`",299,299,0
 "FORMALIZATION.md § Formalization",196,70,0
@@ -89,17 +89,17 @@ unit,words,longest_paragraph,admonitions
 "FORMALIZATION.md § Local-log-polynomial & adaptive density (§4.1) — `density`'s",180,180,0
 "FORMALIZATION.md § Marginal density (§4.1) — `density`",218,218,0
 "FORMALIZATION.md § Parametric start & normalization (§4.1) — `density`'s `start",302,302,0
-"FORMALIZATION.md § Per-bin power-sums about the bin center (`Histograms`, the s",410,160,0
+"FORMALIZATION.md § Per-bin power-sums about the bin center (`Histograms`, the s",412,160,0
 "FORMALIZATION.md § Pointwise standard error (§4.1) — `density_standard_error`, ",199,199,0
-"FORMALIZATION.md § Power-sum quadrature — expectation of a functional (§4.B) — ",164,164,0
+"FORMALIZATION.md § Power-sum quadrature — expectation of a functional (§4.B) — ",166,166,0
 "FORMALIZATION.md § Power-sum quadrature — pushforward density (§4.B) — `pushfor",157,157,0
 "FORMALIZATION.md § Power-sum quadrature — sampling standard error (§4.B) — `exp",101,101,0
-"FORMALIZATION.md § Response-aware local bandwidth (§4.5) — `bandwidth(::Histogr",156,136,0
-"FORMALIZATION.md § The cone — `scale!`, weighted `merge!`, hyperstatistics (§10",370,278,0
-"FORMALIZATION.md § The kernel-weighting atom & local-polynomial jet (`Kernels._",309,309,0
+"FORMALIZATION.md § Response-aware local bandwidth (§4.5) — `bandwidth(::Histogr",160,136,0
+"FORMALIZATION.md § The cone — `scale!`, weighted `merge!`, hyperstatistics (§10",372,280,0
+"FORMALIZATION.md § The kernel-weighting atom & local-polynomial jet (`Kernels._",318,318,0
 "GBGStreamingStatistics.jl :: GBGStreamingStatistics",159,75,0
 "GBGStreamingStatistics.md § GBGStreamingStatistics",19,19,0
-"Histograms.jl :: Histogram1D <: AbstractAccumulator",524,116,0
+"Histograms.jl :: Histogram1D <: AbstractAccumulator",527,120,0
 "Histograms.jl :: Histogram2D <: AbstractAccumulator",356,86,0
 "Histograms.jl :: observe_pairs!(summary::Histogram2D, x_past, y_now) -> summa",122,83,0
 "Histograms.jl :: read_histogram(parent, name)",126,62,0
@@ -107,54 +107,58 @@ unit,words,longest_paragraph,admonitions
 "Histograms.md § Accumulation",17,17,0
 "Histograms.md § Histograms",23,23,0
 "Histograms.md § Persistence (HDF5)",70,70,0
-"Kernels.jl :: AsymmetricKernel(pdf, support; local_scale_weight = nothing)",375,144,0
-"Kernels.jl :: beta_kernel",99,82,0
+"Kernels.jl :: AsymmetricKernel(pdf, support; local_scale_weight = nothing)",377,144,0
+"Kernels.jl :: beta_kernel",102,85,0
 "Kernels.jl :: epanechnikov_kernel(u)",59,58,0
-"Kernels.jl :: gamma_kernel",198,180,0
+"Kernels.jl :: gamma_kernel",200,182,0
 "Kernels.jl :: gaussian_kernel(u)",18,17,0
 "Kernels.md § Kernels",100,100,0
-"LocalPolynomial.jl :: local_fit(locations, mass, response, x, kernel, degree, h)",312,119,0
+"LocalPolynomial.jl :: local_fit(locations, mass, response, x, kernel, degree, h)",310,117,0
 "MarginalDensity.jl :: ParametricStart(fit, logpdf, support)",300,102,0
-"MarginalDensity.jl :: density(summary::Histogram1D, x;   # ≡ f_X",1035,806,0
-"MarginalDensity.jl :: density_standard_error(summary::Histogram1D, x; kernel = gau",312,145,0
+"MarginalDensity.jl :: density(summary::Histogram1D, x;   # ≡ f_X",1038,806,0
+"MarginalDensity.jl :: density_standard_error(summary::Histogram1D, x; kernel = gau",310,145,0
 "MarginalDensity.jl :: density_with_standard_error(summary::Histogram1D, x; kernel ",125,64,0
 "MarginalDensity.jl :: exponential_start",36,35,0
-"MarginalDensity.jl :: gamma_start",27,26,0
-"MarginalDensity.jl :: inverse_gaussian_start",37,36,0
-"MarginalDensity.jl :: lognormal_start",39,38,0
-"MarginalDensity.jl :: normal_start",26,25,0
+"MarginalDensity.jl :: gamma_start",28,27,0
+"MarginalDensity.jl :: inverse_gaussian_start",38,37,0
+"MarginalDensity.jl :: lognormal_start",43,42,0
+"MarginalDensity.jl :: normal_start",30,29,0
 "MarginalDensity.md § MarginalDensity",38,38,0
 "MarginalDensity.md § Parametric starts",16,16,0
 "PERFORMANCE.md § (preamble)",22,22,1
 "PERFORMANCE.md § Benchmark coverage contract",74,44,1
 "PERFORMANCE.md § Hot-loop best practices",229,229,0
 "PERFORMANCE.md § Performance",10,10,0
-"PERFORMANCE.md § The model — one critical path",187,156,0
+"PERFORMANCE.md § The model — one critical path",195,159,0
 "TESTING.md § (preamble)",22,22,1
-"TESTING.md § Coverage matrix",724,388,0
+"TESTING.md § Coverage matrix",726,389,0
 "TESTING.md § Declared harness contracts",164,126,0
-"TESTING.md § Layers",774,774,0
+"TESTING.md § Layers",778,778,0
 "TESTING.md § Layout",280,153,1
 "TESTING.md § Testing",25,25,0
 "TESTING.md § The estimator contract",85,71,0
 "TESTING.md § The estimator contract / item 1",11,11,0
 "TESTING.md § The estimator contract / item 2",12,12,0
-"TESTING.md § The estimator contract / item 3",21,21,0
+"TESTING.md § The estimator contract / item 3",20,20,0
 "TESTING.md § The estimator contract / item 4",25,25,0
-"TESTING.md § The estimator contract / item 5",688,165,0
+"TESTING.md § The estimator contract / item 5",696,168,0
 "api.md § API overview",72,41,0
 "index.md § Design & internals",64,64,0
 "index.md § GBGStreamingStatistics.jl",449,156,1
 "index.md § Installation",42,19,0
-"index.md § Main components",414,388,0
+"index.md § Main components",425,399,0
 "internals.md § Internals",103,71,1
 "internals.md § The local-polynomial jet — `LocalPolynomial.local_fit`",44,44,0
-"notation.md § Estimands",88,88,0
-"notation.md § Notation",27,27,0
-"notation.md § Smoothing kernels",74,74,0
-"notation.md § The local fit",67,67,0
-"notation.md § The samples",70,70,0
-"notation.md § The summary",118,118,0
+"notation.md § Estimands",101,101,0
+"notation.md § Notation",65,65,0
+"notation.md § Orders",51,51,0
+"notation.md § Parameters",53,39,0
+"notation.md § Smoothing kernels",184,184,0
+"notation.md § Spelling",29,29,0
+"notation.md § The local fit",83,83,0
+"notation.md § The moments of the data",43,43,0
+"notation.md § The samples",99,91,0
+"notation.md § The summary",232,232,0
 "tutorial.md § Getting started",79,50,1
 "tutorial.md § The workflow",159,52,0
 "tutorial.md § Where to go next",26,26,0
