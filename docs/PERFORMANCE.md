@@ -7,19 +7,19 @@ The performance model, best practices, and the benchmark coverage contract.
 
 ## The model — one critical path
 
-The package has a single performance-critical path: the **per-sample accumulation hot loop**
-([`observe!`](@ref)), which runs over every sample of the stream — for the turbulence consumer,
-``N^3 \times`` steps. Everything else is second-order:
+The package has a single performance-critical path: the per-sample accumulation hot loop
+([`observe!`](@ref)), which runs over every sample of the stream — for the turbulence consumer, a sample
+per grid point per step. Everything else is second-order:
 
 - **Post-hoc smoothing is dwarfed by accumulation.** Every smoother here — the binned KDE (§4.1), the
   local-polynomial sums (§4.2), and the power-sum quadrature readouts (§4.B) — reads the small binned
-  summary (a few ``\times 10^3`` bins) once per request by **direct summation** over the bins (``O(B)`` per
+  summary (a few ``\times 10^3`` bins) once per request by direct summation over the bins (``O(B)`` per
   query point for a compact-reach kernel, ``O(B\cdot\texttt{order})`` plus ``\texttt{order}+1`` evaluations
   of ``g`` per bin for the quadrature, ``O(B^2)`` for the distance-histogram curvature functionals of
   `:sj`). Even so it is dwarfed by the accumulation over every sample of the stream — a few thousand bins
-  versus ``N^3`` samples. The **FFT amortization** — transform the bin counts once in ``O(B \log B)``, then
+  against every sample of every step. The FFT amortization — transform the bin counts once in ``O(B \log B)``, then
   each ``h`` (and the bandwidth grid a local ``h^\star(x)`` sweep needs) is a multiply by the kernel's
-  transform and an inverse FFT — is **deferred (recorded, not built)**: a pure optimization over the exact
+  transform and an inverse FFT — is deferred (recorded, not built): a pure optimization over the exact
   direct summation, the major lever only once a bandwidth *grid* is swept (`FFTW` is already in place,
   used today for the ISJ DCT).
 
@@ -29,7 +29,7 @@ The package has a single performance-critical path: the **per-sample accumulatio
   modal bins are atomic hot spots. Storing power-sums *about the bin center* makes each update a plain
   atomic add (counts integer-exact, power-sums `Float64` to round-off), so global atomics handle even
   heavy contention directly — the proven PF `anterpolate!` pattern, verified on the AMD GPU.
-  **Privatization** (per-block local histograms merged via the monoid) stays available as a future
+  Privatization (per-block local histograms merged via the monoid) stays available as a future
   optimization if a channel's modal-bin contention dominates.
 - **Wider-than-data precision is free.** The histogram is small (kilobytes per channel, versus a
   gigabyte field), so `Float64` moment accumulators cost almost nothing, and on the GPU the `Float64`

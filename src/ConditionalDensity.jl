@@ -15,9 +15,9 @@ _check_bandwidths(hx::Real, hy::Real) =
     throw(ArgumentError("bandwidths hx, hy must be positive (got hx = $hx, hy = $hy)"))
 
 
-# Reduce the joint histogram at conditioning value `x` to a 1-D X-kernel-weighted Y-profile:
-# `P[k] = Σ_j n_{jk} K_hx(c^x_j, x)` (the gx-weighted count in Y-row k) and `D = Σ_k P[k] = Σ_j N_j
-# K_hx(c^x_j, x)` (the marginal-X KDE numerator). The conditional distribution over Y-cells is P/D;
+# Reduce the joint histogram at conditioning value `x` to a 1-D x-kernel-weighted y-profile:
+# P_l = Σ_j n_{jl} K_{h_x}(c^x_j, x) (the K_{h_x}-weighted count in y-row l) and D = Σ_l P_l = Σ_j N_j
+# K_{h_x}(c^x_j, x) (the marginal-X KDE numerator). The conditional distribution over y-cells is P/D;
 # smoothing it in y gives the density. The per-column weight is the shared `_kernel_weight` atom (symmetric
 # or asymmetric `kernelx` alike); the x-weighting cancels in the f_{X,Y}/f_X ratio, so its normalization is
 # irrelevant here. Host-side (`Array` is a no-op for CPU summaries).
@@ -44,11 +44,12 @@ function _y_profile(summary::Histogram2D, x::Real, kernelx, hx::Real)
 end
 
 
-# Smooth the Y-profile to the density at `y`. The double-kernel ratio f_{X,Y}/f_X cancels the X-kernel
+# Smooth the y-profile to the density at `y`. The double-kernel ratio f_{X,Y}/f_X cancels the x-kernel
 # weighting (it appears in both the profile P and its total D); only the y-direction normalization
-# survives, carried by the shared `_kernel_weight` atom (its 1/hy folded in). For a symmetric `kernely`,
-# ∫K = 1 makes ∫ f̂(y∣x) dy = 1 exactly; an asymmetric `kernely` (a normalized density in its data argument)
-# gives ∫ f̂ dy ≈ 1 — exact only after `_response_normalizer` (as for the marginal `density`).
+# survives, carried by the shared `_kernel_weight` atom (its 1/h_y folded in). For a symmetric `kernely`,
+# ∫K = 1 makes ∫ f̂_{Y|X}(y | x) dy = 1 exactly; an asymmetric `kernely` (a normalized density in its data
+# argument) gives ∫ f̂_{Y|X} dy ≈ 1 — exact only after `_response_normalizer` (as for the marginal
+# `density`).
 function _density_at(summary::Histogram2D, P, D, y::Real, kernely, hy::Real)
   D > 0 || return oftype(D, NaN)
   acc = 0.0
@@ -61,8 +62,8 @@ function _density_at(summary::Histogram2D, P, D, y::Real, kernely, hy::Real)
 end
 
 
-# ∫ f̂(y∣x) dy over the summary's Y-range ∩ the response kernel's support, by the trapezoidal rule on a
-# fine grid — the per-x renormalization that makes ∫ f̂ dy = 1 exactly for a non-self-normalizing
+# ∫ f̂_{Y|X}(y | x) dy over the summary's y-range ∩ the response kernel's support, by the trapezoidal rule
+# on a fine grid — the per-x renormalization that makes ∫ f̂_{Y|X} dy = 1 exactly for a non-self-normalizing
 # asymmetric response kernel (a symmetric kernel already gives 1, so `normalize` is a no-op there).
 function _response_normalizer(summary::Histogram2D, P, D, kernely, hy::Real)
   lower, upper = float(summary.ylower), float(summary.yupper)
@@ -90,23 +91,23 @@ end
 
 **Estimator** (double-kernel; Rosenblatt 1969; Hyndman, Bashtannyk & Grunwald 1996). From the joint
 [`Histogram2D`](@ref GBGStreamingStatistics.Histograms.Histogram2D) `summary`, with a conditioning kernel
-``K_1`` (`kernelx`, of bandwidth ``h_1`` given by `hx`, in ``x``) and a response kernel ``K_2`` (`kernely`,
-of bandwidth ``h_2`` given by `hy`, in ``y``); both ``\\int K = 1``, default
+``K_x`` (`kernelx`, of bandwidth ``h_x`` given by `hx`, in ``x``) and a response kernel ``K_y`` (`kernely`,
+of bandwidth ``h_y`` given by `hy`, in ``y``); both ``\\int K = 1``, default
 [`gaussian_kernel`](@ref GBGStreamingStatistics.Kernels.gaussian_kernel), the sums running over the observed
 pairs (whose count is the sample size),
 
 ```math
-\\hat f(y \\mid x) =
-  \\frac{\\sum_i K_{h_1}(X_i - x)  K_{h_2}(Y_i - y)}{\\sum_i K_{h_1}(X_i - x)} ,
+\\hat f_{Y\\mid X}(y \\mid x) =
+  \\frac{\\sum_i K_{h_x}(X_i - x)  K_{h_y}(Y_i - y)}{\\sum_i K_{h_x}(X_i - x)} ,
 ```
 
-evaluated from the bin counts ``n_{jk}`` at cell centers ``(c^x_j, c^y_k)`` (the binned form, with
-``N_j = \\sum_k n_{jk}`` the per-column count):
+evaluated from the bin counts ``n_{jl}`` at cell centers ``(c^x_j, c^y_l)`` (the binned form, with
+``N_j = \\sum_l n_{jl}`` the ``x``-column count):
 
 ```math
-\\hat f(y \\mid x) =
-  \\frac{\\sum_{j,k} n_{jk}  K_{h_1}(c^x_j - x)  K_{h_2}(c^y_k - y)}
-       {\\sum_{j} N_j  K_{h_1}(c^x_j - x)} .
+\\hat f_{Y\\mid X}(y \\mid x) =
+  \\frac{\\sum_{j,l} n_{jl}  K_{h_x}(c^x_j - x)  K_{h_y}(c^y_l - y)}
+       {\\sum_{j} N_j  K_{h_x}(c^x_j - x)} .
 ```
 
 The ``x``-kernel weighting cancels in the ``f_{X,Y}/f_X`` ratio (it appears in both the profile — the
@@ -114,13 +115,13 @@ The ``x``-kernel weighting cancels in the ``f_{X,Y}/f_X`` ratio (it appears in b
 of `kernelx` only weights the local conditioning window — so a bounded *conditioning* variable needs no
 asymmetric `kernelx`.
 
-For a **symmetric** response `kernely` the surviving ``1/h_2`` makes ``\\int \\hat f(y \\mid x)\\,\\mathrm{d}y = 1`` exactly (since ``\\int K =
-1``). For a **bounded / positive response** — a droplet radius as ``Y``, say — pass an **asymmetric**
+For a symmetric response `kernely` the surviving ``1/h_y`` makes ``\\int \\hat f_{Y\\mid X}(y \\mid x)\\,\\mathrm{d}y = 1`` exactly (since ``\\int K =
+1``). For a bounded / positive response — a droplet radius as ``Y``, say — pass an asymmetric
 `kernely` ([`gamma_kernel`](@ref GBGStreamingStatistics.Kernels.gamma_kernel) for ``[0,\\infty)``,
 [`beta_kernel`](@ref GBGStreamingStatistics.Kernels.beta_kernel) for ``[0,1]``), the same boundary-bias
 fix the marginal [`density`](@ref GBGStreamingStatistics.MarginalDensity.density) uses: it is a density in
-the data argument ``K_2(c^y_k;  y, h_2)`` (the kernel at the cell center, located at the response point with
-scale the response bandwidth; no mass leaks past the edge) but only ``\\approx`` normalized in ``y``, so set `normalize = true` to enforce ``\\int \\hat f\\,\\mathrm{d}y = 1``
+the data argument ``K_y(c^y_l; y, b)`` (the kernel at the cell center, located at the response point with
+scale ``b`` set by `hy`; no mass leaks past the edge) but only ``\\approx`` normalized in ``y``, so set `normalize = true` to enforce ``\\int \\hat f_{Y\\mid X}\\,\\mathrm{d}y = 1``
 exactly.
 
 The conditional MISE rate is slower than a marginal density (``O(n^{-2/3})``). A vector `y` returns the
@@ -134,13 +135,13 @@ estimate is `NaN`.
 - `y` — the response point(s) at which the density is evaluated (scalar, or a vector for the curve).
 - `kernelx` — the conditioning-direction (``x``) kernel (any ``\\int K = 1`` callable; default
   `gaussian_kernel`); it cancels in the ratio, so a symmetric kernel is the natural choice.
-- `kernely` — the response-direction (``y``) kernel (default `gaussian_kernel`). A **symmetric** kernel
-  gives ``\\int\\hat f\\,\\mathrm dy = 1`` exactly; an **asymmetric** `gamma_kernel` / `beta_kernel`, for a
+- `kernely` — the response-direction (``y``) kernel (default `gaussian_kernel`). A symmetric kernel
+  gives ``\\int\\hat f_{Y\\mid X}\\,\\mathrm dy = 1`` exactly; an asymmetric `gamma_kernel` / `beta_kernel`, for a
   bounded / positive response, is boundary-bias-free but needs `normalize = true` for an exact integral —
   or supply your own [`AsymmetricKernel`](@ref GBGStreamingStatistics.Kernels.AsymmetricKernel).
 - `hx`, `hy` — the conditioning (``x``) and response (``y``) bandwidths (both ``> 0``), supplied.
-- `normalize` — when `true`, divide by ``\\int\\hat f(y\\mid x)\\,\\mathrm dy`` over the response range so
-  the curve integrates to 1 **exactly**: needed for an asymmetric `kernely`, a no-op for a symmetric one.
+- `normalize` — when `true`, divide by ``\\int\\hat f_{Y\\mid X}(y\\mid x)\\,\\mathrm dy`` over the response range so
+  the curve integrates to 1 exactly: needed for an asymmetric `kernely`, a no-op for a symmetric one.
 
 ```jldoctest
 julia> g = Histogram2D(-1.0, 1.0, 2, -1.0, 1.0, 2);
@@ -180,13 +181,13 @@ end
     transition_density(summary::Histogram2D, x, y; kernelx = gaussian_kernel,
                        kernely = gaussian_kernel, hx, hy, normalize = false)
 
-**Estimand.** The **two-time transition density**
-``p_\\tau(y \\mid x) = f_{X_{t+\\tau} \\mid X_t}(y \\mid x)`` — the conditional density of the state a
+**Estimand.** The two-time transition density
+``p_\\tau(y \\mid x) = f_{Y(t+\\tau) \\mid X(t)}(y \\mid x)`` — the conditional density of the state a
 lag ``\\tau`` later, given the present state (nonstationary: ``p_{t,\\tau}``). For the
 Ornstein–Uhlenbeck process this is Gaussian in closed form.
 
 **Estimator.** The [`conditional_density`](@ref GBGStreamingStatistics.ConditionalDensity.conditional_density)
-double-kernel estimator applied to a joint histogram fed the pairs ``\\bigl(X_t,  X_{t+\\tau}\\bigr)`` at one
+double-kernel estimator applied to a joint histogram fed the pairs ``\\bigl(X(t), Y(t+\\tau)\\bigr)`` at one
 fixed lag ``\\tau`` chosen by the caller (binned by
 [`observe_pairs!`](@ref GBGStreamingStatistics.Histograms.observe_pairs!); the summary stores the lag only
 as a label); the computation is identical — the name marks the two-time reading. A vector `y` returns the
@@ -194,7 +195,7 @@ transition-density curve at the fixed present state `x`.
 
 # Arguments
 
-- `summary` — the per-lag joint [`Histogram2D`](@ref GBGStreamingStatistics.Histograms.Histogram2D) of ``(X_t, X_{t+\\tau})``.
+- `summary` — the per-lag joint [`Histogram2D`](@ref GBGStreamingStatistics.Histograms.Histogram2D) of ``(X(t), Y(t+\\tau))``.
 - `x` — the present state, the conditioning value (a scalar).
 - `y` — the later state(s) at which the density is evaluated (a scalar, or a vector for the curve).
 - `kernelx`, `kernely` — the conditioning and response kernels, as for `conditional_density` (an asymmetric
@@ -211,25 +212,25 @@ transition_density(summary::Histogram2D, x::Real, y; kernelx = gaussian_kernel,
                       normalize = normalize)
 
 
-# The double-kernel variance R(K₁)R(K₂)f/(n h₁ h₂ f_X) is for symmetric (translation) kernels; the
-# asymmetric gamma/beta kernels have a different variance structure — a recorded gap, as for the marginal
-# density SE.
+# The double-kernel variance R(K_x)R(K_y) f_{Y|X}/(n h_x h_y f_X) is for symmetric (translation) kernels;
+# the asymmetric gamma/beta kernels have a different variance structure — a recorded gap, as for the
+# marginal density SE.
 function _check_cd_se(kernelx, kernely)
   (kernelx isa AsymmetricKernel || kernely isa AsymmetricKernel) && throw(ArgumentError(
     "the conditional-density standard error is for symmetric kernels; the asymmetric gamma/beta-kernel variance is not supported"))
 end
 
 
-# The conditional-density estimate and its pointwise standard error at (x, y) from the pre-reduced X-profile
-# (P, D): the two-term double-kernel variance R(K₁)R(K₂)·f̂/(n h₁ h₂ f̂_X(x)) − f̂²/n, with n f̂_X(x) = D the
-# X-window denominator `_y_profile` already forms (Hyndman, Bashtannyk & Grunwald 1996; the −f̂²/n finite-
-# sample term is the double-kernel analog of the marginal Wand–Jones correction), so
-# SE = √(R(K₁)R(K₂)·f̂/(h₁ h₂ D) − f̂²/n). Both NaN where no data is local to x (D = 0). Shared by the SE
-# reader and the paired value-plus-error reader, so the two agree by construction.
+# The conditional-density estimate and its pointwise standard error at (x, y) from the pre-reduced
+# x-profile (P, D): the two-term double-kernel variance R(K_x)R(K_y)·f̂_{Y|X}/(n h_x h_y f̂_X(x)) − f̂_{Y|X}²/n,
+# with n f̂_X(x) = D the x-window denominator `_y_profile` already forms (Hyndman, Bashtannyk & Grunwald
+# 1996; the −f̂_{Y|X}²/n finite-sample term is the double-kernel analog of the marginal Wand–Jones
+# correction), so SE = √(R(K_x)R(K_y)·f̂_{Y|X}/(h_x h_y D) − f̂_{Y|X}²/n). Both NaN where no data is local to x
+# (D = 0). Shared by the SE reader and the paired value-plus-error reader, so the two agree by construction.
 function _cd_value_and_se(summary::Histogram2D, P, D, y::Real, kernelx, kernely, hx::Real, hy::Real)
   f = _density_at(summary, P, D, y, kernely, hy)
   isfinite(f) || return (f, oftype(f, NaN))
-  roughness = _quad(u -> kernelx(u)^2) * _quad(u -> kernely(u)^2)   # R(K₁)·R(K₂)
+  roughness = _quad(u -> kernelx(u)^2) * _quad(u -> kernely(u)^2)   # R(K_x)·R(K_y)
   fnn = max(f, 0.0)
   variance = roughness * fnn / (hx * hy * D) - fnn^2 / _total(summary)
   return (f, sqrt(max(variance, 0.0)))
@@ -243,29 +244,29 @@ end
 
 **Estimand.** The pointwise standard error of the conditional-density estimator
 `conditional_density`,
-``\\mathrm{SE}(y\\mid x) = \\sqrt{\\operatorname{Var}\\hat f(y\\mid x)}`` with the double-kernel asymptotic
+``\\operatorname{SE}(y\\mid x) = \\sqrt{\\operatorname{Var}\\hat f_{Y\\mid X}(y\\mid x)}`` with the double-kernel asymptotic
 variance
 
 ```math
-\\operatorname{Var}\\hat f(y\\mid x) \\approx
-  \\frac{R(K_1) R(K_2) f_{Y\\mid X}(y\\mid x)}{n h_1 h_2 f_X(x)}
+\\operatorname{Var}\\hat f_{Y\\mid X}(y\\mid x) \\approx
+  \\frac{R(K_x) R(K_y) f_{Y\\mid X}(y\\mid x)}{n h_x h_y f_X(x)}
   - \\frac{f_{Y\\mid X}(y\\mid x)^2}{n},
   \\qquad R(K) = \\int K^2 .
 ```
 
-Here ``f_X`` is the marginal density of the conditioning variable ``X``, and the ``-f^2/n`` term is the
+Here ``f_X`` is the marginal density of the conditioning variable ``X``, and the ``-f_{Y\\mid X}(y\\mid x)^2/n`` term is the
 double-kernel analog of the finite-sample correction in
 [`density_standard_error`](@ref GBGStreamingStatistics.MarginalDensity.density_standard_error).
 
-**Estimator.** The two-term ``\\sqrt{R(K_1)R(K_2) \\hat f(y\\mid x)/(h_1 h_2 D) - \\hat f(y\\mid x)^2/n}``
+**Estimator.** The two-term ``\\sqrt{R(K_x)R(K_y) \\hat f_{Y\\mid X}(y\\mid x)/(h_x h_y D) - \\hat f_{Y\\mid X}(y\\mid x)^2/n}``
 from the conditional density
-``\\hat f(y\\mid x)``, the bandwidths ``h_1`` and ``h_2`` (`hx` and `hy`), the kernel
-roughnesses ``R(K_1)``, ``R(K_2)`` (by quadrature), and the **``x``-window denominator**
-``D = \\sum_j N_j K_{h_1}(c^x_j - x) = n \\hat f_X(x)`` (the kernel-weighted total of the column counts) — the
+``\\hat f_{Y\\mid X}(y\\mid x)``, the bandwidths ``h_x`` and ``h_y`` (`hx` and `hy`), the kernel
+roughnesses ``R(K_x)``, ``R(K_y)`` (by quadrature), and the ``x``-window denominator
+``D = \\sum_j N_j K_{h_x}(c^x_j - x) = n \\hat f_X(x)`` (the kernel-weighted total of the column counts) — the
 very sum `conditional_density` forms to normalize its profile, so
 ``n \\hat f_X(x)`` costs nothing extra. It is the two-dimensional analog of the marginal
-`density_standard_error`, with the ``x``-window effective sample size ``n h_1 \\hat f_X(x)`` in place of ``n``; the ``z``-band
-``\\hat f(y\\mid x) \\pm z \\mathrm{SE}`` covers ``f_{Y\\mid X}`` where the ``O(h^2)`` smoothing bias is
+`density_standard_error`, with the ``x``-window effective sample size ``n h_x \\hat f_X(x)`` in place of ``n``; the 95% band
+``\\hat f_{Y\\mid X}(y\\mid x) \\pm 1.96 \\operatorname{SE}`` covers ``f_{Y\\mid X}`` where the ``O(h^2)`` smoothing bias is
 small. Symmetric kernels only (the asymmetric-`kernely` variance is not implemented). It is `NaN` where no data is local to ``x``.
 
 Arguments: as for [`conditional_density`](@ref
@@ -304,7 +305,7 @@ end
 Returns the estimate and its standard error from one ``x``-profile reduction, the `NamedTuple`
 ``(\\texttt{value}, \\texttt{standard\\_error})``, with `value` the
 `conditional_density`
-``\\hat f(y\\mid x)`` and `standard_error` its
+``\\hat f_{Y\\mid X}(y\\mid x)`` and `standard_error` its
 [`conditional_density_standard_error`](@ref GBGStreamingStatistics.ConditionalDensity.conditional_density_standard_error).
 They share the one profile, so they describe the same estimator by construction. For a vector `y`, returns
 a `NamedTuple` of vectors.

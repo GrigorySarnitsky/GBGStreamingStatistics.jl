@@ -1,6 +1,6 @@
 # Getting started
 
-This tour shows the intended **samples in, statistics out** workflow. The architectural spine is
+This tour shows the intended *samples in, statistics out* workflow. The architectural spine is
 
 > empirical measure → mergeable summary → post-hoc-smoothed estimator,
 
@@ -46,8 +46,8 @@ merge!(summary, other_summary)
 summary — computed after accumulation, at any bandwidth, for any estimand, with no second pass:
 
 ```julia
-bw = bandwidth(summary)              # a global plug-in bandwidth from the recovered σ̂
-fX = density(summary, 0.0; h = bw)   # the marginal density f_X at x = 0
+bw = bandwidth(summary)              # the normal-reference bandwidth from the recovered σ̂_X
+fX = density(summary, 0.0; h = bw)   # the marginal density estimate f̂_X(0)
 ```
 
 **4. Form the two-time statistics.** For conditional and transition densities, the consumer (the calling
@@ -62,8 +62,8 @@ for (x_past, y_now) in pairs    # the consumer forms the lagged pairs at lag τ
     observe_pairs!(joint, x_past, y_now)
 end
 
-m  = conditional_mean(joint, 0.0; h = 0.3)                     # E[Y | X = 0]
-s2 = conditional_variance(joint, 0.0; h = 0.3)                 # Var[Y | X = 0]
+m  = conditional_mean(joint, 0.0; h = 0.3)                     # 𝔼[Y | X = 0]
+s2 = conditional_variance(joint, 0.0; h = 0.3)                 # Var(Y | X = 0)
 # hx and hy are the bandwidths in x and y
 pτ = transition_density(joint, 0.0, 0.0; hx = 0.3, hy = 0.2)   # p_τ(0 | 0)
 ```

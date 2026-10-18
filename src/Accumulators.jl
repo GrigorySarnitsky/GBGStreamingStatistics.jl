@@ -12,13 +12,13 @@ export AbstractAccumulator, observe!, merge!, scale!
 """
     AbstractAccumulator
 
-Supertype of every **mergeable summary** ``T(\\hat\\mu_n)`` of the [empirical measure](https://en.wikipedia.org/wiki/Empirical_measure)
-``\\hat\\mu_n = \\frac{1}{n} \\sum_{i=1}^{n} \\delta_{X_i}`` of an observed stream ``X_1, X_2, \\dots``
-(``\\delta_x`` the unit point mass at ``x``, ``n`` the number of samples seen).
+Supertype of every mergeable summary ``T(n\\mathbb{P}_n)`` of the [empirical measure](https://en.wikipedia.org/wiki/Empirical_measure)
+``\\mathbb{P}_n`` of an observed stream ``X_1, X_2, \\dots``, which gives a set ``A`` the share of samples in it,
+``\\mathbb{P}_n(A) = \\#\\{i : X_i \\in A\\}/n`` (``n`` the number of samples seen).
 
-A summary is **finite-dimensional** — the ``n`` point masses are never stored — **mergeable** and
-**scalable** (a convex cone over the stream; see [`merge!`](@ref Base.merge!) and [`scale!`](@ref)), and
-**rich enough** that every
+A summary is finite-dimensional — the ``n`` samples are never stored — mergeable and
+scalable (a convex cone over the stream; see [`merge!`](@ref Base.merge!) and [`scale!`](@ref)), and
+rich enough that every
 reported estimator is recoverable from it post hoc, with no second pass over the data. The summary is
 accumulated online and is *estimand-agnostic*; all smoothing (kernel, bandwidth) is applied
 post hoc. Concrete summaries ([`Histogram1D`](@ref GBGStreamingStatistics.Histograms.Histogram1D),
@@ -31,14 +31,14 @@ abstract type AbstractAccumulator end
     observe!(summary::AbstractAccumulator, batch) -> summary
 
 Fold a `batch` of samples (a vector, or a single sample) into `summary` in place, advancing the accumulated summary
-``T(\\hat\\mu_n)`` of the empirical measure (see
+``T(n\\mathbb{P}_n)`` of the empirical measure (see
 [`AbstractAccumulator`](@ref GBGStreamingStatistics.Accumulators.AbstractAccumulator)). Accumulation
-is **estimand-agnostic**: it knows nothing of which estimator will later be asked for, nor of the
+is estimand-agnostic: it knows nothing of which estimator will later be asked for, nor of the
 bandwidth or kernel — the architectural invariant that delivers *no reruns*: nothing is recomputed from
 the raw stream.
 
-The binning is an **atomic scatter-add**: one [KernelAbstractions](https://github.com/JuliaGPU/KernelAbstractions.jl) + [Atomix](https://github.com/JuliaConcurrent/Atomix.jl) kernel — one work-item per
-sample — accumulates per bin the **count** and the power-sums ``S_p`` about the bin center
+The binning is an atomic scatter-add: one [KernelAbstractions](https://github.com/JuliaGPU/KernelAbstractions.jl) + [Atomix](https://github.com/JuliaConcurrent/Atomix.jl) kernel — one work-item per
+sample — accumulates per bin the count and the power-sums ``S_p`` about the bin center
 that a [`Histogram1D`](@ref GBGStreamingStatistics.Histograms.Histogram1D) carries, directly into the
 preallocated summary (no scratch). It runs identically on a CPU `Array` and any GPU backend, is
 allocation-free up to the kernel launch, and accumulates *wider than the data* (in the summary's
@@ -56,32 +56,32 @@ function observe! end
     merge!(into::AbstractAccumulator, from::AbstractAccumulator; weight = 1) -> into
 
 Combine two summaries into `into`, forming the summary of the concatenated stream — the monoid
-operation that makes accumulation additive. For disjoint sample blocks ``A`` and ``B``,
-``T(A \\uplus B) = T(A) \\oplus T(B)``: accumulation ``T`` is a **monoid homomorphism** from sample
-blocks (under disjoint union ``\\uplus``) to summaries (under `merge!`), on the **unnormalized** counts
-and power-sums — the normalized ``\\hat\\mu`` would reweight, not add. Because compatible summaries
+operation that makes accumulation additive. For disjoint sample blocks ``\\mathcal{A}`` and ``\\mathcal{B}``,
+``T(\\mathcal{A} \\uplus \\mathcal{B}) = T(\\mathcal{A}) \\oplus T(\\mathcal{B})``: accumulation ``T`` is a *monoid homomorphism* from sample
+blocks (under disjoint union ``\\uplus``) to summaries (under `merge!`), on the unnormalized counts
+and power-sums — the normalized ``\\mathbb{P}_n`` would reweight, not add. Because compatible summaries
 share the same binning (hence the same bin centers),
-their **counts and power-sums simply add elementwise**, so `merge!` is exact and trivially parallel —
+their counts and power-sums simply add elementwise, so `merge!` is exact and trivially parallel —
 this is what makes multi-device reduction and time-chunk stitching free (combine per-device or
 per-time-chunk summaries by addition).
 
 **The weighted form is the cone.** `merge!(into, from; weight)` forms
 ``\\texttt{into} \\mathrel{+}= \\texttt{weight} \\cdot \\texttt{from}``; the default ``\\texttt{weight} = 1``
-is the plain monoid addition above. Because the unnormalized summary is also **scalable**
-([`scale!`](@ref GBGStreamingStatistics.Accumulators.scale!)), the summaries form a **convex cone**
-(closed under nonnegative linear combinations), and the weighted merge realizes the **hyperstatistical**
+is the plain monoid addition above. Because the unnormalized summary is also scalable
+([`scale!`](@ref GBGStreamingStatistics.Accumulators.scale!)), the summaries form a *convex cone*
+(closed under nonnegative linear combinations), and the weighted merge realizes the hyperstatistical
 parameter-mixture density (superstatistics; Beck & Cohen 2003)
 
 ```math
-P(x) = \\int f(\\beta) P(x \\mid \\beta)\\,\\mathrm{d}\\beta \\approx \\sum_k w_k f_k(x),
-\\qquad w_k = f(\\beta_k) \\Delta\\beta,
+f_X(x) = \\int \\pi(\\theta) f_\\theta(x)\\,\\mathrm{d}\\theta \\approx \\sum_k \\pi_k f_{\\theta_k}(x),
+\\qquad \\pi_k = \\pi(\\theta_k) (\\theta_{k+1} - \\theta_k),
 ```
 
-a superposition over a slowly varying parameter ``\\beta`` with mixing law ``f(\\beta)``: keep one summary
-``T_k`` per value ``\\beta_k`` (accumulated independently), then **after** the runs choose ``f(\\beta)`` and
-assemble ``\\sum_k (w_k / N_k) T_k`` by weighted `merge!` (``N_k = \\texttt{sum(T\\_k.counts)}`` normalizes
+a superposition over a slowly varying parameter ``\\theta`` with mixing law ``\\pi(\\theta)``: keep one summary
+``T_k`` per value ``\\theta_k`` (accumulated independently), then, after the runs, choose ``\\pi(\\theta)`` and
+assemble ``\\sum_k (\\pi_k / n(T_k)) T_k`` by weighted `merge!` (the total count ``n(T_k) = \\texttt{sum(T\\_k.counts)}`` normalizes
 each component to a probability measure; the conditional and transition estimators, the readouts of a
-joint summary, then carry the local mixing weight automatically, being ratios of linear functionals). This is **post hoc** — re-weight without
+joint summary, then carry the local mixing weight automatically, being ratios of linear functionals). This is post hoc — re-weight without
 re-accumulating, exactly as bandwidth is a post-hoc choice. A weighted merge (``\\texttt{weight} \\ne 1``)
 requires a Float-count `into` (`count_type = Float64`).
 
@@ -105,21 +105,24 @@ merge!(into::AbstractAccumulator, from::AbstractAccumulator; weight = 1) =
     scale!(summary::AbstractAccumulator, weight) -> summary
 
 Reweight `summary` in place by a nonnegative `weight` — multiply every count and power-sum by `weight`,
-giving the valid summary of the reweighted measure ``\\texttt{weight} \\cdot \\hat\\mu``. With
-[`merge!`](@ref Base.merge!) this makes the unnormalized summaries a **convex cone** (closed under
+giving the valid summary of the reweighted measure ``\\texttt{weight} \\cdot n\\mathbb{P}_n``. With
+[`merge!`](@ref Base.merge!) this makes the unnormalized summaries a convex cone (closed under
 nonnegative linear combinations), not merely an additive monoid: `scale!` is the scalar action, `merge!`
 the addition.
 
-It has two uses. **Exponential forgetting** of a non-stationary stream: `scale!(summary, λ)` with
-``0 < \\lambda < 1`` before folding in the next block down-weights the past geometrically (an effective
-window ``1/(1-\\lambda)``). **Hyperstatistics** uses it as the scalar building block of the
-parameter-mixture density assembled by weighted `merge!` (the estimand and recipe are documented there;
-Beck & Cohen 2003).
+It has two uses:
 
-Requires a **Float-count summary** (`count_type = Float64`; the default `UInt64` counts cannot hold a
+- **Exponential forgetting** of a non-stationary stream: `scale!(summary, λ)` with
+  ``0 < \\lambda < 1`` before folding in the next block down-weights the past geometrically (an effective
+  window ``1/(1-\\lambda)``).
+- **Hyperstatistics** uses it as the scalar building block of the
+  parameter-mixture density assembled by weighted `merge!` (the estimand and recipe are documented there;
+  Beck & Cohen 2003).
+
+Requires a Float-count summary (`count_type = Float64`; the default `UInt64` counts cannot hold a
 fractional ``\\texttt{weight} \\cdot n``) — an `ArgumentError` otherwise. The value ``\\texttt{weight} = 1``
 is the identity. Like `merge!`, it is an intrinsically finite-sample operation with no population estimand,
-specified by the cone laws (`scale!(scale!(s, a), b)` equals scaling by ``ab``; `scale!` distributes over `merge!`)
+specified by the cone laws (scaling by ``\\lambda`` then by ``\\lambda'`` equals scaling by ``\\lambda\\lambda'``; `scale!` distributes over `merge!`)
 and tested as such.
 """
 function scale! end

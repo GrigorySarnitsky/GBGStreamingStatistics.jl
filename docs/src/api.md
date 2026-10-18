@@ -1,7 +1,7 @@
 # API overview
 
 These pages list the public API by module. Every estimator is documented
-**estimand first** — the population quantity, in standard probability notation, before the estimator
+estimand first — the population quantity, in standard probability notation, before the estimator
 that approximates it from the accumulated summary, the stream's binned record read in place of the
 samples.
 

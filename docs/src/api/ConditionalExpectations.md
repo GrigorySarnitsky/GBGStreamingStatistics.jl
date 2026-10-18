@@ -1,6 +1,6 @@
 # ConditionalExpectations
 
-The conditional expectation ``\mathbb{E}[g(Y) \mid x]`` of a smooth functional of the response
+The conditional expectation ``\mathbb{E}[g(Y) \mid X = x]`` of a smooth functional of the response
 ([`conditional_expectation`](@ref)) with its sampling standard error
 ([`conditional_expectation_standard_error`](@ref), paired with the estimate by
 [`conditional_expectation_with_standard_error`](@ref)), the conditional mean [`conditional_mean`](@ref)

@@ -9,7 +9,7 @@
 """
     GBGStreamingStatistics
 
-A backend-agnostic library for **online nonparametric statistics**, estimating densities, conditional
+A backend-agnostic library for online nonparametric statistics, estimating densities, conditional
 expectations and functionals of these from a stream of samples that is never stored: each sample is
 observed once, folded into a fixed-size summary, and discarded.
 

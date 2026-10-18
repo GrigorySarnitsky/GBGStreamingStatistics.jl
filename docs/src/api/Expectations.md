@@ -6,7 +6,7 @@ query point. The reader [`expectation`](@ref) estimates the expectation
 ``\mathbb{E}[g(X)]`` of a general smooth `g`; [`expectation_standard_error`](@ref) its sampling standard error
 (paired with the estimate by [`expectation_with_standard_error`](@ref)); and [`pushforward_density`](@ref) the
 density of the transformed variable ``g(X)``. All three are the same weighted sum over the power-sums as the
-recovered moments (`mean` / `var` / `std` / `central_moment`), so those are the ``g = x^p`` case; a general
+recovered moments (`mean` / `var` / `std` / [`central_moment`](@ref)), so those are the ``g = x^p`` case; a general
 `g`'s per-bin coefficients come from a local polynomial interpolant (exact on monomials), and the pushforward is `expectation` of the composed kernel.
 
 ```@docs

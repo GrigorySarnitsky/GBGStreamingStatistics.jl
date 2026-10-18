@@ -13,12 +13,12 @@ analytic round-trips: estimators are checked against distributions with closed f
   `exponential_pdf`, `lognormal_pdf`, `gamma_pdf`, `beta_pdf`, `student_t_pdf`, `uniform_pdf`, the
   Marron–Wand `claw_pdf`, the Ornstein–Uhlenbeck `ou_stationary_std` / `ou_drift` / `ou_diffusion` /
   `ou_transition`, and the `trapz` / `ise` helpers), `include`d by every file that needs one. The marginal density `density` is checked across a
-  **representative analytic-PDF suite** — Gaussian, uniform (bounded support), exponential, Student-``t``
-  ``\nu = 3`` (heavy tail), log-normal (skew), and a bimodal mixture (`test/density_convergence.jl`) — and
+  representative analytic-PDF suite — Gaussian, uniform (bounded support), exponential, Student
+  ``\mathrm{t}_3`` (heavy tail), log-normal (skew), and a bimodal mixture (`test/density_convergence.jl`) — and
   across its full option grid (KDE / local-log `degree`, fixed / Abramson `adaptive`, the `support` boundary
   correction, the asymmetric `gamma_kernel` / `beta_kernel`, the parametric `start`, and `normalize`) in
-  `test/marginaldensity.jl`. The conditional / transition estimators use **Gaussian** marginals
-  (``f_X``, conditional moments) and an **Ornstein–Uhlenbeck** process, whose transition density
+  `test/marginaldensity.jl`. The conditional / transition estimators use Gaussian marginals
+  (``f_X``, conditional moments) and an Ornstein–Uhlenbeck process, whose transition density
   ``p_\tau(y \mid x)`` is closed-form — the end-to-end oracle for the conditional / transition densities
   (§4.3).
 - **Bandwidth selectors.** Each `bandwidth` rule is checked against its analytic target
@@ -26,22 +26,22 @@ analytic round-trips: estimators are checked against distributions with closed f
   ``2.214\times`` ratio; `:sj` / `:isj` ``\approx`` the normal reference on Gaussian data and tighten on a
   bimodal mixture; `:aic` finds a stable interior optimum; and the asymmetric-kernel Chen `:plugin` lowers
   the ISE on skewed (log-normal / gamma) data and stays neutral on the near-exponential boundary case. On
-  the **Marron–Wand claw** (the field's standard hard-multimodal benchmark — a broad Gaussian with five
-  sharp spikes) the data-driven `:sj` / `:isj` resolve the spikes the global-``\hat\sigma`` normal
+  the Marron–Wand claw (the field's standard hard-multimodal benchmark — a broad Gaussian with five
+  sharp spikes) the data-driven `:sj` / `:isj` resolve the spikes the global-``\hat\sigma_X`` normal
   reference oversmooths into one bump (``\approx`` an order of magnitude lower ISE).
 - **Structural invariants (property-based, oracle-free).** Beyond the mergeability monoid laws, `density`
-  satisfies **affine equivariance** exactly (`test/marginaldensity.jl`): for ``Y = aX + b`` with the
-  range and bandwidth scaled alike, ``\hat f_Y(ax+b) = \hat f_X(x)/a`` to floating point — a guard against
-  a stray normalization / ``\sigma``-scaling factor a single-scale oracle would miss, and a guarantee of
-  unit-consistency (the estimate cannot depend on ``\mu``m vs m).
+  satisfies *affine equivariance* exactly (`test/marginaldensity.jl`): for ``Z = a_1 X + a_0`` with the
+  range and bandwidth scaled alike, ``\hat f_Z(a_1 x + a_0) = \hat f_X(x)/a_1`` to floating point — a guard against
+  a stray normalization / ``\sigma_X``-scaling factor a single-scale oracle would miss, and a guarantee of
+  unit-consistency (the estimate cannot depend on micrometres vs metres).
 - **Consistency / rate tests.** The estimation error falls at its theoretical rate as ``n`` grows. For
-  the **density** this is implemented (`test/density_convergence.jl`): the ISE falls at ``n^{-2p/(2p+1)}``
+  the density this is implemented (`test/density_convergence.jl`): the ISE falls at ``n^{-2q/(2q+1)}`` (``q`` the bias order)
   — ``n^{-4/5}`` for degree 0/1, the steeper ``n^{-8/9}`` for degree 2 (the higher-order ``n^{-1/9}``
-  bandwidth), the Abramson variable bandwidth sharing the degree-0 order, and the **Epanechnikov**
-  reproducing the (kernel-independent) ``n^{-4/5}``. The rate is measured on the **Gaussian**, whose fast
+  bandwidth), the Abramson variable bandwidth sharing the degree-0 order, and the Epanechnikov
+  reproducing the (kernel-independent) ``n^{-4/5}``. The rate is measured on the Gaussian, whose fast
   asymptotics make it visible by ``n = 10^6``; a non-Gaussian does not reach the asymptotic regime there
   (its slope muddies to ``\approx -0.66`` and degree 2 fails to separate from degree 0), a recorded
-  omission rather than a missing test. A companion **binning-error** test confirms the binned estimate
+  omission rather than a missing test. A companion binning-error test confirms the binned estimate
   converges to the exact un-binned KDE as the grid refines — at ``O(\Delta^2)`` in the bin width ``\Delta``
   for the default linear/centroid `binning` (mass at the recovered within-bin centroid, via the stored
   ``S_1``) and at ``O(\Delta)`` for `binning = :simple` (mass at the bin center), the two slopes checked
@@ -49,13 +49,13 @@ analytic round-trips: estimators are checked against distributions with closed f
   The conditional-mean ``n^{-2/5}`` and conditional-density ``n^{-2/3}`` rates are likewise implemented
   (`test/conditional_convergence.jl`): a curved-mean (``m(x) = \sin x``) local-linear fit at
   ``h \propto n^{-1/5}`` gives ISE ``\propto n^{-4/5}`` (slope ``\approx -0.80``), and the
-  bivariate-Gaussian double-kernel at ``h \propto n^{-1/6}`` gives the slower **2-D** rate ISE
-  ``\propto n^{-2/3}`` (slope ``\approx -2/3``, measured in ``y`` at ``x_0 = 0``, the n-range starting
+  bivariate-Gaussian double-kernel at ``h \propto n^{-1/6}`` gives the slower 2-D rate ISE
+  ``\propto n^{-2/3}`` (slope ``\approx -2/3``, measured in ``y`` at ``x_0 = 0``, the ``n``-range starting
   higher than the 1-D test since the 2-D asymptotic regime is reached later — below ``\sim 10^5`` the
   measured slope runs shallow, the conditional analog of the density test's non-Gaussian muddying).
 - **Mergeability tests.** For every summary, *accumulate-then-merge ``=`` accumulate-together* (to
   round-off), plus the incompatible-summary rejection — the monoid laws of invariant 3
-  (`test/mergeability.jl` for `Histogram1D`, `test/histograms2d.jl` for `Histogram2D`). The **cone laws**
+  (`test/mergeability.jl` for `Histogram1D`, `test/histograms2d.jl` for `Histogram2D`). The cone laws
   that extend the monoid (`scale!` homogeneity and distributivity, the weighted `merge!` as
   scale-then-merge, ``\texttt{weight} = 1`` ``=`` plain `merge!`, the Float-count guard) are tested
   alongside the hyperstatistics oracles in `test/hyperstatistics.jl`. Every post-hoc
@@ -63,7 +63,7 @@ analytic round-trips: estimators are checked against distributions with closed f
   the `check_point_estimator` battery (see *The estimator contract*) for the query-point estimators, and a
   dedicated check for the `bandwidth` selectors and the `density` start.
 - **Allocation audit.** `test/allocations.jl` (`Histogram1D`) and `test/histograms2d.jl` (`Histogram2D`)
-  assert via `@allocated` that `observe!` / `observe_pairs!` / `merge!` allocate only a **bounded** amount
+  assert via `@allocated` that `observe!` / `observe_pairs!` / `merge!` allocate only a bounded amount
   on a preallocated summary — the KernelAbstractions launch, never an ``O(n)`` or ``O(\text{bins})``
   temporary — the GPU-hot-loop contract of invariant 4.
 - **GPU-vs-CPU parity.** The gated suite (`test/gpu/`, run on a machine with a device) exercises
@@ -77,9 +77,9 @@ analytic round-trips: estimators are checked against distributions with closed f
 
 ## The estimator contract
 
-Every estimator is held to the **same uniform set** of characteristics, in two tiers plus a few
+Every estimator is held to the same uniform set of characteristics, in two tiers plus a few
 class-specific variations. The *Definition of done* in `CLAUDE.md` is the parent spec; this section is the
-operational form. The universal tier is enforced **by construction** — `check_point_estimator`
+operational form. The universal tier is enforced by construction — `check_point_estimator`
 (`test/testcontracts.jl`) runs it from one call per estimator, so a new estimator cannot silently omit a
 check (the failure mode that once left `conditional_mean` without a mergeability test).
 
@@ -88,10 +88,10 @@ check (the failure mode that once left `conditional_mean` without a mergeability
 1. **Analytic-oracle correctness** — recovers a closed-form target (the oracle layer above).
 2. **Scalar ``=`` vector** — the vectorized call equals the per-point scalar calls.
 3. **Functional of the merged summary** — the estimator of the merged summary equals that of the summary
-   accumulated together, ``f(\mathrm{merged}) = f(\mathrm{together})`` — mergeability.
+   accumulated together — mergeability.
 4. **Off-support sentinel** — `NaN` where the estimand is undefined off the data's support (the conditional
    estimators); a marginal density is defined everywhere and is exempt.
-5. **Argument-domain errors** — a non-positive bandwidth, and **every rejected option combination**, throws.
+5. **Argument-domain errors** — a non-positive bandwidth, and every rejected option combination, throws.
    The guards are audited for completeness: each `throw(ArgumentError(…))` — the bad `degree` / `binning` /
    `method` / `rule` symbol, the mutually-exclusive `start` / `adaptive` / `support` / asymmetric-kernel
    combinations, the ``\texttt{degree} \ge 2`` and asymmetric-kernel standard-error gaps — carries a
@@ -101,44 +101,44 @@ Characteristics 2–4 are the `check_point_estimator` battery; 1 and 5 are per-e
 `@test_throws`).
 
 **Not swept: the valid option space.** Every *option* is tested against an oracle (vary one, hold the rest
-at default), and the genuinely-**interacting** pairs are tested together (`adaptive`+`support` rewrite the
+at default), and the genuinely interacting pairs are tested together (`adaptive`+`support` rewrite the
 same variance; `degree`×`kernel`) — but the full Cartesian product of valid option combinations is
-deliberately **not** exhausted. The options are largely orthogonal (different code paths), the exotic
-combinations have no analytic oracle (only a weak "finite" check), and ``N``-way coverage is a combinatorial
+deliberately not exhausted. The options are largely orthogonal (different code paths), the exotic
+combinations have no analytic oracle (only a weak "finite" check), and exhaustive coverage is a combinatorial
 explosion with diminishing returns past the pairwise level. The systematic-and-exhaustive effort goes into
 the *invalid* combinations (finite, high-value — characteristic 5), not the valid ones.
 
-**Estimand-specific** — layered on where the estimand demands it: **normalization** ``\int\hat f = 1`` (the
-densities), the **`transition_density` alias**, and the **convergence rate** (the matrix).
+**Estimand-specific** — layered on where the estimand demands it: normalization to a unit integral (the
+densities), the `transition_density` alias, and the convergence rate (the matrix).
 
-**Class variations.** The **summaries** (`Histogram1D` / `Histogram2D`) are accumulators, not query-point
+**Class variations.** The summaries (`Histogram1D` / `Histogram2D`) are accumulators, not query-point
 estimators: their contract is the moment-recovery oracle, mergeability, the `@allocated` audit, and GPU
-parity. The **marginal selector** `bandwidth(::Histogram1D)` has no query point: oracle (per rule),
-mergeability, and argument errors — no scalar/vector or off-support. The **local selector**
-`bandwidth(::Histogram2D, x)` (``h^\star``) *is* a query-point estimator, so it carries the universal
+parity. The marginal selector `bandwidth(::Histogram1D)` has no query point: oracle (per rule),
+mergeability, and argument errors — no scalar/vector or off-support. The local selector
+`bandwidth(::Histogram2D, x)` (``h^\star(x)``) *is* a query-point estimator, so it carries the universal
 contract (scalar ``=`` vector, merged-summary functional, off-support `NaN`; `test/localbandwidth.jl`).
 
 **Standard errors** carry their own contract, `check_standard_error` (`test/testcontracts.jl`), on top of
-the universal one: every `*_standard_error` is checked for **positivity**, **scalar ``=`` vector**, and the
-**``n^{-1/2}`` scaling** — merging ``K`` copies of a summary (``K\times`` the samples, the same shape)
-shrinks the standard error by *exactly* ``\sqrt K`` (``\mathrm{SE}(K\cdot s) = \mathrm{SE}(s)/\sqrt K``),
-the deterministic form of ``\mathrm{SE}\propto n^{-1/2}`` and a direct test of merged-histogram error
+the universal one: every `*_standard_error` is checked for positivity, scalar ``=`` vector, and the
+``n^{-1/2}`` scaling — merging ``J`` copies of a summary ``T`` (``J\times`` the samples, the same shape)
+shrinks the standard error by *exactly* ``\sqrt J`` (``\operatorname{SE}(J\cdot T) = \operatorname{SE}(T)/\sqrt J``),
+the deterministic form of ``\operatorname{SE}\propto n^{-1/2}`` and a direct test of merged-histogram error
 behaviour. For the *kernel* standard errors (`density`, `conditional_expectation`) it also checks the
-**``h^{-1/2}`` bandwidth scaling** (`check_se_bandwidth_scaling`, *asymptotic* — on a flat density at small
-``h``, ``\mathrm{SE}(2h) \approx \mathrm{SE}(h)/\sqrt{2}``, since changing ``h`` also moves ``\hat f`` and the
-``-\hat f^2/n`` term is ``h``-independent). It is *also* run through `check_point_estimator` (so the error, like the estimate, is a
-deterministic functional of the merged summary, ``\mathrm{SE}(\mathrm{merged}) = \mathrm{SE}(\mathrm{together})``), and carries a
-**calibration** check per family: the predicted standard error matches the empirical standard deviation of
+``h^{-1/2}`` bandwidth scaling (`check_se_bandwidth_scaling`, *asymptotic* — on a flat density at small
+``h``, ``\operatorname{SE}(2h) \approx \operatorname{SE}(h)/\sqrt{2}``, since changing ``h`` also moves the estimate and the
+``-\hat f_X^2/n`` term carries no ``1/h``). It is *also* run through `check_point_estimator` (so the error, like the estimate, is a
+deterministic functional of the merged summary, ``\operatorname{SE}(\mathrm{merged}) = \operatorname{SE}(\mathrm{together})``), and carries a
+calibration check per family: the predicted standard error matches the empirical standard deviation of
 the estimate across independent datasets (Monte-Carlo — `density` and `conditional_mean` at the density
 peak, `expectation` of ``\cos``). A `*_with_standard_error` additionally asserts its
 `(value, standard_error)` equals the separate estimate / standard-error calls exactly.
 
-A **coverage** check complements calibration across the families: the ``\hat\theta \pm 1.96 \mathrm{SE}``
-band is asked to bracket the **oracle truth** — not merely the estimate's own (possibly biased) mean, which
+**Coverage.** Complementing calibration across the families, the band ``\pm 1.96 \operatorname{SE}`` about the estimate
+is asked to bracket the oracle truth — not merely the estimate's own (possibly biased) mean, which
 is what calibration matches — across an interior grid, as an aggregate, lenient fraction. Because a standard
-error is a *variance* band and by construction cannot cover the estimator's ``O(h^2)`` **bias** — the same
+error is a *variance* band and by construction cannot cover the estimator's ``O(h^2)`` *bias* — the same
 order as the standard error at the mean-squared-error-optimal bandwidth — coverage is checked in the
-**variance-dominated regime**: at the working sample size for the one-dimensional readers (`density`,
+variance-dominated regime: at the working sample size for the one-dimensional readers (`density`,
 `pushforward_density`, `conditional_mean`, `conditional_variance`), and at a deliberately small ``n`` for the
 two-dimensional densities (`conditional_density`, `conditional_pushforward_density`), whose bias otherwise
 dominates the tight large-``n`` standard error. The floors (an interior fraction ``\ge 0.6``–``0.7``, or
@@ -146,12 +146,12 @@ dominates the tight large-``n`` standard error. The floors (an interior fraction
 and only guard against a broken standard-error *scale*, which would collapse coverage toward zero.
 
 **Merged histograms — two or more.** Mergeability is checked at the query-point-functional level
-(`check_point_estimator`, with `merged` a **3-way** merge of disjoint thirds for `density` — associativity
+(`check_point_estimator`, with `merged` a 3-way merge of disjoint thirds for `density` — associativity
 beyond two) *and* at the summary level (`test/mergeability.jl`, `test/histograms2d.jl` — the monoid / cone
 laws), for both the estimates and their standard errors.
 
 **HDF5 persistence (`test/hdf5.jl`).** The weak-dependency extension round-trips a summary through an HDF5
-group: the reload is **bit-exact** for a `Histogram1D`, the `count_type = Float64` cone variant (element type
+group: the reload is bit-exact for a `Histogram1D`, the `count_type = Float64` cone variant (element type
 preserved), and a lagged `Histogram2D` (fields, element types, array shapes); estimators (`density`,
 `mean`) are identical after reload; the reload is still mergeable (merging into it matches merging into the
 original); the attributes are readable as plain HDF5 (self-describing); and the error paths throw
@@ -164,31 +164,31 @@ argument errors) plus the convergence rate:
 
 | Estimator | Oracle | Scalar==vec | Merge | Off-support | Arg err | Rate |
 |---|---|---|---|---|---|---|
-| `density` | 6-PDF suite + Gaussian | yes | yes | n/a, defined everywhere | yes | yes, ``n^{-2p/(2p+1)}`` |
+| `density` | 6-PDF suite + Gaussian | yes | yes | n/a, defined everywhere | yes | yes, ``n^{-2q/(2q+1)}`` |
 | `density_standard_error` / `density_with_standard_error` | two-term variance vs Monte-Carlo spread + band coverage; tracks `adaptive` / `support` / `start`; the paired estimate-plus-error consistency | yes | yes | n/a | yes | n/a, variability band |
-| `conditional_mean` / `conditional_variance` (+ `conditional_variance_standard_error`) | bivariate-Gaussian (+ heteroscedastic curved-mean for Fan–Yao `conditional_variance`); the residual-based variance SE MC-calibrates on the Gaussian and a heavy-tailed Student-``t_5`` (capturing the ``\mu_4`` kurtosis); the SE bands' aggregate 95% oracle coverage | yes | yes | `NaN` | yes | yes, ``n^{-4/5}`` ISE |
-| `conditional_expectation` / `conditional_pushforward_density` (+ their standard errors) | biv-Gaussian ``\mathbb{E}[\cos Y\mid x]`` + lognormal pushforward; the `conditional_mean` fold + degree-0 `conditional_density` coincidence; the pushforward SE matches `conditional_density_standard_error` at degree-0 identity + MC, paired consistency; the SE bands' aggregate 95% oracle coverage (small-``n`` variance-dominated regime for the pushforward) | yes | yes | `NaN` | yes | inherits `conditional_mean` ``n^{-4/5}`` |
+| `conditional_mean` / `conditional_variance` (+ `conditional_variance_standard_error`) | bivariate-Gaussian (+ heteroscedastic curved-mean for Fan–Yao `conditional_variance`); the residual-based variance SE MC-calibrates on the Gaussian and a heavy-tailed Student ``\mathrm{t}_5`` (capturing the ``\mu_4(x)`` kurtosis); the SE bands' aggregate 95% oracle coverage | yes | yes | `NaN` | yes | yes, ``n^{-4/5}`` ISE |
+| `conditional_expectation` / `conditional_pushforward_density` (+ their standard errors) | biv-Gaussian ``\mathbb{E}[\cos Y\mid X = x]`` + lognormal pushforward; the `conditional_mean` fold + degree-0 `conditional_density` coincidence; the pushforward SE matches `conditional_density_standard_error` at degree-0 identity + MC, paired consistency; the SE bands' aggregate 95% oracle coverage (small-``n`` variance-dominated regime for the pushforward) | yes | yes | `NaN` | yes | inherits `conditional_mean` ``n^{-4/5}`` |
 | `conditional_expectation_standard_error` / `conditional_expectation_with_standard_error` | leverage × noise-scale = Monte-Carlo sampling spread (biv-Gaussian) + leading-order closed form; the paired value+error matches the separate calls | yes | yes | `NaN` | yes | n/a, a standard error |
 | `conditional_density` / `transition_density` | biv-Gaussian + OU + bounded-response (asym. `kernely`) | yes | yes | `NaN` off-support ``x`` | yes | yes, ``n^{-2/3}`` |
-| `conditional_density_standard_error` / `conditional_density_with_standard_error` | two-term closed form (biv-Gaussian) = Monte-Carlo spread; ``n^{-1/2}`` + ``h_2^{-1/2}`` scaling; paired consistency + `transition_density` aliases; the band's aggregate 95% oracle coverage (small-``n`` variance-dominated regime) | yes | yes | `NaN` | yes | n/a, a standard error |
+| `conditional_density_standard_error` / `conditional_density_with_standard_error` | two-term closed form (biv-Gaussian) = Monte-Carlo spread; ``n^{-1/2}`` + ``h_y^{-1/2}`` scaling; paired consistency + `transition_density` aliases; the band's aggregate 95% oracle coverage (small-``n`` variance-dominated regime) | yes | yes | `NaN` | yes | n/a, a standard error |
 | `bandwidth(::Histogram2D)` ``h^\star(x)`` | quadratic-mean Gaussian (closed-form) | yes | yes | `NaN` | yes | n/a, a selector |
-| `expectation` / `pushforward_density` / `expectation_standard_error` / `expectation_with_standard_error` / `pushforward_density_standard_error` | Gaussian MGF/trig + polynomial exactness; lognormal & non-monotone ``\chi^2_1`` pushforward; SE ``= s/\sqrt n``, scaling / mergeability / Monte-Carlo, paired value+error = separate calls; the pushforward SE reduces to `density_standard_error` at ``g=\mathrm{identity}`` + MC; the SE bands' aggregate 95% oracle coverage (`expectation` frequentist across independent datasets) | yes (`pushforward`) | yes | n/a, mass in range | yes | n/a, exact for degree ``\le`` order else ``O(\Delta^{\texttt{order}+1})`` |
+| `expectation` / `pushforward_density` / `expectation_standard_error` / `expectation_with_standard_error` / `pushforward_density_standard_error` | Gaussian MGF/trig + polynomial exactness; lognormal & non-monotone ``\chi^2_1`` pushforward; SE ``= \sqrt{\hat\mu_2/n}``, scaling / mergeability / Monte-Carlo, paired value+error = separate calls; the pushforward SE reduces to `density_standard_error` at ``g=\mathrm{identity}`` + MC; the SE bands' aggregate 95% oracle coverage (`expectation` frequentist across independent datasets) | yes (`pushforward`) | yes | n/a, mass in range | yes | n/a, exact for degree ``\le`` order else ``O(\Delta^{\texttt{order}+1})`` |
 
 The summaries and the selector carry a different contract:
 
 | Operation | Oracle | Merge | Alloc | GPU |
 |---|---|---|---|---|
-| `Histogram1D` (`observe!` / `merge!`) | Gaussian moments ``M_2``–``M_6`` | yes | yes | yes |
+| `Histogram1D` (`observe!` / `merge!`) | Gaussian moments ``\mu_2(X)``–``\mu_6(X)`` | yes | yes | yes |
 | `Histogram2D` (`observe_pairs!` / `merge!`) | indep-Gaussian marginals + covariance | yes | yes | yes |
-| cone (`scale!` / weighted `merge!`) | χ²-superstatistics → Student-``t``, Gaussian mixture | cone laws | yes | yes |
+| cone (`scale!` / weighted `merge!`) | ``\chi^2``-superstatistics → Student ``\mathrm{t}_\nu``, Gaussian mixture | cone laws | yes | yes |
 | `bandwidth(::Histogram1D)` (`:normal` / `:sj` / `:isj` / `:aic` / `:plugin`) | Silverman / ``\delta(K)`` / bimodal / ISE gain | yes | n/a | via summary |
 | `LocalPolynomial.local_fit` (the jet primitive) | exact jet (value / slope / curvature) on a polynomial mean | n/a | n/a | via summary |
 
-`n/a` is not applicable. The **rate column is now uniform** — `density` (`test/density_convergence.jl`),
+`n/a` is not applicable. The rate column is now uniform — `density` (`test/density_convergence.jl`),
 `conditional_mean` (``n^{-4/5}`` ISE), and `conditional_density` (the slower 2-D ``n^{-2/3}``) each carry a
 log–log ISE-slope test (the conditional pair in `test/conditional_convergence.jl`); `conditional_variance`
 inherits `conditional_mean`'s rate (a second-stage local fit), so it needs no separate test. The power-sum
-quadrature readouts (`expectation`, `pushforward_density`) carry a **polynomial-exactness** test (they equal
+quadrature readouts (`expectation`, `pushforward_density`) carry a polynomial-exactness test (they equal
 the raw empirical mean ``\tfrac{1}{n}\sum_i g(X_i)`` to ``10^{-10}`` for ``g`` of degree ``\le \texttt{order}``)
 and a binning-error bound in place of an asymptotic slope. "via summary" means a host-side functional of the
 summary, so the device coverage is the summary's row.
@@ -197,7 +197,7 @@ summary, so the device coverage is the summary's row.
 gains, the convergence-rate slopes) are not cherry-picked to a fixed seed: they are audited across many
 seeds, and the threshold sits above the worst case with margin. The audit is the test-suite analog of the
 Monte-Carlo–averaged MISE the source papers report — its goal is a non-fragile regression guard, not an
-MISE estimate. (It is why the `:plugin`-on-`Beta(2,2)` test asserts only *competitiveness*: the rule of
+MISE estimate. (It is why the `:plugin`-on-``\mathrm{Beta}(2,2)`` test asserts only *competitiveness*: the rule of
 thumb is already near-optimal on that smooth, symmetric case, so the gain there is real but marginal.)
 
 ## Declared harness contracts
@@ -241,11 +241,11 @@ plus the `LoweredCodeUtils` compat pin JET needs).
     ``h^\star(x)``), the shared `LocalPolynomial.local_fit` jet primitive, the §4.2 regression (with the
     `degree` / `kernel` options and the Fan–Yao `conditional_variance`), the §4.3
     `conditional_density` / `transition_density`
-    are real — the Gaussian and analytic-PDF oracles, the bivariate-Gaussian, **heteroscedastic
-    curved-mean**, quadratic-mean, and **Ornstein–Uhlenbeck** oracles, mergeability, the uniform
+    are real — the Gaussian and analytic-PDF oracles, the bivariate-Gaussian, heteroscedastic
+    curved-mean, quadratic-mean, and Ornstein–Uhlenbeck oracles, mergeability, the uniform
     `check_point_estimator` contract, `density`'s exact affine equivariance, the Marron–Wand claw stress,
-    the bounded `@allocated` audit, and **CPU-vs-AMD-GPU parity** (`test/gpu/`, ROCm); `Aqua.test_all` and
+    the bounded `@allocated` audit, and CPU-vs-AMD-GPU parity (`test/gpu/`, ROCm); `Aqua.test_all` and
     JET run for real throughout. The Kramers–Moyal / Pawula / Markov diagnostics are archived (in git history at commit `37006b5`), pending a consumer. The
     conditional-mean ``n^{-2/5}`` and conditional-density ``n^{-2/3}`` rate tests are now implemented
-    (`test/conditional_convergence.jl`), alongside the **density** rate test (`test/density_convergence.jl`)
+    (`test/conditional_convergence.jl`), alongside the density rate test (`test/density_convergence.jl`)
     and the direct kernel-constant oracle (`test/kernels.jl`) — closing the rate column of the matrix.

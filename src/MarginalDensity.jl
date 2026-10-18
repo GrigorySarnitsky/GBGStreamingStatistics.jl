@@ -22,21 +22,21 @@ export density, density_standard_error, density_with_standard_error,
 
 
 # --- parametric-start (semiparametric) density (Hjort & Glad 1995) ---
-# f̂(x) = p(x; θ̂)·r̂(x): fit a parametric "start" p(·; θ̂) — its parameters by method of moments from the
-# recovered sample mean and variance, so θ̂ is itself a post-hoc functional of the summary — then KDE the
-# *correction* r̂(x) = (1/n) Σᵢ K_h(x−xᵢ)/p(xᵢ; θ̂), the start's local relative error. The estimate is
-# exact wherever the start is correct (the correction is then ≡ 1, so f̂ ≈ the parametric fit) and degrades
-# only to the bias of a KDE-of-the-ratio where it is not — a tail-friendly bias reduction. Binned form:
-# r̂(x) = (1/nh) Σⱼ (nⱼ/p(cⱼ; θ̂)) K((x−cⱼ)/h), a reduction over the bin counts and mergeable (θ̂ merges
+# f̂_X(x) = f_θ̂(x) times an estimate of f_X/f_θ: fit a parametric "start" f_θ̂ — its parameters by method of
+# moments from the recovered sample mean and variance, so θ̂ is itself a post-hoc functional of the summary —
+# then KDE the *correction* f_X/f_θ, the start's local relative error, as (1/n) Σᵢ K_h(x − Xᵢ)/f_θ̂(Xᵢ). The
+# estimate is exact wherever the start is correct (the correction is then ≡ 1, so f̂_X ≈ the parametric fit)
+# and degrades only to the bias of a KDE-of-the-ratio where it is not — a tail-friendly bias reduction. Binned
+# form: (1/nh) Σⱼ (nⱼ/f_θ̂(c̃ⱼ)) K((x − c̃ⱼ)/h), a reduction over the bin counts and mergeable (θ̂ merges
 # through the moments; the reweighted counts add). A start carries its *log*-density (stable: the
 # correction weight is exp(−logpdf)) and its support; off-support points contribute nothing.
 """
     ParametricStart(fit, logpdf, support)
 
-A **parametric start** serves the Hjort–Glad semiparametric density (Hjort & Glad 1995): passed as
+A *parametric start* serves the Hjort–Glad semiparametric density (Hjort & Glad 1995): passed as
 [`density(…; start = …)`](@ref GBGStreamingStatistics.MarginalDensity.density), it multiplies the
-moment-fitted model ``p(\\cdot;\\hat\\theta)`` by a kernel estimate of the **correction** ``f_X/p`` —
-near-exact where the model fits (the bias is driven by ``(f_X/p)''``, not ``f_X''``), degrading only to a
+moment-fitted model ``f_{\\hat\\theta}`` by a kernel estimate of the *correction* ``f_X/f_\\theta`` —
+near-exact where the model fits (the bias is driven by ``(f_X/f_\\theta)''``, not ``f_X''``), degrading only to a
 kernel-of-the-ratio bias where it does not. The built-ins are
 [`normal_start`](@ref GBGStreamingStatistics.MarginalDensity.normal_start),
 [`lognormal_start`](@ref GBGStreamingStatistics.MarginalDensity.lognormal_start),
@@ -50,12 +50,12 @@ construct one directly to plug in a custom parametric model.
 
 The constructor arguments are the three fields, and they are the construction contract:
 
-- `fit(mean, variance)` — fit the model parameters from the **recovered moments** by method of moments,
+- `fit(mean, variance)` — fit the model parameters from the recovered moments by method of moments,
   returning a parameter tuple. Fitting from the mean and variance (not the raw data) is what keeps the whole
-  estimate **mergeable** (two summaries' estimates combine by adding the summaries): ``\\hat\\theta`` is itself a post-hoc functional of the summary.
-- `logpdf(x, params)` — the model log-density ``\\log p(x;\\hat\\theta)``, returning ``-\\infty`` off the
-  support. `density` reweights each bin by ``1/p(\\ell_j;\\hat\\theta)`` at the bin location ``\\ell_j`` through
-  this log form (stable in the tails, where ``p`` is tiny).
+  estimate mergeable (two summaries' estimates combine by adding the summaries): ``\\hat\\theta`` is itself a post-hoc functional of the summary.
+- `logpdf(x, params)` — the model log-density ``\\log f_{\\hat\\theta}(x)``, returning ``-\\infty`` off the
+  support. `density` reweights each bin by ``1/f_{\\hat\\theta}(\\tilde c_j)`` at the bin location ``\\tilde c_j`` through
+  this log form (stable in the tails, where ``f_{\\hat\\theta}`` is tiny).
 - `support` — the domain the model is positive on, as a `(lower, upper)` tuple (e.g. `(0.0, Inf)`).
 
 ```jldoctest
@@ -79,7 +79,7 @@ start*](https://doi.org/10.1214/aos/1176324627), Ann. Statist. 23(3).
 """
 struct ParametricStart{F,G}
   fit::F                            # (mean, variance) → params (a tuple), by method of moments
-  logpdf::G                         # (x, params) → log p(x; params); −Inf off the start's support
+  logpdf::G                         # (x, params) → log f_θ(x), θ = params; −Inf off the start's support
   support::Tuple{Float64,Float64}   # where the start is positive (the estimand's domain)
 end
 
@@ -88,8 +88,8 @@ end
     normal_start
 
 The Gaussian (normal) [`ParametricStart`](@ref GBGStreamingStatistics.MarginalDensity.ParametricStart) on
-``(-\\infty,\\infty)`` takes ``p(x;\\hat\\mu,\\hat\\sigma^2)`` with ``\\hat\\mu``, ``\\hat\\sigma^2`` the
-recovered sample mean and variance. Pass `start = normal_start` to
+``(-\\infty,\\infty)`` takes the density ``f_{\\hat\\theta}`` of ``\\mathcal{N}(\\bar X, \\hat\\sigma_X^2)``, with ``\\bar X``,
+``\\hat\\sigma_X^2`` the recovered sample mean and variance. Pass `start = normal_start` to
 [`density`](@ref GBGStreamingStatistics.MarginalDensity.density).
 """
 const normal_start = ParametricStart(
@@ -103,7 +103,7 @@ const normal_start = ParametricStart(
 
 The log-normal [`ParametricStart`](@ref GBGStreamingStatistics.MarginalDensity.ParametricStart) on
 ``(0,\\infty)`` fits its parameters by method of moments (the log-variance
-``s^2 = \\log(1+\\hat\\sigma^2/\\hat\\mu^2)``, the log-mean ``m = \\log\\hat\\mu - s^2/2``). It is a natural start for a **positively skewed** quantity such as a droplet
+``\\log(1+\\hat\\sigma_X^2/\\bar X^2)``, the log-mean ``\\log\\bar X`` minus half the log-variance). It is a natural start for a positively skewed quantity such as a droplet
 radius; pass `start = lognormal_start`.
 """
 const lognormal_start = ParametricStart(
@@ -116,7 +116,7 @@ const lognormal_start = ParametricStart(
     gamma_start
 
 The gamma [`ParametricStart`](@ref GBGStreamingStatistics.MarginalDensity.ParametricStart) on ``(0,\\infty)``
-fits the shape ``k = \\hat\\mu^2/\\hat\\sigma^2`` and scale ``\\theta = \\hat\\sigma^2/\\hat\\mu`` by method of
+fits the shape ``\\hat\\alpha = \\bar X^2/\\hat\\sigma_X^2`` and the scale ``\\hat\\sigma_X^2/\\bar X`` by method of
 moments. It suits a non-negative quantity; pass `start = gamma_start`.
 """
 const gamma_start = ParametricStart(
@@ -129,7 +129,7 @@ const gamma_start = ParametricStart(
     exponential_start
 
 The exponential [`ParametricStart`](@ref GBGStreamingStatistics.MarginalDensity.ParametricStart) on
-``[0,\\infty)`` fits the rate ``\\hat\\lambda = 1/\\hat\\mu`` (a one-parameter start, from the mean alone).
+``[0,\\infty)`` fits the rate ``1/\\bar X`` (a one-parameter start, from the mean alone).
 Pass `start = exponential_start`; it pairs with the `degree = 1` log-linear fit as the two
 exponential-tail tools.
 """
@@ -143,7 +143,7 @@ const exponential_start = ParametricStart(
     inverse_gaussian_start
 
 The inverse-Gaussian [`ParametricStart`](@ref GBGStreamingStatistics.MarginalDensity.ParametricStart) on
-``(0,\\infty)`` fits the mean ``\\hat\\mu`` and shape ``\\hat\\lambda = \\hat\\mu^3/\\hat\\sigma^2`` by method of
+``(0,\\infty)`` fits the mean ``\\bar X`` and the shape ``\\bar X^3/\\hat\\sigma_X^2`` by method of
 moments; it is a positive start with an exponentially decaying right tail (lighter than the log-normal's).
 Pass `start = inverse_gaussian_start`.
 """
@@ -171,12 +171,12 @@ function _check_start(kernel, degree, adaptive, support)
   kernel isa AsymmetricKernel &&
     throw(ArgumentError("a parametric `start` pairs with a symmetric kernel; the asymmetric `gamma_kernel`/`beta_kernel` are already boundary-free — drop `start`"))
   (degree == 0 && !adaptive && support === nothing) ||
-    throw(ArgumentError("a parametric `start` is the degree-0, fixed-bandwidth estimator without `support`; `degree ≥ 1`, `adaptive`, and `support` do not combine with it (use `normalize` to enforce ∫f̂ = 1)"))
+    throw(ArgumentError("a parametric `start` is the degree-0, fixed-bandwidth estimator without `support`; `degree ≥ 1`, `adaptive`, and `support` do not combine with it (use `normalize` to enforce ∫f̂_X = 1)"))
 end
 
 
-# Hjort–Glad estimate at x: f̂(x) = p(x; θ̂)·(1/nh) Σⱼ (nⱼ/p(cⱼ; θ̂)) K((x−cⱼ)/h). Off the start's support
-# (p = 0) the estimate is 0, and bins off the support carry no correction weight.
+# Hjort–Glad estimate at x: f̂_X(x) = f_θ̂(x)·(1/nh) Σⱼ (nⱼ/f_θ̂(c̃ⱼ)) K((x − c̃ⱼ)/h). Off the start's
+# support (f_θ̂ = 0) the estimate is 0, and bins off the support carry no correction weight.
 function _parametric_start_eval(counts, centers, n, x, kernel, h, start, params)
   logpx = start.logpdf(x, params)
   isfinite(logpx) || return 0.0
@@ -192,8 +192,8 @@ function _parametric_start_eval(counts, centers, n, x, kernel, h, start, params)
 end
 
 
-# --- exact renormalization: divide the estimate by ∫f̂ over the summary's range ∩ the estimator's support
-# so ∫f̂ = 1 exactly. The symmetric KDE already integrates to ≈1; the asymmetric kernels and a parametric
+# --- exact renormalization: divide the estimate by ∫f̂_X over the summary's range ∩ the estimator's support
+# so ∫f̂_X = 1 exactly. The symmetric KDE already integrates to ≈1; the asymmetric kernels and a parametric
 # start do not, so `normalize` is their finishing step. A post-hoc functional (off the hot path). ---
 # The estimand's support: the asymmetric kernel's domain, the `support`, and/or the start's support, met.
 function _density_support(kernel, support, start)
@@ -205,7 +205,7 @@ function _density_support(kernel, support, start)
 end
 
 
-# Z = ∫ f̂ over [summary.lower, summary.upper] ∩ support, by the trapezoidal rule on a fine grid.
+# The normalizing constant ∫ f̂_X dx over [summary.lower, summary.upper] ∩ support, by the trapezoidal rule on a fine grid.
 function _normalization_constant(summary::Histogram1D; kernel, degree, h, adaptive, support, start,
                                  binning)
   slower, supper = _density_support(kernel, support, start)
@@ -221,17 +221,18 @@ end
 
 
 # --- default bandwidth: the kernel- and degree-aware normal-reference rule (§4.5) ---
-# Kernel constants (``R(K)``, ``\mu_2(K)``, ``\mu_4(K)``) come from the shared `Kernels._quad` quadrature
+# Kernel constants (R(K), μ₂(K), μ₄(K)) come from the shared `Kernels._quad` quadrature
 # of K, so any user-supplied `kernel` works with no hand-coded constants.
 
 
 _doublefactorial(k::Integer) = k ≤ 1 ? 1.0 : k * _doublefactorial(k - 2)
 
 
-# The canonical kernel×degree factor Wikk(K, deg) and the leading bias order p — the same grouping as
-# locfit's `Wikk` (Loader 1996). Degree 0,1 share the second-order kernel: Wikk = R(K)/μ₂(K)², p = 2.
-# Degree 2,3 use the fourth-order *equivalent* kernel K⋆ = K·(n₄ − v²n₂)/(n₀n₄ − n₂²): Wikk =
-# (4!²/8)·R(K⋆)/μ₄(K⋆)², p = 4 — with kernel moments nₖ = ∫vᵏK. Higher degree is a recorded coverage gap.
+# The canonical kernel×degree factor `wikk` of (K, d) and the leading bias order q — the same grouping as
+# locfit's `Wikk` (Loader 1996). Degree 0,1 share the second-order kernel: `wikk` = R(K)/μ₂(K)², q = 2.
+# Degree 2,3 use the fourth-order *equivalent* kernel K₍₄₎(u) = K(u)·(μ₄(K) − u²μ₂(K))/(μ₀(K)μ₄(K) − μ₂(K)²):
+# `wikk` = (4!²/8)·R(K₍₄₎)/μ₄(K₍₄₎)², q = 4 — with kernel moments μ_p(K) = ∫uᵖK(u) du. Higher degree is a
+# recorded coverage gap.
 function _wikk(kernel, degree::Integer)
   n0 = _quad(kernel)
   n2 = _quad(v -> v^2 * kernel(v))
@@ -248,8 +249,8 @@ end
 
 
 # The kernel- and degree-aware normal-reference (Gaussian-reference) bandwidth — the default `h`:
-#   h = C(K, deg)·σ̂·n^(−1/(2p+1)),   C = [Wikk(K, deg)·2^(p+1)·√π / (2p−1)!!]^(1/(2p+1)),
-# recovered from σ̂ and n. Reduces to Silverman (4/3)^(1/5)·σ̂·n^(−1/5) for the Gaussian kernel at
+#   h = C(K, d)·σ̂_X·n^(−1/(2q+1)),   C(K, d) = [`wikk`·2^(q+1)·√π / (2q−1)!!]^(1/(2q+1)),
+# recovered from σ̂_X and n. Reduces to Silverman (4/3)^(1/5)·σ̂_X·n^(−1/5) for the Gaussian kernel at
 # degree 0/1; degree 2 is a higher-order (O(h⁴)) fit, so it widens to the n^(−1/9) rate. See `bandwidth`.
 function _normal_reference_h(summary::Histogram1D, kernel, degree::Integer)
   wikk, p = _wikk(kernel, degree)
@@ -258,8 +259,8 @@ function _normal_reference_h(summary::Histogram1D, kernel, degree::Integer)
 end
 
 
-# Fixed-bandwidth binned degree-0 density at x (single h): f̂ = (1/n) Σ_j n_j w_j with w_j the shared
-# `_kernel_weight` (the 1/h folded in) — so this one evaluator serves both the symmetric KDE and the
+# Fixed-bandwidth binned degree-0 density at x (single h): f̂_X(x) = (1/n) Σ_j n_j K_h(c̃_j − x) with K_h the
+# shared `_kernel_weight` (the 1/h folded in) — so this one evaluator serves both the symmetric KDE and the
 # asymmetric (gamma/beta) boundary kernel, and is the adaptive pilot. The degree-0 readout of the atom.
 function _kde_h(counts, centers, n, x, kernel, h)
   acc = 0.0
@@ -272,9 +273,9 @@ function _kde_h(counts, centers, n, x, kernel, h)
 end
 
 
-# Abramson: per-bin (sample-point) bandwidths ``h_j = h (\tilde f(c_j)/g)^{-1/2}`` and the geometric
-# mean ``g`` of the fixed-h pilot ``\tilde f`` over the sample (occupied bins, weighted by counts). The
-# ``h_j`` drive the degree-0 adaptive KDE; ``g`` drives the degree-≥1 balloon bandwidth. O(nbins²).
+# Abramson: per-bin (sample-point) bandwidths h_j = h (f̃_X(c_j)/G)^(−1/2) and the geometric mean G (`g`)
+# of the fixed-h pilot f̃_X over the sample (occupied bins, weighted by counts). The h_j drive the degree-0
+# adaptive KDE; G drives the degree-≥1 balloon bandwidth. O(nbins²).
 function _abramson(counts, centers, n, kernel, h)
   nb = length(centers)
   pilot = zeros(Float64, nb)
@@ -293,7 +294,7 @@ function _abramson(counts, centers, n, kernel, h)
 end
 
 
-# Degree-0 adaptive KDE at x with per-bin (sample-point) bandwidths ``h_j``.
+# Degree-0 adaptive KDE at x with per-bin (sample-point) bandwidths h_j.
 function _kde_adaptive(counts, centers, n, x, kernel, hj)
   acc = 0.0
   @inbounds for j in eachindex(centers)
@@ -305,11 +306,11 @@ function _kde_adaptive(counts, centers, n, x, kernel, hj)
 end
 
 
-# Degree ≥ 1 — local-log-polynomial density by binned **local Poisson likelihood** (Loader 1996), at a
-# single point-wise (balloon) bandwidth ``h_x``. Model the bin counts ``n_j`` as Poisson with
-# ``\log \mathbb{E}[n_j] = \log(nb) + \sum_{l=0}^{d}\beta_l (c_j-x)^l`` and weights ``K((c_j-x)/h_x)``;
-# Newton/IRLS (concave) gives ``\hat f(x) = e^{\beta_0}``. Each Newton step is the shared
-# kernel-weighted local-polynomial solve (`LocalPolynomial._hankel_solve` of the μ-weighted design
+# Degree ≥ 1 — local-log-polynomial density by binned local Poisson likelihood (Loader 1996), at a
+# single point-wise (balloon) bandwidth h(x). Model the bin counts n_j as Poisson with
+# log 𝔼[n_j] = log(nΔ) + Σ_{p=0}^{d} β_p (c̃_j − x)^p and weights K((c̃_j − x)/h(x));
+# Newton/IRLS (concave) gives f̂_X(x) = e^{β̂₀}. Each Newton step is the shared
+# kernel-weighted local-polynomial solve (`LocalPolynomial._hankel_solve` of the n̂-weighted design
 # moments) — a local GLM is the linear solve iterated (`docs/ARCHITECTURE.md` §11). Warm-started from
 # the KDE value `f0`; falls back to it where the local design can't support degree d (singular) or the
 # fit diverges.
@@ -319,8 +320,8 @@ function _local_log(counts, centers, n, x, kernel, degree, hx, b, f0)
   β = zeros(p)
   β[1] = log(f0)
   nb_off = n * b
-  grad = zeros(p)               # the score ∑ w (n_j − μ_j)(c_j − x)^l, l = 0 … degree
-  momμ = zeros(2 * degree + 1)  # the μ-weighted design moments ∑ w μ_j (c_j − x)^k; the Gram is their Hankel
+  grad = zeros(p)               # the score Σ K_h(c̃_j − x)(n_j − n̂_j)(c̃_j − x)^p, one entry per power 0 … degree
+  momμ = zeros(2 * degree + 1)  # the n̂-weighted moments Σ K_h(c̃_j − x) n̂_j (c̃_j − x)^p; the Gram is their Hankel
   for _ in 1:25
     fill!(grad, 0.0)
     fill!(momμ, 0.0)
@@ -359,8 +360,8 @@ end
 
 
 # The point-wise (balloon) bandwidth at x for the local-log fit: fixed `h`, or the Abramson factor
-# ``h (\tilde f(x)/g)^{-1/2}`` evaluated *at the query point* (so the fit window stays local). The factor
-# is clipped at 5 so the window does not blow up in the deep tail (where ``\tilde f(x)\to 0``) and the
+# h (f̃_X(x)/G)^(−1/2) evaluated *at the query point* (so the fit window stays local). The factor
+# is clipped at 5 so the window does not blow up in the deep tail (where f̃_X(x) → 0) and the
 # local polynomial extrapolate upward.
 @inline _balloon(h, g, f0, adaptive) = (adaptive && f0 > 0) ? h * min(sqrt(g / f0), 5.0) : float(h)
 
@@ -368,12 +369,13 @@ end
 # --- boundary renormalization (Jones 1993): divide the degree-0 KDE by the kernel mass that lands inside
 # the support, so a density on a half-line / interval is not biased down at the edge (e.g. droplet radii
 # on [0, ∞), whose KDE otherwise drops to ≈ half the true value at the boundary). ---
-# The kernel's CDF (mass to the left of t), by quadrature of K — reuses the fixed grid of `_quad`.
+# The kernel's CDF at `t`, the mass ∫_{−∞}^{t} K(u) du to its left, by quadrature of K — reuses the fixed grid of `_quad`.
 _kernel_cdf(kernel, t) = _quad(s -> s ≤ t ? kernel(s) : 0.0)
 
 
-# The fraction of a kernel centred at x (bandwidth h) inside the support [a, b]: M(x) = ∫_a^b K_h(x−u)du =
-# CDF_K((x−a)/h) − CDF_K((x−b)/h)  (a = −∞ ⇒ the first term is 1; b = +∞ ⇒ the second is 0).
+# The fraction of a kernel centred at x (bandwidth h) inside the support [lower, upper] (the arguments `a`, `b`):
+# a(x) = ∫_lower^upper K_h(x − v) dv = CDF_K((x − lower)/h) − CDF_K((x − upper)/h)  (lower = −∞ ⇒ the first
+# term is 1; upper = +∞ ⇒ the second is 0).
 function _kernel_mass(kernel, x, h, a, b)
   upper = isfinite(a) ? _kernel_cdf(kernel, (x - a) / h) : 1.0
   lower = isfinite(b) ? _kernel_cdf(kernel, (x - b) / h) : 0.0
@@ -382,13 +384,13 @@ end
 
 
 # Default bandwidth for an asymmetric kernel: the gamma/beta-kernel rate b ∝ n^(−2/5) (Chen 1999/2000),
-# scaled by σ̂ so the kernel's width at a typical point matches the symmetric optimum.
+# scaled by σ̂_X so the kernel's width at a typical point matches the symmetric optimum.
 _asymmetric_default_b(summary::Histogram1D) = _sample_std(summary) * float(_total(summary))^(-2 / 5)
 
 
 # Each bin's representative location for the post-hoc estimators, set by `binning`. `:simple` — the
 # geometric bin center c_j (the histogram's mass-at-center approximation, an O(Δ) discretization of the
-# exact KDE). `:linear` — the recovered within-bin centroid ĉ_j = c_j + S_1[j]/n_j from the stored first
+# exact KDE). `:linear` — the recovered within-bin centroid c̃_j = c_j + S_1^(j)/n_j from the stored first
 # power-sum, which matches the bin's own first moment, so the within-bin displacement averages to zero and
 # the binned KDE's discretization error drops to O(Δ²) (the centroid analog of linear binning). Every eval
 # helper is agnostic to which — it just reads `centers`. Empty bins keep the geometric center (no mass).
@@ -411,22 +413,22 @@ end
             h = bandwidth(summary; kernel, degree), adaptive = false,
             support = nothing, start = nothing, normalize = false, binning = :linear)
 
-**Estimand.** The marginal (Lebesgue) density ``f_X = \\mathrm{d}\\mu_X/\\mathrm{d}\\lambda`` of the
-variate ``X``, defined by ``P(X \\in A) = \\int_A f_X\\,\\mathrm{d}\\lambda``.
+**Estimand.** The marginal (Lebesgue) density ``f_X = \\mathrm{d}\\mathbb{P}_X/\\mathrm{d}x`` of the
+variate ``X`` with law ``\\mathbb{P}_X``, defined by ``\\mathbb{P}_X(A) = \\int_A f_X(x)\\,\\mathrm{d}x``.
 
 **Estimator.** The estimator is the smoothed estimate ``\\hat f_h(x)`` from the accumulated `summary`: a
-binned local smoother of the counts ``n_j`` at bin locations ``\\ell_j`` (the within-bin centroid by
+binned local smoother of the counts ``n_j`` at bin locations ``\\tilde c_j`` (the within-bin centroid by
 default; see the `binning` option) — a binned KDE (WARPing, weighted averaging of rounded points) at
-`degree = 0`, or a local-log-polynomial fit of ``\\log f`` at `degree` ``\\ge 1``.
+`degree = 0`, or a local-log-polynomial fit of ``\\log f_X`` at `degree` ``\\ge 1``.
 
 # Arguments
 
 - `summary` — the [`Histogram1D`](@ref GBGStreamingStatistics.Histograms.Histogram1D) of ``X``.
-- `x` — the **query point(s)**: a scalar for the density at one point, or a vector for the whole curve.
-- `kernel` — the smoothing weight ``K`` (any callable with ``\\int K = 1``), default the **symmetric**
+- `x` — the query point(s): a scalar for the density at one point, or a vector for the whole curve.
+- `kernel` — the smoothing weight ``K`` (any callable with ``\\int K = 1``), default the symmetric
   [`gaussian_kernel`](@ref GBGStreamingStatistics.Kernels.gaussian_kernel). The compact-support symmetric
-  [`epanechnikov_kernel`](@ref GBGStreamingStatistics.Kernels.epanechnikov_kernel) and, for **bounded /
-  positive support**, the **asymmetric** [`gamma_kernel`](@ref GBGStreamingStatistics.Kernels.gamma_kernel)
+  [`epanechnikov_kernel`](@ref GBGStreamingStatistics.Kernels.epanechnikov_kernel) and, for bounded /
+  positive support, the asymmetric [`gamma_kernel`](@ref GBGStreamingStatistics.Kernels.gamma_kernel)
   (``[0,\\infty)``, e.g. a droplet radius) and [`beta_kernel`](@ref GBGStreamingStatistics.Kernels.beta_kernel)
   (``[0,1]``) — boundary-bias-free by
   construction — are catalogued with their supports and constants on [the Kernels page](@ref "Kernels");
@@ -436,56 +438,56 @@ default; see the `binning` option) — a binned KDE (WARPing, weighted averaging
   law is unproved for a varying-shape kernel, and a parametric `start` because that composition is not
   built; it takes its own scale ``b`` in place of `h`.
 - `degree` — the local-polynomial order. `degree = 0` (default) is the binned KDE / WARPing
-  ``\\hat f(x) = \\frac{1}{n} \\sum_j (n_j/h_j)  K((x-\\ell_j)/h_j)`` (``\\int K = 1``). `degree` ``\\ge 1`` is the
-  **local-log-polynomial** (local-likelihood) estimator (Loader 1996): fit ``\\log f`` by a
-  degree-`degree` polynomial through a binned **local Poisson** likelihood and report
-  ``\\hat f(x) = e^{\\hat\\beta_0}``. `degree = 1` (log-linear) is **exact for an exponential density**,
-  so it tracks the exponential / stretched-exponential **tails** a flat KDE smears; `degree = 2`
+  ``\\hat f_X(x) = \\frac{1}{n} \\sum_j (n_j/h_j)  K((x-\\tilde c_j)/h_j)`` (``\\int K = 1``). `degree` ``\\ge 1`` is the
+  local-log-polynomial (local-likelihood) estimator (Loader 1996): fit ``\\log f_X`` by a
+  degree-`degree` polynomial through a binned local Poisson likelihood and report
+  ``\\hat f_X(x) = e^{\\hat\\beta_0}``. `degree = 1` (log-linear) is exact for an exponential density,
+  so it tracks the exponential / stretched-exponential tails a flat KDE smears; `degree = 2`
   (log-quadratic) is exact for a Gaussian. It falls back to the KDE where the local fit is degenerate or
   runs away in a sparse tail.
-- `h` — the **smoothing bandwidth**: the kernel scale, the one option that sets the bias–variance
+- `h` — the smoothing bandwidth: the kernel scale, the one option that sets the bias–variance
   trade-off (larger `h` smooths more — less variance, more bias). The default is the kernel- and
-  degree-aware **normal-reference rule**, `bandwidth(summary; kernel, degree)`
+  degree-aware normal-reference rule, `bandwidth(summary; kernel, degree)`
   ([`bandwidth`](@ref GBGStreamingStatistics.Bandwidth.bandwidth) — Silverman's
-  ``(4/3)^{1/5}\\hat\\sigma n^{-1/5}`` for the Gaussian kernel at degree 0/1, wider at the ``n^{-1/9}``
+  ``(4/3)^{1/5}\\hat\\sigma_X n^{-1/5}`` for the Gaussian kernel at degree 0/1, wider at the ``n^{-1/9}``
   rate for degree 2), which needs at least two samples. Pass a positive number to override, or, for a
   shape-adaptive choice, `bandwidth(summary; rule = :sj)` (or `:isj` / `:aic`). The asymmetric
   `gamma_kernel` / `beta_kernel` take their own scale ``b`` here (rate ``n^{-2/5}``; the default is their
   rule of thumb) in place of the symmetric `h`.
-- `adaptive` — whether the bandwidth **varies with the local density**. `false` (default) holds `h`
-  fixed everywhere; `true` uses the **Abramson** variable bandwidth — the kernel width scales by
-  ``(\\tilde f/g)^{-1/2}`` (a pilot ``\\tilde f`` at the bandwidth `h`, ``g`` its geometric mean), widening
-  in the sparse tails for far less tail variance (Abramson 1982). It is **orthogonal to how `h` is
-  chosen**, so it composes with the data-driven bandwidth — pass `h = bandwidth(summary; rule = :sj)` to
+- `adaptive` — whether the bandwidth varies with the local density. `false` (default) holds `h`
+  fixed everywhere; `true` uses the Abramson variable bandwidth — the kernel width scales by
+  ``(\\tilde f_X/G)^{-1/2}`` (a pilot ``\\tilde f_X`` at the bandwidth `h`, ``G`` its geometric mean), widening
+  in the sparse tails for far less tail variance (Abramson 1982). It is orthogonal to how `h` is
+  chosen, so it composes with the data-driven bandwidth — pass `h = bandwidth(summary; rule = :sj)` to
   vary a *shape-adaptive* global scale locally (the chosen `h` becomes the Abramson pilot). (The degree-0
   KDE uses the sample-point ``h_j`` per bin; the local-log fit uses one balloon ``h(x)`` at the query.)
 - `support` — the support of the density, passed as the tuple `(lower, upper)` (e.g. `(0.0, Inf)` for
   a positive quantity such as a droplet radius), or `nothing` (default, unbounded). When given, the
-  degree-0 KDE is **renormalized** by the kernel mass inside the support: ``\\hat f(x) \\big/ \\int_a^b K_h(x-u)\\,\\mathrm{d}u`` (Jones 1993). This corrects the boundary bias that otherwise drops the estimate
+  degree-0 KDE is renormalized by the kernel mass inside the support: ``\\hat f_X(x) \\big/ \\int_{\\texttt{lower}}^{\\texttt{upper}} K_h(x-v)\\,\\mathrm{d}v`` (Jones 1993). This corrects the boundary bias that otherwise drops the estimate
   to ``\\approx`` half the true value at the edge. (`degree` ``\\ge 1`` is already boundary-adaptive, so
   `support` is a degree-0 option.)
-- `start` — a **parametric start** (Hjort & Glad 1995), or `nothing` (default). Given one, `density`
+- `start` — a parametric start (Hjort & Glad 1995), or `nothing` (default). Given one, `density`
   returns the semiparametric estimate
-  ``\\hat f(x) = p(x;\\hat\\theta) \\frac{1}{nh}\\sum_j \\frac{n_j}{p(\\ell_j;\\hat\\theta)} K((x-\\ell_j)/h)`` —
-  a moment-fitted model ``p(\\cdot;\\hat\\theta)`` times a KDE of its *correction*, **near-exact wherever
-  the start is correct** (the correction is then ``\\equiv 1``) and degrading only to a bias-corrected KDE
-  where it is not. ``\\hat\\theta`` is fit by method of moments from the recovered ``\\hat\\mu``,
-  ``\\hat\\sigma^2``, so the start is itself a functional of the summary. Pass a built-in `normal_start`,
+  ``\\hat f_X(x) = f_{\\hat\\theta}(x) \\frac{1}{nh}\\sum_j \\frac{n_j}{f_{\\hat\\theta}(\\tilde c_j)} K((x-\\tilde c_j)/h)`` —
+  a moment-fitted model ``f_{\\hat\\theta}`` times a KDE of its *correction*, near-exact wherever
+  the start is correct (the correction is then ``\\equiv 1``) and degrading only to a bias-corrected KDE
+  where it is not. ``\\hat\\theta`` is fit by method of moments from the recovered ``\\bar X``,
+  ``\\hat\\sigma_X^2``, so the start is itself a functional of the summary. Pass a built-in `normal_start`,
   `lognormal_start`, `gamma_start`, `exponential_start`, or `inverse_gaussian_start` — [the Parametric
   starts section](@ref "Parametric starts") lists each with its moment fit — or supply your own
   [`ParametricStart`](@ref GBGStreamingStatistics.MarginalDensity.ParametricStart) (a moment fit, a
   log-density, a support). It is a degree-0, fixed-`h`, symmetric-kernel estimator: `degree` ``\\ge 1``,
   `adaptive`, `support`, and the asymmetric kernels are refused with it, each a definable combination the
   package has not built (the local-likelihood one is Hjort & Jones 1996); use `normalize` for
-  ``\\int\\hat f = 1``.
-- `normalize` — when `true`, divide the estimate by ``\\int\\hat f`` over the summary's range
-  (intersected with the estimator's support), so ``\\int\\hat f = 1`` **exactly**. The symmetric KDE
+  ``\\int\\hat f_X = 1``.
+- `normalize` — when `true`, divide the estimate by ``\\int\\hat f_X`` over the summary's range
+  (intersected with the estimator's support), so ``\\int\\hat f_X = 1`` exactly. The symmetric KDE
   already integrates to ``\\approx 1``; the asymmetric kernels and a parametric start do not, so this is
   their finishing step.
 - `binning` — where each bin's mass sits for the post-hoc evaluation. `:linear` (the default) places
-  it at the recovered within-bin **centroid** ``\\ell_j = c_j + S_1^{(j)}/n_j`` (from the stored first power-sum
+  it at the recovered within-bin centroid ``\\tilde c_j = c_j + S_1^{(j)}/n_j`` (from the stored first power-sum
   ``S_1``, the sum over the bin's samples of their offsets from its center), which matches the bin's own first moment, so the binned estimate converges to the exact KDE at
-  ``O(\\Delta^2)`` in the bin width ``\\Delta``; `:simple` places it at the geometric bin center ``\\ell_j = c_j``,
+  ``O(\\Delta^2)`` in the bin width ``\\Delta``; `:simple` places it at the geometric bin center ``\\tilde c_j = c_j``,
   the ``O(\\Delta)`` mass-at-center approximation. The centroid is read from data already in the summary, so
   the higher-order accuracy is free; it applies to every path (KDE, local-log, start, asymmetric kernel).
 
@@ -627,9 +629,9 @@ function density(summary::Histogram1D, xs::AbstractVector; kernel = gaussian_ker
 end
 
 
-# --- pointwise standard error (§4.1): SE(x) = √(f̂(x)) · scale, the KDE variability band ---
-# The boundary-restricted roughness R_a(x) = ∫_{[a,b]} K((x−u)/h)²/h du (the ∫K² analog of `_kernel_mass`'s
-# a(x)): the CDF of K² up to (x−a)/h minus up to (x−b)/h. Interior / no `support` ⇒ the full R(K) = ∫K².
+# --- pointwise standard error (§4.1): SE(x) = √(f̂_X(x)) · scale, the KDE variability band ---
+# The boundary-restricted roughness R_a(x) = ∫_{[lower, upper]} K((x − v)/h)²/h dv (the ∫K² analog of
+# `_kernel_mass`'s a(x)): the CDF of K² up to (x − lower)/h minus up to (x − upper)/h. Interior / no `support` ⇒ the full R(K) = ∫K².
 _kernel_sq_cdf(kernel, t) = _quad(s -> s ≤ t ? kernel(s)^2 : 0.0)
 
 function _kernel_sq_mass(kernel, x, h, a, b)
@@ -650,7 +652,7 @@ function _check_se(kernel, degree)
 end
 
 
-# The f̂-independent SE scale, so SE(x) = √(f̂(x)) · scale = √(R_eff(x)·f̂(x)/(n·h_eff(x)))/a(x):
+# The f̂_X-independent SE scale, so SE(x) = √(f̂_X(x)) · scale = √(R_eff(x)·f̂_X(x)/(n·h_eff(x)))/a(x):
 #   h_eff  the Abramson balloon bandwidth h(x) when `adaptive` (else h), so the variance uses the *local*
 #          bandwidth in the tail; R_eff, a(x)  the boundary-restricted roughness / kernel mass when `support`
 #          (else R(K), 1), the Jones renormalization's variance inflation near an edge. `start` leaves the
@@ -672,9 +674,9 @@ function _se_scale(summary::Histogram1D, x, kernel, hh, adaptive, support, binni
 end
 
 
-# SE(x) = √(max(Var, 0)), the finite-sample KDE variance Var = R_eff·f̂/(n·h_eff·a²) − f̂²/n: the leading
+# SE(x) = √(max(Var, 0)), the finite-sample KDE variance Var = R_eff·f̂_X/(n·h_eff·a²) − f̂_X²/n: the leading
 # (nh)⁻¹ term (`_se_scale`²) minus the n⁻¹ term (Wand & Jones 1995) that keeps the band from over-widening
-# where f̂ is not small (the mode, the boundary), given the recovered f̂ = `fx`.
+# where f̂_X is not small (the mode, the boundary), given the recovered f̂_X = `fx`.
 function _se_from(summary::Histogram1D, x, fx, kernel, hh, adaptive, support, binning)
   n = _total(summary)
   s2 = _se_scale(summary, x, kernel, hh, adaptive, support, binning)^2   # R_eff / (n·h_eff·a²)
@@ -690,7 +692,7 @@ end
                            normalize = false, binning = :linear)
 
 **Estimand.** The pointwise standard error of the density estimator
-`density` at ``x`` — ``\\mathrm{SE}(x) =
+`density` at ``x`` — ``\\operatorname{SE}(x) =
 \\sqrt{\\operatorname{Var}\\hat f_h(x)}`` with the kernel-density asymptotic variance
 
 ```math
@@ -701,7 +703,7 @@ end
 the count ``n``, the bandwidth `h` (default the normal reference), and the roughness ``R(K) = \\int K^2`` of the
 smoothing `kernel` ``K`` — any symmetric ``\\int K = 1`` callable, default
 [`gaussian_kernel`](@ref GBGStreamingStatistics.Kernels.gaussian_kernel) — by quadrature. The
-pointwise **variability band** is ``\\hat f_h(x) \\pm z \\mathrm{SE}(x)`` (``z = 1.96`` for 95\\%) — a
+pointwise *variability band* is ``\\hat f_h(x) \\pm 1.96 \\operatorname{SE}(x)`` (95\\%) — a
 band about ``\\mathbb{E}\\hat f_h``, so it covers ``f_X`` where the ``O(h^2)`` smoothing bias is small
 and narrows that coverage at a sharp mode or in a tail.
 
@@ -709,14 +711,14 @@ and narrows that coverage at a sharp mode or in a tail.
 variance of *that* estimate (or use
 [`density_with_standard_error`](@ref
 GBGStreamingStatistics.MarginalDensity.density_with_standard_error) to get the estimate and its band from
-one call). The variance is adjusted per option: `adaptive` replaces ``h`` by the **local** Abramson
+one call). The variance is adjusted per option: `adaptive` replaces ``h`` by the local Abramson
 bandwidth ``h(x)`` (a wider window — hence smaller variance — in the tail; the sample-point pilot's own
 variability is an unmodelled higher-order term, so the band runs slightly narrow in the deep tail); `support` (Jones
 renormalization) replaces ``R(K)`` by the boundary-restricted roughness ``R_a(x) =
-\\frac{1}{h}\\int_{\\text{support}} K((x-u)/h)^2\\,\\mathrm du`` and divides by the squared in-support kernel
+\\frac{1}{h}\\int_{\\text{support}} K((x-v)/h)^2\\,\\mathrm dv`` and divides by the squared in-support kernel
 mass ``a(x)^2``, inflating the variance near an edge; a parametric `start` leaves the leading variance
-``R(K)\\hat f/(nh)`` unchanged (the fitted-parameter uncertainty is an ``O(1/n)`` omission). Restricted to
-`degree` 0/1 and a **symmetric** kernel (``\\texttt{degree} \\ge 2`` and an asymmetric gamma/beta kernel
+``R(K)\\hat f_h/(nh)`` unchanged (the fitted-parameter uncertainty is an ``O(1/n)`` omission). Restricted to
+`degree` 0/1 and a symmetric kernel (``\\texttt{degree} \\ge 2`` and an asymmetric gamma/beta kernel
 are not supported); a vector of query points returns a vector.
 
 Arguments: as for [`density`](@ref GBGStreamingStatistics.MarginalDensity.density) — the options specify the
@@ -773,9 +775,9 @@ end
                                 adaptive = false, support = nothing, start = nothing,
                                 normalize = false, binning = :linear)
 
-The `density` estimate **and** its pointwise
+The `density` estimate and its pointwise
 [`density_standard_error`](@ref GBGStreamingStatistics.MarginalDensity.density_standard_error), from a
-**single option specification** — so the estimate and its error describe the same estimator by
+single option specification — so the estimate and its error describe the same estimator by
 construction (the estimate is computed once and reused). Returns the `NamedTuple`
 `(value, standard_error)`, `value` the estimate and `standard_error` its band; a vector `x` gives a `(value, standard_error)` of vectors. The
 standard error's estimand and per-option variance are documented at `density_standard_error`.

@@ -19,9 +19,10 @@ using ..Kernels: _kernel_weight, AsymmetricKernel
 
 
 # Kernel-weighted design moments of a binned measure about the query point `x`:
-#   moments[k+1] = Σ_j _kernel_weight(loc_j, x, kernel, h) * weights_j * (loc_j - x)^k,   k = 0 … maxorder.
+#   moments[p+1] = Σ_j _kernel_weight(c̃_j, x, kernel, h) · weights[j] · (c̃_j − x)^p,   p = 0 … maxorder,
+# with c̃_j = `locations[j]`.
 # `weights` is the per-bin weight — the bin counts for the design Gram, a response total for the
-# right-hand side, or the IRLS working weight (μ, or the residual count n - μ) for local likelihood.
+# right-hand side, or the IRLS working weight (n̂_j, or the residual count n_j − n̂_j) for local likelihood.
 # The weight comes from the shared `_kernel_weight` atom (the 1/h it folds in cancels in the solve);
 # powers are built iteratively in one pass over the bins.
 function _design_moments(locations, weights, x, kernel, maxorder, h)
@@ -41,10 +42,10 @@ end
 
 
 # Solve the local-polynomial normal equations: the (d+1)×(d+1) symmetric design matrix
-# M[i,j] = moments[i+j-1] (the Hankel matrix of T_0 … T_{2d}) against `rhs` (= P_0 … P_d), returning
-# the jet β = (β_0, …, β_d). The design matrix is positive semidefinite; a degenerate local design
-# (singular — too little local data near x) yields an all-NaN jet, the caller's signal that x is
-# unsupported.
+# U = [U_{r+s}]_{r,s=0}^d (the Hankel matrix of U_0 … U_{2d}; in code M[i, j] = moments[i+j-1]) against
+# `rhs` (= V_0 … V_d), returning the jet β̂ = (β̂_0, …, β̂_d). The design matrix is positive
+# semidefinite; a degenerate local design (singular — too little local data near x) yields an all-NaN
+# jet, the caller's signal that x is unsupported.
 function _hankel_solve(moments, rhs)
   d1 = length(rhs)
   M = Matrix{Float64}(undef, d1, d1)
@@ -63,37 +64,37 @@ end
 """
     local_fit(locations, mass, response, x, kernel, degree, h)
 
-The **local-polynomial jet** of a binned 1-D measure at the query point `x` is the kernel-weighted
-least-squares fit of a degree-``d`` polynomial in ``u = \\ell_j - x`` to the bin data, returning the
-coefficient vector (jet) ``\\beta = (\\beta_0, \\dots, \\beta_d)`` (with ``d`` the `degree` argument).
-From bin locations ``\\ell_j``, design weights ``w_j`` (`mass`) and response totals ``r_j``
-(`response`), and the bandwidth-scaled kernel ``K_h(u) \\propto K(u/h)``, form the design and response
+The *local-polynomial jet* of a binned 1-D measure at the query point `x` is the kernel-weighted
+least-squares fit of a degree-``d`` polynomial in ``\\tilde c_j - x`` to the bin data, returning the
+coefficient vector (jet) ``\\hat\\beta = (\\hat\\beta_0, \\dots, \\hat\\beta_d)`` (with ``d`` the `degree` argument).
+From bin locations ``\\tilde c_j``, design weights ``n_j`` (`mass`) and response totals ``n_j \\bar y_j``
+(`response`), and the bandwidth-scaled kernel ``K_h(v) \\propto K(v/h)``, form the design and response
 moments
 
 ```math
 \\begin{aligned}
-T_\\ell &= \\sum_j K_h(\\ell_j - x)  w_j  (\\ell_j - x)^\\ell, \\\\
-P_\\ell &= \\sum_j K_h(\\ell_j - x)  r_j  (\\ell_j - x)^\\ell,
+U_p &= \\sum_j K_h(\\tilde c_j - x)  n_j  (\\tilde c_j - x)^p, \\\\
+V_p &= \\sum_j K_h(\\tilde c_j - x)  n_j \\bar y_j  (\\tilde c_j - x)^p,
 \\end{aligned}
 ```
 
-and solve the normal equations ``[ T_{i+\\ell} ]_{i,\\ell=0}^{d} \\beta = (P_0, \\dots, P_d)``. The
-jet is the local Taylor expansion: ``\\beta_0`` is the fitted value, ``\\beta_1`` the slope, and
-``2\\beta_2`` the curvature — so a regression fit gives the regression-function estimate
-``\\hat m(x) = \\beta_0`` and ``\\hat m''(x) = 2\\beta_2``. The kernel weight's normalization cancels in
-the solve, so any **symmetric** callable `kernel` works at any `degree`; an **asymmetric** boundary
+and solve the normal equations ``[ U_{r+s} ]_{r,s=0}^{d} \\hat\\beta = (V_0, \\dots, V_d)``. The
+jet is the local Taylor expansion: ``\\hat\\beta_0`` is the fitted value, ``\\hat\\beta_1`` the slope, and
+``2\\hat\\beta_2`` the curvature — so a regression fit gives the regression-function estimate
+``\\hat m(x) = \\hat\\beta_0`` and ``\\hat m''(x) = 2\\hat\\beta_2``. The kernel weight's normalization cancels in
+the solve, so any symmetric callable `kernel` works at any `degree`; an asymmetric boundary
 kernel has no jet and is admitted only at `degree = 0` (the Nadaraya–Watson ratio). A degenerate local design (too little data near `x`) returns an all-NaN jet.
 
 This is the shared linear primitive of the local smoothers:
-``\\hat m(x)`` is ``\\beta_0`` of one `local_fit`, and the local-likelihood density reuses the same
+``\\hat m(x)`` is ``\\hat\\beta_0`` of one `local_fit`, and the local-likelihood density reuses the same
 kernel-weighted-moment solve as the iteratively reweighted (IRLS) inner step of its local-Poisson fit.
 
 # Arguments
 
-- `locations` — the bin locations ``\\ell_j`` (bin centers, or centroids from the stored first
+- `locations` — the bin locations ``\\tilde c_j`` (bin centers, or centroids from the stored first
   power-sum).
-- `mass` — the per-bin design weight ``w_j`` (the bin counts).
-- `response` — the per-bin response total ``r_j`` (e.g. ``\\sum Y`` of the response over the bin); `mass`
+- `mass` — the per-bin design weight ``n_j`` (the bin counts).
+- `response` — the per-bin response total ``n_j \\bar y_j``, with ``\\bar y_j`` the bin's mean response; `mass`
   here smooths the counts themselves, as the local-likelihood density does, giving a count level, not a
   response mean.
 - `x` — the query point at which the jet is evaluated.
@@ -112,17 +113,18 @@ function local_fit(locations, mass, response, x, kernel, degree, h)
 end
 
 
-# The leverage of the local-polynomial value β_0 at x: Σ_j w_j² N_j, the sum of squared effective
-# regression weights (w_j the weight `local_fit`'s β_0 places on column j's response, N_j = `weights[j]`).
-# This is the variance factor of β_0 — for a response whose per-column conditional variance is σ²(x),
-# Var(β_0) ≈ σ²(x)·(this) — so a standard error is √(leverage · noise-scale). Writing w_j = e_0' M⁻¹ v_j
-# with v_j = K_h(c_j−x)(c_j−x)^{0..d} and M the design Hankel [T_{i+j}], Σ_j N_j w_j² = u' Q u where
-# u = M⁻¹ e_0 and Q is the Hankel of the **squared-kernel** moments Q_ℓ = Σ_j N_j K_h(c_j−x)² (c_j−x)^ℓ
-# (the 1/h in K_h cancels between M and Q). Degenerate design (too little local data) ⇒ NaN.
+# The leverage ℓ(x) of the local-polynomial value β̂_0 at x: Σ_j N_j ω_j², the sum of squared effective
+# regression weights (ω_j the weight `local_fit`'s β̂_0 places on column j's response, N_j = `weights[j]`).
+# This is the variance factor of β̂_0 — for a response whose per-column conditional variance is σ²(x),
+# Var(β̂_0) ≈ σ²(x)·ℓ(x) — so a standard error is √(ℓ(x) · noise-scale). Writing
+# ω_j = e_0ᵀ U⁻¹ (K_h(c_j−x)(c_j−x)^p)_{p=0..d} with U = [U_{r+s}]_{r,s=0}^d the design Hankel,
+# U_p = Σ_j N_j K_h(c_j−x)(c_j−x)^p, gives ℓ(x) = Σ_j N_j ω_j² = e_0ᵀ U⁻¹ W U⁻¹ e_0, where W = [W_{r+s}]
+# is the Hankel of the squared-kernel moments W_p = Σ_j N_j K_h(c_j−x)² (c_j−x)^p
+# (the 1/h in K_h cancels between U and W). Degenerate design (too little local data) ⇒ NaN.
 function _leverage(locations, weights, x, kernel, degree, h)
   hf = float(h)
-  M = zeros(Float64, 2 * degree + 1)         # plain-kernel design moments Σ N_j K_h (c−x)^ℓ
-  Q = zeros(Float64, 2 * degree + 1)         # squared-kernel moments      Σ N_j K_h² (c−x)^ℓ
+  M = zeros(Float64, 2 * degree + 1)         # plain-kernel design moments U_p = Σ_j N_j K_h(c_j−x)(c_j−x)^p
+  Q = zeros(Float64, 2 * degree + 1)         # squared-kernel moments      W_p = Σ_j N_j K_h(c_j−x)²(c_j−x)^p
   @inbounds for j in eachindex(locations)
     wj = weights[j]
     iszero(wj) && continue
@@ -151,7 +153,7 @@ function _leverage(locations, weights, x, kernel, degree, h)
     return NaN
   end
   all(isfinite, u) || return NaN
-  return dot(u, Qmat, u)                      # u' Q u = Σ_j N_j w_j²
+  return dot(u, Qmat, u)                      # e_0ᵀ U⁻¹ W U⁻¹ e_0 = Σ_j N_j ω_j²
 end
 
 

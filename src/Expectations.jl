@@ -1,8 +1,8 @@
 # Expectations — §4.B: the power-sum quadrature readouts, and the recovered marginal moments they
 # generalize. A smooth functional of X read straight off the stored power-sums, with no kernel and no
 # query point: the recovered moments `mean` / `var` / `std` / `central_moment` (the g = x^p case), the
-# expectation E[g(X)] of a general smooth g, its sampling standard error, and the pushforward density of
-# Y = g(X) (`docs/ARCHITECTURE.md` §4.B). All route through the one shared contraction atom `_quadrature`
+# expectation 𝔼[g(X)] of a general smooth g, its sampling standard error, and the pushforward density of
+# Z = g(X) (`docs/ARCHITECTURE.md` §4.B). All route through the one shared contraction atom `_quadrature`
 # — the moments supplying closed-form (binomial) coefficients, the general `expectation` a local
 # degree-`order` polynomial interpolant of g (dependency-free; exact on the monomials, so it reduces to
 # the shift formula). Pure host-side numerics over the recovered summary.
@@ -23,13 +23,13 @@ export mean, var, std, central_moment,
 
 
 # --- Power-sum quadrature: the shared atom for every global (non-local) readout ---
-# E[g(X)] = (1/n) Σ_j Σ_{p=0}^{order} a_p(c_j) S_p^(j), with S_0^(j) = n_j and a_p(c_j) the local
+# 𝔼[g(X)] = (1/n) Σ_j Σ_{p=0}^{order} a_p(c_j) S_p^(j), with S_0^(j) = n_j and a_p(c_j) the local
 # coefficients of the test function's degree-≤order polynomial model about the bin center c_j (a[1] the
 # constant, weighting the count; a[p+1] multiplying (x−c_j)^p). `coeffs!(a, c_j)` fills the reused
 # length-(order+1) buffer; it is called only on non-empty bins, so g is never probed off the data. The
-# recovered moments are the g = x^p / (x−μ)^p case (closed-form binomial coefficients — the shift
+# recovered moments are the g = x^p / (x−X̄)^p case (closed-form binomial coefficients — the shift
 # formula); the general `expectation` supplies interpolation coefficients for a general smooth g. Reads
-# the summary to the host first (a no-op for CPU arrays). Returns E[g] (NaN for an empty summary).
+# the summary to the host first (a no-op for CPU arrays). Returns 𝔼[g] (NaN for an empty summary).
 function _quadrature(h::Histogram1D, coeffs!)
   P = _order(h)
   counts = Array(h.counts)
@@ -51,8 +51,9 @@ function _quadrature(h::Histogram1D, coeffs!)
 end
 
 
-# Local coefficients of the raw monomial x^m about c_j: (c_j + u)^m = Σ_k C(m,k) c_j^{m-k} u^k, so
-# a[k+1] = C(m,k) c_j^{m-k} for k ≤ m (0 above). The g = x^m instance of the quadrature.
+# Local coefficients of the raw monomial x^p (p the argument `m`) about c_j:
+# (c_j + (x − c_j))^p = Σ_k binom(p,k) c_j^{p−k} (x − c_j)^k, so a[k+1] = binom(p,k) c_j^{p−k} for k ≤ p
+# (0 above). The g = x^p instance of the quadrature.
 function _monomial_coeffs!(a, cj, m, P)
   fill!(a, 0.0)
   @inbounds for k in 0:min(m, P)
@@ -62,8 +63,9 @@ function _monomial_coeffs!(a, cj, m, P)
 end
 
 
-# Local coefficients of the central monomial (x−μ)^p about c_j: (c_j − μ + u)^p, so
-# a[k+1] = C(p,k)(c_j − μ)^{p-k}. The g = (x−μ)^p instance (the shift formula for central moments).
+# Local coefficients of the central monomial (x−X̄)^p (X̄ the argument `mu`) about c_j:
+# (c_j − X̄ + (x − c_j))^p, so a[k+1] = binom(p,k)(c_j − X̄)^{p−k}. The g = (x−X̄)^p instance (the shift
+# formula for central moments).
 function _central_coeffs!(a, cj, mu, p, P)
   fill!(a, 0.0)
   d = cj - mu
@@ -95,7 +97,7 @@ _sample_std(h::Histogram1D) = sqrt(_sample_variance(h))
 
 **Estimand.** The estimand is the population mean ``\\mathbb{E}[X]``.
 
-**Estimator.** The estimator is the sample mean ``\\bar X = \\frac{1}{n} \\sum_i X_i``, recovered **exactly**
+**Estimator.** The estimator is the sample mean ``\\bar X = \\frac{1}{n} \\sum_i X_i``, recovered exactly
 (not a smoothed estimate) from the per-bin counts and first power-sums by the shift formula (the power-sums use
 the actual ``X_i``, not the bin center; the ``g = x`` case of [`expectation`](@ref
 GBGStreamingStatistics.Expectations.expectation)). Extends `Statistics.mean`; an empty summary gives `NaN`.
@@ -109,8 +111,8 @@ mean(summary::Histogram1D) = _sample_mean(summary)
 **Estimand.** The population variance ``\\operatorname{Var}(X) = \\mathbb{E}\\bigl[(X - \\mathbb{E}[X])^2\\bigr]``.
 
 **Estimator.** The estimator is the recovered sample variance (``\\bar X`` the recovered mean). With `corrected = true`
-(the default, matching `Statistics.var`) the **unbiased** ``\\frac{1}{n-1} \\sum_i (X_i - \\bar X)^2``
-(Bessel's correction; `NaN` for ``n \\le 1``); `corrected = false` the ``\\frac{1}{n} \\sum_i (X_i - \\bar X)^2``
+(the default, matching `Statistics.var`) the unbiased ``\\hat\\sigma_X^2 = \\frac{1}{n-1} \\sum_i (X_i - \\bar X)^2``
+(Bessel's correction; `NaN` for ``n \\le 1``); `corrected = false` the ``\\hat\\mu_2 = \\frac{1}{n} \\sum_i (X_i - \\bar X)^2``
 order-2 central moment (`central_moment` at ``p = 2``). Exact via the shift formula. Extends
 `Statistics.var`.
 
@@ -130,10 +132,10 @@ end
 """
     std(summary::Histogram1D; corrected = true)
 
-**Estimand.** The population standard deviation ``\\sigma = \\sqrt{\\operatorname{Var}(X)}``.
+**Estimand.** The population standard deviation ``\\sigma_X = \\sqrt{\\operatorname{Var}(X)}``.
 
-**Estimator.** The estimator is the recovered sample standard deviation ``\\sqrt{s^2}``, where ``s^2`` is the recovered
-variance (`var`). Exact via the shift formula. Extends `Statistics.std`.
+**Estimator.** The estimator is the recovered sample standard deviation ``\\hat\\sigma_X``, the square root of the
+recovered variance ``\\hat\\sigma_X^2`` (`var`). Exact via the shift formula. Extends `Statistics.std`.
 
 # Arguments
 
@@ -146,10 +148,10 @@ std(summary::Histogram1D; corrected::Bool = true) = sqrt(var(summary; corrected 
 """
     central_moment(summary::Histogram1D, p)
 
-**Estimand.** The population ``p``-th central moment ``\\mu_p = \\mathbb{E}\\bigl[(X - \\mathbb{E}[X])^p\\bigr]``.
+**Estimand.** The population ``p``-th central moment ``\\mu_p(X) = \\mathbb{E}\\bigl[(X - \\mathbb{E}[X])^p\\bigr]``.
 
-**Estimator.** The estimator is the sample central moment ``\\frac{1}{n} \\sum_i (X_i - \\bar X)^p`` (``\\bar X``
-the recovered mean), recovered **exactly** from the power-sums by the shift formula for ``2 \\le p \\le \\texttt{order}``
+**Estimator.** The estimator is the sample central moment ``\\hat\\mu_p = \\frac{1}{n} \\sum_i (X_i - \\bar X)^p`` (``\\bar X``
+the recovered mean), recovered exactly from the power-sums by the shift formula for ``2 \\le p \\le \\texttt{order}``
 (any other order throws an `ArgumentError`). The order ``p = 2`` is the uncorrected variance (`var` with `corrected = false`);
 even orders recover stably, odd orders (``\\approx 0``) to weaker relative precision. This is the
 ``g = (x - \\bar X)^p`` case of the power-sum quadrature [`expectation`](@ref
@@ -159,12 +161,12 @@ power-sums.
 central_moment(summary::Histogram1D, p::Integer) = _sample_central_moment(summary, p)
 
 
-# Chebyshev–Lobatto nodes on [-1, 1] and the inverse of their Vandermonde matrix, for the degree-`P`
-# local-polynomial model of g on a bin. Uniform bins ⇒ one matrix serves every bin (the nodes are the same
+# Chebyshev–Lobatto nodes on [-1, 1] and the inverse of their Vandermonde matrix, for the degree-`order`
+# (the argument `P`) local-polynomial model of g on a bin. Uniform bins ⇒ one matrix serves every bin (the nodes are the same
 # fixed offsets, scaled by the half-width). Interpolating in the scaled variable s = (x − c_j)/(Δ/2) keeps
 # the Vandermonde Δ-independent and well-conditioned at the low orders used here. Called once per readout.
 function _interp_matrix(P::Integer)
-  nodes = [cos(π * (m - 1) / P) for m in 1:P + 1]              # P+1 Chebyshev–Lobatto points on [-1, 1]
+  nodes = [cos(π * (m - 1) / P) for m in 1:P + 1]              # order+1 Chebyshev–Lobatto points on [-1, 1]
   vandermonde = [nodes[m]^(k - 1) for m in 1:P + 1, k in 1:P + 1]
   return nodes, inv(vandermonde)
 end
@@ -187,7 +189,7 @@ Taylor-expanding ``g`` about each center gives
   \\frac{g^{(p)}(c_j)}{p!}  S_p^{(j)} ,
 ```
 
-which is **exact** for a polynomial ``g`` of degree ``\\le \\texttt{order}`` (the remainder terminates —
+which is exact for a polynomial ``g`` of degree ``\\le \\texttt{order}`` (the remainder terminates —
 this is the shift formula behind `mean` / `var` / `central_moment` — the binomial re-expansion from the
 bin center to the sample mean — the ``g = x^p`` case) and
 ``O(\\Delta^{ \\texttt{order}+1})`` in the bin width ``\\Delta`` for a general smooth ``g``. The local
@@ -203,7 +205,7 @@ The arguments are `summary`, the `Histogram1D` of ``X``, and `g`, the functional
 ```jldoctest
 julia> h = Histogram1D(-4.0, 4.0, 800);
 
-julia> observe!(h, [-1.0, 0.0, 2.0]);   # the g = identity case is the recovered mean E[X] = 1/3
+julia> observe!(h, [-1.0, 0.0, 2.0]);   # the g = identity case is the recovered mean 𝔼[X] = 1/3
 
 julia> expectation(h, identity) ≈ mean(h)
 true
@@ -215,14 +217,14 @@ function expectation(summary::Histogram1D, g)
   nodes, vandermonde_inv = _interp_matrix(P)
   gsamples = Vector{Float64}(undef, P + 1)                    # reused g-sample buffer
   scaled = Vector{Float64}(undef, P + 1)                      # reused coefficient buffer (in s)
-  invpow = [halfwidth^(-p) for p in 0:P]                      # halfwidth^{-p}: converts s-coeffs → u-coeffs
+  invpow = [halfwidth^(-p) for p in 0:P]                      # halfwidth^{-p}: converts s-coeffs → (x − c_j)-coeffs
   coeffs! = function (a, cj)
     @inbounds for m in 1:P + 1
       gsamples[m] = g(cj + nodes[m] * halfwidth)
     end
     mul!(scaled, vandermonde_inv, gsamples)                  # coefficients in s = (x − c_j)/halfwidth
     @inbounds for p in 0:P
-      a[p + 1] = scaled[p + 1] * invpow[p + 1]               # a_p = b_p / halfwidth^p (s → u = x − c_j)
+      a[p + 1] = scaled[p + 1] * invpow[p + 1]               # a_p = ã_p / halfwidth^p (s → x − c_j)
     end
     return a
   end
@@ -234,7 +236,7 @@ end
     expectation_standard_error(summary::Histogram1D, g)
 
 **Estimand.** The sampling standard error of the estimator `expectation`,
-``\\mathrm{SE}\\bigl(\\widehat{\\mathbb{E}}[g(X)]\\bigr) = \\sqrt{\\operatorname{Var}(g(X))/n}`` with
+``\\operatorname{SE}\\bigl(\\widehat{\\mathbb{E}}[g(X)]\\bigr) = \\sqrt{\\operatorname{Var}(g(X))/n}`` with
 ``\\operatorname{Var}(g(X)) = \\mathbb{E}[g(X)^2] - \\mathbb{E}[g(X)]^2``.
 
 **Estimator.** The estimator is ``\\sqrt{(\\widehat{\\mathbb{E}}[g^2] - \\widehat{\\mathbb{E}}[g]^2)/n}``, both
@@ -289,35 +291,35 @@ end
     pushforward_density(summary::Histogram1D, g, y;   # ≡ f_{g(X)}
                         kernel = gaussian_kernel, h)
 
-**Estimand.** The density of the transformed variable ``Y = g(X)``, the **pushforward**
-``f_{g(X)}(y) = \\sum_{x: g(x)=y} f_X(x) / |g'(x)|`` (the change-of-variables sum over the preimages
-of ``y``).
+**Estimand.** The density of the transformed variable ``Z = g(X)``, the *pushforward*
+``f_{g(X)}(z) = \\sum_{x: g(x)=z} f_X(x) / |g'(x)|`` (the change-of-variables sum over the preimages
+of ``z``).
 
 **Estimator.** The kernel density estimate of the pushforward, written as an expectation and evaluated by
 [`expectation`](@ref GBGStreamingStatistics.Expectations.expectation):
 
 ```math
-\\hat f_{g(X)}(y) = \\frac{1}{n} \\sum_i K_h(g(X_i) - y)
-  = \\widehat{\\mathbb{E}}\\bigl[  K_h(g(X) - y)  \\bigr] ,
+\\hat f_{g(X)}(z) = \\frac{1}{n} \\sum_i K_h(g(X_i) - z)
+  = \\widehat{\\mathbb{E}}\\bigl[  K_h(g(X) - z)  \\bigr] ,
 ```
 
-so the composed test function ``x \\mapsto K_h(g(x) - y)`` is smoothed by the power-sum quadrature — no
-inverse ``g^{-1}`` and no explicit Jacobian are formed; a **non-monotone** ``g`` is handled automatically
+so the composed test function ``x \\mapsto K_h(g(x) - z)`` is smoothed by the power-sum quadrature — no
+inverse ``g^{-1}`` and no explicit Jacobian are formed; a non-monotone ``g`` is handled automatically
 (every preimage contributes), and a flat spot ``g'(x) = 0`` shows up as the expected (integrable) caustic
 pile-up. For a symmetric `kernel` (``\\int K = 1``) the surviving ``1/h`` makes
-``\\int \\hat f\\,\\mathrm{d}y = 1`` exactly. Needs ``g`` smooth on the bin scale and the response bandwidth ``h`` at least of order
+``\\int \\hat f_{g(X)}(z)\\,\\mathrm{d}z = 1`` exactly. Needs ``g`` smooth on the bin scale and the bandwidth ``h`` at least of order
 ``|g'| \\Delta`` (so ``K_h \\circ g`` is resolved across a bin). A vector `y` returns the density curve
 over those points.
 
 # Arguments
 
 - `summary` — the [`Histogram1D`](@ref GBGStreamingStatistics.Histograms.Histogram1D) of ``X``.
-- `g` — the transform defining ``Y = g(X)`` (any callable, smooth on the bin scale).
-- `y` — the response point(s) at which the pushforward density is evaluated (a scalar, or a vector for the
+- `g` — the transform defining ``Z = g(X)`` (any callable, smooth on the bin scale).
+- `y` — the point(s) ``z`` at which the pushforward density is evaluated (a scalar, or a vector for the
   curve).
-- `kernel` — the response-direction kernel (any ``\\int K = 1`` callable; default
+- `kernel` — the ``z``-direction kernel (any ``\\int K = 1`` callable; default
   [`gaussian_kernel`](@ref GBGStreamingStatistics.Kernels.gaussian_kernel)).
-- `h` — the response-direction bandwidth (``h > 0``), supplied.
+- `h` — the ``z``-direction bandwidth (``h > 0``), supplied.
 
 Reference: B. W. Silverman (1986), [*Density Estimation for Statistics and Data Analysis*](https://doi.org/10.1201/9781315140919), Chapman & Hall.
 """
@@ -339,13 +341,13 @@ end
                                        kernel = gaussian_kernel, h)
 
 **Estimand.** The pointwise standard error of the pushforward density `pushforward_density` ``\\equiv f_{g(X)}``,
-``\\mathrm{SE}(y) = \\sqrt{\\operatorname{Var}\\hat f_{g(X)}(y)}`` with the two-term kernel-density variance
-``\\operatorname{Var}\\hat f_{g(X)}(y) \\approx R(K) f_{g(X)}(y)/(nh) - f_{g(X)}(y)^2/n`` (``R(K) = \\int K^2``).
+``\\operatorname{SE}(z) = \\sqrt{\\operatorname{Var}\\hat f_{g(X)}(z)}`` with the two-term kernel-density variance
+``\\operatorname{Var}\\hat f_{g(X)}(z) \\approx R(K) f_{g(X)}(z)/(nh) - f_{g(X)}(z)^2/n`` (``R(K) = \\int K^2``).
 
-**Estimator.** Because ``\\hat f_{g(X)}(y) = \\widehat{\\mathbb{E}}[K_h(g(X) - y)]`` is a sample mean of the
+**Estimator.** Because ``\\hat f_{g(X)}(z) = \\widehat{\\mathbb{E}}[K_h(g(X) - z)]`` is a sample mean of the
 composed kernel, its standard error is exactly the
 [`expectation_standard_error`](@ref GBGStreamingStatistics.Expectations.expectation_standard_error) of that
-integrand — ``\\sqrt{(\\widehat{\\mathbb{E}}[K_h(g(X)-y)^2] - \\hat f_{g(X)}(y)^2)/n}``, which reduces to the
+integrand — ``\\sqrt{(\\widehat{\\mathbb{E}}[K_h(g(X)-z)^2] - \\hat f_{g(X)}(z)^2)/n}``, which reduces to the
 two-term form above. A vector `y` returns a vector of standard errors.
 
 Arguments: as for [`pushforward_density`](@ref GBGStreamingStatistics.Expectations.pushforward_density).
