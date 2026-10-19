@@ -38,6 +38,10 @@ per grid point per step. Everything else is second-order:
 - **Allocation-free.** `observe!` allocates only a bounded amount (the KernelAbstractions launch) on a
   preallocated summary (invariant 4) — never an ``O(n)`` temporary that would escape the host GC and
   wedge a long GPU run.
+- **A forwarded kernel is typed.** A readout helper that passes `kernel` on without calling it declares
+  `kernel::K … where {K}`: Julia does not specialize on a function it only forwards, and the dynamic
+  call then allocates per bin per query (13× slower at 1024 bins). A CPU summary is read in place
+  (`_host`), never copied per call.
 - **The cone operations are off the hot path.** `merge!`, the weighted `merge!`, and `scale!` are
   ``O(B)`` in-place elementwise broadcasts over the ``B`` bins — per combination, not per sample — so the
   hyperstatistical mixture (one weighted `merge!` per parameter value) and exponential forgetting (one

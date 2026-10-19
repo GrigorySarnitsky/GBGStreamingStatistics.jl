@@ -208,7 +208,8 @@ run inside `Pkg.test()` and derive their required rows from the package's public
 the modules `test/public_surface.jl` lists), never from a remembered list:
 
 - **Allocation audit** (`test/allocations.jl`). Every in-place operation — `observe!`, `observe_pairs!`,
-  `merge!`, `scale!` — has an `@alloc_below` row, and a fifth one fails the suite until it is measured.
+  `merge!`, `scale!` — has an `@alloc_below` row, and a fifth one fails the suite until it is measured. The query-grid
+  readouts have budget rows too: 3 KiB per query plus 16 bytes per bin, so no per-bin cost per query.
 - **Oracle registry** (`test/oracle_registry.jl`). Every public value-returning operation is classified
   by where its ground truth comes from — a closed form, a direct computation on the raw data, an
   invariant — citing the test that holds it; none may rest only on agreement with another operation of

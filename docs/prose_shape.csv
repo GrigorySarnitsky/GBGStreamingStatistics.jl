@@ -127,12 +127,12 @@ unit,words,longest_paragraph,admonitions
 "MarginalDensity.md § Parametric starts",16,16,0
 "PERFORMANCE.md § (preamble)",22,22,1
 "PERFORMANCE.md § Benchmark coverage contract",74,44,1
-"PERFORMANCE.md § Hot-loop best practices",229,229,0
+"PERFORMANCE.md § Hot-loop best practices",286,286,0
 "PERFORMANCE.md § Performance",10,10,0
 "PERFORMANCE.md § The model — one critical path",195,159,0
 "TESTING.md § (preamble)",22,22,1
 "TESTING.md § Coverage matrix",726,389,0
-"TESTING.md § Declared harness contracts",164,126,0
+"TESTING.md § Declared harness contracts",186,148,0
 "TESTING.md § Layers",781,781,0
 "TESTING.md § Layout",280,153,1
 "TESTING.md § Testing",25,25,0
