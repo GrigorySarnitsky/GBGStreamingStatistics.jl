@@ -58,4 +58,12 @@
             locations = [
                 Location(file = "docs/src/tutorial.md", node = "Getting started / The workflow", text = "a finely binned empirical measure of a conditioning variable \$X\$ — the canonical summary.", line = 17),
             ]),
+    Settled(question = "2026-10-15-documentation-review-01-011-code",
+            text = "not a defect",
+            date = "2026-10-19",
+            locations = [
+                Location(file = "src/Bandwidth.jl", node = "bandwidth", text = "R(K) &= \\\\int K^2, \\\\qquad \\\\mu_2(K) = \\\\int u^2 K(u)\\\\,\\\\mathrm{d}u,", line = 337),
+                Location(file = "src/Accumulators.jl", node = "merge!", text = "\\\\qquad w_k = f(\\\\beta_k) \\\\Delta\\\\beta,", line = 76),
+                Location(file = "src/ConditionalDensity.jl", node = "conditional_density_standard_error", text = "\\\\qquad R(K) = \\\\int K^2 .", line = 256),
+            ]),
 ]

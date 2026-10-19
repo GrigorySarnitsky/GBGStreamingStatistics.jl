@@ -102,7 +102,7 @@
             "decision": "This finding needs a change only you may make. Will you make it?",
             "direction": "",
             "context": "Needs math changes: three display formulas put a second equation behind \\qquad (bandwidth's R(K) and mu_2(K) row, conditional_density_standard_error's R(K) where-clause, merge!'s pi_k definition); each must be split into aligned rows or the where-clause moved into prose.",
-            "answer": null
+            "answer": "not a defect"
         },
         {
             "options": [
