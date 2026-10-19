@@ -57,7 +57,7 @@ analytic round-trips: estimators are checked against distributions with closed f
   round-off), plus the incompatible-summary rejection — the monoid laws of invariant 3
   (`test/mergeability.jl` for `Histogram1D`, `test/histograms2d.jl` for `Histogram2D`). The cone laws
   that extend the monoid (`scale!` homogeneity and distributivity, the weighted `merge!` as
-  scale-then-merge, ``\texttt{weight} = 1`` ``=`` plain `merge!`, the Float-count guard) are tested
+  scale-then-merge, ``\lambda = 1`` (`weight = 1`) ``=`` plain `merge!`, the Float-count guard) are tested
   alongside the hyperstatistics oracles in `test/hyperstatistics.jl`. Every post-hoc
   estimator is then re-checked to be a deterministic functional of the merged summary — uniformly, through
   the `check_point_estimator` battery (see *The estimator contract*) for the query-point estimators, and a

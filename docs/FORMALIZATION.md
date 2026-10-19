@@ -86,8 +86,8 @@ recorded in `ARCHITECTURE.md` §4 meanwhile.
   nonnegative scalar action ``\lambda \cdot T`` (`scale!` — multiply every count and power-sum by ``\lambda \ge 0``),
   making ``\mathcal{S}`` a *convex cone*: closed under ``\oplus`` and under nonnegative scaling, hence
   under all nonnegative linear combinations ``\sum_k \pi_k T_k`` (the weighted
-  `merge!(into, from; weight)`, ``\texttt{into} \mathrel{+}= \texttt{weight} \cdot \texttt{from}``; the
-  default ``\texttt{weight} = 1`` the plain ``\oplus``). Carried on a Float-count variant
+  `merge!(into, from; weight)` with `weight` as ``\lambda``, ``\texttt{into} \mathrel{+}= \lambda \cdot \texttt{from}``; the
+  default ``\lambda = 1`` the plain ``\oplus``). Carried on a Float-count variant
   (`count_type = Float64`): a weighted count ``\lambda n`` is not an integer.
 - **Estimand (hyperstatistics; Beck & Cohen 2003).** the parameter-mixture (superstatistical) density over
   a slowly varying parameter ``\theta`` with mixing law ``\pi(\theta)``,
@@ -118,7 +118,7 @@ recorded in `ARCHITECTURE.md` §4 meanwhile.
   reads ``n \approx 1``; pass an explicit ``h`` (or pre-scale the weights to a representative sample size).
   An effective-sample-size rule (Kish ``(\sum_i \lambda_i)^2 / \sum_i \lambda_i^2``) is a recorded refinement.
 - **Test.** `test/hyperstatistics.jl` — the cone laws (`scale!` homogeneity / distributivity, weighted
-  merge ``=`` scale-then-merge, ``\texttt{weight} = 1`` ``=`` plain `merge!`, the Float-count guard); the
+  merge ``=`` scale-then-merge, ``\lambda = 1`` ``=`` plain `merge!`, the Float-count guard); the
   discrete Gaussian-mixture oracle; the ``\chi^2``-superstatistics → Student-``\mathrm{t}`` oracle
   (``X \mid \theta \sim \mathcal{N}(0, 1/\theta)``, ``\theta \sim \mathrm{Gamma}(\nu/2, 2/\nu)`` ``\Rightarrow`` the
   Student-``\mathrm{t}_\nu`` marginal, recovered into the heavy tail); exact exponential forgetting; the

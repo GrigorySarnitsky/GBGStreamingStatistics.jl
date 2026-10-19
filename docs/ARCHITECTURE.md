@@ -797,9 +797,9 @@ intentional).
 
 - **Hyperstatistics — the cone: `scale!` + weighted `merge!` over a Float-count variant** (§10). *Built.*
   The unnormalised summary is scalable, so the summaries form a convex cone, not merely an additive monoid.
-  Realized as `scale!(summary, weight)` (the scalar action — every count and power-sum ``\times`` weight)
+  Realized as `scale!(summary, weight)`, the multiplier `weight` written ``\lambda`` (the scalar action — every count and power-sum ``\times \lambda``),
   and the weighted `merge!(into, from; weight)`
-  (``\texttt{into} \mathrel{+}= \texttt{weight} \cdot \texttt{from}``; ``\texttt{weight} = 1`` recovers the
+  (``\texttt{into} \mathrel{+}= \lambda \cdot \texttt{from}``; ``\lambda = 1`` recovers the
   plain monoid add), on a Float-count variant (`count_type = Float64`; the default `UInt64` counts cannot
   hold a fractional ``\lambda n``, so `scale!` and a weighted merge `ArgumentError` on them). The summary storage
   needed almost no change — `observe!`'s atomic scatter already adds `one(eltype(counts))`, so a Float count routes

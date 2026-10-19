@@ -62,8 +62,8 @@ measure ``\\mathbb{P}_n`` would reweight, not add. Because compatible summaries 
 (hence the same bin centers), their counts and power-sums simply add elementwise, so `merge!` is exact
 and trivially parallel — this is what makes multi-device reduction and time-chunk stitching free.
 
-**The weighted form is the cone.** `merge!(into, from; weight)` forms
-``\\texttt{into} \\mathrel{+}= \\texttt{weight} \\cdot \\texttt{from}``; the default ``\\texttt{weight} = 1``
+**The weighted form is the cone.** `merge!(into, from; weight)`, the multiplier `weight` written ``\\lambda``, forms
+``\\texttt{into} \\mathrel{+}= \\lambda \\cdot \\texttt{from}``; the default ``\\lambda = 1``
 is the plain monoid addition above. Because the unnormalized summary is also scalable
 ([`scale!`](@ref GBGStreamingStatistics.Accumulators.scale!)), the summaries form a *convex cone*
 (closed under nonnegative linear combinations), and the weighted merge realizes the hyperstatistical
@@ -81,7 +81,7 @@ assemble ``\\sum_k (\\pi_k / n(T_k)) T_k`` by weighted `merge!` (the total count
 each component to a probability measure; the conditional and transition estimators, read off a
 [`Histogram2D`](@ref GBGStreamingStatistics.Histograms.Histogram2D), then weight each component by its
 mass near the conditioning value, being ratios of linear functionals). This is post hoc, like the
-bandwidth. A weighted merge (``\\texttt{weight} \\ne 1``) requires `into` to have floating-point counts
+bandwidth. A weighted merge (``\\lambda \\ne 1``) requires `into` to have floating-point counts
 (built with `count_type = Float64`).
 
 Being intrinsically a finite-sample operation, `merge!` has no population estimand of its own; its
@@ -103,8 +103,8 @@ merge!(into::AbstractAccumulator, from::AbstractAccumulator; weight = 1) =
 """
     scale!(summary::AbstractAccumulator, weight) -> summary
 
-Reweight `summary` in place by a nonnegative `weight` — multiply every count and power-sum by `weight`,
-giving the summary of the reweighted counting measure ``\\texttt{weight} \\cdot n\\mathbb{P}_n`` of the samples
+Reweight `summary` in place by a nonnegative multiplier `weight`, written ``\\lambda`` — multiply every count and power-sum by it,
+giving the summary of the reweighted counting measure ``\\lambda \\cdot n\\mathbb{P}_n`` of the samples
 seen. With
 [`merge!`](@ref Base.merge!) this makes the unnormalized summaries a convex cone (closed under
 nonnegative linear combinations), not merely an additive monoid: `scale!` is the scalar action, `merge!`
@@ -112,15 +112,15 @@ the addition.
 
 It has two uses:
 
-- **Exponential forgetting** of a non-stationary stream: `scale!(summary, λ)` with a
-  weight ``0 < \\lambda < 1`` before folding in the next block down-weights the past geometrically (an effective
+- **Exponential forgetting** of a non-stationary stream: `scale!(summary, λ)` with
+  ``0 < \\lambda < 1`` before folding in the next block down-weights the past geometrically (an effective
   window ``1/(1-\\lambda)``).
 - **Hyperstatistics** uses it as the scalar building block of the
   parameter-mixture density assembled by weighted `merge!` (the estimand and recipe are documented there;
   Beck & Cohen 2003).
 
 It requires floating-point counts (`count_type = Float64`; the default `UInt64` counts cannot hold a
-fractional count ``\\texttt{weight} \\cdot n``) and throws an `ArgumentError` otherwise. The value ``\\texttt{weight} = 1``
+fractional count ``\\lambda n``) and throws an `ArgumentError` otherwise. The value ``\\lambda = 1``
 is the identity. Like `merge!`, it is an intrinsically finite-sample operation with no population estimand,
 specified by the cone laws (scaling by ``\\lambda`` then by ``\\lambda'`` equals scaling by
 ``\\lambda\\lambda'``; `scale!` distributes over `merge!`).

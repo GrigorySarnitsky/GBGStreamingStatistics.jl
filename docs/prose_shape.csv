@@ -3,7 +3,7 @@ unit,words,longest_paragraph,admonitions
 "ARCHITECTURE.md § 0. Provenance",83,53,0
 "ARCHITECTURE.md § 1. Purpose and scope",247,74,0
 "ARCHITECTURE.md § 10. Open questions",322,321,0
-"ARCHITECTURE.md § 11. Decision log",3450,603,0
+"ARCHITECTURE.md § 11. Decision log",3451,595,0
 "ARCHITECTURE.md § 2. The central principle: the architecture follows establish",50,50,0
 "ARCHITECTURE.md § 3. The accumulated summary — the universal lower half",1040,480,0
 "ARCHITECTURE.md § 4. Estimand families (estimators — the exportable upper half",101,101,0
@@ -37,9 +37,9 @@ unit,words,longest_paragraph,admonitions
 "ARCHITECTURE.md § The spine: empirical measure → summary → post-hoc-smoothed e / item 2",148,94,0
 "ARCHITECTURE.md § Why a fine histogram is the canonical ``T`` (and the honest ",133,133,0
 "Accumulators.jl :: AbstractAccumulator",109,71,0
-"Accumulators.jl :: merge!(into::AbstractAccumulator, from::AbstractAccumulator;",355,105,0
+"Accumulators.jl :: merge!(into::AbstractAccumulator, from::AbstractAccumulator;",360,105,0
 "Accumulators.jl :: observe!(summary::AbstractAccumulator, batch) -> summary",176,85,0
-"Accumulators.jl :: scale!(summary::AbstractAccumulator, weight) -> summary",176,60,0
+"Accumulators.jl :: scale!(summary::AbstractAccumulator, weight) -> summary",177,59,0
 "Accumulators.md § Accumulators",55,55,0
 "Accumulators.md § Operations",29,29,0
 "Bandwidth.jl :: bandwidth(summary::Histogram1D; rule = :normal, kernel = gau",913,129,0
@@ -95,7 +95,7 @@ unit,words,longest_paragraph,admonitions
 "FORMALIZATION.md § Power-sum quadrature — pushforward density (§4.B) — `pushfor",157,157,0
 "FORMALIZATION.md § Power-sum quadrature — sampling standard error (§4.B) — `exp",101,101,0
 "FORMALIZATION.md § Response-aware local bandwidth (§4.5) — `bandwidth(::Histogr",160,136,0
-"FORMALIZATION.md § The cone — `scale!`, weighted `merge!`, hyperstatistics (§10",372,280,0
+"FORMALIZATION.md § The cone — `scale!`, weighted `merge!`, hyperstatistics (§10",376,280,0
 "FORMALIZATION.md § The kernel-weighting atom & local-polynomial jet (`Kernels._",318,318,0
 "GBGStreamingStatistics.jl :: GBGStreamingStatistics",158,74,0
 "GBGStreamingStatistics.md § GBGStreamingStatistics",19,19,0
@@ -133,7 +133,7 @@ unit,words,longest_paragraph,admonitions
 "TESTING.md § (preamble)",22,22,1
 "TESTING.md § Coverage matrix",726,389,0
 "TESTING.md § Declared harness contracts",164,126,0
-"TESTING.md § Layers",778,778,0
+"TESTING.md § Layers",781,781,0
 "TESTING.md § Layout",280,153,1
 "TESTING.md § Testing",25,25,0
 "TESTING.md § The estimator contract",85,71,0
