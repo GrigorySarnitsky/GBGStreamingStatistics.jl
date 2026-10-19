@@ -126,7 +126,7 @@
             "decision": "This finding needs a change only you may make. Will you make it?",
             "direction": "",
             "context": "Not a defect at this commit: the text it names was already rewritten before this run. not a defect at HEAD: api.md already listed every upper-half module, with no 'through' range. The paragraph was reworded this pass for -059/-060/-061.",
-            "answer": null
+            "answer": "not a defect"
         },
         {
             "options": [
@@ -153,7 +153,7 @@
             "decision": "This finding needs a change only you may make. Will you make it?",
             "direction": "",
             "context": "Not a defect at this commit: the text it names was already rewritten before this run. not a defect at HEAD: merge! already reads 'accumulate-then-merge equals accumulate-together', with no `=` code span.",
-            "answer": null
+            "answer": "not a defect"
         },
         {
             "options": [
@@ -207,7 +207,7 @@
             "decision": "This finding needs a change only you may make. Will you make it?",
             "direction": "",
             "context": "Not a defect at this commit: the text it names was already rewritten before this run. not a defect at HEAD: the support integral already uses \\texttt{lower}/\\texttt{upper} as its limits, so b means only the asymmetric scale.",
-            "answer": null
+            "answer": "not a defect"
         },
         {
             "options": [
@@ -234,7 +234,7 @@
             "decision": "This finding needs a change only you may make. Will you make it?",
             "direction": "",
             "context": "Not a defect at this commit: the text it names was already rewritten before this run. not a defect at HEAD: density's estimand already reads 'of the variate X' (only the verb was added, under 110).",
-            "answer": null
+            "answer": "not a defect"
         },
         {
             "options": [
@@ -261,7 +261,7 @@
             "decision": "This finding needs a change only you may make. Will you make it?",
             "direction": "",
             "context": "Not a defect at this commit: the text it names was already rewritten before this run. already resolved at HEAD: both 4.5 run-in paragraphs have verbs ('The estimand is', 'the package uses')",
-            "answer": null
+            "answer": "not a defect"
         },
         {
             "options": [
@@ -288,7 +288,7 @@
             "decision": "This finding needs a change only you may make. Will you make it?",
             "direction": "",
             "context": "Not a defect at this commit: the text it names was already rewritten before this run. already resolved at HEAD: 'channel' is defined at its first use (L93-94, 'which response variable, each with its own summary')",
-            "answer": null
+            "answer": "not a defect"
         },
         {
             "options": [
@@ -315,7 +315,7 @@
             "decision": "This finding needs a change only you may make. Will you make it?",
             "direction": "",
             "context": "Not a defect at this commit: the text it names was already rewritten before this run. already resolved at HEAD: OU, SFI, ULI, Nadaraya-Watson, molecular dynamics and the Pawula quotient are all expanded at first use; the remaining bare 'Q' in the section 2 taxonomy was removed under 115",
-            "answer": null
+            "answer": "not a defect"
         },
         {
             "options": [
@@ -342,7 +342,7 @@
             "decision": "This finding needs a change only you may make. Will you make it?",
             "direction": "",
             "context": "Not a defect at this commit: the text it names was already rewritten before this run. not a defect at HEAD: step 1 already says 'of a scalar variate X — the summary every estimator reads', with no 'conditioning variable' or 'canonical'.",
-            "answer": null
+            "answer": "not a defect"
         },
         {
             "options": [
