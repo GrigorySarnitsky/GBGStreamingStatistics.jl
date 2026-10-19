@@ -60,11 +60,14 @@ read out with [`central_moment`](@ref GBGStreamingStatistics.Expectations.centra
 first two, the `Statistics` extensions `mean`, `var`, and `std`.
 
 ```jldoctest
-julia> summary = Histogram1D(-5.0, 5.0, 1000);       # 1000 bins over [-5, 5)
+julia> # 1000 bins over [-5, 5)
+       summary = Histogram1D(-5.0, 5.0, 1000);
 
-julia> observe!(summary, [0.3, -1.2, 0.3, 2.1]);     # fold in a stream, never stored
+julia> # fold in a stream, never stored
+       observe!(summary, [0.3, -1.2, 0.3, 2.1]);
 
-julia> Int(sum(summary.counts))                      # the four in-range samples counted
+julia> # the four in-range samples counted
+       Int(sum(summary.counts))
 4
 ```
 
@@ -235,11 +238,14 @@ A freshly constructed summary is empty (`counts`, `powersums` all zeros), and `m
 and `powersums` (it requires a matching box, numbers of cells and `lag`).
 
 ```jldoctest
-julia> joint = Histogram2D(-5.0, 5.0, 100, -5.0, 5.0, 100);   # 100×100 cells over the box
+julia> # 100×100 cells over the box
+       joint = Histogram2D(-5.0, 5.0, 100, -5.0, 5.0, 100);
 
-julia> observe_pairs!(joint, [0.3, -1.2], [0.5, 0.4]);        # (X, Y) pairs, paired per source
+julia> # (X, Y) pairs, paired per source
+       observe_pairs!(joint, [0.3, -1.2], [0.5, 0.4]);
 
-julia> Int(sum(joint.counts))                                 # the two in-box pairs counted
+julia> # the two in-box pairs counted
+       Int(sum(joint.counts))
 2
 ```
 

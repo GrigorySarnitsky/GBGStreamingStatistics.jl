@@ -3,6 +3,9 @@
     ],
     "model": "session",
     "ruled": [
+        "2026-10-15-documentation-review-01-009",
+        "2026-10-15-documentation-review-01-010",
+        "2026-10-19-documentation-review-01-058"
     ],
     "covered": [
     ],
@@ -43,9 +46,9 @@
             ],
             "id": "2026-10-15-documentation-review-01-009-code",
             "decision": "This finding needs a change only you may make. Will you make it?",
-            "direction": "",
+            "direction": "Move each trailing comment of an over-wide example line onto its own line above the statement; the code and the output stay unchanged.",
             "context": "Needs doctest edits: the long lines left are trailing comments inside jldoctest blocks (density, ParametricStart, expectation), which a fix pass may not touch; the fix moves each comment onto its own line, output unchanged. The other locations are already wrapped.",
-            "answer": null
+            "answer": "fix it on my ruling"
         },
         {
             "options": [
@@ -70,9 +73,9 @@
             ],
             "id": "2026-10-15-documentation-review-01-010-code",
             "decision": "This finding needs a change only you may make. Will you make it?",
-            "direction": "",
+            "direction": "Move each trailing comment of an over-wide example line onto its own line above the statement; the code and the output stay unchanged.",
             "context": "Needs doctest edits: the remaining 87-92-column lines are trailing comments inside the Histogram1D and Histogram2D jldoctest blocks; moving them onto their own lines changes no output but is a doctest change.",
-            "answer": null
+            "answer": "fix it on my ruling"
         },
         {
             "options": [
@@ -421,9 +424,9 @@
             ],
             "id": "2026-10-19-documentation-review-01-058-code",
             "decision": "This finding needs a change only you may make. Will you make it?",
-            "direction": "",
+            "direction": "Move each trailing comment of an over-wide example line onto its own line above the statement; the code and the output stay unchanged.",
             "context": "Needs doctest edits: the remaining long lines are trailing comments inside jldoctest blocks (density, ParametricStart, expectation); moving them onto their own lines changes no output.",
-            "answer": null
+            "answer": "fix it on my ruling"
         },
         {
             "options": [

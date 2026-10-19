@@ -60,8 +60,10 @@ The constructor takes the three fields:
 
 ```jldoctest
 julia> rayleigh = ParametricStart(
-           (mean, variance) -> (mean * sqrt(2 / π),),                            # σ from the mean
-           (x, p) -> x > 0 ? log(x) - 2 * log(p[1]) - x^2 / (2 * p[1]^2) : -Inf,  # Rayleigh log-density
+           # σ from the mean
+           (mean, variance) -> (mean * sqrt(2 / π),),
+           # Rayleigh log-density
+           (x, p) -> x > 0 ? log(x) - 2 * log(p[1]) - x^2 / (2 * p[1]^2) : -Inf,
            (0.0, Inf));
 
 julia> rayleigh isa ParametricStart
@@ -497,9 +499,11 @@ of query points returns a vector.
 ```jldoctest
 julia> h = Histogram1D(-1.0, 1.0, 2);
 
-julia> observe!(h, [0.4]);          # one sample at 0.4
+julia> # one sample at 0.4
+       observe!(h, [0.4]);
 
-julia> round(density(h, 0.4; h = 0.2); digits = 4)   # linear binning centers the bump at 0.4 (the centroid)
+julia> # linear binning centers the bump at 0.4 (the centroid)
+       round(density(h, 0.4; h = 0.2); digits = 4)
 1.9947
 ```
 

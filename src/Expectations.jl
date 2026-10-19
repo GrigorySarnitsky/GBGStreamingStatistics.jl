@@ -205,7 +205,8 @@ The arguments are `summary`, the `Histogram1D` of ``X``, and `g`, the functional
 ```jldoctest
 julia> h = Histogram1D(-4.0, 4.0, 800);
 
-julia> observe!(h, [-1.0, 0.0, 2.0]);   # the g = identity case is the recovered mean 𝔼[X] = 1/3
+julia> # the g = identity case is the recovered mean 𝔼[X] = 1/3
+       observe!(h, [-1.0, 0.0, 2.0]);
 
 julia> expectation(h, identity) ≈ mean(h)
 true
