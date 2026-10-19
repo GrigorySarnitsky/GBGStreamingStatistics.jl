@@ -76,7 +76,7 @@ end
 
 
 """
-    conditional_expectation(summary::Histogram2D, g, x;   # ≡ 𝔼[g(Y) | X = x]
+    conditional_expectation(summary::Histogram2D, g, x;
                             kernel = gaussian_kernel,
                             degree = kernel isa AsymmetricKernel ? 0 : 1, h)
 
@@ -252,7 +252,7 @@ end
 # of identity is Σ Y, degree 1 ≤ 2 so exact); x may be a scalar or a vector (dispatched by the general one).
 """
     conditional_mean(summary::Histogram2D, x; kernel = gaussian_kernel,
-                     degree = kernel isa AsymmetricKernel ? 0 : 1, h)   # ≡ m(x)
+                     degree = kernel isa AsymmetricKernel ? 0 : 1, h)
 
 **Estimand.** The estimand is the conditional expectation
 ``m(x) = \\mathbb{E}[Y \\mid X = x] = \\int y  f_{Y\\mid X}(y \\mid x)\\,\\mathrm{d}y`` — the
@@ -360,7 +360,7 @@ end
 """
     conditional_variance(summary::Histogram2D, x; kernel = gaussian_kernel,
                          degree = kernel isa AsymmetricKernel ? 0 : 1, h,
-                         method = :residual)   # ≡ σ²(x)
+                         method = :residual)
 
 **Estimand.** The estimand is the conditional variance
 ``\\sigma^2(x) = \\operatorname{Var}(Y \\mid X = x) = \\mathbb{E}[Y^2 \\mid X = x] - m(x)^2``, with
@@ -507,7 +507,7 @@ end
 
 
 """
-    conditional_pushforward_density(summary::Histogram2D, g, x, z;   # ≡ density of g(Y) | X
+    conditional_pushforward_density(summary::Histogram2D, g, x, z;
                                     kernel_x = gaussian_kernel,
                                     kernel_z = gaussian_kernel,
                                     degree = kernel_x isa AsymmetricKernel ? 0 : 1, h_x,

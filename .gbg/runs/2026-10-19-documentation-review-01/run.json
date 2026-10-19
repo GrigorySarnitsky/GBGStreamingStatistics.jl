@@ -8,7 +8,8 @@
         "2026-10-19-documentation-review-01-058",
         "2026-10-15-documentation-review-01-032",
         "2026-10-19-documentation-review-01-054",
-        "2026-10-19-documentation-review-01-055"
+        "2026-10-19-documentation-review-01-055",
+        "2026-10-19-documentation-review-01-114"
     ],
     "covered": [
     ],
@@ -454,9 +455,9 @@
             ],
             "id": "2026-10-19-documentation-review-01-114-code",
             "decision": "This finding needs a change only you may make. Will you make it?",
-            "direction": "",
+            "direction": "Drop the '# ≡ …' comment from all five signatures that carry one, and re-key their prose-shape rows so the old limits carry over.",
             "context": "Needs a prose-baseline decision: dropping the '# ≡ f_X' comment from density's signature changes the docstring's first line, which keys its prose-shape row; under a new key its long Arguments paragraph, over the cap since before the cap, is refused. Needs the owner's rebaseline, as for the conditional_pushforward_density signature.",
-            "answer": null
+            "answer": "fix it on my ruling"
         },
         {
             "options": [

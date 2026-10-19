@@ -52,7 +52,7 @@ unit,words,longest_paragraph,admonitions
 "ConditionalDensity.jl :: transition_density_standard_error(summary::Histogram2D, x, y",50,26,0
 "ConditionalDensity.jl :: transition_density_with_standard_error(summary::Histogram2D,",45,21,0
 "ConditionalDensity.md § ConditionalDensity",49,49,0
-"ConditionalExpectations.jl :: conditional_expectation(summary::Histogram2D, g, x;   # ≡ 𝔼[",323,104,0
+"ConditionalExpectations.jl :: conditional_expectation(summary::Histogram2D, g, x;",323,104,0
 "ConditionalExpectations.jl :: conditional_expectation_standard_error(summary::Histogram2D,",151,92,0
 "ConditionalExpectations.jl :: conditional_expectation_with_standard_error(summary::Histogr",75,55,0
 "ConditionalExpectations.jl :: conditional_mean(summary::Histogram2D, x; kernel = gaussian_",468,161,0
@@ -115,7 +115,7 @@ unit,words,longest_paragraph,admonitions
 "Kernels.md § Kernels",100,100,0
 "LocalPolynomial.jl :: local_fit(locations, mass, response, x, kernel, degree, h)",318,116,0
 "MarginalDensity.jl :: ParametricStart(fit, logpdf, support)",294,102,0
-"MarginalDensity.jl :: density(summary::Histogram1D, x;   # ≡ f_X",1027,795,0
+"MarginalDensity.jl :: density(summary::Histogram1D, x;",1027,795,0
 "MarginalDensity.jl :: density_standard_error(summary::Histogram1D, x; kernel = gau",307,144,0
 "MarginalDensity.jl :: density_with_standard_error(summary::Histogram1D, x; kernel ",123,63,0
 "MarginalDensity.jl :: exponential_start",35,34,0

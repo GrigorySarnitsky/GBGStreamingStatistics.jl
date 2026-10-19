@@ -410,7 +410,7 @@ end
 
 
 """
-    density(summary::Histogram1D, x;   # ≡ f_X
+    density(summary::Histogram1D, x;
             kernel = gaussian_kernel, degree = 0,
             h = bandwidth(summary; kernel, degree), adaptive = false,
             support = nothing, start = nothing, normalize = false, binning = :linear)
