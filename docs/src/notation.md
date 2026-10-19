@@ -34,7 +34,7 @@ Axis names are lower-case: an ``x``-column of bins, its ``y``-quadrature of resp
 | ``\bar y_j`` | the mean response of bin ``j``; ``n_j \bar y_j`` is its response total |
 | ``\mathbb{P}_X``, ``\mathbb{P}_n`` | the law of ``X``, with ``f_X = \mathrm{d}\mathbb{P}_X/\mathrm{d}x``, and the empirical measure, ``\mathbb{P}_n(A) = \#\{i : X_i \in A\}/n`` |
 | ``T`` | the summary map and its values: the summary ``T(n\mathbb{P}_n)``; ``n(T)`` its total count |
-| ``\mathcal{A}``, ``\mathcal{B}`` | sample multisets, ``T(\mathcal{A} \uplus \mathcal{B}) = T(\mathcal{A}) \oplus T(\mathcal{B})``, by merging |
+| ``\mathcal{A}``, ``\mathcal{B}`` | sample multisets, ``T(\mathcal{A} \uplus \mathcal{B}) = T(\mathcal{A}) \oplus T(\mathcal{B})``, where ``\oplus`` is `merge!` |
 | ``\lambda`` | a summary's scalar multiplier: rescaling, weighted merging, the forgetting factor |
 | ``\mathcal{R}_h`` | the post-hoc readout that turns a summary into an estimate at a bandwidth |
 | ``J`` | the number of merged copies of a summary |
@@ -70,7 +70,7 @@ Axis names are lower-case: an ``x``-column of bins, its ``y``-quadrature of resp
 | ``U``, ``W`` | the Hankel matrices ``[U_{r+s}]_{r,s=0}^d`` and ``[W_{r+s}]_{r,s=0}^d`` |
 | ``\beta_0, \dots, \beta_d`` | the jet: the local-polynomial coefficients at ``x`` |
 | ``\omega_j(x)`` | the fitted value ``\hat\beta_0``'s weight on each sample of column ``j`` |
-| ``\ell(x)`` | the local fit's leverage, ``\sum_j N_j \omega_j(x)^2 = e_0^\top U^{-1} W U^{-1} e_0``, the unit vector that picks out the fitted value |
+| ``\ell(x)`` | the local fit's leverage, ``\sum_j N_j \omega_j(x)^2 = e_0^\top U^{-1} W U^{-1} e_0``, with ``e_0`` the first unit vector, which picks out the fitted value |
 
 ## Estimands
 
