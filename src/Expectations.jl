@@ -97,10 +97,11 @@ _sample_std(summary::Histogram1D) = sqrt(_sample_variance(summary))
 
 **Estimand.** The estimand is the population mean ``\\mathbb{E}[X]``.
 
-**Estimator.** The estimator is the sample mean ``\\bar X = \\frac{1}{n} \\sum_i X_i``, recovered exactly
-(not a smoothed estimate) from the per-bin counts and first power-sums by the shift formula (the power-sums use
+**Estimator.** The estimator is the sample mean ``\\bar X = \\frac{1}{n} \\sum_i X_i``, recovered exactly,
+not smoothed, from the per-bin counts and first power-sums by the shift formula, which binomially re-expands
+each bin's powers about its center (the power-sums use
 the actual ``X_i``, not the bin center; the ``g = x`` case of [`expectation`](@ref
-GBGStreamingStatistics.Expectations.expectation)). Extends `Statistics.mean`; an empty summary gives `NaN`.
+GBGStreamingStatistics.Expectations.expectation)). It extends `Statistics.mean`, and an empty summary gives `NaN`.
 """
 mean(summary::Histogram1D) = _sample_mean(summary)
 
@@ -108,12 +109,13 @@ mean(summary::Histogram1D) = _sample_mean(summary)
 """
     var(summary::Histogram1D; corrected = true)
 
-**Estimand.** The population variance ``\\operatorname{Var}(X) = \\mathbb{E}\\bigl[(X - \\mathbb{E}[X])^2\\bigr]``.
+**Estimand.** The estimand is the population variance ``\\operatorname{Var}(X) = \\mathbb{E}\\bigl[(X - \\mathbb{E}[X])^2\\bigr]``.
 
-**Estimator.** The recovered variance (``\\bar X`` the recovered mean): with `corrected = false` the order-2 central
-moment ``\\hat\\sigma_X^2 = \\hat\\mu_2 = \\frac{1}{n} \\sum_i (X_i - \\bar X)^2``, the ``\\hat\\sigma_X`` the bandwidth rules
-use; with the default `corrected = true`, matching `Statistics.var`, the unbiased ``n\\hat\\sigma_X^2/(n-1)`` (`NaN` for
-``n \\le 1``). Exact via the shift formula. Extends `Statistics.var`.
+**Estimator.** The estimator is the recovered variance, ``\\bar X`` the recovered mean: with `corrected = false` it is the order-2 central
+moment ``\\hat\\sigma_X^2 = \\hat\\mu_2 = \\frac{1}{n} \\sum_i (X_i - \\bar X)^2``, the ``\\hat\\sigma_X`` that
+[`bandwidth`](@ref GBGStreamingStatistics.Bandwidth.bandwidth) uses; with the default `corrected = true`, matching
+`Statistics.var`, it is the unbiased ``n\\hat\\sigma_X^2/(n-1)`` (`NaN` for ``n \\le 1``). Exact by the shift
+formula, it extends `Statistics.var`.
 
 # Arguments
 
@@ -131,10 +133,10 @@ end
 """
     std(summary::Histogram1D; corrected = true)
 
-**Estimand.** The population standard deviation ``\\sigma_X = \\sqrt{\\operatorname{Var}(X)}``.
+**Estimand.** The estimand is the population standard deviation ``\\sigma_X = \\sqrt{\\operatorname{Var}(X)}``.
 
-**Estimator.** The square root of `var`: ``\\hat\\sigma_X = \\sqrt{\\hat\\mu_2}`` with `corrected = false`,
-``\\hat\\sigma_X \\sqrt{n/(n-1)}`` with the default `corrected = true`. Extends `Statistics.std`.
+**Estimator.** The estimator is the square root of `var`: ``\\hat\\sigma_X = \\sqrt{\\hat\\mu_2}`` with `corrected = false`,
+``\\hat\\sigma_X \\sqrt{n/(n-1)}`` with the default `corrected = true`. It extends `Statistics.std`.
 
 # Arguments
 
@@ -147,15 +149,14 @@ std(summary::Histogram1D; corrected::Bool = true) = sqrt(var(summary; corrected 
 """
     central_moment(summary::Histogram1D, p)
 
-**Estimand.** The population ``p``-th central moment ``\\mu_p(X) = \\mathbb{E}\\bigl[(X - \\mathbb{E}[X])^p\\bigr]``.
+**Estimand.** The estimand is the population ``p``-th central moment ``\\mu_p(X) = \\mathbb{E}\\bigl[(X - \\mathbb{E}[X])^p\\bigr]``.
 
 **Estimator.** The estimator is the sample central moment ``\\hat\\mu_p = \\frac{1}{n} \\sum_i (X_i - \\bar X)^p`` (``\\bar X``
-the recovered mean), recovered exactly from the power-sums by the shift formula for ``2 \\le p \\le \\texttt{order}``
-(any other order throws an `ArgumentError`). The order ``p = 2`` is the uncorrected variance (`var` with `corrected = false`);
+the recovered mean), recovered exactly from the power-sums by the shift formula for ``2 \\le p \\le \\texttt{order}``, with `order`
+the highest power-sum order the summary stores; any other order throws an `ArgumentError`. The order ``p = 2`` is the uncorrected variance (`var` with `corrected = false`);
 even orders recover stably, odd orders (``\\approx 0``) to weaker relative precision. This is the
 ``g = (x - \\bar X)^p`` case of the power-sum quadrature [`expectation`](@ref
-GBGStreamingStatistics.Expectations.expectation), with which it shares the weighted sum over the
-power-sums.
+GBGStreamingStatistics.Expectations.expectation), sharing its weighted sum over the power-sums.
 """
 central_moment(summary::Histogram1D, p::Integer) = _sample_central_moment(summary, p)
 
@@ -172,15 +173,15 @@ end
 
 
 """
-    expectation(summary::Histogram1D, g)   # ≡ 𝔼[g(X)]
+    expectation(summary::Histogram1D, g)
 
-**Estimand.** The population expectation of a smooth functional of ``X``,
+**Estimand.** The estimand is the population expectation of a smooth functional `g` of ``X``,
 ``\\mathbb{E}[g(X)] = \\int g(x)  f_X(x)\\,\\mathrm{d}x``.
 
 **Estimator** (power-sum quadrature). From the [`Histogram1D`](@ref
 GBGStreamingStatistics.Histograms.Histogram1D) `summary`, whose bin ``j`` (center ``c_j``) carries the
-count ``n_j`` and its per-bin power-sums ``S_p^{(j)}`` about the center — the summed powers of its
-samples' offsets (with ``S_0^{(j)} = n_j``) —
+count ``n_j`` and its per-bin power-sums ``S_p^{(j)}`` about the center up to the stored order `order` — the
+summed powers of its samples' offsets (with ``S_0^{(j)} = n_j``) —
 Taylor-expanding ``g`` about each center gives
 
 ```math
@@ -188,9 +189,9 @@ Taylor-expanding ``g`` about each center gives
   \\frac{g^{(p)}(c_j)}{p!}  S_p^{(j)} ,
 ```
 
-which is exact for a polynomial ``g`` of degree ``\\le \\texttt{order}`` (the remainder terminates —
-this is the shift formula behind `mean` / `var` / `central_moment` — the binomial re-expansion from the
-bin center to the sample mean — the ``g = x^p`` case) and
+which is exact for a polynomial ``g`` of degree ``\\le \\texttt{order}`` (the remainder terminates;
+for ``g = x^p`` this is the shift formula behind `mean`, `var` and `central_moment`, the binomial
+re-expansion from the bin center to the sample mean) and
 ``O(\\Delta^{ \\texttt{order}+1})`` in the bin width ``\\Delta`` for a general smooth ``g``. The local
 coefficients ``g^{(p)}(c_j)/p!`` are read off a degree-``\\texttt{order}`` polynomial interpolant of ``g``
 on each bin, so any callable `g` works; `g` is probed only on non-empty
@@ -234,14 +235,14 @@ end
 """
     expectation_standard_error(summary::Histogram1D, g)
 
-**Estimand.** The sampling standard error of the estimator `expectation`,
+**Estimand.** The estimand is the sampling standard error of the estimator `expectation`,
 ``\\operatorname{SE}\\bigl(\\widehat{\\mathbb{E}}[g(X)]\\bigr) = \\sqrt{\\operatorname{Var}(g(X))/n}`` with
 ``\\operatorname{Var}(g(X)) = \\mathbb{E}[g(X)^2] - \\mathbb{E}[g(X)]^2``.
 
-**Estimator.** The estimator is ``\\sqrt{(\\widehat{\\mathbb{E}}[g^2] - \\widehat{\\mathbb{E}}[g]^2)/n}``, both
-moments by the same power-sum quadrature (``\\mathbb{E}[g^2]`` is `expectation` with the smooth integrand
-``g^2``), with ``n`` the sample count. This is the plug-in sampling error of the empirical mean of ``g(X)``; it does not include the
-``O(\\Delta^{ \\texttt{order}+1})`` quadrature bias, which is separate. `NaN` for an empty summary.
+**Estimator.** The estimator is ``\\sqrt{(\\widehat{\\mathbb{E}}[g^2] - \\widehat{\\mathbb{E}}[g]^2)/n}``, where both
+moments come from the same power-sum quadrature (``\\mathbb{E}[g^2]`` is `expectation` with the smooth integrand
+``g^2``) and ``n`` is the sample count. This is the plug-in sampling error of the empirical mean of ``g(X)``; it does not include the
+``O(\\Delta^{ \\texttt{order}+1})`` quadrature bias, which is separate. An empty summary gives `NaN`.
 
 Arguments: as for [`expectation`](@ref GBGStreamingStatistics.Expectations.expectation).
 
@@ -287,14 +288,15 @@ end
 
 
 """
-    pushforward_density(summary::Histogram1D, g, z;   # ≡ f_{g(X)}
+    pushforward_density(summary::Histogram1D, g, z;
                         kernel = gaussian_kernel, h)
 
-**Estimand.** The density of the transformed variable ``Z = g(X)``, the *pushforward*
+**Estimand.** The estimand is the density of the transformed variable ``Z = g(X)`` under the transform `g`, the *pushforward*
 ``f_{g(X)}(z) = \\sum_{x: g(x)=z} f_X(x) / |g'(x)|`` (the change-of-variables sum over the preimages
 of ``z``).
 
-**Estimator.** The kernel density estimate of the pushforward, written as an expectation and evaluated by
+**Estimator.** The estimator is the kernel density estimate of the pushforward, with the `kernel` scaled to the
+bandwidth `h`, written as an expectation and evaluated by
 [`expectation`](@ref GBGStreamingStatistics.Expectations.expectation):
 
 ```math
@@ -303,10 +305,9 @@ of ``z``).
 ```
 
 so the composed test function ``x \\mapsto K_h(g(x) - z)`` is smoothed by the power-sum quadrature — no
-inverse ``g^{-1}`` and no explicit Jacobian are formed; a non-monotone ``g`` is handled automatically
-(every preimage contributes), and a flat spot ``g'(x) = 0`` shows up as the expected (integrable) caustic
-pile-up. For a symmetric `kernel` (``\\int K = 1``) the surviving ``1/h`` makes
-``\\int \\hat f_{g(X)}(z)\\,\\mathrm{d}z = 1`` exactly. Needs ``g`` smooth on the bin scale and the bandwidth ``h`` at least of order
+inverse ``g^{-1}`` and no explicit Jacobian are formed; a non-monotone ``g`` is handled, every preimage
+contributing, and a flat spot ``g'(x) = 0`` shows up as an integrable caustic pile-up. For a symmetric `kernel` (``\\int K = 1``) the surviving ``1/h`` makes
+``\\int \\hat f_{g(X)}(z)\\,\\mathrm{d}z = 1`` exactly. It needs ``g`` smooth on the bin scale and the bandwidth ``h`` at least of order
 ``|g'| \\Delta`` (so ``K_h \\circ g`` is resolved across a bin). A vector `z` returns the density curve
 over those points.
 
@@ -316,7 +317,7 @@ over those points.
 - `g` — the transform defining ``Z = g(X)`` (any callable, smooth on the bin scale).
 - `z` — the point(s) ``z`` at which the pushforward density is evaluated (a scalar, or a vector for the
   curve).
-- `kernel` — the ``z``-direction kernel (any ``\\int K = 1`` callable; default
+- `kernel` — the ``z``-direction kernel (any callable integrating to one, ``\\int K = 1``; default
   [`gaussian_kernel`](@ref GBGStreamingStatistics.Kernels.gaussian_kernel)).
 - `h` — the ``z``-direction bandwidth (``h > 0``), supplied.
 
@@ -339,7 +340,7 @@ end
     pushforward_density_standard_error(summary::Histogram1D, g, z;
                                        kernel = gaussian_kernel, h)
 
-**Estimand.** The pointwise standard error of the pushforward density `pushforward_density` ``\\equiv f_{g(X)}``,
+**Estimand.** The estimand is the pointwise standard error of the pushforward density `pushforward_density` ``\\equiv f_{g(X)}``,
 ``\\operatorname{SE}(z) = \\sqrt{\\operatorname{Var}\\hat f_{g(X)}(z)}`` with the two-term kernel-density variance
 ``\\operatorname{Var}\\hat f_{g(X)}(z) \\approx R(K) f_{g(X)}(z)/(nh) - f_{g(X)}(z)^2/n`` (``R(K) = \\int K^2``).
 
@@ -372,8 +373,8 @@ end
 Returns the pushforward density `pushforward_density` and its standard error from two quadrature passes
 (the composed kernel, then its square) — the `NamedTuple` ``(\\texttt{value}, \\texttt{standard\\_error})``, sharing
 the composed-kernel integrand with [`pushforward_density_standard_error`](@ref
-GBGStreamingStatistics.Expectations.pushforward_density_standard_error). For a vector `z`, a `NamedTuple` of
-vectors.
+GBGStreamingStatistics.Expectations.pushforward_density_standard_error). For a vector `z` it returns a
+`NamedTuple` of vectors.
 
 Arguments: as for [`pushforward_density`](@ref GBGStreamingStatistics.Expectations.pushforward_density).
 

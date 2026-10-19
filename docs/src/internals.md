@@ -1,8 +1,8 @@
 # Internals
 
 These are the shared building blocks *below* the public estimator API, documented here for development,
-review, and extension (a new local-polynomial estimator on this primitive, without
-reimplementing the solve; see the [Architecture](architecture.md)).
+review, and extension (a new local-polynomial estimator on the local-polynomial fit `local_fit`, a kernel-weighted
+least-squares solve, without reimplementing it; see the [Architecture](architecture.md)).
 
 !!! warning "Not the stable public API"
     These bindings are not exported and not part of the stable surface — reach them by the
@@ -16,7 +16,7 @@ reimplementing the solve; see the [Architecture](architecture.md)).
 
 This is the single linear primitive on which the local smoothers are built (the formalization:
 [Formalization](formalization.md), "Local-polynomial jet primitive"). The estimator `conditional_mean` is its
-fitted value ``\hat\beta_0`` (the jet's leading coefficient below); the local-likelihood `density` reuses its solve as the iteratively reweighted inner step.
+fitted value ``\hat\beta_0``, the leading coefficient of the jet (the fitted local Taylor coefficients); the local-likelihood `density` reuses its solve as the iteratively reweighted inner step.
 
 ```@docs
 GBGStreamingStatistics.LocalPolynomial.local_fit

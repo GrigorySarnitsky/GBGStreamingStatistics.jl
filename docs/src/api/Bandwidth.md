@@ -1,11 +1,11 @@
 # Bandwidth
 
-Bandwidth selection for the [`density`](@ref) estimators. For the marginal
-([`Histogram1D`](@ref)): the kernel- and degree-aware normal-reference rule (the default;
-Silverman's rule is its Gaussian, degree-0 case), the data-driven Sheather–Jones (`rule = :sj` classic,
-`:isj` improved via the discrete cosine transform), fit-based AIC (`rule = :aic`), and asymmetric-kernel Chen plug-in (`rule = :plugin`)
-selectors; for a data-driven choice prefer `rule = :sj` or `:isj`. For the joint ([`Histogram2D`](@ref)): the
-response-aware local plug-in ``h^\star(x)`` (`rule = :local`).
+Bandwidths are selected from a summary, the binned histogram of the samples. A marginal
+[`Histogram1D`](@ref) supports, for [`density`](@ref), the kernel- and degree-aware normal-reference rule
+(the default; Silverman's is its Gaussian, degree-0 case), Sheather–Jones (`rule = :sj`; `:isj`
+improved via the discrete cosine transform; preferred), fit-based AIC (`rule = :aic`), and the
+asymmetric-kernel Chen plug-in (`rule = :plugin`). A joint [`Histogram2D`](@ref) supports the
+response-aware local plug-in ``h^\star(x)`` (`rule = :local`), one bandwidth per conditioning value.
 
 ```@docs
 bandwidth

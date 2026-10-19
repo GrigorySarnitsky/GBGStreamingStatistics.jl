@@ -18,8 +18,9 @@ export Histogram1D, Histogram2D, observe_pairs!, scale!, write_histogram, read_h
     Histogram1D(lower, upper, nbins; order = 4, accumulator_type = Float64,
                 count_type = UInt64)
 
-A finely binned empirical measure of a scalar variate ``X`` — the canonical summary
-``T(n\\mathbb{P}_n)``. The `nbins` equal-width bins (WARPing — weighted averaging of rounded points) tile the half-open range ``[\\texttt{lower}, \\texttt{upper})``;
+A finely binned empirical measure of a scalar variate ``X`` — the summary
+``T(n\\mathbb{P}_n)``, the summary map applied to the empirical measure of the samples seen so far, scaled
+by their count. The `nbins` equal-width bins (WARPing — weighted averaging of rounded points) tile the half-open range ``[\\texttt{lower}, \\texttt{upper})``;
 choosing the range to cover the data (e.g. ``\\pm 5\\sigma_X`` for the data's standard deviation
 ``\\sigma_X``) with ``\\gtrsim 10^3`` bins makes the bin width ``\\Delta \\approx \\sigma_X/100`` far below any
 post-hoc smoothing bandwidth ``h`` (``\\Delta \\ll h``), so the summary is *approximately sufficient*.
@@ -44,7 +45,7 @@ Samples outside ``[\\texttt{lower}, \\texttt{upper})`` are skipped (not counted)
 
 # Arguments
 
-- `lower`, `upper` — the edges of the half-open range ``[\\texttt{lower}, \\texttt{upper})`` (`upper > lower`).
+- `lower`, `upper` — the edges of the half-open range ``[\\texttt{lower}, \\texttt{upper})`` (`upper` must exceed `lower`).
 - `nbins` — the number of equal-width bins.
 - `order` — the highest power-sum order stored per bin (default `4`, recovering up to ``\\hat\\mu_4``).
 - `accumulator_type` — the element type the power-sums are accumulated in (default `Float64`).
@@ -72,7 +73,7 @@ julia> Int(sum(summary.counts))                      # the four in-range samples
 The fields hold the summary's whole internal state, distinct from the constructor arguments (`scale`
 is derived, `counts` and `powersums` allocated); each is reachable by dot (`summary.lower`,
 `summary.scale`, `summary.counts`, …), for serialization, inspection, or building one by hand:
-- `lower`, `upper` — the range edges (`upper > lower`).
+- `lower`, `upper` — the range edges (`upper` exceeds `lower`).
 - `scale` — the precomputed binning factor `nbins / (upper - lower)`, stored (not recomputed) so that
   the binning map is a single multiply.
 - `counts` — per-bin counts, length `nbins` (`UInt64`, or `count_type`; `nbins == length(counts)`).
@@ -231,7 +232,7 @@ are as for [`Histogram1D`](@ref GBGStreamingStatistics.Histograms.Histogram1D).
 
 
 A freshly constructed summary is empty (`counts`, `powersums` all zeros), and `merge!` adds `counts`
-and `powersums` (requires matching box, cell counts, and `lag`).
+and `powersums` (it requires a matching box, numbers of cells and `lag`).
 
 ```jldoctest
 julia> joint = Histogram2D(-5.0, 5.0, 100, -5.0, 5.0, 100);   # 100×100 cells over the box
@@ -247,10 +248,10 @@ julia> Int(sum(joint.counts))                                 # the two in-box p
 The fields hold the summary's whole internal state, distinct from the constructor arguments
 (`scale_x`/`scale_y` derived, `counts` and `powersums` allocated); each is reachable by dot
 (`summary.lower_x`, `summary.scale_x`, `summary.lag`, …):
-- `lower_x`, `upper_x`, `lower_y`, `upper_y`, `n_x`, `n_y` — the box and cell counts.
+- `lower_x`, `upper_x`, `lower_y`, `upper_y`, `n_x`, `n_y` — the box and its numbers of cells.
 - `scale_x`, `scale_y` — the precomputed binning factors `n_x/(upper_x-lower_x)`, `n_y/(upper_y-lower_y)`, stored.
 - `lag` — the lag ``\\tau`` this joint summary is accumulated at (`0` for the static joint).
-- `counts` — per-cell counts, length `n_x*n_y` (cell `(i_x, i_y)` at `i_x + (i_y-1)*n_x`; `UInt64`, or `count_type`).
+- `counts` — per-cell counts, of length `n_x` times `n_y` (cell `(i_x, i_y)` at `i_x + (i_y-1)*n_x`; `UInt64`, or `count_type`).
 - `powersums` — ``5 \\times (\\texttt{n\\_x} \\cdot \\texttt{n\\_y})``: rows ``S_{10}, S_{01}, S_{20}, S_{11}, S_{02}`` about the cell center.
 """
 struct Histogram2D{T<:AbstractFloat,C<:AbstractVector,M<:AbstractMatrix} <: AbstractAccumulator
@@ -406,13 +407,14 @@ end
     write_histogram(parent, name, summary)
 
 Persist a `Histogram1D` or `Histogram2D` `summary` as a new HDF5 group `name` under `parent` (an open
-HDF5 `File` or `Group`), returning that group. The summary is the durable artifact of the streaming design
-— a fixed-size object — so this is how you checkpoint it, resume from it, or combine summaries stored
+HDF5 `File` or `Group`), returning that group. The fixed-size summary is the durable artifact of the streaming
+design, so this is how you checkpoint it, resume from it, or combine summaries stored
 across runs; the reload is exact.
 
 The group is self-describing: the arrays become datasets (`counts`, `powersums`) and the scalar
-parameters become attributes (`type`, `version`, the range edges, `nbins` / `n_x` / `n_y`, `order`, `lag`),
-so any HDF5 tool can read it. Device (GPU) arrays are copied to the host on write, and the count element
+parameters become attributes (`type` and `version`; `lower`, `upper`, `nbins` and `order` for a
+`Histogram1D`; `xlower`, `xupper`, `nx`, `ylower`, `yupper`, `ny` and `lag` for a `Histogram2D`), so any
+HDF5 tool can read it. Device (GPU) arrays are copied to the host on write, and the count element
 type is preserved, so the `count_type = Float64` cone variant round-trips. The sugar `parent[name] = summary`
 is equivalent.
 

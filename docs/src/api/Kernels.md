@@ -1,8 +1,8 @@
 # Kernels
 
-The smoothing kernels shared across the estimators come in two families; every estimator applies one to a
-`summary`, the binned histogram of the stream. The symmetric kernels are any callable with ``\int K = 1`` (the kernel-aware [`bandwidth`](@ref) computes ``R(K)`` and ``\mu_2(K)`` by
-quadrature, so a custom symmetric kernel needs no manual constants). The
+The smoothing kernels come in two families; every estimator applies one to a
+`summary`, the binned histogram of the stream. The symmetric kernels are any callable kernel with ``\int K = 1`` (the kernel-aware [`bandwidth`](@ref) computes its roughness ``R(K)`` and second moment ``\mu_2(K)`` by
+quadrature, so a custom one needs no manual constants). The
 asymmetric varying-shape kernels — [`gamma_kernel`](@ref) for ``[0,\infty)``, [`beta_kernel`](@ref) for ``[0,1]``, or
 a custom [`AsymmetricKernel`](@ref) — match a bounded / positive support and are boundary-bias-free by
 construction (Chen 1999, 2000). Both families feed the estimators as `kernel = …`: the marginal [`density`](@ref), the

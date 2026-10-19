@@ -312,11 +312,12 @@ end
     bandwidth(summary::Histogram1D; rule = :normal, kernel = gaussian_kernel,
               degree = 0) -> h
 
-**Estimand.** The AMISE-optimal (asymptotic mean integrated squared error) smoothing bandwidth for the
-marginal density [`density`](@ref GBGStreamingStatistics.MarginalDensity.density) of `summary` — the bandwidth
-``h_{\\mathrm{AMISE}}`` asymptotically minimising ``\\operatorname{MISE}(\\hat f_h) = \\int \\mathbb{E}\\bigl[(\\hat f_h(x) - f_X(x))^2\\bigr]\\,\\mathrm{d}x``
-(the AMISE is its leading-order large-``n`` expansion, which has the closed form the plug-in uses) for the
-smoothing `kernel` ``K`` and local-polynomial `degree` ``d``.
+**Estimand.** The estimand is the bandwidth ``h_{\\mathrm{AMISE}}`` of the marginal density
+[`density`](@ref GBGStreamingStatistics.MarginalDensity.density) of `summary` that asymptotically minimises
+``\\operatorname{MISE}(\\hat f_h) = \\int \\mathbb{E}\\bigl[(\\hat f_h(x) - f_X(x))^2\\bigr]\\,\\mathrm{d}x``, the
+estimate's mean integrated squared error against the true density. The AMISE (asymptotic MISE), whose closed form the
+plug-in uses, is its leading-order large-``n`` expansion for the smoothing `kernel` ``K`` and local-polynomial
+`degree` ``d``.
 
 **Estimator** (`rule = :normal`, the kernel- and degree-aware normal-reference plug-in). From the sample
 standard deviation ``\\hat\\sigma_X``, read back from the summary's stored moments, and the sample size ``n``,
@@ -326,9 +327,10 @@ h = C(K, d) \\hat\\sigma_X n^{-1/(2q+1)},
 ```
 
 where ``q`` is the estimator's leading *bias order* — ``q = 2`` for `degree` 0 or 1 (the rate
-``n^{-1/5}``), ``q = 4`` for `degree` 2 or 3 (a higher-order, ``O(h^4)``, fit, hence the wider, more
-slowly shrinking rate ``n^{-1/9}``). At `degree` 0/1 the constant is the canonical bandwidth, and at
-`degree` 2/3 the analogous fourth-order equivalent-kernel one (Loader 1996):
+``n^{-1/5}``), ``q = 4`` for `degree` 2 or 3 (a higher-order, ``O(h^4)``, fit, hence the slower rate
+``n^{-1/9}``). The display is the `degree` 0/1 constant, from the kernel's
+canonical factor, roughness and second moment; `degree` 2/3 uses the analogous fourth-order
+equivalent-kernel constant (Loader 1996), not displayed:
 
 ```math
 \\begin{aligned}
@@ -341,7 +343,7 @@ R(K) &= \\int K^2, \\qquad \\mu_2(K) = \\int u^2 K(u)\\,\\mathrm{d}u,
 where ``R(K)`` and ``\\mu_2(K)`` are computed by quadrature, so any ``K`` is supported. For the Gaussian kernel at
 `degree` 0 this is Silverman's rule ``(4/3)^{1/5}\\hat\\sigma_X n^{-1/5}``; for the Epanechnikov
 kernel it is ``\\approx 2.34 \\hat\\sigma_X n^{-1/5}`` (``2.214\\times`` the Gaussian ``h``). Every
-input is read back from the *one* stored summary after accumulation.
+input is read back from `summary`, the binned histogram of the sample stream.
 
 **Estimator** (`rule = :sj`, the data-driven Sheather–Jones plug-in; `degree` 0/1). The curvature
 ``\\psi_4 = R(f_X'')`` and its pilot ``\\psi_6`` (the third derivative's roughness) are estimated from the
@@ -350,8 +352,8 @@ Jones 1991) is found by root-finding; the evaluation kernel (the `kernel` the de
 not the Gaussian pilot behind the curvature) then enters as the canonical ``\\delta(K)``
 rescale, as for `:normal`. It adapts to the true shape — on a bimodal sample,
 where the normal reference oversmooths from an inflated ``\\hat\\sigma_X``, it picks a much smaller ``h``.
-Both functionals are sums over the bin counts, so they merge (separately accumulated summaries select as one); `:sj` is a degree-0/1 selector,
-so for a `degree` ``\\ge 2`` fit use `rule = :normal`.
+Both functionals are sums over the bin counts, so they merge (separately accumulated summaries select as one); for a `degree`
+``\\ge 2`` fit use `rule = :normal`.
 
 **Estimator** (`rule = :isj`, the Improved Sheather–Jones plug-in; Botev, Grotowski & Kroese 2010;
 `degree` 0/1). The same solve-the-equation idea, but the curvature norms ``\\|f_X^{(r)}\\|^2`` of the successive
@@ -360,7 +362,7 @@ than from a normal-reference pilot — so it stays reliable on strongly multimod
 scale of `:sj` can mislead. The evaluation kernel again enters as the ``\\delta(K)`` rescale.
 
 **Estimator** (`rule = :aic`, the fit-based information criterion; `degree` 0/1). Over a log-spaced
-``h``-grid around the normal reference, minimise ``\\operatorname{AIC}(h) = -2\\sum_j n_j \\log \\hat f_h(c_j) + 2\\operatorname{df}(h)`` of the binned Gaussian KDE (the sum runs over bins ``j``, ``n_j`` the count and ``c_j`` the center of bin ``j``), with the *effective degrees of freedom* ``\\operatorname{df}(h) = (\\varphi(0)/h)\\sum_j n_j/(n\\hat f_h(c_j))`` — the kernel smoother's self-influence trace, which stands in for the parameter count in the criterion (``\\varphi`` the Gaussian). Both terms diverge as ``h \\to 0``, so the optimum is a stable interior point, and the eval kernel enters only as the canonical ``\\delta(K)`` rescale of the selected ``h``. The leave-one-out cross-validation selectors (likelihood-CV and least-squares LSCV) are not offered — binning ties drive their optimum to ``h \\to 0``; use `:sj` or `:isj` for a data-driven alternative.
+``h``-grid around the normal reference, minimise ``\\operatorname{AIC}(h) = -2\\sum_j n_j \\log \\hat f_h(c_j) + 2\\operatorname{df}(h)`` of the binned Gaussian KDE (the sum runs over bins ``j``, ``n_j`` the count and ``c_j`` the center of bin ``j``), with the *effective degrees of freedom* ``\\operatorname{df}(h) = (\\varphi(0)/h)\\sum_j n_j/(n\\hat f_h(c_j))`` — the kernel smoother's self-influence trace, which stands in for the parameter count in the criterion (``\\varphi`` the Gaussian). Both terms diverge as ``h \\to 0``, so the optimum is a stable interior point, and the evaluation kernel enters only as the canonical ``\\delta(K)`` rescale of the selected ``h``. The leave-one-out cross-validation selectors (likelihood-CV and least-squares LSCV) are not offered — binning ties drive their optimum to ``h \\to 0``; use `:sj` or `:isj` instead.
 
 **Asymmetric kernels** ([`gamma_kernel`](@ref GBGStreamingStatistics.Kernels.gamma_kernel),
 [`beta_kernel`](@ref GBGStreamingStatistics.Kernels.beta_kernel)) carry their width in the
@@ -377,7 +379,7 @@ b^\\star = \\biggl[\\frac{\\mathbb{E}[w(X)^{-1/2}]}{2\\sqrt\\pi n \\int w(x)^2 f
 
 The moment ``\\mathbb{E}[w(X)^{-1/2}]`` is exact from the bin counts; the curvature ``\\int w^2 (f_X'')^2`` is
 estimated from a pilot KDE's second derivative by grid quadrature (valid at the boundary because
-``w \\to 0`` there, unlike an integration-by-parts functional). It lowers the ISE by ``\\approx
+``w \\to 0`` there, unlike an integration-by-parts functional). It lowers the integrated squared error by ``\\approx
 1.4\\text{–}1.7\\times`` on skewed positive data — where the rule of thumb mis-scales — and is otherwise near
 it. `rule = :plugin` also accepts a custom
 [`AsymmetricKernel`](@ref GBGStreamingStatistics.Kernels.AsymmetricKernel), provided it was built with its
@@ -400,8 +402,7 @@ joint-summary selector `bandwidth(summary::Histogram2D, x; rule = :local)` (belo
 - `kernel` — the smoothing kernel the bandwidth is for (default
   [`gaussian_kernel`](@ref GBGStreamingStatistics.Kernels.gaussian_kernel)); it enters through the
   canonical factor ``\\delta(K) = [R(K)/\\mu_2(K)^2]^{1/5}``.
-- `degree` — the local-polynomial order the bandwidth is for (default `0`); it sets the bias order (the
-  data-driven rules are `degree` 0/1).
+- `degree` — the local-polynomial order the bandwidth is for (default `0`); it sets the bias order.
 
 # References
 
@@ -500,11 +501,11 @@ end
 
 """
     bandwidth(summary::Histogram2D, x; rule = :local, kernel = gaussian_kernel,
-              pilot_bandwidth = nothing) -> h
+              pilot_bandwidth = nothing)
 
-**Estimand.** The response-aware local AMSE-optimal bandwidth ``h^\\star(x)`` for the conditional
-mean [`conditional_mean`](@ref GBGStreamingStatistics.ConditionalExpectations.conditional_mean) ``m(x)`` — the
-bandwidth that, at each conditioning value ``x``, minimises the local mean squared error of the
+**Estimand.** The estimand is the response-aware local AMSE-optimal bandwidth ``h^\\star(x)`` for the
+conditional mean [`conditional_mean`](@ref GBGStreamingStatistics.ConditionalExpectations.conditional_mean)
+``m(x)``. At each conditioning value ``x`` it minimises the local mean squared error of the
 local-linear estimate ``\\hat m_h(x)`` by balancing its squared bias against its variance:
 
 ```math
@@ -512,8 +513,8 @@ h^\\star(x) = \\biggl[\\frac{R(K) \\sigma^2(x)}{\\mu_2(K)^2 m''(x)^2 f_X(x) n}\\
 ```
 
 with ``\\sigma^2(x)`` the conditional variance, ``m''(x)`` the regression curvature, ``f_X(x)`` the
-marginal density of the conditioning variable ``X``, ``n`` the sample size, and the kernel constants
-``R(K) = \\int K^2``, ``\\mu_2(K) = \\int u^2 K(u)\\,\\mathrm{d}u``.
+marginal density of the conditioning variable ``X``, ``n`` the sample size, and the constants of the
+smoothing `kernel`, ``R(K) = \\int K^2``, ``\\mu_2(K) = \\int u^2 K(u)\\,\\mathrm{d}u``.
 
 **Estimator** (`rule = :local`). The three ``x``-local quantities are read from the one joint `summary`,
 each at a single pilot bandwidth: the conditional variance ``\\sigma^2(x)`` from the bias-reduced Fan &
@@ -523,8 +524,9 @@ of the degree-2 local-polynomial fit), and ``f_X(x)`` from the binned KDE of the
 ``R(K)`` and ``\\mu_2(K)`` are computed by quadrature, so any `kernel` works.
 
 Because estimating a second derivative needs a wider window than the final fit, the default pilot is the curvature-rate rule of thumb
-``\\hat\\sigma_X  n^{-1/9}``; where the regression is locally linear (``m''(x) \\to 0``) the optimal
-bandwidth is unbounded, so it is capped at the x-range. A vector `x` returns a vector; `NaN` marks an
+``\\hat\\sigma_X  n^{-1/9}`` (the conditioning variable's sample standard deviation times that power of the
+sample size); where the regression is locally linear (``m''(x) \\to 0``) the optimal
+bandwidth is unbounded, so it is capped at the x-range. Returns the bandwidth, a vector for a vector `x`; `NaN` marks an
 ``x`` off the data's support.
 
 # Arguments
@@ -533,13 +535,11 @@ bandwidth is unbounded, so it is capped at the x-range. A vector `x` returns a v
   ``(X, Y)``.
 - `x` — the conditioning value(s) at which ``h^\\star`` is evaluated (a scalar, or a vector for the
   whole bandwidth profile).
-- `rule` — the selector; only `:local` (the response-aware local plug-in) is defined for a joint
-  summary.
+- `rule` — the selector; only `:local` is defined for a joint summary.
 - `kernel` — the smoothing kernel ``K`` (any callable with ``\\int K = 1``; default
   [`gaussian_kernel`](@ref GBGStreamingStatistics.Kernels.gaussian_kernel)).
 - `pilot_bandwidth` — the pilot bandwidth for the ``\\sigma^2(x)``, ``m''(x)``, ``f_X(x)`` estimates; `nothing`
-  (default) uses the curvature-rate rule of thumb ``\\hat\\sigma_X  n^{-1/9}`` (the conditioning variable's
-  sample standard deviation times that power of the sample size).
+  (default) uses the rule of thumb ``\\hat\\sigma_X  n^{-1/9}``.
 
 Reference: J. Fan & I. Gijbels (1996), [*Local Polynomial Modelling and Its Applications*](https://doi.org/10.1201/9780203748725),
 Chapman & Hall.

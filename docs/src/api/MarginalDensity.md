@@ -1,8 +1,8 @@
 # MarginalDensity
 
-The marginal density ``\equiv f_X`` is estimated by [`density`](@ref), with its pointwise variability
-band [`density_standard_error`](@ref), the paired [`density_with_standard_error`](@ref), and the
-parametric starts for its semiparametric mode. The estimator `density` accepts any symmetric or bounded-support kernel from the
+The marginal density ``\equiv f_X`` is estimated by [`density`](@ref); its pointwise standard error is
+[`density_standard_error`](@ref), [`density_with_standard_error`](@ref) returns both, and the
+parametric starts serve its semiparametric mode. The estimator `density` accepts any symmetric or bounded-support kernel from the
 [Kernels](Kernels.md) page.
 
 ## Density

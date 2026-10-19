@@ -9,29 +9,37 @@
 """
     GBGStreamingStatistics
 
-A backend-agnostic library for online nonparametric statistics, estimating densities, conditional
-expectations and functionals of these from a stream of samples that is never stored: each sample is
-observed once, folded into a fixed-size summary, and discarded.
+A library for online nonparametric statistics, estimating densities, conditional
+expectations and functionals of these from a stream of samples: each sample is observed once, folded
+into a fixed-size summary, and discarded. It runs on CPUs and GPUs.
 
-The summary is accumulated online and is estimand-agnostic: every reported quantity is a post-hoc
-smoothing functional of it, so the underlying state is never stored or re-read; no stationarity, Markov,
-or parametric structure is a premise.
+The summary records per bin the count and the power sums of its samples about the bin center. It is
+estimand-agnostic: every reported quantity is a post-hoc smoothing functional of it, and no stationarity,
+Markov, or parametric structure is a premise.
 
-Its operation families, each read post hoc from the one summary:
+It offers these operation families:
 
-- Summaries and accumulation — [`Histogram1D`](@ref GBGStreamingStatistics.Histograms.Histogram1D) /
-  [`Histogram2D`](@ref GBGStreamingStatistics.Histograms.Histogram2D): mergeable (two summaries add
-  into one), the `count_type = Float64` variant also rescalable for post-hoc mixtures
-  (hyperstatistics) and forgetting.
-- Marginal density — [`density`](@ref GBGStreamingStatistics.MarginalDensity.density).
+- Summaries — [`Histogram1D`](@ref GBGStreamingStatistics.Histograms.Histogram1D) /
+  [`Histogram2D`](@ref GBGStreamingStatistics.Histograms.Histogram2D), filled by
+  [`observe!`](@ref GBGStreamingStatistics.Accumulators.observe!) /
+  [`observe_pairs!`](@ref GBGStreamingStatistics.Histograms.observe_pairs!), added by
+  [`merge!`](@ref Base.merge!) and, with floating-point counts (`count_type = Float64`), reweighted by
+  [`scale!`](@ref GBGStreamingStatistics.Accumulators.scale!) for mixtures weighted after accumulation
+  (hyperstatistics) and exponential forgetting.
+- [Smoothing kernels](@ref "Kernels").
+- Marginal density — [`density`](@ref GBGStreamingStatistics.MarginalDensity.density), optionally from a
+  [parametric start](@ref "Parametric starts").
 - Conditional expectations —
   [`conditional_expectation`](@ref GBGStreamingStatistics.ConditionalExpectations.conditional_expectation),
-  the conditional mean and variance.
+  [`conditional_mean`](@ref GBGStreamingStatistics.ConditionalExpectations.conditional_mean),
+  [`conditional_variance`](@ref GBGStreamingStatistics.ConditionalExpectations.conditional_variance),
+  [`conditional_pushforward_density`](@ref GBGStreamingStatistics.ConditionalExpectations.conditional_pushforward_density).
 - Conditional and transition densities —
   [`conditional_density`](@ref GBGStreamingStatistics.ConditionalDensity.conditional_density) /
   [`transition_density`](@ref GBGStreamingStatistics.ConditionalDensity.transition_density).
-- Quadrature readouts over the stored power sums —
-  [`expectation`](@ref GBGStreamingStatistics.Expectations.expectation), the moments,
+- Expectations by quadrature over the power sums —
+  [`expectation`](@ref GBGStreamingStatistics.Expectations.expectation),
+  [`central_moment`](@ref GBGStreamingStatistics.Expectations.central_moment),
   [`pushforward_density`](@ref GBGStreamingStatistics.Expectations.pushforward_density).
 - Bandwidth selection — [`bandwidth`](@ref GBGStreamingStatistics.Bandwidth.bandwidth).
 - HDF5 persistence — [`write_histogram`](@ref GBGStreamingStatistics.Histograms.write_histogram) /

@@ -65,10 +65,11 @@ end
     local_fit(locations, mass, response, x, kernel, degree, h)
 
 The *local-polynomial jet* of a binned 1-D measure at the query point `x` is the kernel-weighted
-least-squares fit of a degree-``d`` polynomial in ``\\tilde c_j - x`` to the bin data, returning the
+least-squares fit of a degree-``d`` polynomial in the bin-location offsets ``\\tilde c_j - x`` to the bin data, returning the
 coefficient vector (jet) ``\\hat\\beta = (\\hat\\beta_0, \\dots, \\hat\\beta_d)`` (with ``d`` the `degree` argument).
 From bin locations ``\\tilde c_j``, design weights ``n_j`` (`mass`) and response totals ``n_j \\bar y_j``
-(`response`), and the bandwidth-scaled kernel ``K_h(v) \\propto K(v/h)``, form the design and response
+(`response`, count times mean response), and `kernel` scaled by the bandwidth `h`,
+``K_h(v) \\propto K(v/h)``, form the design and response
 moments
 
 ```math
@@ -91,12 +92,12 @@ kernel-weighted-moment solve as the iteratively reweighted (IRLS) inner step of 
 
 # Arguments
 
-- `locations` — the bin locations ``\\tilde c_j`` (bin centers, or centroids from the stored first
-  power-sum).
+- `locations` — the bin locations ``\\tilde c_j`` (bin centers, or centroids from the stored sum of
+  within-bin offsets).
 - `mass` — the per-bin design weight ``n_j`` (the bin counts).
-- `response` — the per-bin response total ``n_j \\bar y_j``, with ``\\bar y_j`` the bin's mean response; `mass`
-  here smooths the counts themselves, as the local-likelihood density does, giving a count level, not a
-  response mean.
+- `response` — the per-bin response total ``n_j \\bar y_j``, with ``\\bar y_j`` the bin's mean response; passing
+  `mass` as `response` smooths the counts (as the local-likelihood density does) to a
+  count level.
 - `x` — the query point at which the jet is evaluated.
 - `kernel` — the smoothing kernel: a symmetric callable ``K`` (admitted at any `degree`), or an
   [`AsymmetricKernel`](@ref GBGStreamingStatistics.Kernels.AsymmetricKernel) (`degree = 0` only).

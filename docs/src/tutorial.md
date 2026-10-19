@@ -1,6 +1,6 @@
 # Getting started
 
-This tour shows the intended *samples in, statistics out* workflow. The architectural spine is
+This tour shows the intended workflow: samples in, statistics out. The architectural spine is
 
 > empirical measure → mergeable summary → post-hoc-smoothed estimator,
 
@@ -8,9 +8,9 @@ and the API follows it directly.
 
 !!! note "Status"
     Everything in this tour is implemented and runnable today, single-node on CPU or GPU. The
-    Kramers–Moyal / SDE-reading functionals (drift and diffusion), the higher Kramers–Moyal
-    coefficients, and the Pawula / Markov diagnostics are not currently provided but are planned; see
-    the [Architecture](architecture.md) for the design and roadmap.
+    Kramers–Moyal estimators of an SDE's drift and diffusion were built and tested, then archived and
+    can be restored; the higher Kramers–Moyal coefficients and the Pawula / Markov diagnostics are
+    planned. See the [Architecture](architecture.md) for the design and roadmap.
 
 ## The workflow
 
@@ -29,7 +29,7 @@ the samples are never stored. Accumulation is *estimand-agnostic*: it commits to
 or kernel.
 
 ```julia
-# the consumer produces the batches; the package never holds the stream
+# the consumer (the calling code) produces the batches; the package never holds them
 for batch in stream
     observe!(summary, batch)
 end
@@ -46,14 +46,16 @@ merge!(summary, other_summary)
 summary — computed after accumulation, at any bandwidth, for any estimand, with no second pass:
 
 ```julia
-bw = bandwidth(summary)              # the normal-reference bandwidth from the recovered σ̂_X
+# the normal-reference bandwidth, from the standard deviation of X in the summary
+bw = bandwidth(summary)
 fX = density(summary, 0.0; h = bw)   # the marginal density estimate f̂_X(0)
 ```
 
-**4. Form the two-time statistics.** For conditional and transition densities, the consumer (the calling
-code) forms lag-labelled pairs ``\bigl(X(t), Y(t+\tau)\bigr)`` and bins them with
-[`observe_pairs!`](@ref) into a [`Histogram2D`](@ref); the snapshot buffer and the lags to form are its
-business. The same post-hoc rule applies — every estimand is read off the one joint summary:
+**4. Form the two-time statistics.** For conditional and transition densities, the consumer forms
+lag-labelled pairs ``\bigl(X(t), Y(t+\tau)\bigr)`` of a value and a response one lag later (for a
+transition density, the same variate) and bins them with [`observe_pairs!`](@ref) into a
+[`Histogram2D`](@ref); keeping the earlier samples and choosing the lags is up to the consumer. Every
+estimand is read off the one joint summary:
 
 ```julia
 # lag labels the summary with the pair lag τ (a record, not a bandwidth)
@@ -64,8 +66,8 @@ end
 
 m  = conditional_mean(joint, 0.0; h = 0.3)                     # 𝔼[Y | X = 0]
 s2 = conditional_variance(joint, 0.0; h = 0.3)                 # Var(Y | X = 0)
-# h_x and h_y are the bandwidths in x and y
-pτ = transition_density(joint, 0.0, 0.0; h_x = 0.3, h_y = 0.2)   # p_τ(0 | 0)
+# the conditioning value x = 0.5 precedes y = 0; h_x, h_y are the bandwidths in x, y
+pτ = transition_density(joint, 0.5, 0.0; h_x = 0.3, h_y = 0.2)   # p_τ(0 | 0.5)
 ```
 
 ## Where to go next

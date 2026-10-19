@@ -29,9 +29,9 @@ second moment ``\\mu_2(K) = 1``, roughness ``R(K) = 1/(2\\sqrt{\\pi})``) is the
 The Epanechnikov kernel ``K(u) = \\tfrac{3}{4}(1 - u^2)`` for ``|u| \\le 1`` (zero outside) is the
 MSE-optimal second-order kernel (``\\int K = 1``, second moment ``\\mu_2(K) = 1/5``, roughness ``R(K) = 3/5``). Pass
 it as `kernel = epanechnikov_kernel` to [`density`](@ref GBGStreamingStatistics.MarginalDensity.density);
-its compact support touches only the bins within ``h`` of the query point. The
+its compact support touches only the bins within the bandwidth ``h`` of the query point. The
 [`bandwidth`](@ref GBGStreamingStatistics.Bandwidth.bandwidth) selector is kernel-aware, so it returns
-the matched Epanechnikov scale automatically — no manual rescaling.
+the matched Epanechnikov scale directly.
 """
 @inline epanechnikov_kernel(u) = abs(u) < 1 ? 0.75 * (1 - u^2) : 0.0
 
@@ -64,35 +64,30 @@ A varying-shape *asymmetric kernel* for
 the boundary-bias-free analog of a symmetric smoothing kernel (Chen 1999, 2000). The built-ins are
 [`gamma_kernel`](@ref GBGStreamingStatistics.Kernels.gamma_kernel) for ``[0,\\infty)`` and
 [`beta_kernel`](@ref GBGStreamingStatistics.Kernels.beta_kernel) for ``[0,1]``; construct one
-directly to plug in a custom boundary kernel.
-
-# Fields
-
-- `pdf` — the kernel, a callable `(v, x, b)` giving a density in the data argument.
-- `support` — the data domain the kernel covers, a `(lower, upper)` tuple.
-- `local_scale_weight` — the AMISE local-scale weight ``w(x)``, a callable, or `nothing` when unset.
+directly to plug in a custom boundary kernel and its local-scale weight ``w(x)`` for the plug-in
+bandwidth.
 
 # Arguments
 
-The constructor takes the three fields (`local_scale_weight` as a keyword), the construction contract:
+The constructor takes the three fields, the last as a keyword:
 
 - `pdf(v, x, b)` — the kernel as a density in the data argument ``v``, whose shape is set by the
   evaluation point ``x`` and bandwidth ``b`` (normalized: ``\\int \\texttt{pdf}(v, x, b)\\,\\mathrm{d}v = 1``
-  over the support, for each ``x`` and ``b``). The estimate is the binned reduction
+  over the support, for each ``x`` and ``b``). The estimate is
   ``\\hat f_X(x) = \\tfrac{1}{n} \\sum_j n_j \\texttt{pdf}(c_j, x, b)`` over the bin counts ``n_j`` at centers
-  ``c_j``, computed after accumulation from the stored counts, so estimates from merged summaries agree.
+  ``c_j``, so merged summaries give the same estimate.
 - `support` — the data domain the kernel covers, as a `(lower, upper)` tuple (e.g. `(0.0, Inf)`).
 - `local_scale_weight` — the AMISE local-scale weight ``w(x)``, a callable `x -> w(x)`: the leading bias is
-  ``\\tfrac{1}{2} b w(x) f_X''(x)`` and the variance ``\\propto w(x)^{-1/2}`` (``w(x) = x`` for the gamma
-  kernel, ``x(1-x)`` for the beta). It is used only by
-  [`bandwidth(…; rule = :plugin)`](@ref GBGStreamingStatistics.Bandwidth.bandwidth). Left unset
-  (`nothing`, the default), `rule = :plugin` errors rather than use a wrong weight, while the ``\\hat\\sigma_X n^{-2/5}`` rule of thumb
-(`rule = :normal`) needs no weight.
+  ``\\tfrac{1}{2} b w(x) f_X''(x)`` and the interior variance ``\\propto w(x)^{-1/2}`` (``w(x) = x`` for the gamma
+  kernel, ``x(1-x)`` for the beta). Only
+  [`bandwidth(…; rule = :plugin)`](@ref GBGStreamingStatistics.Bandwidth.bandwidth) uses it. If it is
+  unset (`nothing`, the default), `rule = :plugin` errors, while the
+  ``\\hat\\sigma_X n^{-2/5}`` rule of thumb (`rule = :normal`, from the sample standard deviation) needs no weight.
 
 ```julia
 using SpecialFunctions: loggamma
-# the built-in gamma kernel, as a template (the shape of Chen's bias-reduced estimator); the AMISE weight
-# w(x) = x serves rule = :plugin
+# the built-in gamma kernel, as a template (the shape of Chen's bias-reduced
+# estimator); the AMISE weight w(x) = x serves rule = :plugin
 mygamma = AsymmetricKernel(
     (v, x, b) -> v > 0 ?
         (α = x < 2b ? (x / b)^2 / 4 + 1 : x / b;
@@ -107,6 +102,12 @@ density(summary, 1.0; kernel = mygamma)
 
 - S. X. Chen (1999), [*Beta kernel estimators for density functions*](https://doi.org/10.1016/S0167-9473(99)00010-9), Comput. Statist. Data Anal. 31(2).
 - S. X. Chen (2000), [*Probability density function estimation using gamma kernels*](https://doi.org/10.1023/A:1004165218295), Ann. Inst. Statist. Math. 52(3).
+
+# Fields
+
+- `pdf` — the kernel, a callable `(v, x, b)` giving a density in the data argument.
+- `support` — the data domain the kernel covers, a `(lower, upper)` tuple.
+- `local_scale_weight` — the AMISE local-scale weight, a callable, or `nothing` when unset.
 """
 struct AsymmetricKernel{F,W}
   pdf::F                            # (v, x, b) → a density in the data argument v
@@ -136,20 +137,21 @@ end
 """
     gamma_kernel
 
-The gamma kernel (Chen 2000) estimates a density on the half-line ``[0,\\infty)`` as a varying-shape
-*asymmetric* kernel: at the query point ``x`` it is the modified ``\\mathrm{Gamma}(\\alpha(x), b)``
-density in the data argument (the shape of Chen's bias-reduced estimator: ``\\alpha(x) = x/b`` in the interior — so the kernel mean
-is exactly ``x``, removing the ``f_X'`` bias of the naive ``x/b+1`` form — and ``(x/b)^2/4 + 1`` within ``2b``
-of the edge), so its support matches the data and no mass leaks past 0. Passed as
-`kernel = gamma_kernel`, [`density`](@ref GBGStreamingStatistics.MarginalDensity.density) returns the
-boundary-bias-free estimate ``\\hat f_X(x) = \\tfrac{1}{n} \\sum_j n_j \\mathrm{Gamma}(c_j; \\alpha(x), b)``
-(``O(b)`` bias uniformly, including at the boundary where a symmetric kernel is inconsistent; the variance
-self-adapts, tightening toward the edge). Use it for non-negative quantities such as droplet radii — usually
-sharper than a symmetric kernel's boundary renormalization (the `support` option of `density`). The bandwidth defaults to
-``\\hat\\sigma_X n^{-2/5}`` (the gamma-kernel rate; pass `h` to override, or the data-driven Chen plug-in
+The gamma kernel (Chen 2000) estimates a density on the half-line ``[0,\\infty)`` as an asymmetric
+kernel: at the query point ``x`` it is the modified ``\\mathrm{Gamma}(\\alpha(x), b)`` density in the
+data argument, with the bandwidth (the keyword `h`) as its scale. Chen's bias-reduced shape is
+``\\alpha(x) = x/b`` in the interior, so the kernel mean is exactly ``x``, removing the slope ``f_X'``
+from the bias of the naive ``x/b+1`` shape, and ``(x/b)^2/4 + 1`` within ``2b`` of the edge.
+
+With `kernel = gamma_kernel`, [`density`](@ref GBGStreamingStatistics.MarginalDensity.density) returns
+``\\hat f_X(x) = \\tfrac{1}{n} \\sum_j n_j \\mathrm{Gamma}(c_j; \\alpha(x), b)`` from the bin counts at
+the bin centers, with ``O(b)`` bias uniformly, also at the boundary, where a symmetric kernel is
+inconsistent; the variance grows toward the edge. Use it for non-negative data, usually sharper than
+the `support` renormalization of `density`. The bandwidth defaults to ``\\hat\\sigma_X n^{-2/5}``, the
+sample standard deviation times the sample-size rate; override it with `h`, or use the Chen plug-in
 [`bandwidth(summary; rule = :plugin, kernel = gamma_kernel)`](@ref GBGStreamingStatistics.Bandwidth.bandwidth),
-which lowers the ISE on skewed data). The `degree`, `adaptive` and `support` options of `density` do
-not apply — the kernel is its own degree-0, boundary-free estimator.
+which lowers the ISE on skewed data. The local-polynomial `degree`, variable-bandwidth `adaptive` and
+`support` options of `density` do not apply: the kernel is its own degree-0 estimator.
 
 Reference: S. X. Chen (2000), [*Probability density function estimation using gamma
 kernels*](https://doi.org/10.1023/A:1004165218295), Ann. Inst. Statist. Math. 52(3).
@@ -170,13 +172,13 @@ end
 """
     beta_kernel
 
-The beta kernel (Chen 1999) estimates a density on the unit interval ``[0,1]`` as the bounded-interval
+The beta kernel (Chen 1999) estimates a density on ``[0,1]`` as the bounded-interval
 analog of [`gamma_kernel`](@ref GBGStreamingStatistics.Kernels.gamma_kernel): at ``x`` it is
-the modified ``\\mathrm{Beta}`` density in the data argument (the shapes of Chen's bias-reduced estimator: interior
-``(x/b, (1-x)/b)``; the ``\\sqrt{ \\cdot }`` correction within ``2b`` of an edge replaces that shape by a
-quadratic's root in the bandwidth and position), boundary-bias-free at both edges. Pass
-`kernel = beta_kernel` with data scaled to ``[0,1]``; bandwidth default, option restrictions and the
-``n^{-2/5}`` rate are as for `gamma_kernel`.
+the modified ``\\mathrm{Beta}`` density in the data argument, boundary-bias-free at both edges. Its
+interior shapes are ``(x/b, (1-x)/b)``, over the bandwidth `h`; a ``\\sqrt{ \\cdot }``
+correction within ``2b`` of an edge replaces that side's shape by a quadratic's root in bandwidth
+and edge distance. Pass `kernel = beta_kernel` with data scaled to ``[0,1]``;
+bandwidth default, option restrictions and the ``n^{-2/5}`` rate are as for `gamma_kernel`.
 
 Reference: S. X. Chen (1999), [*Beta kernel estimators for density
 functions*](https://doi.org/10.1016/S0167-9473(99)00010-9), Comput. Statist. Data Anal. 31(2).

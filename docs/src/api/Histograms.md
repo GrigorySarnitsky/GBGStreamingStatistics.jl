@@ -1,6 +1,8 @@
 # Histograms
 
-The summary types: [`Histogram1D`](@ref) and [`Histogram2D`](@ref) — finely binned empirical measures that fold the stream into a fixed-size form — plus [`observe_pairs!`](@ref) for two-time statistics.
+This page documents the summary types [`Histogram1D`](@ref) and [`Histogram2D`](@ref), finely binned
+empirical measures that fold the stream into a fixed-size form, and [`observe_pairs!`](@ref), which
+accumulates two-time statistics.
 
 ## Summaries
 

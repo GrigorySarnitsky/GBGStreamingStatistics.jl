@@ -14,7 +14,7 @@ deliberate absences are stated as invariants in §6; open decisions are flagged 
 ## 0. Provenance
 
 The driving requirement is conditional statistics of the highest quality with no storage of the
-underlying state and no recompute-from-raw reruns — which forces the central architectural choice
+samples and no recompute-from-raw reruns — which forces the central architectural choice
 of §2.
 
 The package is designed to be shared across at least three consumers — turbulence (Lagrangian
@@ -27,9 +27,9 @@ domain-neutral from the first commit.
 
 ## 1. Purpose and scope
 
-A backend-agnostic library for online nonparametric statistics: it estimates marginal
-densities, conditional expectations, conditional and two-time transition densities, and standard
-functionals of these, from a stream of samples that is never stored. Each sample is observed
+The package is a backend-agnostic library (CPU `Array`, CUDA, ROCm) for online nonparametric statistics: it estimates marginal
+densities, conditional expectations, conditional and two-time transition densities, and their standard
+functionals, from a stream of samples that is never stored. Each sample is observed
 once, folded into a fixed-size summary, and discarded.
 
 The relationship to `GBGPeriodicFields` is exact and deliberate:
@@ -50,8 +50,7 @@ grid or tracer concept crosses this line, reuse across the three domains dies.
 
 **Execution target**, inherited from PF: a single node, shared-memory only (CPU
 multithreading and a single GPU); distributed / multi-GPU is out of scope. Development is
-GPU-first but the code is backend-agnostic (CPU `Array`, CUDA, ROCm) through
-KernelAbstractions — §5.
+GPU-first; the code runs through KernelAbstractions — §5.
 
 ---
 
@@ -91,44 +90,41 @@ secondary smoothing). The load-bearing decision:
 
 > **The summary ``T`` is accumulated online and is estimand-agnostic; the smoothing ``\mathcal{R}_h`` is applied
 > entirely post hoc.** Accumulation knows nothing of bandwidth, kernel, or which response channel —
-> which response variable, each with its own summary — will be asked for. This separation is the architectural invariant of the package — the analog of
-> PF's representation/operator split — and it is exactly what delivers the user's requirement:
+> which response variable, each with its own summary — will be asked for. This separation is the package's architectural invariant — the analog of
+> PF's split between stored representation and operators — and delivers the driving requirement:
 > *no state storage* (only ``T`` survives a step) and *no reruns* (every ``h``, every channel, every
 > secondary smoothing is computed from the one stored ``T``).
 
 ### The algebra of measures — a structural lens
 
 The spine has a compact algebraic reading, offered as a structural lens, not a second motivation:
-the package is and remains mathematical statistics grounded in practice — its targets are
+the package remains mathematical statistics grounded in practice — its targets are
 consistency, the ``n^{-2/5}`` convergence rates, the analytic oracles, honest bandwidth selection. The
-lens only names *why* the spine takes the shape it does (established structure read back onto the code,
-as in PF), and settles nothing the statistics does not already settle.
+lens only names *why* the spine takes the shape it does (as in PF), and settles nothing the statistics does not already settle.
 
 Read the summaries as living in the *cone of (unnormalized) measures*: a commutative monoid under
-`merge!`, closed under nonnegative scaling by `scale!` (the cone of §10). The binning map ``T`` is then
-linear, ``T(\mathcal{A} \uplus \mathcal{B}) = T(\mathcal{A}) \oplus T(\mathcal{B})`` for sample multisets ``\mathcal{A}``, ``\mathcal{B}`` — a cone homomorphism — and accumulation is the monoid
+`merge!`, closed under nonnegative scaling by `scale!` (§10). The binning map ``T`` is then
+linear, ``T(\mathcal{A} \uplus \mathcal{B}) = T(\mathcal{A}) \oplus T(\mathcal{B})`` for sample multisets ``\mathcal{A}``, ``\mathcal{B}`` — the union of samples maps to the merge of summaries, a cone homomorphism — and accumulation is the monoid
 homomorphism from the multiset of samples (the free commutative monoid; `observe!` folds a batch,
 `merge!` unions two summaries). *This is why* `merge!` is elementwise addition and accumulate-then-merge
 equals accumulate-together: not a convenience, but linearity of ``T``.
 
 The estimands sit one level up. Every reported quantity — the normalized density ``f_X``, the
-conditional mean ``m(x) = \mathbb{E}[Y \mid X = x]``, the conditional density ``f_{Y\mid X}`` — is
-homogeneous of degree zero in the measure: rescale the summary, ``T \mapsto \lambda \cdot T``, and it is unchanged, so
+conditional mean of a response, ``m(x) = \mathbb{E}[Y \mid X = x]``, the conditional density ``f_{Y\mid X}`` — is
+homogeneous of degree zero in the measure: rescale the summary by a factor, ``T \mapsto \lambda \cdot T``, and it is unchanged, so
 it lives not on the cone but on its projectivization, the probability measures. The
 `scale!`-invariance §10 verifies (a `conditional_mean` unmoved by reweighting) *is* this degree-zero
-homogeneity. And because the readout ``\mathcal{R}_h`` is degree zero while the cone operations are linear, ``\mathcal{R}_h``
+homogeneity. Because the readout ``\mathcal{R}_h`` is degree zero while the cone operations are linear, ``\mathcal{R}_h``
 is not a cone homomorphism — the estimand-agnostic-accumulation / post-hoc-smoothing split restated:
-pooling must happen on the cone (linear, mergeable), and the degree-zero readout must stay post hoc. That
-is *why* "no reruns" forces the smoothing post hoc.
+pooling must happen on the cone (linear, mergeable), and the degree-zero readout must stay post hoc.
 
 The lens also fixes the shape of the estimators: the universal object is the summary-as-measure, and
 every estimand is a degree-zero readout of it that falls into one of two families, each with one
 shared code atom — kernel-weighting (the *local* / smoothing readouts, through the
 `Kernels._kernel_weight` atom, with `LocalPolynomial.local_fit` the jet readout on it — the jet being the fit's local Taylor
 coefficients) and power-sum
-quadrature (the *global* / moment readouts, the Taylor contraction of the stored ``S_p``). §4.A and §4.B
-exposit the two families. The jet `local_fit` is the kernel-weighting family's primitive, not the universal
-one — ``\mathbb{E}[g(X)]`` is a readout with no jet at all — and the package's one nonlinearity (the
+quadrature (the *global* / moment readouts, the Taylor contraction of the stored power-sums ``S_p``). The jet `local_fit` is the kernel-weighting family's primitive, not the universal
+one — an expectation ``\mathbb{E}[g(X)]`` of a smooth function is a readout with no jet at all — and the package's one nonlinearity (the
 density's log link and normalization) lives in the readout, exactly where the cone homomorphism breaks.
 
 ### Why a fine histogram is the canonical ``T`` (and the honest caveat)
@@ -147,19 +143,19 @@ to catch.
 
 ### Estimand families (the operation taxonomy)
 
-Mirroring PF's operation families (vertical algebra / differential / reductions / transfer), the
+Mirroring PF's operation families, the
 package's families are organized by estimand — the population quantity targeted. Each is
 detailed in §4:
 
 - **Marginal density** ``f_X`` — from a 1-D histogram.
 - **Conditional expectation** ``m(x) = \mathbb{E}[Y \mid X = x]`` and conditional variance — from
   per-bin power-sums.
-- **Conditional / transition density** ``f_{Y\mid X}``, ``p_\tau(y \mid x)`` — from a 2-D (joint)
+- **Conditional / transition density** ``f_{Y\mid X}``, ``p_\tau(y \mid x)`` (the density a lag later) — from a joint
   histogram, per lag.
-- **Conditional increment moments and their functionals** *(archived, §4.4)* — Kramers–Moyal
-  coefficients, drift/diffusion, Pawula / Q diagnostics — domain-neutral functionals of the above; the SDE
+- **Conditional increment moments and their functionals** *(archived, §11)* — Kramers–Moyal
+  coefficients, drift/diffusion, Pawula-quotient diagnostics — functionals of the above; the SDE
   *reading* stays consumer-side.
-- **Bandwidth selection** (cross-cutting) — global and the response-aware local ``h^\star(x)`` (both built).
+- **Bandwidth selection** (cross-cutting) — global and the response-aware local, pointwise-optimal ``h^\star(x)``.
 - **[OPEN]** a streaming projection road (basis projection à la Stochastic Force Inference (SFI) /
   Underdamped Langevin Inference (ULI)) as an alternative accumulator.
 
@@ -169,8 +165,8 @@ The empirical measure could also be carried in a Fourier representation — the 
 characteristic function, the sample average of the complex exponential of each sample — but the histogram
 is the sole summary. Tail estimation (the heavy-tailed acceleration / sixth-power increment channels) is
 robust only in the histogram, where the ECF inverse rings; the ECF would earn its place only for a
-strictly near-Gaussian marginal, which the consumers do not require. It is therefore deferred and,
-per the user, most likely never built.
+near-Gaussian marginal, which the consumers do not require. It is therefore deferred and,
+per the package's author, most likely never built.
 
 **This does not forgo the FFT** — and the distinction is the crux. Storing the ECF as a *sufficient
 statistic* (an accumulation choice) is a different thing from using the FFT to *smooth the
@@ -199,7 +195,7 @@ Following PF's mathematics-first naming:
 
 ### Documentation policy — estimand first, estimator second
 
-The mirror of PF's *physical-meaning-first* rule. Because every operation estimates a population
+It mirrors PF's *physical-meaning-first* rule. Because every operation estimates a population
 quantity from data:
 
 > A docstring (and every doc-page entry) for an estimator states the estimand — the population
@@ -220,16 +216,16 @@ transfer verbatim to every consumer.
 
 - **`Histogram1D`** — a binned empirical measure of a conditioning variable ``X``: linear (WARPing)
   bins over a fixed range (e.g. ``\pm 5\sigma_X``, ``\gtrsim 10^3`` bins), each bin carrying its
-  count and per-bin power-sums about the bin center ``S_p = \sum_{i\in\text{bin}}(X_i -
+  count and power-sums about the bin center ``S_p = \sum_{i\in\text{bin}}(X_i -
   c_j)^p`` for ``p = 1 \dots \texttt{order}`` (default `order = 4`; raise `order` for the heavy-tailed channels — a high
   marginal central moment such as ``\mu_6(X)`` needs `order = 6`, and its *sampling variance* reaches the 12th
   moment; the *conditional* increment moments of the Pawula quotient ``Q`` (the fourth increment
-  moment over thrice the squared second, §11) instead need the `Histogram2D`
+  moment over thrice the squared second) instead need the `Histogram2D`
   order-raise, §11). Because the
   offset ``X_i - c_j`` is small within a bin (``\lesssim \Delta/2 \approx \sigma_X/200``), the local
-  power-sums are well-conditioned: they are accumulated by a plain atomic scatter-add — single-pass,
-  numerically stable, with no compensated summation needed. The global central moments are
-  recovered post hoc by the shift formula (the binscatter / WARPing local-moment construction;
+  power-sums are well-conditioned: a plain atomic scatter-add accumulates them in one stable pass,
+  with no compensated summation. The global central moments are
+  recovered post hoc from the stored sums by the shift formula, a binomial re-centering of each bin's sums (the binscatter / WARPing local-moment construction;
   Scott 2015; Cattaneo et al. 2024), *exactly* (the power-sums use the actual ``X_i``, not the center)
   and stably for the even high-order moments the consumers need.
 - **Bins are exactly uniform — by design.** The binning map is a single multiply-and-floor,
@@ -237,8 +233,7 @@ transfer verbatim to every consumer.
   allocation-free, the GPU atomic-scatter hot path (§5). This *requires* equal-width bins; arbitrary
   edges would force a per-sample search (``O(\log \texttt{nbins})``) and break the kernel. So the constructor takes
   the explicit `(lower, upper, nbins)`, which *states* the uniform contract, rather than a vector or
-  range of edges (which would merely *happen* to be uniform — and floating-point rounding need not even
-  guarantee that). Non-uniform binning is out of scope.
+  range of edges (which would merely *happen* to be uniform). Non-uniform binning is out of scope.
 - **`Histogram2D`** — a joint binned measure of ``(X, Y)``, one per lag ``\tau``, for conditional and
   transition densities; per-cell counts and bivariate power-sums ``S_{pp'}`` about the cell center.
 - **`HistogramND` [OPEN]** — the multi-dimensional generalization, deferred until a consumer needs conditioning
@@ -246,17 +241,16 @@ transfer verbatim to every consumer.
 - **per-bin power-sums are the one summary scheme** above, in a univariate form (``S_p`` of ``X``,
   for the marginal moments and density) and a bivariate form (``S_{pp'} = \sum_{i\in\text{bin}}(X_i -
   c^x)^{p}(Y_i - c^y)^{p'}`` about the cell center, the local sufficient statistic for local-polynomial
-  regression; Cattaneo et al. 2024). All bandwidths, kernels, and moments are recovered from them
-  post hoc.
+  regression; Cattaneo et al. 2024). All bandwidths, kernels, and moments are recovered from them.
 - **the mergeable-monoid (cone) interface** — `merge!` on every summary is elementwise addition (same
   binning ⇒ same bin centers ⇒ counts and power-sums add); the weighted `merge!(into, from; weight)` and
   `scale!` extend it to the cone (§10). Tested: accumulate-then-merge ``=`` accumulate-together, and the
   cone laws.
 - **the backend-agnostic scatter-add primitive** *is* `observe!` / `observe_pairs!` — one
   KernelAbstractions + Atomix kernel (one work-item per sample) that atomically scatters the count and
-  the power-sums into the preallocated summary, the direct analog of PF's `_bin_by_shell` /
-  `anterpolate!`. Allocation-free up to the kernel launch; verified identical on CPU and the AMD GPU
-  under `allowscalar(false)` (§5). Storing power-sums *about the bin center* is precisely what keeps
+  the power-sums into the preallocated summary, the direct analog of PF's binning and particle-to-grid
+  spreading. It is allocation-free up to the kernel launch and verified identical on CPU and the AMD GPU
+  under `allowscalar(false)` (§5). Storing power-sums *about the bin center* is what keeps
   this a plain atomic add — no privatization, no workspace.
 
 **Numeric precision — accumulate wider than the data.** Samples often arrive in Float32 (the
@@ -269,7 +263,7 @@ GPU-first, low-memory consumers), but the summaries do not accumulate in Float32
 - **Power-sum accumulators default to Float64.** The local sums are well-conditioned, but the *global* moment
   recovery (the shift formula combines them with large bin-center offsets) and the high-order channels
   still want full precision; Float32 would discard the ~7 digits the Float32 *input* carries, through
-  the reduction over ``n``. The power-sums accumulate in Float64 by default, regardless of input type.
+  the reduction over ``n``.
 
 Accumulator precision is a type parameter (PF-style element-type genericity) but its default is
 Float64, counts integer — *accumulate-wider-than-the-data*, the deliberate opposite of PF's
@@ -279,15 +273,15 @@ Float64 power-sums — kilobytes per channel, versus a gigabyte field), and on t
 arithmetic is hidden behind the memory- and atomic-bound accumulation (§5), not FP64 throughput.
 
 **Two-time samples / lag handling — settled: the package bins pairs; the consumer produces them.**
-For a two-time quantity like ``m_\tau(x) = \mathbb{E}[Y(t+\tau)\mid X(t) = x]`` the conditioning
+For a two-time quantity like ``m_\tau(x) = \mathbb{E}[Y(t+\tau)\mid X(t) = x]``, the conditioning
 value ``X(t)`` and the response ``Y(t+\tau)`` must be paired per source — two separate marginal
 histograms cannot recover the joint (for the Ornstein–Uhlenbeck (OU) oracle both marginals are the *same* stationary
 Gaussian; the entire ``\tau``-dependence lives in the pair). The one histogram entry is made at the
 response step, into the bin of ``X(t)``. The package surface for this is just the memoryless
 `observe_pairs!(stat, x_past, y_now)` — it bins a batch of pre-formed pairs into the per-lag summary (the
-lag is the summary's `Histogram2D(…; lag)` label, not an argument here; §4.2 / §4.3). (A pre-quantization
+lag is the summary's `Histogram2D(…; lag)` label, not an argument here). (A pre-quantization
 path — a public binning map plus an index-taking `observe_pairs!` that folds a compact buffer of x-bin
-indices directly, lossless because the conditioning readers use only the x-cell and never its sub-bin
+indices directly, lossless because the conditioning readouts use only the x-cell and never its sub-bin
 offset — is deferred; the `bin_index` helper is archived until it lands.)
 
 Everything that *produces* the pairs is the consumer's, being sample-source policy a
@@ -301,9 +295,9 @@ budget). Pairing is by source identity — for a stably-ordered set just element
 What the package *keeps* is the per-lag histograms — the accumulated power-sums, the small
 *output* (lags ``\times`` bins ``\times`` moments, a few MB), never the snapshot buffer of every source at every lag (the
 expensive object, consumer-side). For the nonstationary case the running origin ``t`` and lag
-``\tau`` are explicit labels on the summary set (``p_{t,\tau}``), never assumed away. (If the
-ring-and-pair boilerplate proves worth sharing, it can be a non-domain-aware utility offered
-alongside the summary — never something the package's vocabulary depends on.)
+``\tau`` are explicit labels on the summary set (the transition density becomes ``p_{t,\tau}``), never assumed away. (If the
+ring-and-pair boilerplate proves worth sharing, it can be a non-domain-aware utility —
+never something the package's vocabulary depends on.)
 
 ---
 
@@ -314,7 +308,7 @@ Each estimand is written estimand first (per §2), grouped by the two readout fa
 density §4.1, the conditional mean and variance §4.2, the conditional / transition density §4.3, and
 bandwidth selection §4.5) and §4.B power-sum quadrature (the global moment readouts off the stored
 ``S_p`` — `mean` / `var` / `central_moment`, and `expectation` ``\mathbb{E}[g(X)]`` / `pushforward_density`,
-all built). The §4.4 Kramers–Moyal / SDE-reading functionals are archived (in git history at commit `37006b5`, restore when a
+all built). The Kramers–Moyal / SDE-reading functionals are archived (§11; git commit `37006b5`; restore when a
 consumer needs them and `Histogram2D` raises its per-cell order); §4.6 is an [OPEN] alternative.
 
 ### 4.A Kernel-weighting readouts
@@ -324,28 +318,28 @@ The local / smoothing readouts: each a degree-zero readout of the kernel-weighte
 
 #### 4.1 Marginal density ``f_X``
 
-**Estimand.** ``f_X = \mathrm{d}\mathbb{P}_X/\mathrm{d}x``, the Lebesgue density of the law ``\mathbb{P}_X`` of ``X``:
+**Estimand.** The estimand is ``f_X = \mathrm{d}\mathbb{P}_X/\mathrm{d}x``, the Lebesgue density of the law ``\mathbb{P}_X`` of ``X``:
 ``\mathbb{P}_X(A) = \int_A f_X(x)\,\mathrm{d}x``.
 
-**Estimator** (binned KDE / WARPing): ``\hat f_h(x) = \frac{1}{nh}\sum_j n_j K((x-\tilde c_j)/h)`` (``\int K = 1``)
+**Estimator** (binned KDE / WARPing): the estimate is ``\hat f_h(x) = \frac{1}{nh}\sum_j n_j K((x-\tilde c_j)/h)``, for a kernel with ``\int K = 1``,
 from counts ``n_j`` at the within-bin centroid ``\tilde c_j = c_j + S_1^{(j)}/n_j`` (`binning = :linear`,
 the default — matching the bin's first moment, so the discretization is ``O(\Delta^2)`` in the bin width
 ``\Delta``; ``\tilde c_j = c_j`` is `binning = :simple`, ``O(\Delta)``), the centroid free from the stored
-``S_1``. Bandwidth from §4.5; the kernel is pluggable. The tail and shape refinements are all post-hoc on the one
+within-bin sum of offsets
+``S_1``. Bandwidth from §4.5; the kernel is pluggable. The tail and shape refinements are post-hoc on the one
 summary — the adaptive variable bandwidth (cutting tail *variance*), the local-log-polynomial
 `degree` (cutting tail *bias*), a bounded support (`support`, or an asymmetric boundary kernel), a
 parametric start, and exact `normalize` — with `density_standard_error` the pointwise variability band;
-`FORMALIZATION.md` and the API page carry each one's estimand and constants. The axes are conceptually
-independent (each cures a different defect of the plain KDE), but not every pair combines: the table after
-this paragraph records which pairs do, which are refused as redundant, and which are refused only because
-the combination is not built.
+`FORMALIZATION.md` carries each one's estimand and constants. The axes are conceptually
+independent (each cures a different defect of the plain KDE), but not every pair combines: the table below
+records which pairs do and which are refused, as redundant or as not built.
 Caveats: the fixed range ``[\texttt{lower}, \texttt{upper})``
 drops events beyond it (cover the data — ``\approx \pm 5\sigma_X`` for light tails, wider for heavy ones,
 with proportionally more bins to keep ``\Delta \ll h``), and uniform bins under-resolve
 power-law tails (the variable bandwidth is the preferred fix — it stays post-hoc, mergeable, and
 estimand-agnostic, which non-uniform bins would not).
 
-The `density` option pairs, as the guards decide them (audited 2026-10-15). "Redundant" means two cures
+The `density` option pairs, as the argument checks decide them. "Redundant" means two cures
 for the same defect, where the second has no theory behind it; "not built" means a definable estimator,
 published or a direct composition, that the package has not implemented; every refusal is an
 `ArgumentError` naming the pair.
@@ -369,30 +363,29 @@ published or a direct composition, that the package has not implemented; every r
 **Estimand.** ``m(x) = \mathbb{E}[Y\mid X=x]`` (the ``L^2(\mathbb{P}_X)`` projection; §2) and
 ``\sigma^2(x) = \operatorname{Var}(Y\mid X=x) = \mathbb{E}[Y^2\mid X=x] - m(x)^2``.
 
-**Estimator** (local-linear; Fan & Gijbels 1996): from the joint `Histogram2D`'s kernel-weighted power-sums
-``U_p = \sum_i K_h(X_i-x)(X_i-x)^p`` and ``V_p = \sum_i K_h(X_i-x)(X_i-x)^p Y_i``,
+**Estimator** (local-linear; Fan & Gijbels 1996): from
+``U_p = \sum_i K_h(X_i-x)(X_i-x)^p`` and ``V_p = \sum_i K_h(X_i-x)(X_i-x)^p Y_i``, with each sample moved to its `Histogram2D` column center,
 ```math
 \hat m_h(x) = \frac{U_2 V_0 - U_1 V_1}{U_0 U_2 - U_1^{2}}
 ```
-— the ``\beta_0`` of one `LocalPolynomial.local_fit` (§4.A atom); local-linear removes the design-density
+— the intercept ``\beta_0`` of one `LocalPolynomial.local_fit`; local-linear removes the design-density
 bias ``2 m'(x) f_X'(x)/f_X(x)`` that the degree-0 Nadaraya–Watson ``V_0/U_0`` carries. The variance is the
-bias-reduced residual-based Fan & Yao (1998) estimator (`method = :residual`, the default — a second
+residual-based Fan & Yao (1998) estimator (`method = :residual`, the default — a second
 local fit of the squared residuals ``\widehat{\mathbb{E}}[(Y-\hat m)^2\mid X = x]``, removing the
 curved-``\mathbb{E}[Y^2\mid X = x]`` smoothing bias the `:plugin` ``\widehat{\mathbb{E}}[Y^2\mid X = x] - \hat m^2``
-carries). A one-step robust local M-estimator for heavy-tailed channels (Fan & Jiang 2000) is forthcoming.
+carries). A one-step robust local M-estimator (Fan & Jiang 2000) is forthcoming.
 
-The general reader `conditional_expectation` (``\mathbb{E}[g(Y)\mid X = x]``) subsumes both — a
-per-``x``-column ``y``-quadrature of ``g`` (the §4.B atom) regressed in ``x`` by the same `local_fit`, so it
-joins the two families — with `conditional_mean` its ``g = \mathrm{identity}`` case and the conditional
+The general reader `conditional_expectation` (``\mathbb{E}[g(Y)\mid X = x]``) is a
+per-``x``-column ``y``-quadrature of ``g`` (the §4.B atom) regressed in ``x`` by the same `local_fit` — with `conditional_mean` its ``g = \mathrm{identity}`` case and the conditional
 pushforward density `conditional_pushforward_density` its transformed-response reader (one
-`conditional_expectation` of a composed kernel, no ``g^{-1}``). Each carries a leverage-based `conditional_expectation_standard_error`,
-``\sqrt{\ell(x) \operatorname{Var}(g(Y)\mid X = x)}``, the conditional
-analog of the marginal `expectation_standard_error`. `FORMALIZATION.md` pins the constants and rates.
+`conditional_expectation` of a composed kernel, no ``g^{-1}``). Each carries a `conditional_expectation_standard_error`,
+``\sqrt{\ell(x) \operatorname{Var}(g(Y)\mid X = x)}`` (the first factor the fit's leverage), the conditional
+analog of the marginal `expectation_standard_error`.
 
 #### 4.3 Conditional and transition density
 
 **Estimand.** ``f_{Y\mid X}(y\mid x) = f_{X,Y}(x,y)/f_X(x)``, and the two-time transition density
-``p_\tau(y\mid x) = f_{Y(t+\tau)\mid X(t)}(y\mid x)`` (nonstationary: ``p_{t,\tau}``).
+``p_\tau(y\mid x) = f_{Y(t+\tau)\mid X(t)}(y\mid x)`` (also indexed by the start time when nonstationary, ``p_{t,\tau}``).
 
 **Estimator** (double-kernel; Rosenblatt 1969; Hyndman, Bashtannyk & Grunwald 1996):
 ```math
@@ -400,23 +393,22 @@ analog of the marginal `expectation_standard_error`. `FORMALIZATION.md` pins the
 ```
 with a separate conditioning kernel `kernel_x` (``K_x``, in ``x``) and response kernel `kernel_y` (``K_y``, in ``y``). For a
 bounded / positive response — a droplet radius as ``Y`` — `kernel_y` may be asymmetric (gamma / beta;
-Chen 1999, 2000), boundary-bias-free in ``y``, with `normalize` restoring ``\int\hat f_{Y\mid X}\,\mathrm dy = 1`` —
-the conditional analog of the marginal density's asymmetric kernels. The conditioning kernel cancels in the
-``f_{X,Y}/f_X`` ratio, so it stays symmetric (a bounded *conditioning* variable needs none — the
-local-linear `conditional_mean` is boundary-adaptive, §4.2).
+Chen 1999, 2000), boundary-bias-free in ``y``, with `normalize` restoring ``\int\hat f_{Y\mid X}\,\mathrm dy = 1``. Only the conditioning kernel's normalization cancels in the
+``f_{X,Y}/f_X`` ratio; degree-0 in the conditioning variable, the estimator keeps a first-order bias at a
+bounded conditioning edge.
 
 #### 4.5 Bandwidth selection (cross-cutting)
 
 **Estimand.** The estimand is the AMISE-optimal bandwidth (AMISE = asymptotic mean integrated squared error), the ``h_{\mathrm{AMISE}}`` asymptotically minimising ``\operatorname{MISE}(h) = \int \mathbb{E}[(\hat f_h(x) - f_X(x))^2]\,\mathrm{d}x``
 for a kernel ``K`` and local-polynomial degree ``d``.
 
-**Estimator.** For a marginal the package uses the kernel- and degree-aware normal-reference rule
+**Estimator.** For a marginal the package uses the normal-reference rule, a kernel- and degree-aware constant times the sample standard deviation,
 ``h = C(K,d) \hat\sigma_X n^{-1/(2q+1)}`` (bias order ``q = 2`` at degree 0/1, ``q = 4`` at degree 2/3; the
-kernel enters through one canonical factor ``[R(K)/\mu_2(K)^2]^{1/5}`` by quadrature — Silverman
+kernel enters through one canonical factor of its roughness and second moment, ``[R(K)/\mu_2(K)^2]^{1/5}``, by quadrature — Silverman
 ``(4/3)^{1/5}`` the Gaussian/degree-0 case, Epanechnikov ``\approx 2.34``), plus the data-driven
 Sheather–Jones `:sj` and DCT-based `:isj` (Botev, Grotowski & Kroese 2010) plug-ins, the fit-based
 `:aic`, and the asymmetric-kernel Chen `:plugin` (scale ``b \sim n^{-2/5}``) — each a mergeable functional
-of the counts (the eval kernel a clean ``\delta(K)`` rescale); leave-one-out CV is a recorded gap (binned
+of the counts (the evaluation kernel a rescale by that factor, ``\delta(K)``); leave-one-out CV is a recorded gap (binned
 ties drive ``h \to 0``). The load-bearing one for conditional moments is the response-aware *local*
 plug-in `bandwidth(::Histogram2D, x; rule = :local)`,
 ```math
@@ -424,10 +416,10 @@ h^\star(x) = \biggl[\frac{R(K) \sigma^2(x)}{\mu_2(K)^2 m''(x)^2 f_X(x) n}\biggr]
 ```
 which depends on the response's variance ``\sigma^2(x)`` and curvature ``m''(x)`` — so each response
 channel gets its own ``h^\star`` (a single shared bandwidth is provably suboptimal), all three of
-``\sigma^2(x)``, ``m''(x)``, ``f_X(x)`` recovered from the *one* summary, post hoc. *(Performance: every
-smoother here is a convolution of bin arrays with the kernel, so an FFT computes it in ``O(B\log B)``
+``\sigma^2(x)``, ``m''(x)``, ``f_X(x)`` recovered from the *one* summary. *(Performance: every
+smoother here is a bin-array convolution, which an FFT computes in ``O(B\log B)``
 amortized over the bandwidth grid the ``h^\star(x)`` sweep needs — Silverman 1982; Wand 1994 — a deferred
-optimization (recorded, not built), and in any case dwarfed by the per-sample accumulation hot loop, §5.)*
+optimization, dwarfed by the accumulation hot loop, §5.)*
 
 ### 4.B Power-sum quadrature readouts
 
@@ -442,29 +434,29 @@ exact for polynomials of degree ``\le \texttt{order}`` (the remainder terminates
 recovered `mean` / `var` / `central_moment` (§3, the shift formula, the ``g = x^p`` case) — and
 ``O(\Delta^{ \texttt{order}+1})`` for general smooth ``g``. Built in `Expectations`:
 
-- `expectation` (``\mathbb{E}[g(X)]``) for a general smooth `g`. The per-bin coefficients
+- `expectation` (``\mathbb{E}[g(X)]``) handles a general smooth `g`. The per-bin coefficients
   ``g^{(p)}(c_j)/p!`` are read off a degree-``\texttt{order}`` polynomial interpolant of ``g`` on each
   bin — no automatic differentiation and no new dependency (uniform bins ⇒ one Chebyshev–Vandermonde
   inverse serves every bin), which reduces *exactly* to the shift formula on the monomials. Both
   `expectation` and the recovered moments route through the one shared contraction atom
   `Expectations._quadrature` (the moments supplying closed-form coefficients, `expectation` interpolation
-  coefficients) — the literal realization of the two-family lens.
-- `expectation_standard_error`, ``\sqrt{(\mathbb{E}[g^2] - \mathbb{E}[g]^2)/n}`` — the sampling error of
+  coefficients) — the realization of the two-family lens.
+- `expectation_standard_error` returns ``\sqrt{(\mathbb{E}[g^2] - \mathbb{E}[g]^2)/n}``, the sampling error of
   ``\widehat{\mathbb{E}}[g]``, itself a second quadrature readout (``\mathbb{E}[g^2]`` is `expectation` with
   the smooth integrand ``g^2``).
-- `pushforward_density` (``f_{g(X)}``), the density of ``Z = g(X)``. Rather than form ``g^{-1}`` or a
-  Jacobian, it is written as the expectation of the composed kernel test function,
+- `pushforward_density` (``f_{g(X)}``) estimates the density of ``Z = g(X)``. Rather than form ``g^{-1}`` or a
+  Jacobian, it is written as the expectation of the composed kernel,
   ``\hat f_{g(X)}(z) = \tfrac{1}{n}\sum_i K_h(g(X_i) - z) = \widehat{\mathbb{E}}[K_h(g(X) - z)]`` — so it is one
-  more `expectation` call. A non-monotone ``g`` is handled automatically (every preimage contributes),
+  more `expectation` call. A non-monotone ``g`` is handled (every preimage contributes),
   a flat spot ``g'=0`` shows up as the expected (integrable) caustic, and a symmetric ``K`` makes
   ``\int \hat f_{g(X)}\,\mathrm dz = 1`` exactly.
 
-Limits: ``g`` smooth on the bin scale, mass inside the range, and — for the pushforward — the response
+The readouts require ``g`` smooth on the bin scale, mass inside the range, and — for the pushforward — a response
 bandwidth ``h \gtrsim |g'| \Delta`` so ``K_h\circ g`` is resolved across a bin.
 
 ### 4.6 Projection road [OPEN, alternative]
 
-An alternative to bin-and-smooth for the conditional-functional / SDE-inference channels (the archived §4.4
+An alternative to bin-and-smooth for the conditional-functional / SDE-inference channels (the archived increment-moment
 road, or general regression fields): estimate by projecting onto a function basis with running
 inner-product accumulators (the Gram matrix and projection vector themselves a mergeable summary) —
 Stochastic Force Inference (Frishman & Ronceray 2020) and the underdamped ULI (Brückner, Ronceray &
@@ -475,7 +467,7 @@ consumer wants parametric-in-basis fields.
 
 ## 5. Backend-agnosticism and the hot-loop contract
 
-Inherited wholesale from PF (its invariants 6 and 13):
+These rules are PF's backend and allocation invariants, inherited wholesale:
 
 - **Storage is generic `AbstractArray`**; no scalar indexing of device arrays in package methods;
   allocate via `similar`.
@@ -487,8 +479,8 @@ Inherited wholesale from PF (its invariants 6 and 13):
 - **One portable kernel** (KernelAbstractions + Atomix) does the atomic scatter-add binning, on CPU
   and any GPU backend; the vendor stacks (CUDA/AMDGPU) stay test-only dependencies.
 - **Mergeable across devices** — `merge!` is the multi-device / multi-chunk reduction (§2), here just
-  elementwise addition. The monoid laws are the spec; tested for associativity and accumulate-then-
-  merge equality.
+  elementwise addition. The monoid laws are the spec; tested for associativity and accumulate-then-merge
+  equality.
 - **Contention, not FP64, is the hot-loop enemy.** The conditioning variable is peaked
   (Gaussian-ish), so the modal bins are atomic hot spots. The power-sums-about-the-bin-center choice
   (§3) makes each update a *plain* atomic add — integer-exact for counts, round-off for the Float64
@@ -510,16 +502,16 @@ survives contact with three different execution models.
 The PF discipline: a missing capability encodes a decision. The candidate invariants:
 
 1. **Accumulation is estimand-agnostic; smoothing is post hoc.** No summary stores a bandwidth,
-   kernel, or channel choice. An API that bakes a bandwidth into accumulation is the banned analog
-   of PF's spectral product-as-`*`. *(This is the invariant that makes "no reruns" true.)*
+   kernel, or channel choice. An API baking a bandwidth into accumulation is banned, as PF
+   bans a spectral product spelled `*`. *(This invariant makes "no reruns" true.)*
 2. **Samples in, statistics out — no domain, no model.** Domain-neutral vocabulary
    (sample / variate / response / lag / conditioning value), never particle / tracer / droplet /
    velocity. No stationarity, Markov, diffusion, or parametric assumption is a *premise*; such
    structure is only ever *tested*. (The analog of PF's "no time, no particles.")
 3. **Everything is a mergeable monoid — in fact a cone.** Every summary supports `merge!`; the
-   unnormalized summary is additive over the stream, and scalable (`scale!`), so the summaries form a
-   convex cone (equal-weight `merge!` the built special case; the weighted `merge!` and `scale!` the cone
-   operations — §10 hyperstatistics / forgetting). No non-mergeable accumulator is admitted.
+   unnormalized summary is additive and scalable (`scale!`), so the summaries form a
+   convex cone (the weighted `merge!` and `scale!` the cone
+   operations — §10: hyperstatistics, mixing summaries post hoc, and forgetting, down-weighting old data). No non-mergeable accumulator is admitted.
 4. **The hot path is allocation-free and backend-agnostic** (§5).
 5. **The summary is rich enough to recover every target post hoc.** A target that would need a
    finer or different summary is a recorded coverage gap, not silently approximated — the "no
@@ -541,7 +533,7 @@ of lags; the consumer owns the scalar-correlation fast path.
 
 ## 7. Documentation, correctness, and testing conventions
 
-Mirrors PF; the deltas are noted.
+These conventions mirror PF's; the deltas are noted.
 
 - **Estimand-first docstrings** (§2) — state the estimand (the population quantity, in standard notation,
   with its formula) before the estimator. `conditional_mean` is the reference: lead with
@@ -549,8 +541,8 @@ Mirrors PF; the deltas are noted.
   *then* the local-linear ``\hat m_h``. Self-contained pages, rendered LaTeX in standard notation, every
   code object bound to its math symbol on first mention, in apposition (`density` (``f_X``),
   `conditional_mean` (``m(x)``), `transition_density` (``p_\tau(y\mid x)``)).
-- **Every estimator reports its standard error.** An estimator approximates a population quantity from a
-  finite stream, so it is incomplete without the sampling error of that approximation: every
+- **Every estimator reports its standard error.** An estimator from a finite stream is incomplete
+  without its sampling error: every
   population-quantity estimator ships a companion `*_standard_error` (and the one-call paired
   `*_with_standard_error`) — a mergeable functional of the *same* summary, held to the
   `check_standard_error` contract. The exemptions are exactly estimand-first's: an intrinsically
@@ -565,7 +557,7 @@ Mirrors PF; the deltas are noted.
 - **Testing against analytic oracles** — the statistics analog of PF's analytic round-trips:
   estimators are checked against distributions with closed forms (Gaussian marginals; an
   Ornstein–Uhlenbeck process, whose drift, diffusion, and transition density
-  ``p_\tau(y\mid x)`` are known exactly — the natural end-to-end oracle for §4.3–4.4), plus
+  ``p_\tau(y\mid x)`` are known exactly — the natural end-to-end oracle for §4.3 and the archived increment moments), plus
   consistency / rate tests (error falls at the theoretical ``n^{-2/5}`` as ``n`` grows),
   mergeability tests, the `@allocated` audit, and GPU-vs-CPU parity under
   `allowscalar(false)`.
@@ -626,9 +618,9 @@ avoid the SDE machinery.
 
 ## 9. Naming the package
 
-**Settled: `GBGStreamingStatistics`** (confirmed by the user). Operationally precise
-(online/streaming is *the* defining constraint), no overclaim, legible to all three consumer
-domains, parallel to PF's descriptive compound. The alternatives weighed, for the record:
+**Settled: `GBGStreamingStatistics`**. The name is operationally precise
+(online/streaming is *the* defining constraint), overclaims nothing, is legible to all three consumer
+domains, and parallels PF's descriptive compound. The alternatives weighed:
 
 - **`GBGEmpiricalMeasures`** — the most PF-like choice, naming the *mathematical object* the package
   is about (as "PeriodicFields" names fields), and honest (the empirical measure and its summaries
@@ -661,11 +653,11 @@ mergeable streaming-moment design is, however, worth mirroring — §10).
 - **[OPEN] Projection road** — include SFI/ULI from the start or defer (§4.6)?
 - **[OPEN] `HistogramND`** — wait for a multi-conditioning consumer (§3)?
 - **[OPEN] Prior art to mirror** — study `OnlineStats.jl` for its mergeable streaming-moment design
-  and `merge` semantics, a comparison still worth making now that `Accumulators` is built (it lacks the
+  and `merge` semantics, a comparison worth making now that `Accumulators` is built (it lacks the
   GPU-resident path and the conditional/SDE estimators, but its composition model is a good CPU-side
   template).
-- **[OPEN] Vector-valued conditioning / responses** — reuse PF's `FiberVector`/`FiberTensor` fiber
-  algebra, or stay scalar-channel and let the consumer loop components? (Lean scalar-channel: the
+- **[OPEN] Vector-valued conditioning / responses** — reuse PF's vector/tensor field types
+  (`FiberVector`/`FiberTensor`), or stay scalar-channel and let the consumer loop components? (Lean scalar-channel: the
   estimators are per-component, and a fiber dependency would re-import structure the package doesn't
   otherwise need.)
 - **Weighted merge — settled, built (the cone).** `scale!` and the weighted
@@ -678,9 +670,9 @@ mergeable streaming-moment design is, however, worth mirroring — §10).
 
 ## 11. Decision log
 
-Append-only; mirrors PF's decision log. The settled decisions of §9–§10 are recorded here as the
-first entries so later sessions extend rather than re-litigate them (the overlap with the body is
-intentional — do not dedupe it).
+The log is append-only and mirrors PF's. The settled decisions of §9–§10 are recorded here as the
+first entries so later decisions extend rather than re-litigate them (the overlap with the body is
+intentional).
 
 - **Package name — `GBGStreamingStatistics`** (§9). Operationally precise; avoids `OnlineStats.jl`
   confusion. Alternatives `GBGEmpiricalMeasures` / `GBGSufficientStatistics` weighed and declined.
@@ -693,7 +685,7 @@ intentional — do not dedupe it).
   cadence policy stay consumer-side (§3).
 
 - **Summary storage — power-sums about the bin center, not Pébay-about-the-running-mean** (§3).
-  *Changed during the GPU pass.* The original design accumulated per-bin central moments by the Pébay
+  *It changed during the GPU pass.* The original design accumulated per-bin central moments by the Pébay
   (2008) running-mean recursion with Kahan compensation. A Pébay update is not atomic, so the GPU
   hot loop would have needed per-block *privatization* (private histograms merged hierarchically) — a
   pattern the sibling PF uses nowhere. Switching to power-sums ``S_p = \sum (X_i - c_j)^p`` about the
@@ -706,7 +698,7 @@ intentional — do not dedupe it).
   Verified by the ROCm GPU parity suite.
 
 - **Kramers–Moyal §4.4 — drift and diffusion first, as conditional increment moments** (§4.4).
-  *[Superseded — these functionals were built and OU-tested, then archived; see the archival entries
+  *[Superseded — built and OU-tested, then archived; see
   below.]* The first slice implements the increment moments and the finite-``\tau`` Kramers–Moyal coefficients
   drift (``M_1/\tau``) and diffusion (``M_2/(2\tau)``) directly from the order-2
   `Histogram2D`, via ``M_1(x) = \hat m_h(x) - x`` and
@@ -717,7 +709,7 @@ intentional — do not dedupe it).
   `pawula_quotient` (whose ``Q = M_4/(3M_2^2)`` needs ``M_4``) — are a recorded coverage gap (they
   need the joint summary's per-cell ``y``-power-sums raised to that order, deferred per invariant 5);
   `markov_test` composes the now-available §4.3 transition density.
-  OU-oracle-tested: drift recovers the finite-``\tau`` value ``x(e^{-\kappa\tau}-1)/\tau`` exactly (no
+  OU-oracle-tested, the OU relaxation rate in the exponent: drift recovers the finite-``\tau`` value ``x(e^{-\kappa\tau}-1)/\tau`` exactly (no
   smoothing bias — the OU conditional mean is linear — ``\to -\kappa x`` as ``\tau \to 0``), diffusion
   tends to half the squared noise amplitude, carrying the local-linear bias of the curved ``\mathbb{E}[Y^2\mid X = x]``.
 
@@ -725,15 +717,15 @@ intentional — do not dedupe it).
   Rosenblatt double-kernel estimator (§4.3) is evaluated from the `Histogram2D` cell counts (no
   power-sums needed): at the conditioning value ``x`` the joint is reduced to an ``x``-kernel-weighted
   y-profile ``P_l = \sum_j n_{jl} K_x\bigl((c^x_j - x)/h_x\bigr)`` with ``D = \sum_l P_l``, and then
-  ``\hat f_{Y\mid X}(y\mid x) = \sum_l P_l K_y\bigl((c^y_l - y)/h_y\bigr) / (h_y D)`` for symmetric kernels ``K_x``, ``K_y`` (any
-  ``\int K = 1``, default Gaussian). The ``x``-kernel weighting cancels in the conditional ratio — only
+  ``\hat f_{Y\mid X}(y\mid x) = \sum_l P_l K_y\bigl((c^y_l - y)/h_y\bigr) / (h_y D)`` for symmetric kernels ``K_x``, ``K_y`` (each with
+  ``\int K = 1``, Gaussian by default). The ``x``-kernel's normalization cancels in the conditional ratio — only
   the ``1/h_y`` survives, and ``\int K = 1`` gives ``\int \hat f_{Y\mid X}(y\mid x)\,\mathrm dy = 1`` exactly.
   `transition_density` is the same computation on a lag-``\tau`` joint (the two-time reading). The two
   bandwidths ``h_x`` (`h_x`, conditioning) and ``h_y`` (`h_y`, response) and the kernels `kernel_x`, `kernel_y` are supplied; the
-  conditional MISE rate is the slower ``O(n^{-2/3})``.
+  conditional MISE converges at ``O(n^{-2/3})``, slower than a marginal density's.
   OU-oracle-tested against the closed-form Gaussian ``p_\tau(y\mid x)``.
 
-- **Bandwidth §4.5 — the marginal `bandwidth` made kernel- and degree-aware** (§4.5). *Generalised the
+- **Bandwidth §4.5 — the marginal `bandwidth` made kernel- and degree-aware** (§4.5). *This generalised the
   global rule.* The first slice returned only Silverman ``(4/3)^{1/5}\hat\sigma_X n^{-1/5}`` (Gaussian,
   degree 0; rules `:silverman`/`:scott`). A survey of the field (locfit, KernSmooth, ks, statsmodels)
   confirmed the AMISE-optimal ``h_{\mathrm{AMISE}}`` depends on the kernel only through the canonical factor
@@ -745,14 +737,14 @@ intentional — do not dedupe it).
   kernel-as-standard-deviation shortcut (base-R, KDEpy, KernelDensity.jl — kernel-blind, not
   AMISE-exact) was weighed and declined. The data-driven Sheather–Jones plug-in (`rule = :sj`, degree
   0/1) is now added — the ``\psi_4``/``\psi_6`` curvature functionals as mergeable Hermite-weighted
-  reductions of the bin counts, the solve-the-equation root-find (base-R `bw.SJ` ste), the eval kernel a
+  reductions of the bin counts, the solve-the-equation root-find (base-R `bw.SJ` ste), the evaluation kernel a
   clean ``\delta(K)`` rescale (the pilot stays Gaussian, kernel-independent) — much tighter than the
   normal reference on a bimodal sample. The fit-based AIC follows (next entry).
 
 - **Bandwidth §4.5 — fit-based AIC added; leave-one-out CV is a deliberate absence** (§4.5). The survey
   flagged Loader's *preferred* route as fit-based selection over an ``h``-grid. Implemented as
   `rule = :aic`: minimise the binned-KDE AIC ``-2\sum_j n_j\log\hat f_h(c_j) + 2\operatorname{df}(h)`` (``\operatorname{df}`` the effective degrees of freedom, the smoother's self-influence trace) over
-  the grid — a mergeable functional of the counts, the eval kernel a ``\delta(K)`` rescale. But the
+  the grid — a mergeable functional of the counts, the evaluation kernel a ``\delta(K)`` rescale. But the
   cross-validation selectors (likelihood-CV and least-squares LSCV) are not built: they are
   leave-one-out, and a *binned* summary has heavy ties (``\approx 10^2\text{–}10^3`` samples per bin) whose same-bin term
   drives the CV objective to ``h \to 0`` (verified — the coefficient of LSCV's leading ``1/(nh\sqrt\pi)`` term goes
@@ -765,12 +757,12 @@ intentional — do not dedupe it).
 - **Bandwidth §4.5 — Improved Sheather–Jones (`rule = :isj`) added** (§4.5). The classic `:sj` plug-in
   estimates the curvature ``\psi_4`` from a *normal-reference* pilot, which can mislead on strongly
   multimodal data (the Marron–Wand claw). Botev, Grotowski & Kroese (2010) instead read the curvature
-  norms ``\|f_X^{(r)}\|^2`` off the DCT of the bin counts and solve the AMISE fixed point — a fully
+  norms ``\|f_X^{(r)}\|^2`` of the density's derivatives off the DCT of the bin counts and solve the AMISE fixed point — a fully
   nonparametric pilot. Added as `rule = :isj`: a mergeable functional of the counts' cosine transform,
-  the eval kernel the same ``\delta(K)`` rescale, robust where `:sj`'s pilot misleads.
+  the evaluation kernel the same ``\delta(K)`` rescale, robust where `:sj`'s pilot misleads.
 
 - **Density §4.1 — parametric start and exact normalization added** (§4.1). A second pass over the
-  downloaded reference software (studying source, not docs) found two capabilities worth mirroring: the
+  reference software's source found two capabilities worth mirroring: the
   parametric start (Hjort & Glad 1995; `kdensity`'s headline feature) and the exact
   renormalization (`kdensity`'s `normalized`). The start is the semiparametric
   ``\hat f_X = f_{\hat\theta}\cdot\widehat{f_X/f_\theta}`` — a moment-fitted model times a KDE of its
@@ -784,12 +776,12 @@ intentional — do not dedupe it).
   `support`, or the asymmetric kernels (the local-likelihood-with-start generalization is a recorded gap).
   The cross-validated start bandwidth (`KernelEstimator.jl`) and the Hjort–Jones *locally parametric*
   generalization were weighed and deferred. The same source pass also corrected the gamma/beta kernels
-  from Chen's naive estimator to the bias-reduced one (a fix, committed separately).
+  from Chen's naive estimator to the bias-reduced one.
 
 - **Bandwidth §4.5 — Chen plug-in for the asymmetric kernels; AIC, U-statistic, and gamma-reference
   routes rejected** (§4.5). The asymmetric (gamma / beta) kernels shipped only the ``\hat\sigma_X n^{-2/5}``
   rule of thumb; a data-driven selector was wanted because the optimal scale is ``0.27\text{–}1.6\times`` it
-  across densities (``> 2\times`` ISE on log-normal — the droplet regime). Three routes were tried and
+  across densities (``> 2\times`` the integrated squared error (ISE) on log-normal — the droplet regime). Three routes were tried and
   rejected before the plug-in: the binned AIC (as for the symmetric kernels) is *monotonic* in ``b``
   — the gamma self-influence ``\sim 1/\sqrt{xb}`` makes the df penalty too weak against the flat binned
   likelihood of dense data, so it oversmooths without bound; the ``\psi_4`` U-statistic curvature
@@ -812,7 +804,7 @@ intentional — do not dedupe it).
   hold a fractional ``\lambda n``, so `scale!` and a weighted merge `ArgumentError` on them). The summary storage
   needed almost no change — `observe!`'s atomic scatter already adds `one(eltype(counts))`, so a Float count routes
   through the atomic-*float* add (CPU and GPU), and `merge!` was already an elementwise broadcast. Estimand:
-  the hyperstatistical parameter-mixture density
+  the hyperstatistical parameter-mixture density, per-parameter densities averaged over a mixing law,
   ``f_X(x) = \int \pi(\theta) f_\theta(x)\,\mathrm{d}\theta \approx \sum_k \pi_k f_{\theta_k}(x)``, read off the mixed summary
   ``T = \sum_k (\pi_k/n(T_k)) T_k`` with ``n(T_k)`` the total count of ``T_k``
   (superstatistics; Beck & Cohen 2003) — keep one summary ``T_k`` per ``\theta_k``, choose the mixing law
@@ -820,7 +812,7 @@ intentional — do not dedupe it).
   before the next block). Oracle-tested by the ``\chi^2``-superstatistics → Student-``\mathrm{t}`` result (a Gamma-weighted
   Gaussian superposition has the heavy ``\mathrm{t}`` tail), a discrete Gaussian mixture, the cone laws, exact
   forgetting, the `Histogram2D` cone, and GPU parity (`test/hyperstatistics.jl`, `FORMALIZATION.md`). One
-  caveat recorded: the mixture's total mass is ``\sum_k \pi_k`` (``\approx 1`` for a normalized law), so its
+  caveat: the mixture's total mass is ``\sum_k \pi_k`` (``\approx 1`` for a normalized law), so its
   *default* bandwidth reads ``n \approx 1`` — pass an explicit ``h`` (or rescale the weights to a
   representative sample size). An effective-sample-size bandwidth for weighted summaries
   (Kish ``(\sum_i \lambda_i)^2 / \sum_i \lambda_i^2``) is a possible refinement, not built.
@@ -840,8 +832,8 @@ intentional — do not dedupe it).
   is conceivable but not built.
 
 - **Estimator architecture — the linear jet-smoother is the primitive, local likelihood a consumer;
-  and the measure-algebra lens** (§2, §4). *A framing decision, landed in the code.* Two
-  settlements taken together.
+  and the measure-algebra lens** (§2, §4). *A framing decision, landed in the code.* It takes two
+  settlements together.
 
   **(1) The lens.** The spine is given an algebraic reading (§2): the
   summaries are the cone of measures, ``T`` is the linear cone homomorphism (so `merge!` is
@@ -863,7 +855,7 @@ intentional — do not dedupe it).
   density's ``e^{\beta_0}``, the IRLS loop at degree ``\ge 1``), a ratio (conditioning —
   `conditional_density`, the disintegration of the joint), and a jet component (the derivative
   functionals `drift`, `diffusion`, and ``h^\star(x)``). This keeps the lone nonlinearity on one call
-  site and the hot, allocation-free, GPU-portable path linear. *Landed (Stages 1–3):* the shared
+  site and the hot, allocation-free, GPU-portable path linear. *Landed:* the shared
   `LocalPolynomial.local_fit` (the jet-smoother, returning ``(\beta_0, \beta_1, \beta_2)``) now backs
   `conditional_mean` (its ``\beta_0``), the local-likelihood `density` (the IRLS inner solve), and the
   increment moments — replacing the formerly duplicated `ConditionalExpectations._local_linear` (degree-1, intercept
@@ -872,16 +864,15 @@ intentional — do not dedupe it).
   bias-reduced Fan & Yao default (`method = :residual`); and the response-aware local bandwidth
   ``h^\star(x)`` = `bandwidth(::Histogram2D, x; rule = :local)`, which reads the curvature
   ``\hat m''(x) = 2\hat\beta_2`` of a degree-2 fit together with ``\sigma^2(x)`` and ``f_X(x)``. It landed as the
-  substrate of that feature, not as a standalone refactor (convenience is not a justification, §6). Settled by estimation theory
+  substrate of that feature, not as a standalone refactor. Settled by estimation theory
   (iteratively reweighted least squares is the linear solve iterated; the smoother is linear on the
   cone), not implementation convenience.
 
 - **Kernels — the asymmetric kernels consolidated into the foundation module** (§4.1, §4.3). The
-  varying-shape boundary kernels (`gamma_kernel`, `beta_kernel`, the `AsymmetricKernel` type; Chen 1999,
-  2000) were moved from `MarginalDensity` to `Kernels`, joining the symmetric `gaussian_kernel` /
+  varying-shape boundary kernels (`gamma_kernel`, `beta_kernel`, the `AsymmetricKernel` type;
+  Chen 1999, 2000) were moved from `MarginalDensity` to `Kernels`, joining the symmetric `gaussian_kernel` /
   `epanechnikov_kernel`. They had stayed in `MarginalDensity` only because, when `Kernels` was first
-  extracted, `density` was their sole consumer — a historical artifact, not a design boundary. A kernel
-  is a kernel: an asymmetric boundary kernel is a smoothing kernel for bounded / positive support, so it
+  extracted, `density` was their sole consumer — a historical artifact, not a design boundary. An asymmetric boundary kernel is a smoothing kernel for bounded / positive support, so it
   belongs in the shared foundation, where any density estimator — marginal or conditional — can reach it.
   This gives the `kernel` argument one documented home (no cross-module split) and enabled the now-built
   asymmetric-kernel conditional density (§4.3: a bounded *response* — e.g. a droplet radius as ``Y`` —
@@ -917,7 +908,7 @@ intentional — do not dedupe it).
   per-sample accumulation (§5), so the FFT is a *pure* amortization win — decisive only once a consumer
   sweeps a *grid* of bandwidths (the local ``h^\star(x)`` road). Recorded here and in §4.5, to be built
   when that cost bites. `FFTW` is retained — the ISJ bandwidth (`rule = :isj`) uses its DCT today; the
-  unused `AbstractFFTs` direct dependency (its sole intended consumer was this deferred smoothing) was
+  unused `AbstractFFTs` direct dependency was
   dropped, per the rule against speculative structure (§6).
 - **Power-sum quadrature readouts §4.B — built** (`expectation`, `expectation_standard_error`,
   `pushforward_density`). The second readout family lands: a smooth functional ``\mathbb{E}[g(X)]`` of the
@@ -937,22 +928,22 @@ intentional — do not dedupe it).
   from a dependency-free local polynomial interpolant; the pushforward is `expectation` of ``K_h\circ g``.
 
 - **ConditionalExpectations §4.2 — general ``\mathbb{E}[g(Y)\mid X = x]`` + conditional pushforward, built.**
-  The general `conditional_expectation` (with `conditional_mean` folded in as ``g = \mathrm{identity}``, and
-  `conditional_pushforward_density` (``f_{g(Y)\mid X}``)) makes the conditional side symmetric with the
+  The general `conditional_expectation`, with `conditional_mean` folded in as ``g = \mathrm{identity}``, and
+  `conditional_pushforward_density` (``f_{g(Y)\mid X}``) make the conditional side symmetric with the
   marginal `Expectations`. It refines the two-family boundary: conditional functionals *compose* the atoms
   — a per-``x``-column power-sum quadrature in ``y`` (§4.B) fed as the response to a kernel-weighted
   regression in ``x`` (§4.A). So "each estimator is a readout of *one* atom" (the §4.B entry above) softens
   to "readouts are built from the atoms, sometimes composing them" — `conditional_mean` always did (its
   trivial ``\sum Y`` response is the ``y``-quadrature of the identity); the general ``g`` just makes the
-  inner ``y``-readout non-trivial. The order-2 ``y``-power-sums cap a general ``g`` at ``O(\Delta_y^2)``.
-- **The archive leaves the tree** (2026-10-09). `archive/` held only the archived §4.4 module, its test,
+  inner ``y``-readout non-trivial. The order-2 ``y``-power-sums cap a general ``g`` at ``O(\Delta_y^2)`` in the response-bin width.
+- **The archive leaves the tree** (2026-10-09). `archive/` held only the archived increment-moment module, its test,
   and a README with the restore steps — working code waiting for a consumer, not part of the package. The
   shared tooling's `RULE.GIT.TRACKED` admits only the package's own files, so the folder is removed from
   git rather than kept under a switch: git's history keeps it exactly at commit `37006b5`, restored with
   `git checkout 37006b5 -- archive/` and the README's steps.
 
 - **The argument audit** (2026-10-15). Every exported method's arguments and defaults reviewed under the
-  rules the owner adopted from the sibling packages (a keyword shows its real default; `nothing` only for
+  rules the package's author adopted from the sibling packages (a keyword shows its real default; `nothing` only for
   a genuine absence; one name per concept and one concept per name; no placeholder replaced on entry).
   Done, each its own commit: the histogram constructors' `accumulator_type` / `count_type`; `density`'s
   `bounds` → `support` (the start's and the kernel's name for the same tuple); the asymmetric kernel's
