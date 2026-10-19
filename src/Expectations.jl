@@ -110,11 +110,10 @@ mean(summary::Histogram1D) = _sample_mean(summary)
 
 **Estimand.** The population variance ``\\operatorname{Var}(X) = \\mathbb{E}\\bigl[(X - \\mathbb{E}[X])^2\\bigr]``.
 
-**Estimator.** The estimator is the recovered sample variance (``\\bar X`` the recovered mean). With `corrected = true`
-(the default, matching `Statistics.var`) the unbiased ``\\hat\\sigma_X^2 = \\frac{1}{n-1} \\sum_i (X_i - \\bar X)^2``
-(Bessel's correction; `NaN` for ``n \\le 1``); `corrected = false` the ``\\hat\\mu_2 = \\frac{1}{n} \\sum_i (X_i - \\bar X)^2``
-order-2 central moment (`central_moment` at ``p = 2``). Exact via the shift formula. Extends
-`Statistics.var`.
+**Estimator.** The recovered variance (``\\bar X`` the recovered mean): with `corrected = false` the order-2 central
+moment ``\\hat\\sigma_X^2 = \\hat\\mu_2 = \\frac{1}{n} \\sum_i (X_i - \\bar X)^2``, the ``\\hat\\sigma_X`` the bandwidth rules
+use; with the default `corrected = true`, matching `Statistics.var`, the unbiased ``n\\hat\\sigma_X^2/(n-1)`` (`NaN` for
+``n \\le 1``). Exact via the shift formula. Extends `Statistics.var`.
 
 # Arguments
 
@@ -134,8 +133,8 @@ end
 
 **Estimand.** The population standard deviation ``\\sigma_X = \\sqrt{\\operatorname{Var}(X)}``.
 
-**Estimator.** The estimator is the recovered sample standard deviation ``\\hat\\sigma_X``, the square root of the
-recovered variance ``\\hat\\sigma_X^2`` (`var`). Exact via the shift formula. Extends `Statistics.std`.
+**Estimator.** The square root of `var`: ``\\hat\\sigma_X = \\sqrt{\\hat\\mu_2}`` with `corrected = false`,
+``\\hat\\sigma_X \\sqrt{n/(n-1)}`` with the default `corrected = true`. Extends `Statistics.std`.
 
 # Arguments
 

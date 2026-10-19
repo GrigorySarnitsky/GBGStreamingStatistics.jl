@@ -102,7 +102,7 @@ A density symbol always carries its subscript, and an estimate its hat: ``\hat f
 |:--|:--|
 | ``\bar X`` | the sample mean, an estimate of ``\mathbb{E}[X]`` |
 | ``\mu_p(X)``, ``\hat\mu_p`` | the central moment ``\mathbb{E}[(X - \mathbb{E}X)^p]``, and its estimate ``\tfrac{1}{n} \sum_i (X_i - \bar X)^p`` |
-| ``\sigma_X``, ``\hat\sigma_X`` | the standard deviation of ``X``, and its estimate |
+| ``\sigma_X``, ``\hat\sigma_X`` | the standard deviation of ``X``, estimated by ``\sqrt{\hat\mu_2}`` |
 
 ## Orders
 
