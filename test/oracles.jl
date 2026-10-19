@@ -27,42 +27,42 @@ include("testoracles.jl"); using .TestOracles
   end
 
   @testset "Ornstein–Uhlenbeck oracle: transition density (§4.3)" begin
-    # OU process  dX = −θ X dt + σ dW : stationary N(0, s²) with s² = σ²/(2θ); the lag-τ transition is
-    # exactly  X_{t+τ} | X_t = x ∼ N(x e^{−θτ}, s²(1 − e^{−2θτ})), so exact stationary lagged pairs are
+    # OU process  dX = −κ X dt + σ dW : stationary 𝒩(0, σ_X²) with σ_X² = σ²/(2κ); the lag-τ transition is
+    # exactly  X_{t+τ} | X_t = x ∼ 𝒩(x e^{−κτ}, σ_X²(1 − e^{−2κτ})), so exact stationary lagged pairs are
     # sampled directly (no Euler discretization). (The §4.4 Kramers–Moyal drift/diffusion reading of the
     # same pairs is archived — git commit 37006b5, archive/.)
     Random.seed!(2025)
-    θ = 0.8; σ = 1.2; τ = 0.5
-    s = ou_stationary_std(theta = θ, sigma = σ)
+    κ = 0.8; σ = 1.2; τ = 0.5
+    σ_X = ou_stationary_std(kappa = κ, sigma = σ)
     n = 3_000_000
-    x0 = s .* randn(n)
-    xτ = x0 .* exp(-θ * τ) .+ (s * sqrt(1 - exp(-2θ * τ))) .* randn(n)
-    g = Histogram2D(-5s, 5s, 300, -5s, 5s, 300; lag = 1)
-    observe_pairs!(g, x0, xτ)
+    x0 = σ_X .* randn(n)
+    xτ = x0 .* exp(-κ * τ) .+ (σ_X * sqrt(1 - exp(-2κ * τ))) .* randn(n)
+    joint = Histogram2D(-5σ_X, 5σ_X, 300, -5σ_X, 5σ_X, 300; lag = 1)
+    observe_pairs!(joint, x0, xτ)
 
-    # transition density (§4.3): p_τ(y∣x) = N(x e^{−θτ}, s²(1−e^{−2θτ})), from the OU pairs. The
+    # transition density (§4.3): p_τ(y∣x) = 𝒩(x e^{−κτ}, σ_X²(1−e^{−2κτ})), from the OU pairs. The
     # double-kernel estimate carries the usual O(h²) KDE bias, worst at the mode; atol reflects it.
-    ptrans(y, x) = ou_transition(y, x; theta = θ, sigma = σ, tau = τ)
+    ptrans(y, x) = ou_transition(y, x; kappa = κ, sigma = σ, tau = τ)
     for x in (-0.5, 0.0, 0.5)
-      μx = x * exp(-θ * τ)
+      μx = x * exp(-κ * τ)
       for y in (μx - 0.4, μx, μx + 0.4)
-        @test transition_density(g, x, y; h_x = 0.25, h_y = 0.15) ≈ ptrans(y, x) atol = 0.04
+        @test transition_density(joint, x, y; h_x = 0.25, h_y = 0.15) ≈ ptrans(y, x) atol = 0.04
       end
     end
-    ys = collect(-5s:0.02:5s)
-    @test sum(transition_density(g, 0.0, ys; h_x = 0.25, h_y = 0.15)) * 0.02 ≈ 1 atol = 1e-2
+    ys = collect(-5σ_X:0.02:5σ_X)
+    @test sum(transition_density(joint, 0.0, ys; h_x = 0.25, h_y = 0.15)) * 0.02 ≈ 1 atol = 1e-2
 
     # the transition-density standard error against the closed-form two-term double-kernel variance
     # √(R(K)/(n h_x f_X(x)) · (R(K) p_τ(y|x)/h_y − p_τ²)), every factor analytic: R(K) = 1/(2√π) for the Gaussian
-    # kernel, p_τ the OU transition law, f_X the stationary N(0, s²) — no package operation in the oracle.
+    # kernel, p_τ the OU transition law, f_X the stationary 𝒩(0, σ_X²) — no package operation in the oracle.
     # The paired reader's value is held to the transition law itself, as above.
     R_K = 1 / (2 * sqrt(π))
-    fX(x) = exp(-x^2 / (2s^2)) / (s * sqrt(2π))
-    for (x, y) in ((0.0, 0.0), (0.5, 0.5 * exp(-θ * τ) + 0.3))
+    fX(x) = exp(-x^2 / (2σ_X^2)) / (σ_X * sqrt(2π))
+    for (x, y) in ((0.0, 0.0), (0.5, 0.5 * exp(-κ * τ) + 0.3))
       p = ptrans(y, x)
       closed = sqrt(R_K / (n * 0.25 * fX(x)) * (R_K * p / 0.15 - p^2))
-      @test transition_density_standard_error(g, x, y; h_x = 0.25, h_y = 0.15) ≈ closed rtol = 0.08
-      r = transition_density_with_standard_error(g, x, y; h_x = 0.25, h_y = 0.15)
+      @test transition_density_standard_error(joint, x, y; h_x = 0.25, h_y = 0.15) ≈ closed rtol = 0.08
+      r = transition_density_with_standard_error(joint, x, y; h_x = 0.25, h_y = 0.15)
       @test r.value ≈ p atol = 0.04
       @test r.standard_error ≈ closed rtol = 0.08
     end

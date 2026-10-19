@@ -15,7 +15,7 @@ export gaussian_pdf, exponential_pdf, lognormal_pdf, gamma_pdf, beta_pdf, studen
 
 # --- analytic densities (zero outside the support) ---
 
-"Gaussian density ``N(\\mu, \\sigma^2)``."
+"Gaussian density ``\\mathcal{N}(\\mu, \\sigma^2)``."
 gaussian_pdf(x; mu = 0.0, sigma = 1.0) = exp(-((x - mu) / sigma)^2 / 2) / (sigma * sqrt(2π))
 
 "Exponential density, rate ``\\lambda`` (support ``[0, \\infty)``)."
@@ -44,30 +44,30 @@ student_t_pdf(x; nu) =
 "Uniform density on ``[\\texttt{lower}, \\texttt{upper})``."
 uniform_pdf(x; lower = 0.0, upper = 1.0) = (lower ≤ x < upper) ? 1.0 / (upper - lower) : 0.0
 
-"Marron–Wand (1992) **claw** density: ``\\tfrac12 N(0,1) + \\sum_{l=0}^{4} \\tfrac1{10} N(l/2-1,\\,(1/10)^2)`` — a broad Gaussian with five sharp spikes, the standard hard-multimodal benchmark for bandwidth selection."
+"Marron–Wand (1992) **claw** density: ``\\tfrac12 \\mathcal{N}(0,1) + \\sum_{l=0}^{4} \\tfrac1{10} \\mathcal{N}(l/2-1,\\,(1/10)^2)`` — a broad Gaussian with five sharp spikes, the standard hard-multimodal benchmark for bandwidth selection."
 claw_pdf(x) = 0.5 * gaussian_pdf(x) + sum(0.1 * gaussian_pdf(x; mu = l / 2 - 1, sigma = 0.1) for l in 0:4)
 
 
-# --- Ornstein–Uhlenbeck  dX = −θ X dt + σ dW : stationary N(0, s²) with s² = σ²/(2θ); the lag-τ
-# transition is X_{t+τ} | X_t = x ∼ N(x e^{−θτ}, s²(1 − e^{−2θτ})), so the finite-τ Kramers–Moyal
+# --- Ornstein–Uhlenbeck  dX = −κ X dt + σ dW : stationary 𝒩(0, σ_X²) with σ_X² = σ²/(2κ); the lag-τ
+# transition is X_{t+τ} | X_t = x ∼ 𝒩(x e^{−κτ}, σ_X²(1 − e^{−2κτ})), so the finite-τ Kramers–Moyal
 # coefficients are closed-form. The canonical drift/diffusion oracle (test/oracles.jl). ---
 
-"Stationary standard deviation ``s = \\sqrt{\\sigma^2/(2\\theta)}`` of the OU process."
-ou_stationary_std(; theta, sigma) = sqrt(sigma^2 / (2 * theta))
+"Stationary standard deviation ``\\sigma_X = \\sqrt{\\sigma^2/(2\\kappa)}`` of the OU process."
+ou_stationary_std(; kappa, sigma) = sqrt(sigma^2 / (2 * kappa))
 
-"OU finite-``\\tau`` drift ``D^{(1)}(x,\\tau) = x(e^{-\\theta\\tau}-1)/\\tau``."
-ou_drift(x; theta, tau) = x * (exp(-theta * tau) - 1) / tau
+"OU finite-``\\tau`` drift ``D^{(1)}(x,\\tau) = x(e^{-\\kappa\\tau}-1)/\\tau``."
+ou_drift(x; kappa, tau) = x * (exp(-kappa * tau) - 1) / tau
 
-"OU finite-``\\tau`` diffusion ``D^{(2)}(x,\\tau) = [s^2(1-e^{-2\\theta\\tau}) + x^2(e^{-\\theta\\tau}-1)^2]/(2\\tau)``."
-function ou_diffusion(x; theta, sigma, tau)
-  s2 = sigma^2 / (2 * theta)
-  return (s2 * (1 - exp(-2 * theta * tau)) + x^2 * (exp(-theta * tau) - 1)^2) / (2 * tau)
+"OU finite-``\\tau`` diffusion ``D^{(2)}(x,\\tau) = [\\sigma_X^2(1-e^{-2\\kappa\\tau}) + x^2(e^{-\\kappa\\tau}-1)^2]/(2\\tau)``."
+function ou_diffusion(x; kappa, sigma, tau)
+  variance_X = sigma^2 / (2 * kappa)
+  return (variance_X * (1 - exp(-2 * kappa * tau)) + x^2 * (exp(-kappa * tau) - 1)^2) / (2 * tau)
 end
 
-"OU lag-``\\tau`` transition density ``p_\\tau(y\\mid x) = N(x e^{-\\theta\\tau},\\, s^2(1-e^{-2\\theta\\tau}))``."
-function ou_transition(y, x; theta, sigma, tau)
-  v = (sigma^2 / (2 * theta)) * (1 - exp(-2 * theta * tau))
-  return exp(-(y - x * exp(-theta * tau))^2 / (2 * v)) / sqrt(2π * v)
+"OU lag-``\\tau`` transition density ``p_\\tau(y\\mid x) = \\mathcal{N}(x e^{-\\kappa\\tau},\\, \\sigma_X^2(1-e^{-2\\kappa\\tau}))``."
+function ou_transition(y, x; kappa, sigma, tau)
+  v = (sigma^2 / (2 * kappa)) * (1 - exp(-2 * kappa * tau))
+  return exp(-(y - x * exp(-kappa * tau))^2 / (2 * v)) / sqrt(2π * v)
 end
 
 

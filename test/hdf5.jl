@@ -21,9 +21,9 @@ using Random
     # several summaries into ONE file, in groups, beside a plain dataset — the consumer owns the file
     h5open(path, "w") do f
       f["note"] = "hello"                  # the user's own data
-      g = create_group(f, "stats")
-      write_histogram(g, "marg", h1)       # verb form, into a group they made
-      g["cone"] = hc                       # the setindex! sugar
+      group = create_group(f, "stats")
+      write_histogram(group, "marg", h1)       # verb form, into a group they made
+      group["cone"] = hc                       # the setindex! sugar
       write_histogram(f, "joint", h2)      # directly under the file root
     end
 
@@ -60,25 +60,25 @@ using Random
 
     @testset "reload is bit-exact and still mergeable" begin
       Random.seed!(2); d = randn(80_000)
-      a = Histogram1D(-8.0, 8.0, 200); observe!(a, view(d, 1:40_000))
-      b = Histogram1D(-8.0, 8.0, 200); observe!(b, view(d, 40_001:80_000))
+      summary_a = Histogram1D(-8.0, 8.0, 200); observe!(summary_a, view(d, 1:40_000))
+      summary_b = Histogram1D(-8.0, 8.0, 200); observe!(summary_b, view(d, 40_001:80_000))
       p = joinpath(dir, "half.h5")
-      h5open(p, "w") do f; write_histogram(f, "a", a); end
+      h5open(p, "w") do f; write_histogram(f, "a", summary_a); end
       ra = h5open(p, "r") do f; read_histogram(f, "a"); end
-      @test ra.counts == a.counts && ra.powersums == a.powersums   # reload reproduces it bit-for-bit
+      @test ra.counts == summary_a.counts && ra.powersums == summary_a.powersums   # reload reproduces it bit-for-bit
       # merging into the reload matches merging into the original (reload preserves the mergeable structure;
       # `==` here, not `≈`, because ra is bit-identical to a, so the two merges share operands and order)
-      ma = merge!(ra, b); mo = merge!(deepcopy(a), b)
+      ma = merge!(ra, summary_b); mo = merge!(deepcopy(summary_a), summary_b)
       @test ma.counts == mo.counts && ma.powersums == mo.powersums
     end
 
     @testset "self-describing: attributes readable as plain HDF5" begin
       h5open(path, "r") do f
-        g = f["stats/marg"]
-        @test attrs(g)["type"] == "GBGStreamingStatistics.Histogram1D"
-        @test attrs(g)["version"] == 1
-        @test attrs(g)["lower"] == -8.0
-        @test Set(keys(g)) == Set(["counts", "powersums"])
+        group = f["stats/marg"]
+        @test attrs(group)["type"] == "GBGStreamingStatistics.Histogram1D"
+        @test attrs(group)["version"] == 1
+        @test attrs(group)["lower"] == -8.0
+        @test Set(keys(group)) == Set(["counts", "powersums"])
       end
     end
 

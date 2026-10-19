@@ -3,10 +3,10 @@ using GBGStreamingStatistics
 using Random
 
 @testset "Local bandwidth h⋆(x) (response-aware plug-in, §4.5)" begin
-  # Quadratic-mean Gaussian oracle: X ~ N(0,1), Y = X² + σ·ε. Then m(x) = x² (so m'' = 2, recovered
+  # Quadratic-mean Gaussian oracle: X ~ 𝒩(0,1), Y = X² + σ·ε. Then m(x) = x² (so m'' = 2, recovered
   # exactly by a degree-2 fit), σ²(x) = σ² (constant), f_X(x) = φ(x). The local AMISE bandwidth is then
   # known in closed form: h⋆(x) = [R(K)·σ² / (μ₂(K)²·4·φ(x)·n)]^{1/5}. Near the centre all three pilots
-  # are clean; far from it the plug-in σ̂² carries the curved-E[Y²|x] bias (the Fan–Yao refinement).
+  # are clean; far from it the plug-in σ̂² carries the curved-𝔼[Y²|x] bias (the Fan–Yao refinement).
   Random.seed!(11)
   n = 4_000_000
   σ = 0.5
@@ -54,14 +54,14 @@ using Random
   end
 
   @testset "mergeable: h⋆ is a functional of the merged summary" begin
-    a = Histogram2D(-6.0, 6.0, 240, -8.0, 40.0, 240)
-    b = Histogram2D(-6.0, 6.0, 240, -8.0, 40.0, 240)
+    summary_a = Histogram2D(-6.0, 6.0, 240, -8.0, 40.0, 240)
+    summary_b = Histogram2D(-6.0, 6.0, 240, -8.0, 40.0, 240)
     half = n ÷ 2
-    observe_pairs!(a, view(X, 1:half), view(Y, 1:half))
-    observe_pairs!(b, view(X, half + 1:n), view(Y, half + 1:n))
-    merge!(a, b)
+    observe_pairs!(summary_a, view(X, 1:half), view(Y, 1:half))
+    observe_pairs!(summary_b, view(X, half + 1:n), view(Y, half + 1:n))
+    merge!(summary_a, summary_b)
     for x in (-0.3, 0.0, 0.5)
-      @test bandwidth(a, x; rule = :local, pilot_bandwidth = hp) ≈
+      @test bandwidth(summary_a, x; rule = :local, pilot_bandwidth = hp) ≈
             bandwidth(hist, x; rule = :local, pilot_bandwidth = hp)
     end
   end

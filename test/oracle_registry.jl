@@ -10,7 +10,7 @@
 # operation. A new operation fails this file until someone classifies it — which is the moment to notice
 # that it has no independent oracle.
 #
-#   analytic     a closed form derived independently of the package (the Gaussian pdf, E[cos X] = e^{-1/2},
+#   analytic     a closed form derived independently of the package (the Gaussian pdf, 𝔼[cos X] = e^{-1/2},
 #                the OU transition law, Silverman's constant)
 #   independent  a direct computation written in the test (the moments from the raw samples, the
 #                Monte-Carlo spread of an estimate across independent datasets)
@@ -36,9 +36,9 @@ const ORACLE_PROVENANCE = Dict{Symbol, Tuple{Symbol, String}}(
   :central_moment  => (:independent, "histograms.jl — equals the direct central moments of the raw data, and the true Gaussian moments"),
 
   # ---- power-sum quadrature ----
-  :expectation                              => (:analytic, "expectations.jl — E[cos X] = e^{-1/2} and the MGF on Gaussian data; polynomial exactness against the raw sum"),
+  :expectation                              => (:analytic, "expectations.jl — 𝔼[cos X] = e^{-1/2} and the MGF on Gaussian data; polynomial exactness against the raw sum"),
   :expectation_standard_error               => (:independent, "expectations.jl — reduces to s/√n of the raw samples, and the Monte-Carlo spread across independent datasets"),
-  :expectation_with_standard_error          => (:analytic, "expectations.jl — value e^{-1/2} and standard error √(((1 + e^{-2})/2 − e^{-1})/n) in closed form on N(0, 1)"),
+  :expectation_with_standard_error          => (:analytic, "expectations.jl — value e^{-1/2} and standard error √(((1 + e^{-2})/2 − e^{-1})/n) in closed form on 𝒩(0, 1)"),
   :pushforward_density                      => (:analytic, "expectations.jl — the lognormal pushforward of a Gaussian and the non-monotone χ²₁ pushforward, in closed form"),
   :pushforward_density_standard_error       => (:independent, "expectations.jl — the Monte-Carlo spread of the estimate across independent datasets"),
   :pushforward_density_with_standard_error  => (:analytic, "expectations.jl — value the lognormal pdf, standard error the two-term KDE variance at it, in closed form"),
@@ -46,7 +46,7 @@ const ORACLE_PROVENANCE = Dict{Symbol, Tuple{Symbol, String}}(
   # ---- the marginal density and its bandwidth ----
   :density                     => (:analytic, "oracles.jl — recovers the Gaussian pdf; density_convergence.jl — the analytic-PDF suite at the theoretical rates"),
   :density_standard_error      => (:independent, "marginaldensity.jl — the Monte-Carlo spread of the estimate across independent datasets, and the oracle coverage of the band"),
-  :density_with_standard_error => (:analytic, "marginaldensity.jl — value the N(0, 1 + h²) pdf (the exact KDE mean), standard error the two-term variance at it"),
+  :density_with_standard_error => (:analytic, "marginaldensity.jl — value the 𝒩(0, 1 + h²) pdf (the exact KDE mean), standard error the two-term variance at it"),
   :bandwidth                   => (:analytic, "bandwidth.jl, oracles.jl — Silverman's (4/3)^{1/5} σ n^{-1/5} closed form, the Epanechnikov canonical ratio, the degree-2 n^{-1/9} rule"),
 
   # ---- the smoothing kernels: their constants by an independent quadrature ----
@@ -54,7 +54,7 @@ const ORACLE_PROVENANCE = Dict{Symbol, Tuple{Symbol, String}}(
   :epanechnikov_kernel => (:analytic, "kernels.jl — ∫K = 1, μ₂(K) = 1/5, R(K) = 3/5 by an independent quadrature"),
 
   # ---- conditional expectations (bivariate-Gaussian and heteroscedastic oracles) ----
-  :conditional_expectation                              => (:analytic, "conditionalexpectations.jl — E[cos Y | x] of the bivariate Gaussian in closed form"),
+  :conditional_expectation                              => (:analytic, "conditionalexpectations.jl — 𝔼[cos Y | x] of the bivariate Gaussian in closed form"),
   :conditional_expectation_standard_error               => (:independent, "conditionalexpectations.jl — the Monte-Carlo spread of the estimate across independent datasets"),
   :conditional_expectation_with_standard_error          => (:analytic, "conditionalexpectations.jl — value cos(ρx) e^{-v/2}, standard error √(R(K) Var(cos Y|x)/(n h f_X(x))) in closed form"),
   :conditional_mean                                     => (:analytic, "conditionalexpectations.jl — recovers m(x) = ρx of the bivariate Gaussian; conditional_convergence.jl — the n^{-2/5} rate on m(x) = sin x"),
@@ -66,10 +66,10 @@ const ORACLE_PROVENANCE = Dict{Symbol, Tuple{Symbol, String}}(
   :conditional_pushforward_density_with_standard_error  => (:analytic, "conditionalexpectations.jl — value the conditional lognormal pdf, standard error the two-term variance at it, in closed form"),
 
   # ---- conditional and transition densities (bivariate-Gaussian and Ornstein–Uhlenbeck oracles) ----
-  :conditional_density                     => (:analytic, "conditionaldensity.jl — the bivariate-Gaussian conditional N(ρx, 1 − ρ²); conditional_convergence.jl — the n^{-2/3} rate"),
+  :conditional_density                     => (:analytic, "conditionaldensity.jl — the bivariate-Gaussian conditional 𝒩(ρx, 1 − ρ²); conditional_convergence.jl — the n^{-2/3} rate"),
   :conditional_density_standard_error      => (:independent, "conditionaldensity.jl — the Monte-Carlo spread of the estimate across independent datasets"),
-  :conditional_density_with_standard_error => (:analytic, "conditionaldensity.jl — value N(ρx, 1 − ρ²), standard error the two-term double-kernel variance at it, in closed form"),
-  :transition_density                      => (:analytic, "oracles.jl — the Ornstein–Uhlenbeck transition density N(x e^{-θτ}, s²(1 − e^{-2θτ})) in closed form"),
+  :conditional_density_with_standard_error => (:analytic, "conditionaldensity.jl — value 𝒩(ρx, 1 − ρ²), standard error the two-term double-kernel variance at it, in closed form"),
+  :transition_density                      => (:analytic, "oracles.jl — the Ornstein–Uhlenbeck transition density 𝒩(x e^{-θτ}, s²(1 − e^{-2θτ})) in closed form"),
   :transition_density_standard_error       => (:analytic, "oracles.jl — the two-term double-kernel variance with the OU transition law and stationary marginal, in closed form"),
   :transition_density_with_standard_error  => (:analytic, "oracles.jl — value the OU transition law, standard error its two-term variance, in closed form"),
 

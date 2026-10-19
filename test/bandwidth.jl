@@ -52,11 +52,11 @@ end
 
   # mergeable: SJ is a deterministic functional of the bin counts ⇒ accumulate-then-merge = together
   Random.seed!(103); d1 = randn(120_000); d2 = randn(120_000)
-  a = Histogram1D(-8.0, 8.0, 1600); observe!(a, d1)
-  b = Histogram1D(-8.0, 8.0, 1600); observe!(b, d2)
+  summary_a = Histogram1D(-8.0, 8.0, 1600); observe!(summary_a, d1)
+  summary_b = Histogram1D(-8.0, 8.0, 1600); observe!(summary_b, d2)
   both = Histogram1D(-8.0, 8.0, 1600); observe!(both, vcat(d1, d2))
-  merge!(a, b)
-  @test bandwidth(a; rule = :sj) ≈ bandwidth(both; rule = :sj)
+  merge!(summary_a, summary_b)
+  @test bandwidth(summary_a; rule = :sj) ≈ bandwidth(both; rule = :sj)
 
   # Sheather–Jones is a second-order selector: degree ≥ 2 is a recorded coverage gap
   @test_throws ArgumentError bandwidth(hg; rule = :sj, degree = 2)
@@ -79,11 +79,11 @@ end
 
   # mergeable: AIC is a deterministic functional of the bin counts ⇒ accumulate-then-merge = together
   Random.seed!(203); d1 = randn(100_000); d2 = randn(100_000)
-  a = Histogram1D(-8.0, 8.0, 1600); observe!(a, d1)
-  b = Histogram1D(-8.0, 8.0, 1600); observe!(b, d2)
+  summary_a = Histogram1D(-8.0, 8.0, 1600); observe!(summary_a, d1)
+  summary_b = Histogram1D(-8.0, 8.0, 1600); observe!(summary_b, d2)
   both = Histogram1D(-8.0, 8.0, 1600); observe!(both, vcat(d1, d2))
-  merge!(a, b)
-  @test bandwidth(a; rule = :aic) ≈ bandwidth(both; rule = :aic)
+  merge!(summary_a, summary_b)
+  @test bandwidth(summary_a; rule = :aic) ≈ bandwidth(both; rule = :aic)
 
   # degree-0/1 (KDE) selector: degree ≥ 2 is a coverage gap; the leave-one-out CV rules are not
   # provided at all (the binned-ties pathology) — they error as unknown rules
@@ -108,11 +108,11 @@ end
 
   # mergeable: ISJ is a deterministic functional of the bin counts (via their DCT)
   Random.seed!(303); d1 = randn(100_000); d2 = randn(100_000)
-  a = Histogram1D(-8.0, 8.0, 2048); observe!(a, d1)
-  b = Histogram1D(-8.0, 8.0, 2048); observe!(b, d2)
+  summary_a = Histogram1D(-8.0, 8.0, 2048); observe!(summary_a, d1)
+  summary_b = Histogram1D(-8.0, 8.0, 2048); observe!(summary_b, d2)
   both = Histogram1D(-8.0, 8.0, 2048); observe!(both, vcat(d1, d2))
-  merge!(a, b)
-  @test bandwidth(a; rule = :isj) ≈ bandwidth(both; rule = :isj)
+  merge!(summary_a, summary_b)
+  @test bandwidth(summary_a; rule = :isj) ≈ bandwidth(both; rule = :isj)
 
   # degree ≥ 2 is a coverage gap
   @test_throws ArgumentError bandwidth(hg; rule = :isj, degree = 2)
@@ -169,11 +169,11 @@ end
 
   # mergeable: a deterministic functional of the bin counts
   Random.seed!(415); d1 = exp.(0.6 .* randn(80_000)); d2 = exp.(0.6 .* randn(80_000))
-  a = Histogram1D(0.0, 12.0, 2400); observe!(a, d1)
+  summary_a = Histogram1D(0.0, 12.0, 2400); observe!(summary_a, d1)
   bh = Histogram1D(0.0, 12.0, 2400); observe!(bh, d2)
   both = Histogram1D(0.0, 12.0, 2400); observe!(both, vcat(d1, d2))
-  merge!(a, bh)
-  @test bandwidth(a; rule = :plugin, kernel = gamma_kernel) ≈
+  merge!(summary_a, bh)
+  @test bandwidth(summary_a; rule = :plugin, kernel = gamma_kernel) ≈
         bandwidth(both; rule = :plugin, kernel = gamma_kernel)  rtol = 1e-12
 
   # the symmetric selectors do not apply to an asymmetric kernel; degree ≥ 1 and :plugin-on-symmetric error
@@ -186,7 +186,7 @@ end
 end
 
 @testset "Marron–Wand claw — multimodal stress (the field's standard hard case, §4.5)" begin
-  # The claw (Marron & Wand 1992): a broad N(0,1) with five sharp σ = 0.1 spikes. The normal-reference
+  # The claw (Marron & Wand 1992): a broad 𝒩(0,1) with five sharp σ = 0.1 spikes. The normal-reference
   # bandwidth (driven by the global σ̂) oversmooths the spikes into a single bump; the data-driven
   # selectors read the curvature off the bin counts and resolve them — the case ISJ/SJ exist for, and the
   # benchmark the field validates bandwidth selection on (here ISJ ≈ SJ; both crush the normal reference).
@@ -203,8 +203,8 @@ end
   bn = bandwidth(hc; rule = :normal); bs = bandwidth(hc; rule = :sj); bi = bandwidth(hc; rule = :isj)
   @test bi < 0.4 * bn                          # ISJ resolves the spikes the normal reference oversmooths
   @test bs < 0.4 * bn                          # …and so does classic SJ
-  g = collect(-3.0:0.01:3.0)
-  iseclaw(bw) = ise(density(hc, g; h = bw), claw_pdf.(g), 0.01)
+  grid_x = collect(-3.0:0.01:3.0)
+  iseclaw(bw) = ise(density(hc, grid_x; h = bw), claw_pdf.(grid_x), 0.01)
   @test iseclaw(bi) < 0.1 * iseclaw(bn)        # ≈ an order of magnitude lower ISE — the multimodal payoff
   @test iseclaw(bs) < 0.1 * iseclaw(bn)
 end

@@ -31,23 +31,23 @@ using GBGStreamingStatistics: Histograms, MarginalDensity, Bandwidth, Conditiona
   @test_call target_modules = mods bandwidth(h; rule = :aic)
   @test_call target_modules = mods bandwidth(h; rule = :plugin, kernel = gamma_kernel)
 
-  g = Histogram2D(-5.0, 5.0, 50, -5.0, 5.0, 50)
+  joint = Histogram2D(-5.0, 5.0, 50, -5.0, 5.0, 50)
   g2 = Histogram2D(-5.0, 5.0, 50, -5.0, 5.0, 50)
   xs = randn(1000); ys = randn(1000)
-  @test_call target_modules = mods observe_pairs!(g, xs, ys)
-  @test_call target_modules = mods merge!(g, g2)
-  @test_call target_modules = mods conditional_mean(g, 0.0; h = 0.5)
-  @test_call target_modules = mods conditional_mean(g, 0.0; h = 0.5, degree = 0, kernel = gamma_kernel)   # asym degree-0
-  @test_call target_modules = mods conditional_variance(g, 0.0; h = 0.5)
-  @test_call target_modules = mods conditional_variance_standard_error(g, 0.0; h = 0.5)
-  @test_call target_modules = mods conditional_variance_with_standard_error(g, 0.0; h = 0.5)
-  @test_call target_modules = mods conditional_expectation(g, cos, 0.0; h = 0.5)   # the general ⟨g(Y)|x⟩
-  @test_call target_modules = mods conditional_expectation_standard_error(g, cos, 0.0; h = 0.5)
-  @test_call target_modules = mods conditional_expectation_with_standard_error(g, cos, 0.0; h = 0.5)
-  @test_call target_modules = mods conditional_pushforward_density(g, exp, 0.0, 0.0; h_x = 0.5, h_z = 0.5)
-  @test_call target_modules = mods conditional_pushforward_density_standard_error(g, exp, 0.0, 0.0; h_x = 0.5, h_z = 0.5)
-  @test_call target_modules = mods conditional_pushforward_density_with_standard_error(g, exp, 0.0, 0.0; h_x = 0.5, h_z = 0.5)
-  @test_call target_modules = mods bandwidth(g, 0.0; rule = :local)   # the response-aware local h⋆(x)
+  @test_call target_modules = mods observe_pairs!(joint, xs, ys)
+  @test_call target_modules = mods merge!(joint, g2)
+  @test_call target_modules = mods conditional_mean(joint, 0.0; h = 0.5)
+  @test_call target_modules = mods conditional_mean(joint, 0.0; h = 0.5, degree = 0, kernel = gamma_kernel)   # asym degree-0
+  @test_call target_modules = mods conditional_variance(joint, 0.0; h = 0.5)
+  @test_call target_modules = mods conditional_variance_standard_error(joint, 0.0; h = 0.5)
+  @test_call target_modules = mods conditional_variance_with_standard_error(joint, 0.0; h = 0.5)
+  @test_call target_modules = mods conditional_expectation(joint, cos, 0.0; h = 0.5)   # the general 𝔼[g(Y)|x]
+  @test_call target_modules = mods conditional_expectation_standard_error(joint, cos, 0.0; h = 0.5)
+  @test_call target_modules = mods conditional_expectation_with_standard_error(joint, cos, 0.0; h = 0.5)
+  @test_call target_modules = mods conditional_pushforward_density(joint, exp, 0.0, 0.0; h_x = 0.5, h_z = 0.5)
+  @test_call target_modules = mods conditional_pushforward_density_standard_error(joint, exp, 0.0, 0.0; h_x = 0.5, h_z = 0.5)
+  @test_call target_modules = mods conditional_pushforward_density_with_standard_error(joint, exp, 0.0, 0.0; h_x = 0.5, h_z = 0.5)
+  @test_call target_modules = mods bandwidth(joint, 0.0; rule = :local)   # the response-aware local h⋆(x)
 
   glag = Histogram2D(-5.0, 5.0, 50, -5.0, 5.0, 50; lag = 1)
   observe_pairs!(glag, xs, ys)

@@ -14,17 +14,17 @@ _mk(data; lower = -8.0, upper = 8.0, nbins = 800) =
   @test_throws ArgumentError scale!(Histogram1D(-8.0, 8.0, 800), 0.5)
 
   Random.seed!(101)
-  s = _mk(randn(100_000))
-  m0, v0u, cm4, n0 = mean(s), var(s; corrected = false), central_moment(s, 4), sum(s.counts)
-  scale!(s, 3.0)
+  summary = _mk(randn(100_000))
+  m0, v0u, cm4, n0 = mean(summary), var(summary; corrected = false), central_moment(summary, 4), sum(summary.counts)
+  scale!(summary, 3.0)
   # scaling every count by a constant leaves the *normalized* distribution unchanged: the mean and the
   # UNcorrected central moments are exact invariants; the total mass scales by the weight
-  @test mean(s) ≈ m0
-  @test var(s; corrected = false) ≈ v0u
-  @test central_moment(s, 4) ≈ cm4
-  @test sum(s.counts) ≈ 3 * n0
+  @test mean(summary) ≈ m0
+  @test var(summary; corrected = false) ≈ v0u
+  @test central_moment(summary, 4) ≈ cm4
+  @test sum(summary.counts) ≈ 3 * n0
   # (the corrected variance is *not* scale-invariant — its Bessel n/(n-1) legitimately shifts with n)
-  @test var(s; corrected = true) ≈ v0u * (3n0) / (3n0 - 1)
+  @test var(summary; corrected = true) ≈ v0u * (3n0) / (3n0 - 1)
 
   # homogeneity: scale by a then b equals scale by a·b
   Random.seed!(102); d = randn(60_000)
@@ -74,13 +74,13 @@ end
   T2 = Histogram1D(-10.0, 10.0, 1000); observe!(T2, randn(200_000) .+ 2.0)
   mix(x; w1 = 0.5) = w1 * gaussian_pdf(x; mu = -2.0) + (1 - w1) * gaussian_pdf(x; mu = 2.0)
 
-  M = Histogram1D(-10.0, 10.0, 1000; count_type = Float64)
-  merge!(M, T1; weight = 0.5 / sum(T1.counts))     # wₖ/Nₖ — each component normalized to a probability measure
-  merge!(M, T2; weight = 0.5 / sum(T2.counts))
-  @test sum(M.counts) ≈ 1.0                         # total mass = Σ wₖ
+  mixture = Histogram1D(-10.0, 10.0, 1000; count_type = Float64)
+  merge!(mixture, T1; weight = 0.5 / sum(T1.counts))     # wₖ/Nₖ — each component normalized to a probability measure
+  merge!(mixture, T2; weight = 0.5 / sum(T2.counts))
+  @test sum(mixture.counts) ≈ 1.0                         # total mass = Σ wₖ
   # the mixture's mass is ≈ 1, so the *default* bandwidth (read off n ≈ 1) would oversmooth — supply h
   for x in (-3.0, -2.0, 0.0, 2.0, 3.0)
-    @test density(M, x; h = 0.12) ≈ mix(x)  atol = 1e-2
+    @test density(mixture, x; h = 0.12) ≈ mix(x)  atol = 1e-2
   end
 
   # POST-HOC reweighting: the SAME per-component summaries, a different mixing law, no re-accumulation
@@ -101,26 +101,26 @@ end
 
 
 @testset "hyperstatistics: χ²-superstatistics → Student-t (Beck & Cohen 2003)" begin
-  # the canonical superstatistics result: X|β ~ N(0, 1/β) with the inverse-variance β ~ Gamma(ν/2, 2/ν)
+  # the canonical superstatistics result: X|β ~ 𝒩(0, 1/β) with the inverse-variance β ~ Gamma(ν/2, 2/ν)
   # has the heavy-tailed Student-t_ν marginal. Pool Gaussians over a β-grid with the Gamma mixing law.
   ν = 5.0
   Random.seed!(131)
   βs = range(0.06, 6.0; length = 60); Δβ = step(βs)
-  M = Histogram1D(-15.0, 15.0, 3000; count_type = Float64)
+  mixture = Histogram1D(-15.0, 15.0, 3000; count_type = Float64)
   for β in βs
     w = gamma_pdf(β; shape = ν / 2, scale = 2 / ν) * Δβ
     w < 1e-7 && continue
     Tk = Histogram1D(-15.0, 15.0, 3000); observe!(Tk, (1 / sqrt(β)) .* randn(30_000))
-    merge!(M, Tk; weight = w / sum(Tk.counts))
+    merge!(mixture, Tk; weight = w / sum(Tk.counts))
   end
-  @test sum(M.counts) ≈ 1.0  atol = 2e-3            # ∫ f(β) dβ = 1
+  @test sum(mixture.counts) ≈ 1.0  atol = 2e-3            # ∫ f(β) dβ = 1
 
   # recovers the Student-t marginal through the body and into the heavy tail
   for x in (0.0, 0.5, 1.0, 2.0, 3.0, 4.0)
-    @test density(M, x; h = 0.10) ≈ student_t_pdf(x; nu = ν)  rtol = 5e-2
+    @test density(mixture, x; h = 0.10) ≈ student_t_pdf(x; nu = ν)  rtol = 5e-2
   end
   # the superstatistical tail is far heavier than any single Gaussian — the signature of the mixture
-  @test density(M, 4.0; h = 0.10) > 20 * gaussian_pdf(4.0)
+  @test density(mixture, 4.0; h = 0.10) > 20 * gaussian_pdf(4.0)
 end
 
 
@@ -131,11 +131,11 @@ end
   dA = randn(80_000) .- 2.0                          # an "old" regime
   dB = randn(50_000) .+ 3.0                          # a "new" regime
   λ = 0.4
-  s = Histogram1D(-12.0, 12.0, 1200; count_type = Float64)
-  observe!(s, dA); scale!(s, λ); observe!(s, dB)
+  summary = Histogram1D(-12.0, 12.0, 1200; count_type = Float64)
+  observe!(summary, dA); scale!(summary, λ); observe!(summary, dB)
   analytic = (λ * sum(dA) + sum(dB)) / (λ * length(dA) + length(dB))
-  @test mean(s) ≈ analytic  rtol = 1e-10
-  @test sum(s.counts) ≈ λ * length(dA) + length(dB)
+  @test mean(summary) ≈ analytic  rtol = 1e-10
+  @test sum(summary.counts) ≈ λ * length(dA) + length(dB)
 end
 
 
@@ -154,8 +154,8 @@ end
 
   # the structural cone laws hold cell-wise, exactly as for Histogram1D
   @test_throws ArgumentError scale!(Histogram2D(-6.0, 6.0, 120, -6.0, 6.0, 120), 0.5)
-  a = Histogram2D(-6.0, 6.0, 120, -6.0, 6.0, 120; count_type = Float64); observe_pairs!(a, x, y)
-  w1 = Histogram2D(-6.0, 6.0, 120, -6.0, 6.0, 120; count_type = Float64); observe_pairs!(w1, x, y); merge!(w1, a; weight = 1)
-  plain = Histogram2D(-6.0, 6.0, 120, -6.0, 6.0, 120; count_type = Float64); observe_pairs!(plain, x, y); merge!(plain, a)
+  summary_a = Histogram2D(-6.0, 6.0, 120, -6.0, 6.0, 120; count_type = Float64); observe_pairs!(summary_a, x, y)
+  w1 = Histogram2D(-6.0, 6.0, 120, -6.0, 6.0, 120; count_type = Float64); observe_pairs!(w1, x, y); merge!(w1, summary_a; weight = 1)
+  plain = Histogram2D(-6.0, 6.0, 120, -6.0, 6.0, 120; count_type = Float64); observe_pairs!(plain, x, y); merge!(plain, summary_a)
   @test w1.counts == plain.counts && w1.powersums == plain.powersums
 end

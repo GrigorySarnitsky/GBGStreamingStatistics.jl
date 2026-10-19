@@ -40,15 +40,15 @@ end
   data = randn(300_000)
   full = Histogram1D(-8.0, 8.0, 1600); observe!(full, data)
   # a 3-way merge of disjoint thirds (two or more), asserted to equal the whole-stream summary
-  a = Histogram1D(-8.0, 8.0, 1600); observe!(a, view(data, 1:100_000))
-  b = Histogram1D(-8.0, 8.0, 1600); observe!(b, view(data, 100_001:200_000))
+  summary_a = Histogram1D(-8.0, 8.0, 1600); observe!(summary_a, view(data, 1:100_000))
+  summary_b = Histogram1D(-8.0, 8.0, 1600); observe!(summary_b, view(data, 100_001:200_000))
   c = Histogram1D(-8.0, 8.0, 1600); observe!(c, view(data, 200_001:300_000))
-  merge!(a, b); merge!(a, c)
+  merge!(summary_a, summary_b); merge!(summary_a, c)
   bw = bandwidth(full)
-  check_point_estimator((s, x) -> density(s, x; h = bw),                 a, full; points = [-1.0, 0.0, 1.0])
-  check_point_estimator((s, x) -> density(s, x; h = bw, degree = 1),     a, full; points = [-1.0, 0.0, 1.0])
-  check_point_estimator((s, x) -> density_standard_error(s, x; h = bw),  a, full; points = [-1.0, 0.0, 1.0])
-  check_standard_error((s, x) -> density_standard_error(s, x; h = bw),   full; points = [-1.0, 0.0, 1.0])
+  check_point_estimator((summary, x) -> density(summary, x; h = bw),                 summary_a, full; points = [-1.0, 0.0, 1.0])
+  check_point_estimator((summary, x) -> density(summary, x; h = bw, degree = 1),     summary_a, full; points = [-1.0, 0.0, 1.0])
+  check_point_estimator((summary, x) -> density_standard_error(summary, x; h = bw),  summary_a, full; points = [-1.0, 0.0, 1.0])
+  check_standard_error((summary, x) -> density_standard_error(summary, x; h = bw),   full; points = [-1.0, 0.0, 1.0])
 end
 
 @testset "density: affine equivariance — f̂_Y(ax+b) = f̂_X(x)/a (§4.1)" begin
@@ -59,13 +59,13 @@ end
   # of a droplet radius cannot depend on whether it is measured in μm or m.
   Random.seed!(91)
   X = randn(200_000)
-  a = 7.3; b = -2.1
+  slope = 7.3; shift = -2.1
   hX = Histogram1D(-8.0, 8.0, 1600); observe!(hX, X)
-  hY = Histogram1D(a * (-8.0) + b, a * 8.0 + b, 1600); observe!(hY, a .* X .+ b)   # range scaled + shifted alike
+  hY = Histogram1D(slope * (-8.0) + shift, slope * 8.0 + shift, 1600); observe!(hY, slope .* X .+ shift)   # range scaled + shifted alike
   hbw = 0.3
   for degree in (0, 1), x in (-1.5, 0.0, 1.0, 2.5)
-    @test density(hY, a * x + b; h = a * hbw, degree = degree) ≈
-          density(hX, x; h = hbw, degree = degree) / a  rtol = 1e-10
+    @test density(hY, slope * x + shift; h = slope * hbw, degree = degree) ≈
+          density(hX, x; h = hbw, degree = degree) / slope  rtol = 1e-10
   end
 end
 
@@ -191,7 +191,7 @@ end
 
   # h^{-1/2} bandwidth scaling (asymptotic): a flat density at small h ⇒ SE(2h) ≈ SE(h)/√2
   u = Histogram1D(-0.5, 1.5, 4000); observe!(u, rand(600_000))
-  check_se_bandwidth_scaling((s, x, hh) -> density_standard_error(s, x; h = hh), u, 0.5; h = 0.005, rtol = 0.05)
+  check_se_bandwidth_scaling((summary, x, hh) -> density_standard_error(summary, x; h = hh), u, 0.5; h = 0.005, rtol = 0.05)
 
   # density_with_standard_error: one option spec ⇒ estimate and error match the separate calls exactly
   for x in (-1.0, 0.0, 1.3)
@@ -202,8 +202,8 @@ end
   rv = density_with_standard_error(hg, [-1.0, 0.0, 1.0]; h = bw)
   @test rv.value == density(hg, [-1.0, 0.0, 1.0]; h = bw)
   @test rv.standard_error == density_standard_error(hg, [-1.0, 0.0, 1.0]; h = bw)
-  # ... and each half against its closed form: a Gaussian-kernel KDE of N(0, 1) data has mean exactly
-  # the N(0, 1 + h²) pdf (the convolution), so the value is checked against that with no bias allowance,
+  # ... and each half against its closed form: a Gaussian-kernel KDE of 𝒩(0, 1) data has mean exactly
+  # the 𝒩(0, 1 + h²) pdf (the convolution), so the value is checked against that with no bias allowance,
   # and the SE against √(R(K) f/(n h) − f²/n) evaluated at it, R(K) = 1/(2√π)
   nn = 200_000
   for x in (-1.0, 0.0, 1.0)
@@ -218,8 +218,8 @@ end
   Random.seed!(51); K = 25; per = 40_000
   summaries = Histogram1D[]; ests = Float64[]
   for _ in 1:K
-    s = Histogram1D(-8.0, 8.0, 800); observe!(s, randn(per))
-    push!(summaries, s); push!(ests, density(s, 0.0; h = bw))
+    summary = Histogram1D(-8.0, 8.0, 800); observe!(summary, randn(per))
+    push!(summaries, summary); push!(ests, density(summary, 0.0; h = bw))
   end
   @test density_standard_error(summaries[1], 0.0; h = bw) ≈ std(ests) rtol = 0.2
 end
@@ -271,11 +271,11 @@ end
 
   # mergeable: a deterministic functional of the bin counts
   Random.seed!(43); d1 = -log.(rand(120_000)); d2 = -log.(rand(120_000))
-  a = Histogram1D(0.0, 12.0, 1200); observe!(a, d1)
-  b = Histogram1D(0.0, 12.0, 1200); observe!(b, d2)
+  summary_a = Histogram1D(0.0, 12.0, 1200); observe!(summary_a, d1)
+  summary_b = Histogram1D(0.0, 12.0, 1200); observe!(summary_b, d2)
   both = Histogram1D(0.0, 12.0, 1200); observe!(both, vcat(d1, d2))
-  merge!(a, b)
-  @test density(a, 0.5; kernel = gamma_kernel) ≈ density(both, 0.5; kernel = gamma_kernel)
+  merge!(summary_a, summary_b)
+  @test density(summary_a, 0.5; kernel = gamma_kernel) ≈ density(both, 0.5; kernel = gamma_kernel)
 
   # the asymmetric kernel is its own estimator: degree / adaptive / support / bad-h are rejected
   @test_throws ArgumentError density(he, 0.5; kernel = gamma_kernel, degree = 1)
@@ -351,12 +351,12 @@ end
 
   # mergeable: the start parameters merge through the recovered moments, the reweighted counts add
   Random.seed!(53); d1 = exp.(σln .* randn(100_000)); d2 = exp.(σln .* randn(100_000))
-  a = Histogram1D(0.0, 25.0, 1250); observe!(a, d1)
-  b = Histogram1D(0.0, 25.0, 1250); observe!(b, d2)
+  summary_a = Histogram1D(0.0, 25.0, 1250); observe!(summary_a, d1)
+  summary_b = Histogram1D(0.0, 25.0, 1250); observe!(summary_b, d2)
   both = Histogram1D(0.0, 25.0, 1250); observe!(both, vcat(d1, d2))
-  merge!(a, b)
+  merge!(summary_a, summary_b)
   for x in (0.5, 1.5, 3.0)
-    @test density(a, x; start = lognormal_start, normalize = true) ≈
+    @test density(summary_a, x; start = lognormal_start, normalize = true) ≈
           density(both, x; start = lognormal_start, normalize = true)  rtol = 1e-9
   end
 

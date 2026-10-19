@@ -23,9 +23,9 @@ include("public_surface.jl")
   # the scalar fold is a direct host update: exactly zero
   @alloc_below 1 observe!(h, 0.4)
 
-  a = Histogram1D(-8.0, 8.0, 1000; order = 6); observe!(a, batch)
-  b = Histogram1D(-8.0, 8.0, 1000; order = 6); observe!(b, batch)
-  @alloc_below 1 merge!(a, b)
+  summary_a = Histogram1D(-8.0, 8.0, 1000; order = 6); observe!(summary_a, batch)
+  summary_b = Histogram1D(-8.0, 8.0, 1000; order = 6); observe!(summary_b, batch)
+  @alloc_below 1 merge!(summary_a, summary_b)
 
   # the cone operations (scale! and the weighted merge!) are in-place broadcasts — also allocation-free
   c = Histogram1D(-8.0, 8.0, 1000; order = 6, count_type = Float64); observe!(c, batch)

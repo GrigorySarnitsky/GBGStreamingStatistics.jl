@@ -43,11 +43,11 @@ end
 
   @testset "independent-Gaussian oracle (marginals + covariance)" begin
     Random.seed!(202406)
-    N = 1_000_000
-    X = randn(N); Y = randn(N)                                # independent
+    n = 1_000_000
+    X = randn(n); Y = randn(n)                                # independent
     h = Histogram2D(-6.0, 6.0, 120, -6.0, 6.0, 120)
     observe_pairs!(h, X, Y)
-    @test H._total(h) == count(i -> -6 ≤ X[i] < 6 && -6 ≤ Y[i] < 6, 1:N)
+    @test H._total(h) == count(i -> -6 ≤ X[i] < 6 && -6 ≤ Y[i] < 6, 1:n)
     xbar, ybar, vx, vy, cov = recover_2d(h)
     @test xbar ≈ 0 atol = 5e-3
     @test ybar ≈ 0 atol = 5e-3
@@ -60,11 +60,11 @@ end
     Random.seed!(11)
     X = randn(400_000); Y = randn(400_000)
     full = Histogram2D(-6.0, 6.0, 80, -6.0, 6.0, 80); observe_pairs!(full, X, Y)
-    a = Histogram2D(-6.0, 6.0, 80, -6.0, 6.0, 80); observe_pairs!(a, view(X, 1:200_000), view(Y, 1:200_000))
-    b = Histogram2D(-6.0, 6.0, 80, -6.0, 6.0, 80); observe_pairs!(b, view(X, 200_001:400_000), view(Y, 200_001:400_000))
-    merge!(a, b)
-    @test a.counts == full.counts
-    @test a.powersums ≈ full.powersums rtol = 1e-9 atol = 1e-10
+    summary_a = Histogram2D(-6.0, 6.0, 80, -6.0, 6.0, 80); observe_pairs!(summary_a, view(X, 1:200_000), view(Y, 1:200_000))
+    summary_b = Histogram2D(-6.0, 6.0, 80, -6.0, 6.0, 80); observe_pairs!(summary_b, view(X, 200_001:400_000), view(Y, 200_001:400_000))
+    merge!(summary_a, summary_b)
+    @test summary_a.counts == full.counts
+    @test summary_a.powersums ≈ full.powersums rtol = 1e-9 atol = 1e-10
     @test_throws ArgumentError merge!(Histogram2D(-6.0, 6.0, 80, -6.0, 6.0, 80),
                                       Histogram2D(-5.0, 6.0, 80, -6.0, 6.0, 80))
 

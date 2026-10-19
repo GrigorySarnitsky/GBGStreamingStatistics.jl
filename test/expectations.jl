@@ -1,8 +1,8 @@
-# Tests for the §4.B power-sum quadrature readouts: `expectation` (E[g(X)]), its sampling
+# Tests for the §4.B power-sum quadrature readouts: `expectation` (𝔼[g(X)]), its sampling
 # `expectation_standard_error`, and `pushforward_density` (the density of Y = g(X)). Oracles: the Gaussian
-# moment-generating / trigonometric expectations (E[cos X] = e^{-σ²/2}, etc.), polynomial exactness of the
+# moment-generating / trigonometric expectations (𝔼[cos X] = e^{-σ²/2}, etc.), polynomial exactness of the
 # quadrature, and the lognormal / χ²₁ pushforwards (the latter non-monotone). Plus the moment unification
-# (E[x^p] equals the recovered moments) and mergeability.
+# (𝔼[x^p] equals the recovered moments) and mergeability.
 
 using Test
 using GBGStreamingStatistics
@@ -13,11 +13,11 @@ const LOWER, UPPER, NBINS = -8.0, 8.0, 4096
 
 @testset "expectation: Gaussian oracles + moment unification" begin
   Random.seed!(20260701)
-  data = randn(300_000)                       # X ~ N(0, 1)
+  data = randn(300_000)                       # X ~ 𝒩(0, 1)
   h = Histogram1D(LOWER, UPPER, NBINS)
   observe!(h, data)
 
-  # Trigonometric / MGF oracles: E[cos X] = e^{-1/2}, E[sin X] = 0, E[e^X] = e^{1/2}.
+  # Trigonometric / MGF oracles: 𝔼[cos X] = e^{-1/2}, 𝔼[sin X] = 0, 𝔼[e^X] = e^{1/2}.
   @test expectation(h, cos) ≈ exp(-0.5) atol = 0.01
   @test abs(expectation(h, sin)) < 0.01
   @test expectation(h, exp) ≈ exp(0.5) rtol = 0.02
@@ -60,7 +60,7 @@ end
   # SE of the empirical mean: g = identity ⇒ std(uncorrected)/√n exactly.
   @test expectation_standard_error(h, identity) ≈ std(h; corrected = false) / sqrt(n) rtol = 1e-10
 
-  # SE of E[cos X]: √(Var(cos X)/n), matching the raw empirical variance of cos(Xᵢ).
+  # SE of 𝔼[cos X]: √(Var(cos X)/n), matching the raw empirical variance of cos(Xᵢ).
   @test expectation_standard_error(h, cos) ≈ sqrt(var(cos.(data); corrected = false) / n) atol = 1e-6
   @test expectation_standard_error(h, cos) > 0
 
@@ -78,12 +78,12 @@ end
   Random.seed!(199)
   reps = Float64[]; repses = Float64[]
   for _ in 1:40
-    s = Histogram1D(LOWER, UPPER, NBINS); observe!(s, randn(30_000))
-    push!(reps, expectation(s, cos)); push!(repses, expectation_standard_error(s, cos))
+    summary = Histogram1D(LOWER, UPPER, NBINS); observe!(summary, randn(30_000))
+    push!(reps, expectation(summary, cos)); push!(repses, expectation_standard_error(summary, cos))
   end
   s0 = Histogram1D(LOWER, UPPER, NBINS); observe!(s0, randn(30_000))
   @test expectation_standard_error(s0, cos) ≈ std(reps) rtol = 0.2
-  # coverage (frequentist): the 95% band Ê ± 1.96·SE brackets the truth E[cos X] = e^{-1/2} across the
+  # coverage (frequentist): the 95% band Ê ± 1.96·SE brackets the truth 𝔼[cos X] = e^{-1/2} across the
   # independent datasets (aggregate; expectation is near-unbiased, so coverage sits near the nominal 0.95)
   covered = count(i -> abs(reps[i] - exp(-0.5)) ≤ 1.96 * repses[i], eachindex(reps))
   @test covered / length(reps) ≥ 0.8
@@ -93,8 +93,8 @@ end
   @test r.value == expectation(h, cos)
   @test r.standard_error == expectation_standard_error(h, cos)
   @test isnan(expectation_with_standard_error(Histogram1D(LOWER, UPPER, NBINS), cos).standard_error)
-  # ... and each half against its closed form on N(0, 1): E[cos X] = e^{-1/2}, and
-  # Var(cos X) = E[cos² X] − E[cos X]² = (1 + e^{-2})/2 − e^{-1}, so SE = √(Var(cos X)/n)
+  # ... and each half against its closed form on 𝒩(0, 1): 𝔼[cos X] = e^{-1/2}, and
+  # Var(cos X) = 𝔼[cos² X] − 𝔼[cos X]² = (1 + e^{-2})/2 − e^{-1}, so SE = √(Var(cos X)/n)
   closed_se = sqrt(((1 + exp(-2)) / 2 - exp(-1)) / n)
   @test r.value ≈ exp(-0.5) atol = 4 * closed_se
   @test r.standard_error ≈ closed_se rtol = 0.02
@@ -142,8 +142,8 @@ end
   # Monte-Carlo: the SE predicts the empirical spread of f̂_{exp(X)}(1) across independent datasets
   Random.seed!(77); chunks = Histogram1D[]; mc = Float64[]
   for _ in 1:30
-    s = Histogram1D(-8.0, 8.0, 1600); observe!(s, randn(40_000)); push!(chunks, s)
-    push!(mc, pushforward_density(s, exp, 1.0; h = 0.12))
+    summary = Histogram1D(-8.0, 8.0, 1600); observe!(summary, randn(40_000)); push!(chunks, summary)
+    push!(mc, pushforward_density(summary, exp, 1.0; h = 0.12))
   end
   @test pushforward_density_standard_error(chunks[1], exp, 1.0; h = 0.12) ≈ std(mc) rtol = 0.2
   # coverage: the 95% band f̂ ± 1.96·SE brackets the truth f_{exp(X)}(y) across the interior (aggregate; the
@@ -174,11 +174,11 @@ end
   Random.seed!(11)
   d1 = randn(50_000)
   d2 = randn(70_000)
-  a = Histogram1D(LOWER, UPPER, NBINS); observe!(a, d1)
-  b = Histogram1D(LOWER, UPPER, NBINS); observe!(b, d2)
+  summary_a = Histogram1D(LOWER, UPPER, NBINS); observe!(summary_a, d1)
+  summary_b = Histogram1D(LOWER, UPPER, NBINS); observe!(summary_b, d2)
   full = Histogram1D(LOWER, UPPER, NBINS); observe!(full, vcat(d1, d2))
-  merge!(a, b)
-  @test expectation(a, cos) ≈ expectation(full, cos) rtol = 1e-12
-  @test expectation(a, exp) ≈ expectation(full, exp) rtol = 1e-12
-  @test pushforward_density(a, exp, 1.3; h = 0.15) ≈ pushforward_density(full, exp, 1.3; h = 0.15) rtol = 1e-10
+  merge!(summary_a, summary_b)
+  @test expectation(summary_a, cos) ≈ expectation(full, cos) rtol = 1e-12
+  @test expectation(summary_a, exp) ≈ expectation(full, exp) rtol = 1e-12
+  @test pushforward_density(summary_a, exp, 1.3; h = 0.15) ≈ pushforward_density(full, exp, 1.3; h = 0.15) rtol = 1e-10
 end
