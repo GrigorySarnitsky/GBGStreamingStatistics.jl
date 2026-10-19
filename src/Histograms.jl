@@ -101,10 +101,10 @@ function Histogram1D(lower::Real, upper::Real, nbins::Integer;
 end
 
 
-_nbins(h::Histogram1D) = length(h.counts)
-_order(h::Histogram1D) = size(h.powersums, 1)
-_bincenter(h::Histogram1D, i::Integer) = h.lower + (oftype(h.lower, i) - oftype(h.lower, 0.5)) / h.scale
-_total(h::Histogram1D) = sum(h.counts)
+_nbins(summary::Histogram1D) = length(summary.counts)
+_order(summary::Histogram1D) = size(summary.powersums, 1)
+_bincenter(summary::Histogram1D, i::Integer) = summary.lower + (oftype(summary.lower, i) - oftype(summary.lower, 0.5)) / summary.scale
+_total(summary::Histogram1D) = sum(summary.counts)
 
 
 # `bin_index` (the binning map, `floor(Int, (x - lower) * scale) + 1`) is archived: it had no internal
@@ -170,8 +170,8 @@ _compatible(a::Histogram1D, b::Histogram1D) =
 
 # scale! and a weighted merge! produce fractional counts, so they need a Float-count summary
 # (`count_type = Float64`); the default UInt64 counts would truncate a weighted count λ·n. Guard, clearly.
-_require_float_counts(h, op) =
-  eltype(h.counts) <: AbstractFloat || throw(ArgumentError(
+_require_float_counts(summary, op) =
+  eltype(summary.counts) <: AbstractFloat || throw(ArgumentError(
     "$op needs a Float-count summary: construct with `count_type = Float64` (the default `UInt64` counts cannot hold a fractional weighted count)"))
 
 
@@ -280,10 +280,10 @@ function Histogram2D(x_lower::Real, x_upper::Real, n_x::Integer, y_lower::Real, 
 end
 
 
-_ncells(h::Histogram2D) = length(h.counts)
-_total(h::Histogram2D) = sum(h.counts)
-_xbincenter(h::Histogram2D, i_x::Integer) = h.x_lower + (oftype(h.x_lower, i_x) - oftype(h.x_lower, 0.5)) / h.x_scale
-_ybincenter(h::Histogram2D, i_y::Integer) = h.y_lower + (oftype(h.y_lower, i_y) - oftype(h.y_lower, 0.5)) / h.y_scale
+_ncells(summary::Histogram2D) = length(summary.counts)
+_total(summary::Histogram2D) = sum(summary.counts)
+_xbincenter(summary::Histogram2D, i_x::Integer) = summary.x_lower + (oftype(summary.x_lower, i_x) - oftype(summary.x_lower, 0.5)) / summary.x_scale
+_ybincenter(summary::Histogram2D, i_y::Integer) = summary.y_lower + (oftype(summary.y_lower, i_y) - oftype(summary.y_lower, 0.5)) / summary.y_scale
 
 
 # Per-x-column reduction of a `Histogram2D` (the regression-ready sufficient statistic): for each x-bin j,

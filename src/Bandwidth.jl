@@ -48,17 +48,17 @@ function _distance_hist(counts)
 end
 
 
-# The density functional ψ_r(h̃) at the pilot bandwidth h̃ (the code's `g`) = (1/(n²h̃^{r+1}))[Σ_{j,j′} n_j n_{j′} φ⁽ʳ⁾((c_j−c_{j′})/h̃) − nφ⁽ʳ⁾(0)],
+# The density functional ψ_r(h̃) at the pilot bandwidth h̃ = (1/(n²h̃^{r+1}))[Σ_{j,j′} n_j n_{j′} φ⁽ʳ⁾((c_j−c_{j′})/h̃) − nφ⁽ʳ⁾(0)],
 # the n self-pairs removed, from the distance histogram. φ⁽ʳ⁾ is even, so bin-lags ±m fold to 2·dist[m].
-function _psi(dist, binwidth, n, g, phi_r, r)
+function _psi(dist, binwidth, n, pilot_bandwidth, phi_r, r)
   acc = dist[1] * phi_r(0.0)
   @inbounds for m in 1:length(dist)-1
     d = dist[m + 1]
     d == 0 && continue
-    acc += 2 * d * phi_r(m * binwidth / g)
+    acc += 2 * d * phi_r(m * binwidth / pilot_bandwidth)
   end
   acc -= n * phi_r(0.0)
-  return acc / (n^2 * g^(r + 1))
+  return acc / (n^2 * pilot_bandwidth^(r + 1))
 end
 
 
@@ -252,17 +252,17 @@ end
 # bounded / positive support this is the robust route: w(x) → 0 at the boundary suppresses the symmetric
 # pilot's edge leakage, and — unlike the φ⁴ integration-by-parts U-statistic of `_psi` — it assumes no
 # boundary-vanishing, so it stays valid where f_X(0) > 0 (e.g. the exponential, where the U-statistic fails).
-function _curvature_grid(counts, centers, occ, n, g, weight, lower, upper)
+function _curvature_grid(counts, centers, occ, n, pilot_bandwidth, weight, lower, upper)
   npts = 2048
   step = (upper - lower) / (npts - 1)
-  inv_g = inv(g)
-  pref = inv(n * g^3) / sqrt(2π)
+  inv_pilot = inv(pilot_bandwidth)
+  pref = inv(n * pilot_bandwidth^3) / sqrt(2π)
   acc = 0.0
   @inbounds for m in 0:npts-1
     x = lower + m * step
     fpp = 0.0
     for j in occ
-      u = (x - centers[j]) * inv_g
+      u = (x - centers[j]) * inv_pilot
       fpp += counts[j] * (u * u - 1) * exp(-u * u / 2)
     end
     fpp *= pref
@@ -273,7 +273,7 @@ function _curvature_grid(counts, centers, occ, n, g, weight, lower, upper)
   @inbounds for j in occ
     ew2 += counts[j] * weight(centers[j])^2
   end
-  bias = (3 / (8 * sqrt(π))) * (ew2 / n) / (n * g^5)   # the f̂_X'' variance inflation, R(φ'')·𝔼[w²]/(n h̃⁵)
+  bias = (3 / (8 * sqrt(π))) * (ew2 / n) / (n * pilot_bandwidth^5)   # the f̂_X'' variance inflation, R(φ'')·𝔼[w²]/(n h̃⁵)
   return max(acc - bias, 0.0)
 end
 
@@ -297,10 +297,10 @@ function _plugin_asymmetric(summary::Histogram1D, kernel::AsymmetricKernel)
   # 1.06 is — so the bias-corrected curvature gives a bandwidth that is robust across positive densities
   # (never materially worse than the rule of thumb, ≈ 1.4–1.7× lower ISE on skewed data). The
   # fully-adaptive solve-the-equation pilot is a recorded refinement (CLAUDE.md roadmap).
-  g = 1.3 * scale * n^(-1 / 9)
+  pilot_bandwidth = 1.3 * scale * n^(-1 / 9)
   lower = max(klower, float(summary.lower))
   upper = min(kupper, float(summary.upper))
-  curvature = _curvature_grid(counts, centers, occ, n, g, weight, lower, upper)
+  curvature = _curvature_grid(counts, centers, occ, n, pilot_bandwidth, weight, lower, upper)
   curvature > 0 ||
     throw(ArgumentError("plug-in curvature estimate ≤ 0 (sample too sparse or nearly flat); use rule = :normal"))
   ew = sum(counts[j] * weight(centers[j])^(-1 / 2) for j in occ) / n   # 𝔼[w(X)^(−1/2)]

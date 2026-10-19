@@ -283,14 +283,14 @@ function _abramson(counts, centers, n, kernel, h)
     iszero(counts[j]) && continue
     pilot[j] = _kde_h(counts, centers, n, centers[j], kernel, h)
   end
-  logg = 0.0
+  log_geometric_mean = 0.0
   @inbounds for j in 1:nb
     (counts[j] > 0 && pilot[j] > 0) || continue
-    logg += counts[j] * log(pilot[j])
+    log_geometric_mean += counts[j] * log(pilot[j])
   end
-  g = exp(logg / n)
-  h_j = [pilot[j] > 0 ? h * sqrt(g / pilot[j]) : h for j in 1:nb]
-  return h_j, g
+  geometric_mean = exp(log_geometric_mean / n)
+  h_j = [pilot[j] > 0 ? h * sqrt(geometric_mean / pilot[j]) : h for j in 1:nb]
+  return h_j, geometric_mean
 end
 
 
@@ -314,7 +314,7 @@ end
 # moments) — a local GLM is the linear solve iterated (`docs/ARCHITECTURE.md` §11). Warm-started from
 # the KDE value `f_0`; falls back to it where the local design can't support degree d (singular) or the
 # fit diverges.
-function _local_log(counts, centers, n, x, kernel, degree, h_x, b, f_0)
+function _local_log(counts, centers, n, x, kernel, degree, h_at_x, b, f_0)
   (f_0 > 0 && isfinite(f_0)) || return f_0
   p = degree + 1
   β = zeros(p)
@@ -327,8 +327,8 @@ function _local_log(counts, centers, n, x, kernel, degree, h_x, b, f_0)
     fill!(momμ, 0.0)
     @inbounds for j in eachindex(centers)
       d = centers[j] - x
-      w = _kernel_weight(centers[j], x, kernel, h_x)
-      w * h_x < 1e-10 && continue        # cut on the raw kernel value (scale-free), not the 1/h_x-folded weight
+      w = _kernel_weight(centers[j], x, kernel, h_at_x)
+      w * h_at_x < 1e-10 && continue        # cut on the raw kernel value (scale-free), not the 1/h_at_x-folded weight
       η = β[1]
       dl = 1.0
       for l in 2:p
@@ -363,7 +363,7 @@ end
 # h (f̃_X(x)/G)^(−1/2) evaluated *at the query point* (so the fit window stays local). The factor
 # is clipped at 5 so the window does not blow up in the deep tail (where f̃_X(x) → 0) and the
 # local polynomial extrapolate upward.
-@inline _balloon(h, g, f_0, adaptive) = (adaptive && f_0 > 0) ? h * min(sqrt(g / f_0), 5.0) : float(h)
+@inline _balloon(h, geometric_mean, f_0, adaptive) = (adaptive && f_0 > 0) ? h * min(sqrt(geometric_mean / f_0), 5.0) : float(h)
 
 
 # --- boundary renormalization (Jones 1993): divide the degree-0 KDE by the kernel mass that lands inside
@@ -373,13 +373,13 @@ end
 _kernel_cdf(kernel, t) = _quad(s -> s ≤ t ? kernel(s) : 0.0)
 
 
-# The fraction of a kernel centred at x (bandwidth h) inside the support [lower, upper] (the arguments `a`, `b`):
+# The fraction of a kernel centred at x (bandwidth h) inside the support [lower, upper] (the arguments `lower`, `upper`):
 # a(x) = ∫_lower^upper K_h(x − v) dv = CDF_K((x − lower)/h) − CDF_K((x − upper)/h)  (lower = −∞ ⇒ the first
 # term is 1; upper = +∞ ⇒ the second is 0).
-function _kernel_mass(kernel, x, h, a, b)
-  upper = isfinite(a) ? _kernel_cdf(kernel, (x - a) / h) : 1.0
-  lower = isfinite(b) ? _kernel_cdf(kernel, (x - b) / h) : 0.0
-  return upper - lower
+function _kernel_mass(kernel, x, h, lower, upper)
+  cdf_lower = isfinite(lower) ? _kernel_cdf(kernel, (x - lower) / h) : 1.0
+  cdf_upper = isfinite(upper) ? _kernel_cdf(kernel, (x - upper) / h) : 0.0
+  return cdf_lower - cdf_upper
 end
 
 
@@ -562,9 +562,9 @@ function density(summary::Histogram1D, x::Real; kernel = gaussian_kernel,
     fx = _kde_adaptive(counts, centers, n, x, kernel, h_j)
     return support === nothing ? fx : fx / _kernel_mass(kernel, x, hh, support[1], support[2])
   end
-  g = adaptive ? _abramson(counts, centers, n, kernel, hh)[2] : 1.0
+  geometric_mean = adaptive ? _abramson(counts, centers, n, kernel, hh)[2] : 1.0
   f_0 = _kde_h(counts, centers, n, x, kernel, hh)
-  return _local_log(counts, centers, n, x, kernel, degree, _balloon(hh, g, f_0, adaptive),
+  return _local_log(counts, centers, n, x, kernel, degree, _balloon(hh, geometric_mean, f_0, adaptive),
                     inv(summary.scale), f_0)
 end
 
@@ -621,10 +621,10 @@ function density(summary::Histogram1D, xs::AbstractVector; kernel = gaussian_ker
     return support === nothing ? fxs : [f / _kernel_mass(kernel, x, hh, support[1], support[2]) for (f, x) in zip(fxs, xs)]
   end
   b = inv(summary.scale)
-  g = adaptive ? _abramson(counts, centers, n, kernel, hh)[2] : 1.0
+  geometric_mean = adaptive ? _abramson(counts, centers, n, kernel, hh)[2] : 1.0
   return [begin
             f_0 = _kde_h(counts, centers, n, x, kernel, hh)
-            _local_log(counts, centers, n, x, kernel, degree, _balloon(hh, g, f_0, adaptive), b, f_0)
+            _local_log(counts, centers, n, x, kernel, degree, _balloon(hh, geometric_mean, f_0, adaptive), b, f_0)
           end for x in xs]
 end
 
@@ -634,11 +634,11 @@ end
 # `_kernel_mass`'s a(x)): the CDF of K² up to (x − lower)/h minus up to (x − upper)/h. Interior / no `support` ⇒ the full R(K) = ∫K².
 _kernel_sq_cdf(kernel, t) = _quad(s -> s ≤ t ? kernel(s)^2 : 0.0)
 
-function _kernel_sq_mass(kernel, x, h, a, b)
+function _kernel_sq_mass(kernel, x, h, lower, upper)
   full = _quad(s -> kernel(s)^2)
-  hi = isfinite(a) ? _kernel_sq_cdf(kernel, (x - a) / h) : full
-  lo = isfinite(b) ? _kernel_sq_cdf(kernel, (x - b) / h) : 0.0
-  return hi - lo
+  cdf_lower = isfinite(lower) ? _kernel_sq_cdf(kernel, (x - lower) / h) : full
+  cdf_upper = isfinite(upper) ? _kernel_sq_cdf(kernel, (x - upper) / h) : 0.0
+  return cdf_lower - cdf_upper
 end
 
 
@@ -663,9 +663,9 @@ function _se_scale(summary::Histogram1D, x, kernel, hh, adaptive, support, binni
   if adaptive
     counts = Array(summary.counts)
     centers = _bin_locations(summary, counts, binning)
-    _, g = _abramson(counts, centers, n, kernel, hh)
+    _, geometric_mean = _abramson(counts, centers, n, kernel, hh)
     pilot = _kde_h(counts, centers, n, x, kernel, hh)
-    heff = _balloon(hh, g, pilot, true)
+    heff = _balloon(hh, geometric_mean, pilot, true)
   end
   slower, supper = support === nothing ? (-Inf, Inf) : (float(support[1]), float(support[2]))
   Reff = _kernel_sq_mass(kernel, x, hh, slower, supper)

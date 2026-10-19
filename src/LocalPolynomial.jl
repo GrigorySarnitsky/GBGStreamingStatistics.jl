@@ -123,8 +123,8 @@ end
 # (the 1/h in K_h cancels between U and W). Degenerate design (too little local data) ⇒ NaN.
 function _leverage(locations, weights, x, kernel, degree, h)
   hf = float(h)
-  M = zeros(Float64, 2 * degree + 1)         # plain-kernel design moments U_p = Σ_j N_j K_h(c_j−x)(c_j−x)^p
-  Q = zeros(Float64, 2 * degree + 1)         # squared-kernel moments      W_p = Σ_j N_j K_h(c_j−x)²(c_j−x)^p
+  U_p = zeros(Float64, 2 * degree + 1)         # plain-kernel design moments U_p = Σ_j N_j K_h(c_j−x)(c_j−x)^p
+  W_p = zeros(Float64, 2 * degree + 1)         # squared-kernel moments      W_p = Σ_j N_j K_h(c_j−x)²(c_j−x)^p
   @inbounds for j in eachindex(locations)
     wj = weights[j]
     iszero(wj) && continue
@@ -133,27 +133,27 @@ function _leverage(locations, weights, x, kernel, degree, h)
     dloc = locations[j] - x
     p = 1.0
     for l in 0:2 * degree
-      M[l + 1] += wj * kw * p
-      Q[l + 1] += wj * kw^2 * p
+      U_p[l + 1] += wj * kw * p
+      W_p[l + 1] += wj * kw^2 * p
       p *= dloc
     end
   end
   d1 = degree + 1
-  Mmat = Matrix{Float64}(undef, d1, d1)
-  Qmat = Matrix{Float64}(undef, d1, d1)
+  U = Matrix{Float64}(undef, d1, d1)
+  W = Matrix{Float64}(undef, d1, d1)
   @inbounds for j in 1:d1, i in 1:d1
-    Mmat[i, j] = M[i + j - 1]
-    Qmat[i, j] = Q[i + j - 1]
+    U[i, j] = U_p[i + j - 1]
+    W[i, j] = W_p[i + j - 1]
   end
   e_0 = zeros(Float64, d1)
   e_0[1] = 1.0
   u = try
-    Mmat \ e_0
+    U \ e_0
   catch
     return NaN
   end
   all(isfinite, u) || return NaN
-  return dot(u, Qmat, u)                      # e_0ᵀ U⁻¹ W U⁻¹ e_0 = Σ_j N_j ω_j²
+  return dot(u, W, u)                      # e_0ᵀ U⁻¹ W U⁻¹ e_0 = Σ_j N_j ω_j²
 end
 
 

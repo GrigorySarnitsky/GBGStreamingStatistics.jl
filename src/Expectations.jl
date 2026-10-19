@@ -30,20 +30,20 @@ export mean, var, std, central_moment,
 # recovered moments are the g = x^p / (x−X̄)^p case (closed-form binomial coefficients — the shift
 # formula); the general `expectation` supplies interpolation coefficients for a general smooth g. Reads
 # the summary to the host first (a no-op for CPU arrays). Returns 𝔼[g] (NaN for an empty summary).
-function _quadrature(h::Histogram1D, coeffs!)
-  P = _order(h)
-  counts = Array(h.counts)
-  S = Array(h.powersums)
-  a = zeros(Float64, P + 1)          # reused per-bin coefficient buffer (a[p+1] ↔ (x−c_j)^p)
+function _quadrature(summary::Histogram1D, coeffs!)
+  order = _order(summary)
+  counts = Array(summary.counts)
+  S = Array(summary.powersums)
+  a = zeros(Float64, order + 1)          # reused per-bin coefficient buffer (a[p+1] ↔ (x−c_j)^p)
   n = 0.0
   acc = 0.0
   @inbounds for j in eachindex(counts)
-    nj = counts[j]
-    iszero(nj) && continue
-    n += nj
-    coeffs!(a, _bincenter(h, j))
-    acc += a[1] * nj                 # p = 0 term: S_0^(j) = n_j
-    for p in 1:P
+    n_j = counts[j]
+    iszero(n_j) && continue
+    n += n_j
+    coeffs!(a, _bincenter(summary, j))
+    acc += a[1] * n_j                 # p = 0 term: S_0^(j) = n_j
+    for p in 1:order
       acc += a[p + 1] * S[p, j]
     end
   end
@@ -51,13 +51,13 @@ function _quadrature(h::Histogram1D, coeffs!)
 end
 
 
-# Local coefficients of the raw monomial x^p (p the argument `m`) about c_j:
+# Local coefficients of the raw monomial x^p about c_j:
 # (c_j + (x − c_j))^p = Σ_k binom(p,k) c_j^{p−k} (x − c_j)^k, so a[k+1] = binom(p,k) c_j^{p−k} for k ≤ p
 # (0 above). The g = x^p instance of the quadrature.
-function _monomial_coeffs!(a, c_j, m, P)
+function _monomial_coeffs!(a, c_j, p, order)
   fill!(a, 0.0)
-  @inbounds for k in 0:min(m, P)
-    a[k + 1] = binomial(m, k) * c_j^(m - k)
+  @inbounds for k in 0:min(p, order)
+    a[k + 1] = binomial(p, k) * c_j^(p - k)
   end
   return a
 end
@@ -66,30 +66,30 @@ end
 # Local coefficients of the central monomial (x−X̄)^p (X̄ the argument `mu`) about c_j:
 # (c_j − X̄ + (x − c_j))^p, so a[k+1] = binom(p,k)(c_j − X̄)^{p−k}. The g = (x−X̄)^p instance (the shift
 # formula for central moments).
-function _central_coeffs!(a, c_j, mu, p, P)
+function _central_coeffs!(a, c_j, mu, p, order)
   fill!(a, 0.0)
   d = c_j - mu
-  @inbounds for k in 0:min(p, P)
+  @inbounds for k in 0:min(p, order)
     a[k + 1] = binomial(p, k) * d^(p - k)
   end
   return a
 end
 
 
-_sample_mean(h::Histogram1D) =
-  (P = _order(h); _quadrature(h, (a, c_j) -> _monomial_coeffs!(a, c_j, 1, P)))
+_sample_mean(summary::Histogram1D) =
+  (order = _order(summary); _quadrature(summary, (a, c_j) -> _monomial_coeffs!(a, c_j, 1, order)))
 
-function _sample_central_moment(h::Histogram1D, p::Integer)
-  2 ≤ p ≤ _order(h) ||
-    throw(ArgumentError("central-moment order p must satisfy 2 ≤ p ≤ $(_order(h)) (got $p)"))
-  mu = _sample_mean(h)
+function _sample_central_moment(summary::Histogram1D, p::Integer)
+  2 ≤ p ≤ _order(summary) ||
+    throw(ArgumentError("central-moment order p must satisfy 2 ≤ p ≤ $(_order(summary)) (got $p)"))
+  mu = _sample_mean(summary)
   isnan(mu) && return oftype(mu, NaN)
-  P = _order(h)
-  return _quadrature(h, (a, c_j) -> _central_coeffs!(a, c_j, mu, p, P))
+  order = _order(summary)
+  return _quadrature(summary, (a, c_j) -> _central_coeffs!(a, c_j, mu, p, order))
 end
 
-_sample_variance(h::Histogram1D) = _sample_central_moment(h, 2)
-_sample_std(h::Histogram1D) = sqrt(_sample_variance(h))
+_sample_variance(summary::Histogram1D) = _sample_central_moment(summary, 2)
+_sample_std(summary::Histogram1D) = sqrt(_sample_variance(summary))
 
 
 """
@@ -162,12 +162,12 @@ central_moment(summary::Histogram1D, p::Integer) = _sample_central_moment(summar
 
 
 # Chebyshev–Lobatto nodes on [-1, 1] and the inverse of their Vandermonde matrix, for the degree-`order`
-# (the argument `P`) local-polynomial model of g on a bin. Uniform bins ⇒ one matrix serves every bin (the nodes are the same
+# (the argument `order`) local-polynomial model of g on a bin. Uniform bins ⇒ one matrix serves every bin (the nodes are the same
 # fixed offsets, scaled by the half-width). Interpolating in the scaled variable s = (x − c_j)/(Δ/2) keeps
 # the Vandermonde Δ-independent and well-conditioned at the low orders used here. Called once per readout.
-function _interp_matrix(P::Integer)
-  nodes = [cos(π * (m - 1) / P) for m in 1:P + 1]              # order+1 Chebyshev–Lobatto points on [-1, 1]
-  vandermonde = [nodes[m]^(k - 1) for m in 1:P + 1, k in 1:P + 1]
+function _interp_matrix(order::Integer)
+  nodes = [cos(π * (m - 1) / order) for m in 1:order + 1]              # order+1 Chebyshev–Lobatto points on [-1, 1]
+  vandermonde = [nodes[m]^(k - 1) for m in 1:order + 1, k in 1:order + 1]
   return nodes, inv(vandermonde)
 end
 
@@ -212,18 +212,18 @@ true
 ```
 """
 function expectation(summary::Histogram1D, g)
-  P = _order(summary)
+  order = _order(summary)
   halfwidth = 0.5 / summary.scale                             # Δ/2 = 0.5 (upper − lower) / nbins
-  nodes, vandermonde_inv = _interp_matrix(P)
-  gsamples = Vector{Float64}(undef, P + 1)                    # reused g-sample buffer
-  scaled = Vector{Float64}(undef, P + 1)                      # reused coefficient buffer (in s)
-  invpow = [halfwidth^(-p) for p in 0:P]                      # halfwidth^{-p}: converts s-coeffs → (x − c_j)-coeffs
+  nodes, vandermonde_inv = _interp_matrix(order)
+  gsamples = Vector{Float64}(undef, order + 1)                    # reused g-sample buffer
+  scaled = Vector{Float64}(undef, order + 1)                      # reused coefficient buffer (in s)
+  invpow = [halfwidth^(-p) for p in 0:order]                      # halfwidth^{-p}: converts s-coeffs → (x − c_j)-coeffs
   coeffs! = function (a, c_j)
-    @inbounds for m in 1:P + 1
+    @inbounds for m in 1:order + 1
       gsamples[m] = g(c_j + nodes[m] * halfwidth)
     end
     mul!(scaled, vandermonde_inv, gsamples)                  # coefficients in s = (x − c_j)/halfwidth
-    @inbounds for p in 0:P
+    @inbounds for p in 0:order
       a[p + 1] = scaled[p + 1] * invpow[p + 1]               # a_p = ã_p / halfwidth^p (s → x − c_j)
     end
     return a
@@ -288,7 +288,7 @@ end
 
 
 """
-    pushforward_density(summary::Histogram1D, g, y;   # ≡ f_{g(X)}
+    pushforward_density(summary::Histogram1D, g, z;   # ≡ f_{g(X)}
                         kernel = gaussian_kernel, h)
 
 **Estimand.** The density of the transformed variable ``Z = g(X)``, the *pushforward*
@@ -308,14 +308,14 @@ inverse ``g^{-1}`` and no explicit Jacobian are formed; a non-monotone ``g`` is 
 (every preimage contributes), and a flat spot ``g'(x) = 0`` shows up as the expected (integrable) caustic
 pile-up. For a symmetric `kernel` (``\\int K = 1``) the surviving ``1/h`` makes
 ``\\int \\hat f_{g(X)}(z)\\,\\mathrm{d}z = 1`` exactly. Needs ``g`` smooth on the bin scale and the bandwidth ``h`` at least of order
-``|g'| \\Delta`` (so ``K_h \\circ g`` is resolved across a bin). A vector `y` returns the density curve
+``|g'| \\Delta`` (so ``K_h \\circ g`` is resolved across a bin). A vector `z` returns the density curve
 over those points.
 
 # Arguments
 
 - `summary` — the [`Histogram1D`](@ref GBGStreamingStatistics.Histograms.Histogram1D) of ``X``.
 - `g` — the transform defining ``Z = g(X)`` (any callable, smooth on the bin scale).
-- `y` — the point(s) ``z`` at which the pushforward density is evaluated (a scalar, or a vector for the
+- `z` — the point(s) ``z`` at which the pushforward density is evaluated (a scalar, or a vector for the
   curve).
 - `kernel` — the ``z``-direction kernel (any ``\\int K = 1`` callable; default
   [`gaussian_kernel`](@ref GBGStreamingStatistics.Kernels.gaussian_kernel)).
@@ -323,21 +323,21 @@ over those points.
 
 Reference: B. W. Silverman (1986), [*Density Estimation for Statistics and Data Analysis*](https://doi.org/10.1201/9781315140919), Chapman & Hall.
 """
-function pushforward_density(summary::Histogram1D, g, y::Real;
+function pushforward_density(summary::Histogram1D, g, z::Real;
                              kernel = gaussian_kernel, h::Real)
   h > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
-  return expectation(summary, x -> kernel((g(x) - y) / h) / h)
+  return expectation(summary, x -> kernel((g(x) - z) / h) / h)
 end
 
-function pushforward_density(summary::Histogram1D, g, ys::AbstractVector;
+function pushforward_density(summary::Histogram1D, g, zs::AbstractVector;
                              kernel = gaussian_kernel, h::Real)
   h > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
-  return [expectation(summary, x -> kernel((g(x) - y) / h) / h) for y in ys]
+  return [expectation(summary, x -> kernel((g(x) - z) / h) / h) for z in zs]
 end
 
 
 """
-    pushforward_density_standard_error(summary::Histogram1D, g, y;
+    pushforward_density_standard_error(summary::Histogram1D, g, z;
                                        kernel = gaussian_kernel, h)
 
 **Estimand.** The pointwise standard error of the pushforward density `pushforward_density` ``\\equiv f_{g(X)}``,
@@ -348,47 +348,47 @@ end
 composed kernel, its standard error is exactly the
 [`expectation_standard_error`](@ref GBGStreamingStatistics.Expectations.expectation_standard_error) of that
 integrand — ``\\sqrt{(\\widehat{\\mathbb{E}}[K_h(g(X)-z)^2] - \\hat f_{g(X)}(z)^2)/n}``, which reduces to the
-two-term form above. A vector `y` returns a vector of standard errors.
+two-term form above. A vector `z` returns a vector of standard errors.
 
 Arguments: as for [`pushforward_density`](@ref GBGStreamingStatistics.Expectations.pushforward_density).
 
 """
-function pushforward_density_standard_error(summary::Histogram1D, g, y::Real;
+function pushforward_density_standard_error(summary::Histogram1D, g, z::Real;
                                             kernel = gaussian_kernel, h::Real)
   h > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
-  return expectation_standard_error(summary, x -> kernel((g(x) - y) / h) / h)
+  return expectation_standard_error(summary, x -> kernel((g(x) - z) / h) / h)
 end
 
-function pushforward_density_standard_error(summary::Histogram1D, g, ys::AbstractVector;
+function pushforward_density_standard_error(summary::Histogram1D, g, zs::AbstractVector;
                                             kernel = gaussian_kernel, h::Real)
   h > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
-  return [expectation_standard_error(summary, x -> kernel((g(x) - y) / h) / h) for y in ys]
+  return [expectation_standard_error(summary, x -> kernel((g(x) - z) / h) / h) for z in zs]
 end
 
 
 """
-    pushforward_density_with_standard_error(summary::Histogram1D, g, y;
+    pushforward_density_with_standard_error(summary::Histogram1D, g, z;
                                             kernel = gaussian_kernel, h)
 
 Returns the pushforward density `pushforward_density` and its standard error from two quadrature passes
 (the composed kernel, then its square) — the `NamedTuple` ``(\\texttt{value}, \\texttt{standard\\_error})``, sharing
 the composed-kernel integrand with [`pushforward_density_standard_error`](@ref
-GBGStreamingStatistics.Expectations.pushforward_density_standard_error). For a vector `y`, a `NamedTuple` of
+GBGStreamingStatistics.Expectations.pushforward_density_standard_error). For a vector `z`, a `NamedTuple` of
 vectors.
 
 Arguments: as for [`pushforward_density`](@ref GBGStreamingStatistics.Expectations.pushforward_density).
 
 """
-function pushforward_density_with_standard_error(summary::Histogram1D, g, y::Real;
+function pushforward_density_with_standard_error(summary::Histogram1D, g, z::Real;
                                                  kernel = gaussian_kernel, h::Real)
   h > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
-  return expectation_with_standard_error(summary, x -> kernel((g(x) - y) / h) / h)
+  return expectation_with_standard_error(summary, x -> kernel((g(x) - z) / h) / h)
 end
 
-function pushforward_density_with_standard_error(summary::Histogram1D, g, ys::AbstractVector;
+function pushforward_density_with_standard_error(summary::Histogram1D, g, zs::AbstractVector;
                                                  kernel = gaussian_kernel, h::Real)
   h > 0 || throw(ArgumentError("bandwidth h must be positive (got h = $h)"))
-  rs = [expectation_with_standard_error(summary, x -> kernel((g(x) - y) / h) / h) for y in ys]
+  rs = [expectation_with_standard_error(summary, x -> kernel((g(x) - z) / h) / h) for z in zs]
   return (value = [r.value for r in rs], standard_error = [r.standard_error for r in rs])
 end
 
