@@ -274,7 +274,9 @@ julia> using GBGStreamingStatistics
 
 julia> h = Histogram1D(-8.0, 8.0, 800); observe!(h, [-1.0, 0.0, 0.5, 1.0, 2.0]);
 
-julia> r = expectation_with_standard_error(h, cos); (r.value isa Float64, r.standard_error > 0)
+julia> r = expectation_with_standard_error(h, cos);
+
+julia> (r.value isa Float64, r.standard_error > 0)
 (true, true)
 ```
 """
