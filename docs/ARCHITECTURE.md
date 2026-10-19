@@ -484,8 +484,8 @@ These rules are PF's backend and allocation invariants, inherited wholesale:
 - **Contention, not FP64, is the hot-loop enemy.** The conditioning variable is peaked
   (Gaussian-ish), so the modal bins are atomic hot spots. The power-sums-about-the-bin-center choice
   (§3) makes each update a *plain* atomic add — integer-exact for counts, round-off for the Float64
-  power-sums — so global atomics handle even heavy contention directly (the proven PF `anterpolate!`
-  pattern, verified on the AMD GPU). Privatization (per-block local histograms in fast memory,
+  power-sums — so global atomics handle even heavy contention directly (GBGPeriodicFields' particle-to-grid scatter-add,
+  verified on the AMD GPU). Privatization (per-block local histograms in fast memory,
   merged hierarchically via the monoid) stays available as a future optimization should a channel's
   modal-bin contention dominate, but is not needed for correctness. This per-sample accumulation over
   every grid point at every step is the package's true performance-critical path; the post-hoc smoothing (§4.5) is
@@ -689,7 +689,7 @@ intentional).
   (2008) running-mean recursion with Kahan compensation. A Pébay update is not atomic, so the GPU
   hot loop would have needed per-block *privatization* (private histograms merged hierarchically) — a
   pattern the sibling PF uses nowhere. Switching to power-sums ``S_p = \sum (X_i - c_j)^p`` about the
-  fixed bin center makes `observe!` a plain atomic scatter-add (PF's proven `anterpolate!` pattern):
+  fixed bin center makes `observe!` a plain atomic scatter-add (GBGPeriodicFields' particle-to-grid scatter-add):
   allocation-free, one portable kernel identical on CPU and the AMD GPU, `merge!` reduced to
   elementwise addition, and the marginal moments unified with the regression power-sums. The offset
   ``X_i - c_j`` is tiny, so the local sums are well-conditioned (Kahan no longer needed); global central
