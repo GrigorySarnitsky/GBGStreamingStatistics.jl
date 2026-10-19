@@ -142,11 +142,12 @@ estimate is `NaN`.
   the curve integrates to 1 exactly: needed for an asymmetric `kernel_y`, a no-op for a symmetric one.
 
 ```jldoctest
-julia> g = Histogram2D(-1.0, 1.0, 2, -1.0, 1.0, 2);
+julia> joint = Histogram2D(-1.0, 1.0, 2, -1.0, 1.0, 2);
 
-julia> observe_pairs!(g, [0.4], [0.4]);   # one pair → cell with centers (0.5, 0.5)
+julia> # one pair → cell with centers (0.5, 0.5)
+       observe_pairs!(joint, [0.4], [0.4]);
 
-julia> round(conditional_density(g, 0.5, 0.5; h_x = 0.5, h_y = 0.2); digits = 4)
+julia> round(conditional_density(joint, 0.5, 0.5; h_x = 0.5, h_y = 0.2); digits = 4)
 1.9947
 ```
 

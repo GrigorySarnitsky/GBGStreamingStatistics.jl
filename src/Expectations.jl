@@ -203,12 +203,12 @@ The arguments are `summary`, the `Histogram1D` of ``X``, and `g`, the functional
 `g = identity`).
 
 ```jldoctest
-julia> h = Histogram1D(-4.0, 4.0, 800);
+julia> summary = Histogram1D(-4.0, 4.0, 800);
 
 julia> # the g = identity case is the recovered mean 𝔼[X] = 1/3
-       observe!(h, [-1.0, 0.0, 2.0]);
+       observe!(summary, [-1.0, 0.0, 2.0]);
 
-julia> expectation(h, identity) ≈ mean(h)
+julia> expectation(summary, identity) ≈ mean(summary)
 true
 ```
 """
@@ -272,9 +272,11 @@ Arguments: as for [`expectation`](@ref GBGStreamingStatistics.Expectations.expec
 ```jldoctest
 julia> using GBGStreamingStatistics
 
-julia> h = Histogram1D(-8.0, 8.0, 800); observe!(h, [-1.0, 0.0, 0.5, 1.0, 2.0]);
+julia> summary = Histogram1D(-8.0, 8.0, 800);
 
-julia> r = expectation_with_standard_error(h, cos);
+julia> observe!(summary, [-1.0, 0.0, 0.5, 1.0, 2.0]);
+
+julia> r = expectation_with_standard_error(summary, cos);
 
 julia> (r.value isa Float64, r.standard_error > 0)
 (true, true)

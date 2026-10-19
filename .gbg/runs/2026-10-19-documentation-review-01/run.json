@@ -6,7 +6,8 @@
         "2026-10-15-documentation-review-01-009",
         "2026-10-15-documentation-review-01-010",
         "2026-10-19-documentation-review-01-058",
-        "2026-10-15-documentation-review-01-032"
+        "2026-10-15-documentation-review-01-032",
+        "2026-10-19-documentation-review-01-054"
     ],
     "covered": [
     ],
@@ -371,9 +372,9 @@
             ],
             "id": "2026-10-19-documentation-review-01-054-code",
             "decision": "This finding needs a change only you may make. Will you make it?",
-            "direction": "",
+            "direction": "The estimate is its estimand's symbol hatted (f̂_X, m̂), the subscript h kept only where h varies (MISE, AIC, h*), said once on the Notation page; the gamma kernel's shape is ρ(x); the cone's multiplier is λ in every formula, bound once to the argument weight; examples name a summary summary or joint, never h or g.",
             "context": "Needs math and doctest changes: \\hat f_h and \\hat m_h should read \\hat f_X and \\hat m (or the notation page gains rows for the bandwidth-indexed estimates); the gamma-reference shape \\hat\\alpha clashes with the table's \\alpha(x); merge! and scale! write \\texttt{weight} where the table has \\lambda; and doctests name a summary h or g. Bindings in words are done.",
-            "answer": null
+            "answer": "fix it on my ruling"
         },
         {
             "options": [

@@ -497,13 +497,13 @@ The four corners (fixed/variable ``\\times`` KDE/local-log) and everything betwe
 of query points returns a vector.
 
 ```jldoctest
-julia> h = Histogram1D(-1.0, 1.0, 2);
+julia> summary = Histogram1D(-1.0, 1.0, 2);
 
 julia> # one sample at 0.4
-       observe!(h, [0.4]);
+       observe!(summary, [0.4]);
 
 julia> # linear binning centers the bump at 0.4 (the centroid)
-       round(density(h, 0.4; h = 0.2); digits = 4)
+       round(density(summary, 0.4; h = 0.2); digits = 4)
 1.9947
 ```
 
@@ -729,11 +729,11 @@ Arguments: as for [`density`](@ref GBGStreamingStatistics.MarginalDensity.densit
 estimator whose standard error is returned.
 
 ```jldoctest
-julia> h = Histogram1D(-6.0, 6.0, 600);
+julia> summary = Histogram1D(-6.0, 6.0, 600);
 
-julia> observe!(h, [-0.4, 0.1, 0.2, 0.9, 1.3]);
+julia> observe!(summary, [-0.4, 0.1, 0.2, 0.9, 1.3]);
 
-julia> density_standard_error(h, 0.5) > 0
+julia> density_standard_error(summary, 0.5) > 0
 true
 ```
 
@@ -789,11 +789,13 @@ standard error's estimand and per-option variance are documented at `density_sta
 Arguments: as for [`density`](@ref GBGStreamingStatistics.MarginalDensity.density).
 
 ```jldoctest
-julia> h = Histogram1D(-6.0, 6.0, 600);
+julia> summary = Histogram1D(-6.0, 6.0, 600);
 
-julia> observe!(h, [-0.4, 0.1, 0.2, 0.9, 1.3]);
+julia> observe!(summary, [-0.4, 0.1, 0.2, 0.9, 1.3]);
 
-julia> r = density_with_standard_error(h, 0.5); (r.value > 0, r.standard_error > 0)
+julia> r = density_with_standard_error(summary, 0.5);
+
+julia> (r.value > 0, r.standard_error > 0)
 (true, true)
 ```
 """
