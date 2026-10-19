@@ -28,6 +28,7 @@ Axis names are lower-case: an ``x``-column, the ``y``-quadrature.
 | ``\tilde c_j`` | the location of bin ``j``'s mass: ``c_j``, or the centroid ``c_j + S_1^{(j)}/n_j`` |
 | ``n_j`` | the count of bin ``j``; in the local fit, its design weight |
 | ``n_{jl}``, ``N_j`` | the count of cell ``(j, l)`` of a joint summary, and of its ``x``-column ``j``, ``N_j = \sum_l n_{jl}`` |
+| ``B`` | the number of bins of a summary, in a cost such as ``O(B \log B)`` |
 | ``S_p^{(j)}`` | the power-sum of order ``p`` about the center of bin ``j``, ``\sum_{i \in j} (X_i - c_j)^p`` |
 | ``S_{pp'}`` | the power-sum of a cell, ``\sum (X_i - c^x_j)^p (Y_i - c^y_l)^{p'}`` |
 | ``\bar y_j`` | the mean response of bin ``j``, so that ``n_j \bar y_j`` is its response total |
@@ -52,10 +53,12 @@ Axis names are lower-case: an ``x``-column, the ``y``-quadrature.
 | ``\tilde h`` | a pilot bandwidth |
 | ``G`` | the geometric mean of the Abramson pilot values |
 | ``b`` | the scale of the gamma or beta kernel, and nothing else |
+| ``A``, ``V`` | the bias and variance constants of the gamma or beta kernel's AMISE, ``A b^2 + V b^{-1/2}/n`` |
 | ``\alpha(x)``, ``w(x)`` | the shape of the gamma kernel, and the local-scale weight of the gamma or beta kernel |
 | ``R(K)`` | the kernel roughness, ``\int K^2`` |
 | ``\mu_p(K)`` | the kernel moment, ``\int u^p K(u)\,\mathrm{d}u`` |
 | ``\delta(K)`` | the canonical factor, ``[R(K)/\mu_2(K)^2]^{1/5}`` |
+| ``C(K,d)`` | the normal-reference constant, ``h = C(K,d) \hat\sigma_X n^{-1/(2q+1)}``; ``\delta(K)`` is its kernel part |
 | ``K_{(4)}`` | the fourth-order equivalent kernel of the local-quadratic fit |
 
 ## The local fit
@@ -82,6 +85,7 @@ Axis names are lower-case: an ``x``-column, the ``y``-quadrature.
 | ``\mathbb{E}[g(X)]`` | the expectation of a smooth functional ``g``; ``\mathbb{E}`` is the only expectation |
 | ``f_{g(X)}``, ``f_{g(Y) \mid X}`` | the density of a transformed variable, marginal and conditional |
 | ``P_l`` | the conditional density's kernel-weighted ``y``-profile |
+| ``D`` | the conditional density's ``x``-window denominator, ``\sum_j N_j K_{h_x}(c^x_j - x) = n \hat f_X(x)`` |
 
 ## Parameters
 

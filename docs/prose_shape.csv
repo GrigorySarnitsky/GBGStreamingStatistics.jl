@@ -36,50 +36,50 @@ unit,words,longest_paragraph,admonitions
 "ARCHITECTURE.md § The spine: empirical measure → summary → post-hoc-smoothed e / item 1",62,62,0
 "ARCHITECTURE.md § The spine: empirical measure → summary → post-hoc-smoothed e / item 2",148,94,0
 "ARCHITECTURE.md § Why a fine histogram is the canonical ``T`` (and the honest ",133,133,0
-"Accumulators.jl :: AbstractAccumulator",103,68,0
-"Accumulators.jl :: merge!(into::AbstractAccumulator, from::AbstractAccumulator;",341,100,0
-"Accumulators.jl :: observe!(summary::AbstractAccumulator, batch) -> summary",172,79,0
-"Accumulators.jl :: scale!(summary::AbstractAccumulator, weight) -> summary",172,60,0
+"Accumulators.jl :: AbstractAccumulator",100,65,0
+"Accumulators.jl :: merge!(into::AbstractAccumulator, from::AbstractAccumulator;",340,100,0
+"Accumulators.jl :: observe!(summary::AbstractAccumulator, batch) -> summary",170,78,0
+"Accumulators.jl :: scale!(summary::AbstractAccumulator, weight) -> summary",171,60,0
 "Accumulators.md § Accumulators",55,55,0
 "Accumulators.md § Operations",29,29,0
-"Bandwidth.jl :: bandwidth(summary::Histogram1D; rule = :normal, kernel = gau",919,129,0
-"Bandwidth.jl :: bandwidth(summary::Histogram2D, x; rule = :local, kernel = g",313,85,0
+"Bandwidth.jl :: bandwidth(summary::Histogram1D; rule = :normal, kernel = gau",913,129,0
+"Bandwidth.jl :: bandwidth(summary::Histogram2D, x; rule = :local, kernel = g",309,83,0
 "Bandwidth.md § Bandwidth",74,74,0
-"ConditionalDensity.jl :: conditional_density(summary::Histogram2D, x, y; kernelx = ga",485,133,0
-"ConditionalDensity.jl :: conditional_density_standard_error(summary::Histogram2D, x, ",195,102,0
-"ConditionalDensity.jl :: conditional_density_with_standard_error(summary::Histogram2D",74,46,0
-"ConditionalDensity.jl :: transition_density(summary::Histogram2D, x, y; kernelx = gau",188,80,0
-"ConditionalDensity.jl :: transition_density_standard_error(summary::Histogram2D, x, y",53,28,0
-"ConditionalDensity.jl :: transition_density_with_standard_error(summary::Histogram2D,",47,22,0
+"ConditionalDensity.jl :: conditional_density(summary::Histogram2D, x, y; kernel_x = g",442,118,0
+"ConditionalDensity.jl :: conditional_density_standard_error(summary::Histogram2D, x, ",186,89,0
+"ConditionalDensity.jl :: conditional_density_with_standard_error(summary::Histogram2D",72,45,0
+"ConditionalDensity.jl :: transition_density(summary::Histogram2D, x, y; kernel_x = ga",185,79,0
+"ConditionalDensity.jl :: transition_density_standard_error(summary::Histogram2D, x, y",50,26,0
+"ConditionalDensity.jl :: transition_density_with_standard_error(summary::Histogram2D,",45,21,0
 "ConditionalDensity.md § ConditionalDensity",49,49,0
-"ConditionalExpectations.jl :: conditional_expectation(summary::Histogram2D, g, x;   # ≡ 𝔼[",319,103,0
-"ConditionalExpectations.jl :: conditional_expectation_standard_error(summary::Histogram2D,",150,93,0
-"ConditionalExpectations.jl :: conditional_expectation_with_standard_error(summary::Histogr",77,56,0
-"ConditionalExpectations.jl :: conditional_mean(summary::Histogram2D, x; kernel = gaussian_",458,164,0
-"ConditionalExpectations.jl :: conditional_pushforward_density(summary::Histogram2D, g, x, ",317,124,0
-"ConditionalExpectations.jl :: conditional_pushforward_density_standard_error(summary::Hist",123,67,0
-"ConditionalExpectations.jl :: conditional_pushforward_density_with_standard_error(summary:",58,32,0
-"ConditionalExpectations.jl :: conditional_variance(summary::Histogram2D, x; kernel = gauss",283,86,0
-"ConditionalExpectations.jl :: conditional_variance_standard_error(summary::Histogram2D, x;",136,78,0
-"ConditionalExpectations.jl :: conditional_variance_with_standard_error(summary::Histogram2",68,45,0
+"ConditionalExpectations.jl :: conditional_expectation(summary::Histogram2D, g, x;   # ≡ 𝔼[",311,99,0
+"ConditionalExpectations.jl :: conditional_expectation_standard_error(summary::Histogram2D,",148,92,0
+"ConditionalExpectations.jl :: conditional_expectation_with_standard_error(summary::Histogr",75,55,0
+"ConditionalExpectations.jl :: conditional_mean(summary::Histogram2D, x; kernel = gaussian_",452,161,0
+"ConditionalExpectations.jl :: conditional_pushforward_density(summary::Histogram2D, g, x, ",313,123,0
+"ConditionalExpectations.jl :: conditional_pushforward_density_standard_error(summary::Hist",118,63,0
+"ConditionalExpectations.jl :: conditional_pushforward_density_with_standard_error(summary:",56,31,0
+"ConditionalExpectations.jl :: conditional_variance(summary::Histogram2D, x; kernel = gauss",280,84,0
+"ConditionalExpectations.jl :: conditional_variance_standard_error(summary::Histogram2D, x;",134,77,0
+"ConditionalExpectations.jl :: conditional_variance_with_standard_error(summary::Histogram2",66,44,0
 "ConditionalExpectations.md § ConditionalExpectations",77,77,0
-"Expectations.jl :: central_moment(summary::Histogram1D, p)",83,74,0
-"Expectations.jl :: expectation(summary::Histogram1D, g)   # ≡ 𝔼[g(X)]",227,105,0
-"Expectations.jl :: expectation_standard_error(summary::Histogram1D, g)",72,53,0
-"Expectations.jl :: expectation_with_standard_error(summary::Histogram1D, g)",81,44,0
-"Expectations.jl :: mean(summary::Histogram1D)",57,48,0
-"Expectations.jl :: pushforward_density(summary::Histogram1D, g, y;   # ≡ f_{g(X",204,87,0
-"Expectations.jl :: pushforward_density_standard_error(summary::Histogram1D, g, ",70,39,0
-"Expectations.jl :: pushforward_density_with_standard_error(summary::Histogram1D",49,37,0
-"Expectations.jl :: std(summary::Histogram1D; corrected = true)",59,26,0
-"Expectations.jl :: var(summary::Histogram1D; corrected = true)",75,46,0
+"Expectations.jl :: central_moment(summary::Histogram1D, p)",82,73,0
+"Expectations.jl :: expectation(summary::Histogram1D, g)   # ≡ 𝔼[g(X)]",226,105,0
+"Expectations.jl :: expectation_standard_error(summary::Histogram1D, g)",71,53,0
+"Expectations.jl :: expectation_with_standard_error(summary::Histogram1D, g)",79,43,0
+"Expectations.jl :: mean(summary::Histogram1D)",56,47,0
+"Expectations.jl :: pushforward_density(summary::Histogram1D, g, z;   # ≡ f_{g(X",201,87,0
+"Expectations.jl :: pushforward_density_standard_error(summary::Histogram1D, g, ",68,38,0
+"Expectations.jl :: pushforward_density_with_standard_error(summary::Histogram1D",47,36,0
+"Expectations.jl :: std(summary::Histogram1D; corrected = true)",58,26,0
+"Expectations.jl :: var(summary::Histogram1D; corrected = true)",74,46,0
 "Expectations.md § Expectations",113,113,0
 "Expectations.md § Recovered moments",21,21,0
 "FORMALIZATION.md § (preamble)",22,22,1
 "FORMALIZATION.md § Asymmetric kernels (§4.1) — `density`'s `gamma_kernel` / `be",166,166,0
 "FORMALIZATION.md § Bandwidth selection (§4.5) — `bandwidth`",657,657,0
 "FORMALIZATION.md § Conditional & transition density (§4.3) — `conditional_densi",325,257,0
-"FORMALIZATION.md § Conditional density standard error (§4.3) — `conditional_den",187,187,0
+"FORMALIZATION.md § Conditional density standard error (§4.3) — `conditional_den",186,186,0
 "FORMALIZATION.md § Conditional expectation of a functional (§4.2) — `conditiona",153,153,0
 "FORMALIZATION.md § Conditional expectation standard error (§4.2) — `conditional",181,181,0
 "FORMALIZATION.md § Conditional pushforward density (§4.2) — `conditional_pushfo",174,174,0
@@ -97,32 +97,32 @@ unit,words,longest_paragraph,admonitions
 "FORMALIZATION.md § Response-aware local bandwidth (§4.5) — `bandwidth(::Histogr",160,136,0
 "FORMALIZATION.md § The cone — `scale!`, weighted `merge!`, hyperstatistics (§10",372,280,0
 "FORMALIZATION.md § The kernel-weighting atom & local-polynomial jet (`Kernels._",318,318,0
-"GBGStreamingStatistics.jl :: GBGStreamingStatistics",159,75,0
+"GBGStreamingStatistics.jl :: GBGStreamingStatistics",148,64,0
 "GBGStreamingStatistics.md § GBGStreamingStatistics",19,19,0
-"Histograms.jl :: Histogram1D <: AbstractAccumulator",527,120,0
-"Histograms.jl :: Histogram2D <: AbstractAccumulator",356,86,0
+"Histograms.jl :: Histogram1D <: AbstractAccumulator",523,119,0
+"Histograms.jl :: Histogram2D <: AbstractAccumulator",353,86,0
 "Histograms.jl :: observe_pairs!(summary::Histogram2D, x_past, y_now) -> summa",122,83,0
-"Histograms.jl :: read_histogram(parent, name)",126,62,0
+"Histograms.jl :: read_histogram(parent, name)",125,61,0
 "Histograms.jl :: write_histogram(parent, name, summary)",186,67,0
 "Histograms.md § Accumulation",17,17,0
 "Histograms.md § Histograms",23,23,0
 "Histograms.md § Persistence (HDF5)",70,70,0
-"Kernels.jl :: AsymmetricKernel(pdf, support; local_scale_weight = nothing)",377,144,0
-"Kernels.jl :: beta_kernel",102,85,0
-"Kernels.jl :: epanechnikov_kernel(u)",59,58,0
-"Kernels.jl :: gamma_kernel",200,182,0
-"Kernels.jl :: gaussian_kernel(u)",18,17,0
+"Kernels.jl :: AsymmetricKernel(pdf, support; local_scale_weight = nothing)",373,143,0
+"Kernels.jl :: beta_kernel",101,84,0
+"Kernels.jl :: epanechnikov_kernel(u)",57,56,0
+"Kernels.jl :: gamma_kernel",198,180,0
+"Kernels.jl :: gaussian_kernel(u)",17,16,0
 "Kernels.md § Kernels",100,100,0
-"LocalPolynomial.jl :: local_fit(locations, mass, response, x, kernel, degree, h)",310,117,0
-"MarginalDensity.jl :: ParametricStart(fit, logpdf, support)",300,102,0
-"MarginalDensity.jl :: density(summary::Histogram1D, x;   # ≡ f_X",1038,806,0
-"MarginalDensity.jl :: density_standard_error(summary::Histogram1D, x; kernel = gau",310,145,0
-"MarginalDensity.jl :: density_with_standard_error(summary::Histogram1D, x; kernel ",125,64,0
-"MarginalDensity.jl :: exponential_start",36,35,0
-"MarginalDensity.jl :: gamma_start",28,27,0
-"MarginalDensity.jl :: inverse_gaussian_start",38,37,0
-"MarginalDensity.jl :: lognormal_start",43,42,0
-"MarginalDensity.jl :: normal_start",30,29,0
+"LocalPolynomial.jl :: local_fit(locations, mass, response, x, kernel, degree, h)",309,116,0
+"MarginalDensity.jl :: ParametricStart(fit, logpdf, support)",294,102,0
+"MarginalDensity.jl :: density(summary::Histogram1D, x;   # ≡ f_X",1027,795,0
+"MarginalDensity.jl :: density_standard_error(summary::Histogram1D, x; kernel = gau",307,144,0
+"MarginalDensity.jl :: density_with_standard_error(summary::Histogram1D, x; kernel ",123,63,0
+"MarginalDensity.jl :: exponential_start",35,34,0
+"MarginalDensity.jl :: gamma_start",27,26,0
+"MarginalDensity.jl :: inverse_gaussian_start",37,36,0
+"MarginalDensity.jl :: lognormal_start",42,41,0
+"MarginalDensity.jl :: normal_start",28,27,0
 "MarginalDensity.md § MarginalDensity",38,38,0
 "MarginalDensity.md § Parametric starts",16,16,0
 "PERFORMANCE.md § (preamble)",22,22,1
@@ -149,16 +149,16 @@ unit,words,longest_paragraph,admonitions
 "index.md § Main components",425,399,0
 "internals.md § Internals",103,71,1
 "internals.md § The local-polynomial jet — `LocalPolynomial.local_fit`",44,44,0
-"notation.md § Estimands",101,101,0
+"notation.md § Estimands",111,111,0
 "notation.md § Notation",65,65,0
 "notation.md § Orders",51,51,0
 "notation.md § Parameters",53,39,0
-"notation.md § Smoothing kernels",184,184,0
+"notation.md § Smoothing kernels",215,215,0
 "notation.md § Spelling",29,29,0
 "notation.md § The local fit",83,83,0
 "notation.md § The moments of the data",43,43,0
 "notation.md § The samples",99,91,0
-"notation.md § The summary",232,232,0
+"notation.md § The summary",249,249,0
 "tutorial.md § Getting started",79,50,1
 "tutorial.md § The workflow",159,52,0
 "tutorial.md § Where to go next",26,26,0
