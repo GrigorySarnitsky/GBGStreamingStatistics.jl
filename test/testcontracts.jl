@@ -70,8 +70,9 @@ end
 
 Assert the **``h^{-1/2}`` bandwidth scaling** of a *kernel* standard error. `se_h(summary, x, h)` is the SE
 at bandwidth `h`. Unlike the exact ``n^{-1/2}`` scaling, this is **asymptotic** — changing `h` also moves
-`f̂` and the finite-sample `−f̂²/n` term is `h`-independent — so it holds *at small `h` on a smooth region*
-(pass a flat/uniform `s` and an interior `x`): doubling the bandwidth shrinks the leading-variance SE by
+`f̂` and the second variance term `−f̂²` (weighted `1/n`, or locally for a conditional estimate) carries no
+`1/h` — so it holds *at small `h` on a smooth region*, where that term is negligible (pass a flat/uniform `s`
+and an interior `x`, or a point of low density): doubling the bandwidth shrinks the leading-variance SE by
 ``\\sqrt2`` (`se_h(s, x, 2h) ≈ se_h(s, x, h)/√2`).
 """
 function check_se_bandwidth_scaling(se_h, s, x; h, rtol = 0.06)

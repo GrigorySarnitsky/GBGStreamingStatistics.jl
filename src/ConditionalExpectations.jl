@@ -590,16 +590,16 @@ end
 
 
 # The conditional pushforward density f̂_{g(Y)|X}(z | x) = 𝔼̂[K_{h_z}(g(Y) − z) | X = x] and its standard
-# error. f̂_{g(Y)|X} is a conditional density of the transformed response, so its two-term variance is
-# ℓ(x)·(R(K_z) f̂_{g(Y)|X}/h_z) − f̂_{g(Y)|X}²/n: the leading double-kernel term (the local-fit leverage ℓ(x)
-# times the leading kernel variance R(K_z) f̂_{g(Y)|X}/h_z, with the analytic R(K_z) since the order-2
-# y-quadrature cannot resolve K_{h_z}²) minus the finite-sample f̂_{g(Y)|X}²/n. At
-# degree 0 this reduces asymptotically to the `conditional_density` standard error. Both NaN where the fit is degenerate.
+# error. f̂_{g(Y)|X} is the local fit of the response K_{h_z}(g(Y) − z), so its variance is the local-fit
+# leverage ℓ(x) times the variance of that response, ℓ(x)·(R(K_z) f̂_{g(Y)|X}/h_z − f̂_{g(Y)|X}²) — the
+# analytic R(K_z), since the order-2 y-quadrature cannot resolve K_{h_z}². Both terms carry ℓ(x); the
+# marginal −f̂²/n has weight 1/n because every sample counts there, which is not so here. At degree 0 this
+# reduces asymptotically to the `conditional_density` standard error. Both NaN where the fit is degenerate.
 function _cpf_value_and_se(summary::Histogram2D, g, x::Real, z::Real, kernelx, kernelz, degree, hx, hz, lev)
   f = conditional_pushforward_density(summary, g, x, z; hx = hx, hz = hz, kernelx = kernelx,
                                       kernelz = kernelz, degree = degree)
   (isfinite(f) && isfinite(lev)) || return (f, oftype(f, NaN))
-  variance = lev * f * _quad(u -> kernelz(u)^2) / hz - f^2 / _total(summary)
+  variance = lev * (_quad(u -> kernelz(u)^2) * f / hz - f^2)
   return (f, sqrt(max(variance, zero(variance))))
 end
 
@@ -612,11 +612,10 @@ end
 **Estimand.** The estimand is the pointwise standard error of the conditional pushforward density
 `conditional_pushforward_density` ``\\equiv f_{g(Y)\\mid X}``, the sampling error of the density of the transformed response ``g(Y)`` at ``z`` given ``x``.
 
-**Estimator.** The band is the two-term ``\\sqrt{\\hat\\ell(x) R(K_z)\\hat f_{g(Y)\\mid X}/h_z - \\hat f_{g(Y)\\mid X}^2/n}``:
-the local-regression leverage ``\\hat\\ell(x)`` of the fit in ``x`` (correct at any `degree`) times the leading kernel variance
-``R(K_z)\\hat f_{g(Y)\\mid X}/h_z`` — ``R(K_z) = \\int K_z^2`` by quadrature, the analytic form since the
-order-2 ``y``-quadrature cannot resolve the squared narrow kernel ``K_{h_z}^2`` — minus the finite-sample
-``\\hat f_{g(Y)\\mid X}^2/n``. At `degree` 0 it reduces asymptotically to the
+**Estimator.** The band is the two-term ``\\sqrt{\\hat\\ell(x) [R(K_z)\\hat f_{g(Y)\\mid X}/h_z - \\hat f_{g(Y)\\mid X}^2]}``:
+the local-regression leverage ``\\hat\\ell(x)`` of the fit in ``x`` (correct at any `degree`) times the variance of the
+response ``K_{h_z}(g(Y) - z)`` — ``R(K_z) = \\int K_z^2`` by quadrature, the analytic form since the
+order-2 ``y``-quadrature cannot resolve the squared narrow kernel ``K_{h_z}^2``. At `degree` 0 it reduces asymptotically to the
 [`conditional_density_standard_error`](@ref GBGStreamingStatistics.ConditionalDensity.conditional_density_standard_error)
 of the transformed response. Only a symmetric `kernelz` is supported.
 

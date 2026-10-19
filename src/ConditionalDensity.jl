@@ -222,17 +222,20 @@ end
 
 
 # The conditional-density estimate and its pointwise standard error at (x, y) from the pre-reduced
-# x-profile (P, D): the two-term double-kernel variance R(K_x)R(K_y)·f̂_{Y|X}/(n h_x h_y f̂_X(x)) − f̂_{Y|X}²/n,
-# with n f̂_X(x) = D the x-window denominator `_y_profile` already forms (Hyndman, Bashtannyk & Grunwald
-# 1996; the −f̂_{Y|X}²/n finite-sample term is the double-kernel analog of the marginal Wand–Jones
-# correction), so SE = √(R(K_x)R(K_y)·f̂_{Y|X}/(h_x h_y D) − f̂_{Y|X}²/n). Both NaN where no data is local to x
-# (D = 0). Shared by the SE reader and the paired value-plus-error reader, so the two agree by construction.
+# x-profile (P, D). The estimate is a weighted mean of K_{h_y}(Y − y) over the samples near x, so its variance
+# is the sum of the squared weights, R(K_x)/(h_x D), times the variance of one response-kernel term,
+# R(K_y) f̂_{Y|X}/h_y − f̂_{Y|X}² (Hyndman, Bashtannyk & Grunwald 1996), with n f̂_X(x) = D the x-window
+# denominator `_y_profile` already forms: SE = √(R(K_x)/(h_x D) · (R(K_y) f̂_{Y|X}/h_y − f̂_{Y|X}²)). The
+# second term carries the same local weight as the first — the marginal −f̂_X²/n has weight 1/n because
+# every sample counts there, which is not so here. Both NaN where no data is local to x (D = 0). Shared by
+# the SE reader and the paired value-plus-error reader, so the two agree by construction.
 function _cd_value_and_se(summary::Histogram2D, P, D, y::Real, kernelx, kernely, hx::Real, hy::Real)
   f = _density_at(summary, P, D, y, kernely, hy)
   isfinite(f) || return (f, oftype(f, NaN))
-  roughness = _quad(u -> kernelx(u)^2) * _quad(u -> kernely(u)^2)   # R(K_x)·R(K_y)
+  roughness_x = _quad(u -> kernelx(u)^2)                       # R(K_x)
+  roughness_y = _quad(u -> kernely(u)^2)                       # R(K_y)
   fnn = max(f, 0.0)
-  variance = roughness * fnn / (hx * hy * D) - fnn^2 / _total(summary)
+  variance = roughness_x / (hx * D) * (roughness_y * fnn / hy - fnn^2)
   return (f, sqrt(max(variance, 0.0)))
 end
 
@@ -249,23 +252,21 @@ variance
 
 ```math
 \\operatorname{Var}\\hat f_{Y\\mid X}(y\\mid x) \\approx
-  \\frac{R(K_x) R(K_y) f_{Y\\mid X}(y\\mid x)}{n h_x h_y f_X(x)}
-  - \\frac{f_{Y\\mid X}(y\\mid x)^2}{n},
+  \\frac{R(K_x)}{n h_x f_X(x)}
+  \\biggl[\\frac{R(K_y) f_{Y\\mid X}(y\\mid x)}{h_y} - f_{Y\\mid X}(y\\mid x)^2\\biggr],
   \\qquad R(K) = \\int K^2 .
 ```
 
-Here ``f_X`` is the marginal density of the conditioning variable ``X``, and the ``-f_{Y\\mid X}(y\\mid x)^2/n`` term is the
-double-kernel analog of the finite-sample correction in
-[`density_standard_error`](@ref GBGStreamingStatistics.MarginalDensity.density_standard_error).
+Here ``f_X`` is the marginal density of ``X``; the bracket is the variance of one response-kernel term
+``K_{h_y}(Y - y)``, and ``R(K_x)/(n h_x f_X(x))`` the sum of the squared weights of the samples near ``x``.
 
-**Estimator.** The two-term ``\\sqrt{R(K_x)R(K_y) \\hat f_{Y\\mid X}(y\\mid x)/(h_x h_y D) - \\hat f_{Y\\mid X}(y\\mid x)^2/n}``
+**Estimator.** The two-term ``\\sqrt{R(K_x)/(h_x D) \\cdot [R(K_y) \\hat f_{Y\\mid X}(y\\mid x)/h_y - \\hat f_{Y\\mid X}(y\\mid x)^2]}``
 from the conditional density
 ``\\hat f_{Y\\mid X}(y\\mid x)``, the bandwidths ``h_x`` and ``h_y`` (`hx` and `hy`), the kernel
 roughnesses ``R(K_x)``, ``R(K_y)`` (by quadrature), and the ``x``-window denominator
-``D = \\sum_j N_j K_{h_x}(c^x_j - x) = n \\hat f_X(x)`` (the kernel-weighted total of the column counts) — the
-very sum `conditional_density` forms to normalize its profile, so
-``n \\hat f_X(x)`` costs nothing extra. It is the two-dimensional analog of the marginal
-`density_standard_error`, with the ``x``-window effective sample size ``n h_x \\hat f_X(x)`` in place of ``n``; the 95% band
+``D = \\sum_j N_j K_{h_x}(c^x_j - x) = n \\hat f_X(x)``, the sum `conditional_density` forms to normalize its
+profile. It is the two-dimensional analog of the marginal
+[`density_standard_error`](@ref GBGStreamingStatistics.MarginalDensity.density_standard_error), with the ``x``-window effective sample size ``n h_x \\hat f_X(x)`` in place of ``n``; the 95% band
 ``\\hat f_{Y\\mid X}(y\\mid x) \\pm 1.96 \\operatorname{SE}`` covers ``f_{Y\\mid X}`` where the ``O(h^2)`` smoothing bias is
 small. Symmetric kernels only (the asymmetric-`kernely` variance is not implemented). It is `NaN` where no data is local to ``x``.
 

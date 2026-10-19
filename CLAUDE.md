@@ -135,7 +135,7 @@ estimands.
   `kernelx` / `kernely`, with an **asymmetric** `kernely` (`gamma_kernel` / `beta_kernel`) for a
   bounded/positive response and `normalize` for exact ``\int\hat f_{Y\mid X}\,\mathrm dy = 1`` — each with its
   pointwise `conditional_density_standard_error` (the two-term double-kernel band
-  ``\sqrt{R(K_x)R(K_y)\hat f_{Y\mid X}/(h_x h_y D) - \hat f_{Y\mid X}^2/n}``, ``D = n\hat f_X(x)`` the estimator's own
+  ``\sqrt{R(K_x)/(h_x D) \cdot [R(K_y)\hat f_{Y\mid X}/h_y - \hat f_{Y\mid X}^2]}``, ``D = n\hat f_X(x)`` the estimator's own
   denominator; symmetric-kernel, the asymmetric-`kernely` variance a recorded gap) and the paired
   `conditional_density_with_standard_error`, `transition_density` aliased.
 - `src/Bandwidth.jl` — §4.5 `bandwidth`: for the marginal (`Histogram1D`) the **kernel- and degree-aware
@@ -453,7 +453,7 @@ Mechanical bar:
    ``Y``) an **asymmetric** `kernely` (`gamma_kernel` / `beta_kernel`) is boundary-bias-free in ``y``,
    with `normalize = true` for an exact integral. Each carries its pointwise **standard error**
    `conditional_density_standard_error` / `conditional_density_with_standard_error` (the two-term
-   double-kernel variance ``R(K_x)R(K_y)\hat f_{Y\mid X}/(n h_x h_y f_X) - \hat f_{Y\mid X}^2/n``, Hyndman–Bashtannyk–Grunwald
+   double-kernel variance ``R(K_x)/(n h_x f_X) \cdot [R(K_y)\hat f_{Y\mid X}/h_y - \hat f_{Y\mid X}^2]``, Hyndman–Bashtannyk–Grunwald
    1996 — ``n\hat f_X`` free from the estimator's denominator; `transition_density` aliased), MC-calibrated
    against the bivariate-Gaussian spread. Tested: the
    bivariate-Gaussian conditional ``\mathcal{N}(\rho x, 1-\rho^2)``

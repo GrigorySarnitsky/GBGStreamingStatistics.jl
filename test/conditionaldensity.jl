@@ -97,18 +97,20 @@ include("testcontracts.jl"); using .TestContracts
   @testset "conditional_density_standard_error (double-kernel variability band, §4.3)" begin
     RK = 1 / (2 * sqrt(π))                                     # R(K) for the Gaussian
     fX(x) = gaussian_pdf(x; mu = 0.0, sigma = 1.0)            # the true marginal of X ∼ N(0,1)
-    # oracle: the SE matches the two-term closed form √(R(K)²f(y|x)/(N hx hy f_X(x)) − f²/N) with the truth
+    # oracle: the SE matches the two-term closed form √(R(K)/(N hx f_X(x)) · (R(K) f(y|x)/hy − f²)) with the
+    # truth — the sum of the squared x-weights times the variance of one response-kernel term
     for (x0, y0) in ((0.0, 0.0), (0.5, 0.3))
       f = cond_pdf(y0, x0)
-      closed = sqrt(RK^2 * f / (N * hx * hy * fX(x0)) - f^2 / N)
+      closed = sqrt(RK / (N * hx * fX(x0)) * (RK * f / hy - f^2))
       @test conditional_density_standard_error(g, x0, y0; hx = hx, hy = hy) ≈ closed rtol = 0.06
     end
     # positivity, scalar == vector, and the exact n^{-1/2} copy-merge scaling
     check_standard_error((s, y) -> conditional_density_standard_error(s, 0.0, y; hx = hx, hy = hy), g;
                          points = [-0.3, 0.0, 0.3])
-    # h^{-1/2} scaling in the response bandwidth (asymptotic; leading term at small hy, smooth point)
+    # h^{-1/2} scaling in the response bandwidth (asymptotic): it holds where f·hy/R(K) is small, so the −f²
+    # term is negligible — in the tail at y = 1.5 (f ≈ 0.09), not at the peak, where that term is half the first
     check_se_bandwidth_scaling((s, y, hh) -> conditional_density_standard_error(s, 0.0, y; hx = hx, hy = hh),
-                               g, 0.0; h = 0.15, rtol = 0.12)
+                               g, 1.5; h = 0.15, rtol = 0.12)
     # paired reader: estimate and error match the separate calls exactly
     r = conditional_density_with_standard_error(g, 0.0, 0.2; hx = hx, hy = hy)
     @test r.value == conditional_density(g, 0.0, 0.2; hx = hx, hy = hy)
@@ -118,7 +120,7 @@ include("testcontracts.jl"); using .TestContracts
       f = cond_pdf(y0, x0)
       rx = conditional_density_with_standard_error(g, x0, y0; hx = hx, hy = hy)
       @test rx.value ≈ f atol = 0.03
-      @test rx.standard_error ≈ sqrt(RK^2 * f / (N * hx * hy * fX(x0)) - f^2 / N) rtol = 0.06
+      @test rx.standard_error ≈ sqrt(RK / (N * hx * fX(x0)) * (RK * f / hy - f^2)) rtol = 0.06
     end
     rv = conditional_density_with_standard_error(g, 0.0, [-0.2, 0.0, 0.2]; hx = hx, hy = hy)
     @test rv.standard_error == conditional_density_standard_error(g, 0.0, [-0.2, 0.0, 0.2]; hx = hx, hy = hy)
@@ -133,15 +135,17 @@ include("testcontracts.jl"); using .TestContracts
     @test_throws ArgumentError conditional_density_standard_error(g, 0.0, 0.0; hx = hx, hy = hy, kernely = gamma_kernel)
     @test_throws ArgumentError conditional_density_standard_error(g, 0.0, 0.0; hx = hx, hy = hy, kernelx = gamma_kernel)
 
-    # Monte-Carlo: the predicted SE matches the empirical spread of f̂(0|0) across independent datasets
-    Random.seed!(71); K = 30; per = 80_000
+    # Monte-Carlo: the predicted SE matches the empirical spread of f̂(0|0) across independent datasets. 200
+    # datasets put the spread's own error near 5%, so 12% separates the two-term variance from the form with
+    # −f²/n in place of the local weight, which runs ~25% high at this point.
+    Random.seed!(71); K = 200; per = 80_000
     chunks = Histogram2D[]; ests = Float64[]
     for _ in 1:K
       Xk = randn(per); Yk = ρ .* Xk .+ sqrt(1 - ρ^2) .* randn(per)
       s = Histogram2D(-6.0, 6.0, 240, -6.0, 6.0, 240; lag = 1); observe_pairs!(s, Xk, Yk)
       push!(chunks, s); push!(ests, conditional_density(s, 0.0, 0.0; hx = hx, hy = hy))
     end
-    @test conditional_density_standard_error(chunks[1], 0.0, 0.0; hx = hx, hy = hy) ≈ std(ests) rtol = 0.2
+    @test conditional_density_standard_error(chunks[1], 0.0, 0.0; hx = hx, hy = hy) ≈ std(ests) rtol = 0.12
 
     # coverage: the 95% band f̂(y|x) ± 1.96·SE brackets the truth N(ρx, 1−ρ²) across an interior (x, y) grid.
     # A standard error is a *variance* band; the estimate carries an O(hx²+hy²) bias the band excludes, and for

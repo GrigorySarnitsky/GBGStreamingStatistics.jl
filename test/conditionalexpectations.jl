@@ -252,28 +252,30 @@ end
     @test_throws ArgumentError conditional_pushforward_density(g, exp, x0, 1.0; hx = hx, hz = -0.1)
     @test_throws ArgumentError conditional_pushforward_density(g, exp, x0, 1.0; hx = -1.0, hz = 0.2)
 
-    # standard error (leverage × leading kernel variance − f̂²/n): paired consistency, MC, off-support, throws
+    # standard error (leverage × the response-kernel variance): paired consistency, MC, off-support, throws
     rp = conditional_pushforward_density_with_standard_error(g, exp, x0, 1.0; hx = hx, hz = 0.18)
     @test rp.value == conditional_pushforward_density(g, exp, x0, 1.0; hx = hx, hz = 0.18)
     @test rp.standard_error == conditional_pushforward_density_standard_error(g, exp, x0, 1.0; hx = hx, hz = 0.18)
     @test conditional_pushforward_density_with_standard_error(g, exp, x0, [0.8, 1.3]; hx = hx, hz = 0.18).standard_error ==
           conditional_pushforward_density_standard_error(g, exp, x0, [0.8, 1.3]; hx = hx, hz = 0.18)
     # ... and each half against its closed form: the conditional lognormal pdf, and the two-term variance
-    # √(R(K)² f/(N hx hz f_X(x)) − f²/N) — the interior local-linear leverage R(K)/(N hx f_X(x)) times the
-    # response-kernel variance R(K) f/hz, R(K) = 1/(2√π), f_X the N(0, 1) marginal
+    # √(R(K)/(N hx f_X(x)) · (R(K) f/hz − f²)) — the interior local-linear leverage R(K)/(N hx f_X(x)) times
+    # the response-kernel variance R(K) f/hz − f², R(K) = 1/(2√π), f_X the N(0, 1) marginal
     fz = lognormal_pdf(1.0); fX0 = exp(-x0^2 / 2) / sqrt(2π); RK = 1 / (2 * sqrt(π))
     @test rp.value ≈ fz rtol = 0.08
-    @test rp.standard_error ≈ sqrt(RK^2 * fz / (N * hx * 0.18 * fX0) - fz^2 / N) rtol = 0.12
+    @test rp.standard_error ≈ sqrt(RK / (N * hx * fX0) * (RK * fz / 0.18 - fz^2)) rtol = 0.12
     @test isnan(conditional_pushforward_density_standard_error(g, exp, 100.0, 1.0; hx = hx, hz = 0.18))
     @test_throws ArgumentError conditional_pushforward_density_standard_error(g, exp, x0, 1.0; hx = hx, hz = -0.1)
     @test_throws ArgumentError conditional_pushforward_density_standard_error(g, exp, x0, 1.0; hx = hx, hz = 0.18, degree = 3)
+    # 200 datasets put the spread's own error near 5%; 12% separates the two-term variance from the form
+    # with −f²/n in place of the leverage, which runs ~17% high here
     Random.seed!(83); chunks = Histogram2D[]; mc = Float64[]
-    for _ in 1:30
+    for _ in 1:200
       Xk = randn(80_000); Yk = ρ .* Xk .+ sqrt(1 - ρ^2) .* randn(80_000)
       s = Histogram2D(-6.0, 6.0, 200, -6.0, 6.0, 200); observe_pairs!(s, Xk, Yk)
       push!(chunks, s); push!(mc, conditional_pushforward_density(s, exp, x0, 1.0; hx = hx, hz = 0.18))
     end
-    @test conditional_pushforward_density_standard_error(chunks[1], exp, x0, 1.0; hx = hx, hz = 0.18) ≈ std(mc) rtol = 0.2
+    @test conditional_pushforward_density_standard_error(chunks[1], exp, x0, 1.0; hx = hx, hz = 0.18) ≈ std(mc) rtol = 0.12
     # coverage: the 95% band brackets the truth f_{exp(Y)|x}(z) across the interior. As for a 2-D density the
     # SE is a variance band and the estimate's bias dominates it at large n, so coverage is checked in the
     # variance-dominated regime (small n, here 5000) and is an aggregate interior fraction, not a pointwise gate.
