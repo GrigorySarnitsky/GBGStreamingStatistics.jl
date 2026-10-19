@@ -468,7 +468,8 @@ Mechanical bar:
    ``\text{into} \mathrel{+}= \text{weight}\cdot\text{from}`` (the default `weight = 1` the plain monoid
    add). On a **Float-count variant** (`count_type = Float64`; the default `UInt64` cannot hold a fractional
    ``\lambda\,n``) for both histograms. Realizes the **hyperstatistical** parameter-mixture density
-   ``f_X(x) = \sum_k \pi_k f_{\theta_k}(x) = \sum_k (\pi_k/n(T_k)) T_k`` (superstatistics; Beck & Cohen 2003) — keep one
+   ``f_X(x) \approx \sum_k \pi_k f_{\theta_k}(x)``, read off the mixed summary ``T = \sum_k (\pi_k/n(T_k)) T_k``
+   (superstatistics; Beck & Cohen 2003) — keep one
    summary per ``\theta``, choose the mixing law ``\pi(\theta)`` *post hoc*, re-weight without re-accumulating —
    and **exponential forgetting** (`scale!(s, λ)` before the next block). Tested (`test/hyperstatistics.jl`):
    the cone laws, the discrete Gaussian-mixture oracle, the **χ²-superstatistics → Student-``\mathrm{t}``** Beck–Cohen
