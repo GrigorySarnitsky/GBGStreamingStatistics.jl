@@ -182,11 +182,11 @@ function _parametric_start_eval(counts, centers, n, x, kernel, h, start, params)
   isfinite(logpx) || return 0.0
   acc = 0.0
   @inbounds for j in eachindex(centers)
-    c_j = counts[j]
-    iszero(c_j) && continue
+    n_j = counts[j]
+    iszero(n_j) && continue
     logpj = start.logpdf(centers[j], params)
     isfinite(logpj) || continue
-    acc += c_j * exp(-logpj) * _kernel_weight(centers[j], x, kernel, h)
+    acc += n_j * exp(-logpj) * _kernel_weight(centers[j], x, kernel, h)
   end
   return exp(logpx) * acc / n
 end
@@ -265,9 +265,9 @@ end
 function _kde_h(counts, centers, n, x, kernel, h)
   acc = 0.0
   @inbounds for j in eachindex(centers)
-    c_j = counts[j]
-    iszero(c_j) && continue
-    acc += c_j * _kernel_weight(centers[j], x, kernel, h)
+    n_j = counts[j]
+    iszero(n_j) && continue
+    acc += n_j * _kernel_weight(centers[j], x, kernel, h)
   end
   return acc / n
 end
@@ -298,9 +298,9 @@ end
 function _kde_adaptive(counts, centers, n, x, kernel, h_j)
   acc = 0.0
   @inbounds for j in eachindex(centers)
-    c_j = counts[j]
-    iszero(c_j) && continue
-    acc += c_j * _kernel_weight(centers[j], x, kernel, h_j[j])
+    n_j = counts[j]
+    iszero(n_j) && continue
+    acc += n_j * _kernel_weight(centers[j], x, kernel, h_j[j])
   end
   return acc / n
 end

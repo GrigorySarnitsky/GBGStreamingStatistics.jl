@@ -38,10 +38,10 @@ function _distance_hist(counts)
   nbins = length(counts)
   dist = zeros(Float64, nbins)
   @inbounds for j in 1:nbins
-    c_j = counts[j]
-    c_j == 0 && continue
+    n_j = counts[j]
+    n_j == 0 && continue
     for k in j:nbins
-      dist[k - j + 1] += c_j * counts[k]
+      dist[k - j + 1] += n_j * counts[k]
     end
   end
   return dist
