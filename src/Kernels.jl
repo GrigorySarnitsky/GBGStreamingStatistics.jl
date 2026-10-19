@@ -157,7 +157,8 @@ kernels*](https://doi.org/10.1023/A:1004165218295), Ann. Inst. Statist. Math. 52
 const gamma_kernel = AsymmetricKernel(_gamma_pdf, (0.0, Inf); local_scale_weight = x -> x)
 
 
-# Chen's modified beta shape: interior (x/b, (1-x)/b); a √-correction within 2b of an edge (mean ≈ x).
+# Chen's modified beta shape: interior (x/b, (1-x)/b); ρ(x) = 2b² + 5/2 − √(4b⁴ + 6b² + 9/4 − x² − x/b)
+# for the first within 2b of the left edge, ρ(1 − x) for the second near the right (mean ≈ x).
 _beta_rho(x, b) = 2b^2 + 2.5 - sqrt(4b^4 + 6b^2 + 2.25 - x^2 - x / b)
 
 function _beta_pdf(c, x, b)
@@ -172,10 +173,11 @@ end
 
 The beta kernel (Chen 1999) estimates a density on ``[0,1]`` as the bounded-interval
 analog of [`gamma_kernel`](@ref GBGStreamingStatistics.Kernels.gamma_kernel): at ``x`` it is
-the modified ``\\mathrm{Beta}`` density in the data argument, boundary-bias-free at both edges. Its
-interior shapes are ``(x/b, (1-x)/b)``, over the bandwidth `h`; a ``\\sqrt{ \\cdot }``
-correction within ``2b`` of an edge replaces that side's shape by a quadratic's root in bandwidth
-and edge distance. Pass `kernel = beta_kernel` with data scaled to ``[0,1]``;
+the modified ``\\mathrm{Beta}`` density in the data argument, boundary-bias-free at both edges, with
+the bandwidth (the keyword `h`) as its scale ``b``. Its interior shapes are ``(x/b, (1-x)/b)``; within
+``2b`` of the left edge the first becomes
+``\\rho(x) = 2b^2 + 5/2 - \\sqrt{4b^4 + 6b^2 + 9/4 - x^2 - x/b}``, and within ``2b`` of the right
+edge the second becomes ``\\rho(1-x)``. Pass `kernel = beta_kernel` with data scaled to ``[0,1]``;
 bandwidth default, option restrictions and the ``n^{-2/5}`` rate are as for `gamma_kernel`.
 
 Reference: S. X. Chen (1999), [*Beta kernel estimators for density

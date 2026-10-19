@@ -108,7 +108,7 @@ unit,words,longest_paragraph,admonitions
 "Histograms.md § Histograms",27,27,0
 "Histograms.md § Persistence (HDF5)",70,70,0
 "Kernels.jl :: AsymmetricKernel(pdf, support; local_scale_weight = nothing)",373,143,0
-"Kernels.jl :: beta_kernel",101,84,0
+"Kernels.jl :: beta_kernel",106,89,0
 "Kernels.jl :: epanechnikov_kernel(u)",57,56,0
 "Kernels.jl :: gamma_kernel",198,180,0
 "Kernels.jl :: gaussian_kernel(u)",17,16,0
