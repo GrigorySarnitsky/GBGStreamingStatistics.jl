@@ -117,6 +117,12 @@ verbatim by every consumer) and an *estimator upper half* (the estimands):
 
 ## Documentation structure
 
+### Start here
+
+- [Getting started](tutorial.md): the guided tour of the *samples in, statistics out* workflow, from a
+  summary to a smoothed estimate and its standard error.
+- [Notation](notation.md): the single reference for every symbol the docstrings use.
+
 ### API reference
 
 ```@contents

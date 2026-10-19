@@ -43,6 +43,7 @@ GBGCodingTools.makedocs(ROOT;
   pages     = [
     "Home" => "index.md",
     "Getting started" => "tutorial.md",
+    "Notation" => "notation.md",
     "API"  => Any[
       "Overview"                => "api.md",
       "GBGStreamingStatistics"  => "api/GBGStreamingStatistics.md",
@@ -56,7 +57,6 @@ GBGCodingTools.makedocs(ROOT;
       "Bandwidth"               => "api/Bandwidth.md",
     ],
     "Design & Internals" => Any[
-      "Notation"      => "notation.md",
       "Architecture"  => "architecture.md",
       "Formalization" => "formalization.md",
       "Testing"       => "testing.md",
