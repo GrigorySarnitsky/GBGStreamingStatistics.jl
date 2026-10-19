@@ -398,8 +398,8 @@ analog of the marginal `expectation_standard_error`. `FORMALIZATION.md` pins the
 ```math
 \hat f_{Y\mid X}(y\mid x) = \frac{\sum_i K_{h_x}(X_i-x) K_{h_y}(Y_i-y)}{\sum_i K_{h_x}(X_i-x)},
 ```
-with a separate conditioning kernel `kernelx` (``K_x``, in ``x``) and response kernel `kernely` (``K_y``, in ``y``). For a
-bounded / positive response — a droplet radius as ``Y`` — `kernely` may be asymmetric (gamma / beta;
+with a separate conditioning kernel `kernel_x` (``K_x``, in ``x``) and response kernel `kernel_y` (``K_y``, in ``y``). For a
+bounded / positive response — a droplet radius as ``Y`` — `kernel_y` may be asymmetric (gamma / beta;
 Chen 1999, 2000), boundary-bias-free in ``y``, with `normalize` restoring ``\int\hat f_{Y\mid X}\,\mathrm dy = 1`` —
 the conditional analog of the marginal density's asymmetric kernels. The conditioning kernel cancels in the
 ``f_{X,Y}/f_X`` ratio, so it stays symmetric (a bounded *conditioning* variable needs none — the
@@ -729,7 +729,7 @@ intentional — do not dedupe it).
   ``\int K = 1``, default Gaussian). The ``x``-kernel weighting cancels in the conditional ratio — only
   the ``1/h_y`` survives, and ``\int K = 1`` gives ``\int \hat f_{Y\mid X}(y\mid x)\,\mathrm dy = 1`` exactly.
   `transition_density` is the same computation on a lag-``\tau`` joint (the two-time reading). The two
-  bandwidths ``h_x`` (`hx`, conditioning) and ``h_y`` (`hy`, response) and the kernels `kernelx`, `kernely` are supplied; the
+  bandwidths ``h_x`` (`h_x`, conditioning) and ``h_y`` (`h_y`, response) and the kernels `kernel_x`, `kernel_y` are supplied; the
   conditional MISE rate is the slower ``O(n^{-2/3})``.
   OU-oracle-tested against the closed-form Gaussian ``p_\tau(y\mid x)``.
 
@@ -885,7 +885,7 @@ intentional — do not dedupe it).
   belongs in the shared foundation, where any density estimator — marginal or conditional — can reach it.
   This gives the `kernel` argument one documented home (no cross-module split) and enabled the now-built
   asymmetric-kernel conditional density (§4.3: a bounded *response* — e.g. a droplet radius as ``Y`` —
-  takes a boundary-free ``y``-kernel via `conditional_density(…; kernely = gamma_kernel, normalize = true)`,
+  takes a boundary-free ``y``-kernel via `conditional_density(…; kernel_y = gamma_kernel, normalize = true)`,
   the same first-order boundary-bias fix the marginal density already has). It does not motivate asymmetric *conditioning* in `conditional_mean`: local-linear regression
   is boundary-adaptive (Fan & Gijbels 1996), already correcting the ``O(h)`` boundary bias to ``O(h^2)`` with a
   symmetric kernel, so an asymmetric conditioning kernel would be a boundary-*variance* refinement only,

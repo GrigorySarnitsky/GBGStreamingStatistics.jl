@@ -54,10 +54,10 @@ end
 # Local coefficients of the raw monomial x^p (p the argument `m`) about c_j:
 # (c_j + (x − c_j))^p = Σ_k binom(p,k) c_j^{p−k} (x − c_j)^k, so a[k+1] = binom(p,k) c_j^{p−k} for k ≤ p
 # (0 above). The g = x^p instance of the quadrature.
-function _monomial_coeffs!(a, cj, m, P)
+function _monomial_coeffs!(a, c_j, m, P)
   fill!(a, 0.0)
   @inbounds for k in 0:min(m, P)
-    a[k + 1] = binomial(m, k) * cj^(m - k)
+    a[k + 1] = binomial(m, k) * c_j^(m - k)
   end
   return a
 end
@@ -66,9 +66,9 @@ end
 # Local coefficients of the central monomial (x−X̄)^p (X̄ the argument `mu`) about c_j:
 # (c_j − X̄ + (x − c_j))^p, so a[k+1] = binom(p,k)(c_j − X̄)^{p−k}. The g = (x−X̄)^p instance (the shift
 # formula for central moments).
-function _central_coeffs!(a, cj, mu, p, P)
+function _central_coeffs!(a, c_j, mu, p, P)
   fill!(a, 0.0)
-  d = cj - mu
+  d = c_j - mu
   @inbounds for k in 0:min(p, P)
     a[k + 1] = binomial(p, k) * d^(p - k)
   end
@@ -77,7 +77,7 @@ end
 
 
 _sample_mean(h::Histogram1D) =
-  (P = _order(h); _quadrature(h, (a, cj) -> _monomial_coeffs!(a, cj, 1, P)))
+  (P = _order(h); _quadrature(h, (a, c_j) -> _monomial_coeffs!(a, c_j, 1, P)))
 
 function _sample_central_moment(h::Histogram1D, p::Integer)
   2 ≤ p ≤ _order(h) ||
@@ -85,7 +85,7 @@ function _sample_central_moment(h::Histogram1D, p::Integer)
   mu = _sample_mean(h)
   isnan(mu) && return oftype(mu, NaN)
   P = _order(h)
-  return _quadrature(h, (a, cj) -> _central_coeffs!(a, cj, mu, p, P))
+  return _quadrature(h, (a, c_j) -> _central_coeffs!(a, c_j, mu, p, P))
 end
 
 _sample_variance(h::Histogram1D) = _sample_central_moment(h, 2)
@@ -218,9 +218,9 @@ function expectation(summary::Histogram1D, g)
   gsamples = Vector{Float64}(undef, P + 1)                    # reused g-sample buffer
   scaled = Vector{Float64}(undef, P + 1)                      # reused coefficient buffer (in s)
   invpow = [halfwidth^(-p) for p in 0:P]                      # halfwidth^{-p}: converts s-coeffs → (x − c_j)-coeffs
-  coeffs! = function (a, cj)
+  coeffs! = function (a, c_j)
     @inbounds for m in 1:P + 1
-      gsamples[m] = g(cj + nodes[m] * halfwidth)
+      gsamples[m] = g(c_j + nodes[m] * halfwidth)
     end
     mul!(scaled, vandermonde_inv, gsamples)                  # coefficients in s = (x − c_j)/halfwidth
     @inbounds for p in 0:P

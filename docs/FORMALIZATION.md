@@ -319,8 +319,8 @@ recorded in `ARCHITECTURE.md` §4 meanwhile.
   ``\hat f_{g(Y)\mid X}(z\mid x) = \widehat{\mathbb{E}}[K_{h_z}(g(Y)-z)\mid X = x]`` — one `conditional_expectation`
   of the composed test function ``y\mapsto K_{h_z}(g(y)-z)``, no ``g^{-1}`` and no explicit Jacobian; a
   non-monotone ``g`` contributes from every preimage, ``g'=0`` is an integrable caustic. Two smoothing
-  directions: the ``x``-conditioning regression (`hx`, `kernelx`, `degree`) and the ``z`` smoothing (`hz`,
-  `kernelz`). Its standard error `conditional_pushforward_density_standard_error` (with the paired
+  directions: the ``x``-conditioning regression (`h_x`, `kernel_x`, `degree`) and the ``z`` smoothing (`h_z`,
+  `kernel_z`). Its standard error `conditional_pushforward_density_standard_error` (with the paired
   `conditional_pushforward_density_with_standard_error`) is the two-term
   ``\sqrt{\ell(x) [R(K_z)\hat f_{g(Y)\mid X}/h_z - \hat f_{g(Y)\mid X}^2]}`` — the local-fit leverage ``\ell(x)`` times the
   variance of ``K_{h_z}(g(Y) - z)`` (analytic ``R(K_z)``, since the order-2 ``y``-quadrature cannot resolve ``K_{h_z}^2``) —
@@ -386,8 +386,8 @@ recorded in `ARCHITECTURE.md` §4 meanwhile.
 - **Estimand.** ``f_{Y\mid X}(y\mid x) = f_{X,Y}(x,y)/f_X(x)``, and the two-time transition density
   ``p_\tau(y\mid x) = f_{Y(t+\tau)\mid X(t)}(y\mid x)`` (the same object on a lag-``\tau`` joint).
 - **Estimator.** the binned double-kernel (Rosenblatt 1969; Hyndman, Bashtannyk & Grunwald 1996), with a
-  conditioning kernel ``K_x`` (`kernelx`, of bandwidth ``h_x`` given by `hx`, in ``x``) and a response
-  kernel ``K_y`` (`kernely`, of bandwidth ``h_y`` given by `hy`, in ``y``); each ``\int K = 1``, default
+  conditioning kernel ``K_x`` (`kernel_x`, of bandwidth ``h_x`` given by `h_x`, in ``x``) and a response
+  kernel ``K_y`` (`kernel_y`, of bandwidth ``h_y`` given by `h_y`, in ``y``); each ``\int K = 1``, default
   `gaussian_kernel`:
   from the cell counts ``n_{jl}`` at centers ``(c^x_j, c^y_l)`` with ``N_j = \sum_l n_{jl}``,
 
@@ -399,16 +399,16 @@ recorded in `ARCHITECTURE.md` §4 meanwhile.
   computed as ``\hat f_{Y\mid X}(y\mid x) = \bigl(\sum_l P_l  K_y((c^y_l - y)/h_y)\bigr) / (h_y D)`` for a symmetric
   ``K_y`` (the surviving ``1/h_y`` from ``K_{h_y}``), with the conditioning-kernel-weighted profile
   ``P_l = \sum_j n_{jl} K_{h_x}(c^x_j - x)`` and ``D = \sum_l P_l``. The conditioning-kernel weighting
-  cancels in the ratio (so `kernelx` only weights the local window); for a symmetric ``K_y`` the
+  cancels in the ratio (so `kernel_x` only weights the local window); for a symmetric ``K_y`` the
   ``1/h_y`` makes ``\int \hat f_{Y\mid X}(y\mid x)\,\mathrm dy = 1`` exactly (``\int K = 1``). For a bounded /
-  positive response an asymmetric ``K_y`` = `kernely` (gamma / beta; Chen 1999, 2000), of scale ``b`` given by `hy`, is instead a
+  positive response an asymmetric ``K_y`` = `kernel_y` (gamma / beta; Chen 1999, 2000), of scale ``b`` given by `h_y`, is instead a
   density in the data argument, ``\hat f_{Y\mid X} = \bigl(\sum_l P_l  K_y(c^y_l;  y, b)\bigr)/D`` — boundary-bias-free
   in ``y`` but only ``\approx``-normalized, made exact by the `normalize` renormalization.
 - **Consistency claim** (``h_x, h_y \to 0``, ``n h_x h_y \to \infty``): for symmetric kernels the pointwise bias is ``\tfrac{1}{2} h_x^2 \mu_2(K_x)\bigl[\partial_{xx} f_{Y\mid X} + 2 \partial_x f_{Y\mid X} \partial_x f_X / f_X\bigr] + \tfrac{1}{2} h_y^2 \mu_2(K_y) \partial_{yy} f_{Y\mid X}`` and the variance ``R(K_x)R(K_y) f_{Y\mid X}/(n h_x h_y f_X)``, giving the slower conditional rate ``O(n^{-2/3})`` at the optimal ``h \sim n^{-1/6}`` (the bias is worst at the conditional mode). An asymmetric ``K_y`` carries the boundary-uniform ``O(b)`` Chen ``y``-bias instead of the ``O(h_y^2)`` interior term — the price of consistency at the ``y = 0`` edge a symmetric kernel cannot reach.
 - **Test.** `test/conditionaldensity.jl` — the bivariate-Gaussian fixture ``Y\mid X=x \sim \mathcal{N}(\rho x, 1-\rho^2)``: ``\int \hat f_{Y\mid X}\,\mathrm dy \approx 1`` and pointwise recovery to ``3\times10^{-2}``; the
   scalar/vector forms, the `transition_density` equivalence, off-support `NaN`, bandwidth checks, and
   mergeability; plus the asymmetric-response oracle (``X\sim \mathcal{N}(0,1)``, ``Y\sim\mathrm{Exp}(1)\perp X``
-  ``\Rightarrow`` ``f_{Y\mid X}(y\mid x)=e^{-y}``), where the gamma `kernely` recovers the density at the boundary
+  ``\Rightarrow`` ``f_{Y\mid X}(y\mid x)=e^{-y}``), where the gamma `kernel_y` recovers the density at the boundary
   ``y\approx0`` that the symmetric Gaussian leaks low, `normalize` driving ``\int\hat f_{Y\mid X}\,\mathrm dy`` to 1.
   `test/oracles.jl` — the Ornstein–Uhlenbeck oracle: `transition_density` recovers the
   closed-form ``p_\tau(y\mid x) = \mathcal{N}(x e^{-\kappa\tau},  \sigma_X^2(1-e^{-2\kappa\tau}))`` to ``4\times10^{-2}``

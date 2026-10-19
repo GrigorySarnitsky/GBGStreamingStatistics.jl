@@ -7,21 +7,21 @@ const H = Histograms
 # Recover the X/Y marginal moments and covariance from a Histogram2D's per-cell power-sums (the 2D
 # shift formula) — exercises that the bivariate power-sums S_10 … S_02 are accumulated correctly.
 function recover_2d(h)
-  counts = h.counts; S = h.powersums; nx = h.nx
+  counts = h.counts; S = h.powersums; n_x = h.n_x
   n = 0.0; sx = 0.0; sy = 0.0
   for cell in 1:length(counts)
     nc = counts[cell]; iszero(nc) && continue
-    ix = (cell - 1) % nx + 1; iy = (cell - 1) ÷ nx + 1
+    i_x = (cell - 1) % n_x + 1; i_y = (cell - 1) ÷ n_x + 1
     n += nc
-    sx += H._xbincenter(h, ix) * nc + S[1, cell]
-    sy += H._ybincenter(h, iy) * nc + S[2, cell]
+    sx += H._xbincenter(h, i_x) * nc + S[1, cell]
+    sy += H._ybincenter(h, i_y) * nc + S[2, cell]
   end
   xbar = sx / n; ybar = sy / n
   M2x = 0.0; M2y = 0.0; Cxy = 0.0
   for cell in 1:length(counts)
     nc = counts[cell]; iszero(nc) && continue
-    ix = (cell - 1) % nx + 1; iy = (cell - 1) ÷ nx + 1
-    dx = H._xbincenter(h, ix) - xbar; dy = H._ybincenter(h, iy) - ybar
+    i_x = (cell - 1) % n_x + 1; i_y = (cell - 1) ÷ n_x + 1
+    dx = H._xbincenter(h, i_x) - xbar; dy = H._ybincenter(h, i_y) - ybar
     M2x += nc * dx^2 + 2 * dx * S[1, cell] + S[3, cell]
     M2y += nc * dy^2 + 2 * dy * S[2, cell] + S[5, cell]
     Cxy += nc * dx * dy + dx * S[2, cell] + dy * S[1, cell] + S[4, cell]

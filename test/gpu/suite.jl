@@ -24,7 +24,7 @@ const H = Histograms
 on_device(h::Histogram1D) =
   Histogram1D(h.lower, h.upper, h.scale, to_device(h.counts), to_device(h.powersums))
 on_device(h::Histogram2D) =
-  Histogram2D(h.xlower, h.xupper, h.xscale, h.ylower, h.yupper, h.yscale, h.nx, h.ny, h.lag,
+  Histogram2D(h.x_lower, h.x_upper, h.x_scale, h.y_lower, h.y_upper, h.y_scale, h.n_x, h.n_y, h.lag,
               to_device(h.counts), to_device(h.powersums))
 
 function run_gpu_suite(::Type{T}) where {T<:AbstractFloat}

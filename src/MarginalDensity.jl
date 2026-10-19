@@ -182,11 +182,11 @@ function _parametric_start_eval(counts, centers, n, x, kernel, h, start, params)
   isfinite(logpx) || return 0.0
   acc = 0.0
   @inbounds for j in eachindex(centers)
-    cj = counts[j]
-    iszero(cj) && continue
+    c_j = counts[j]
+    iszero(c_j) && continue
     logpj = start.logpdf(centers[j], params)
     isfinite(logpj) || continue
-    acc += cj * exp(-logpj) * _kernel_weight(centers[j], x, kernel, h)
+    acc += c_j * exp(-logpj) * _kernel_weight(centers[j], x, kernel, h)
   end
   return exp(logpx) * acc / n
 end
@@ -265,9 +265,9 @@ end
 function _kde_h(counts, centers, n, x, kernel, h)
   acc = 0.0
   @inbounds for j in eachindex(centers)
-    cj = counts[j]
-    iszero(cj) && continue
-    acc += cj * _kernel_weight(centers[j], x, kernel, h)
+    c_j = counts[j]
+    iszero(c_j) && continue
+    acc += c_j * _kernel_weight(centers[j], x, kernel, h)
   end
   return acc / n
 end
@@ -289,18 +289,18 @@ function _abramson(counts, centers, n, kernel, h)
     logg += counts[j] * log(pilot[j])
   end
   g = exp(logg / n)
-  hj = [pilot[j] > 0 ? h * sqrt(g / pilot[j]) : h for j in 1:nb]
-  return hj, g
+  h_j = [pilot[j] > 0 ? h * sqrt(g / pilot[j]) : h for j in 1:nb]
+  return h_j, g
 end
 
 
 # Degree-0 adaptive KDE at x with per-bin (sample-point) bandwidths h_j.
-function _kde_adaptive(counts, centers, n, x, kernel, hj)
+function _kde_adaptive(counts, centers, n, x, kernel, h_j)
   acc = 0.0
   @inbounds for j in eachindex(centers)
-    cj = counts[j]
-    iszero(cj) && continue
-    acc += cj * _kernel_weight(centers[j], x, kernel, hj[j])
+    c_j = counts[j]
+    iszero(c_j) && continue
+    acc += c_j * _kernel_weight(centers[j], x, kernel, h_j[j])
   end
   return acc / n
 end
@@ -312,13 +312,13 @@ end
 # Newton/IRLS (concave) gives f̂_X(x) = e^{β̂₀}. Each Newton step is the shared
 # kernel-weighted local-polynomial solve (`LocalPolynomial._hankel_solve` of the n̂-weighted design
 # moments) — a local GLM is the linear solve iterated (`docs/ARCHITECTURE.md` §11). Warm-started from
-# the KDE value `f0`; falls back to it where the local design can't support degree d (singular) or the
+# the KDE value `f_0`; falls back to it where the local design can't support degree d (singular) or the
 # fit diverges.
-function _local_log(counts, centers, n, x, kernel, degree, hx, b, f0)
-  (f0 > 0 && isfinite(f0)) || return f0
+function _local_log(counts, centers, n, x, kernel, degree, h_x, b, f_0)
+  (f_0 > 0 && isfinite(f_0)) || return f_0
   p = degree + 1
   β = zeros(p)
-  β[1] = log(f0)
+  β[1] = log(f_0)
   nb_off = n * b
   grad = zeros(p)               # the score Σ K_h(c̃_j − x)(n_j − n̂_j)(c̃_j − x)^p, one entry per power 0 … degree
   momμ = zeros(2 * degree + 1)  # the n̂-weighted moments Σ K_h(c̃_j − x) n̂_j (c̃_j − x)^p; the Gram is their Hankel
@@ -327,8 +327,8 @@ function _local_log(counts, centers, n, x, kernel, degree, hx, b, f0)
     fill!(momμ, 0.0)
     @inbounds for j in eachindex(centers)
       d = centers[j] - x
-      w = _kernel_weight(centers[j], x, kernel, hx)
-      w * hx < 1e-10 && continue        # cut on the raw kernel value (scale-free), not the 1/hx-folded weight
+      w = _kernel_weight(centers[j], x, kernel, h_x)
+      w * h_x < 1e-10 && continue        # cut on the raw kernel value (scale-free), not the 1/h_x-folded weight
       η = β[1]
       dl = 1.0
       for l in 2:p
@@ -348,14 +348,14 @@ function _local_log(counts, centers, n, x, kernel, degree, hx, b, f0)
       end
     end
     δ = _hankel_solve(momμ, grad)
-    all(isfinite, δ) || return f0
+    all(isfinite, δ) || return f_0
     β .+= δ
     maximum(abs, δ) < 1e-8 && break
   end
   fx = exp(β[1])
   # a bounded refinement of the KDE: a fit that departs by more than ×5 is an extrapolation artifact
   # (a log-polynomial run wild in a sparse / wide-window tail), so fall back to the KDE there.
-  return (isfinite(fx) && f0 / 5 ≤ fx ≤ 5 * f0) ? fx : f0
+  return (isfinite(fx) && f_0 / 5 ≤ fx ≤ 5 * f_0) ? fx : f_0
 end
 
 
@@ -363,7 +363,7 @@ end
 # h (f̃_X(x)/G)^(−1/2) evaluated *at the query point* (so the fit window stays local). The factor
 # is clipped at 5 so the window does not blow up in the deep tail (where f̃_X(x) → 0) and the
 # local polynomial extrapolate upward.
-@inline _balloon(h, g, f0, adaptive) = (adaptive && f0 > 0) ? h * min(sqrt(g / f0), 5.0) : float(h)
+@inline _balloon(h, g, f_0, adaptive) = (adaptive && f_0 > 0) ? h * min(sqrt(g / f_0), 5.0) : float(h)
 
 
 # --- boundary renormalization (Jones 1993): divide the degree-0 KDE by the kernel mass that lands inside
@@ -399,8 +399,8 @@ function _bin_locations(summary::Histogram1D, counts, binning::Symbol)
   if binning === :simple
     return [_bincenter(summary, j) for j in 1:nb]
   elseif binning === :linear
-    S1 = Array(summary.powersums[1, :])      # the first power-sum S_1 about each bin center
-    return [iszero(counts[j]) ? _bincenter(summary, j) : _bincenter(summary, j) + S1[j] / counts[j]
+    S_1 = Array(summary.powersums[1, :])      # the first power-sum S_1 about each bin center
+    return [iszero(counts[j]) ? _bincenter(summary, j) : _bincenter(summary, j) + S_1[j] / counts[j]
             for j in 1:nb]
   end
   throw(ArgumentError("binning must be :simple or :linear (got :$(binning))"))
@@ -558,14 +558,14 @@ function density(summary::Histogram1D, x::Real; kernel = gaussian_kernel,
     fx = _kde_h(counts, centers, n, x, kernel, hh)
     return support === nothing ? fx : fx / _kernel_mass(kernel, x, hh, support[1], support[2])
   elseif degree == 0
-    hj, _ = _abramson(counts, centers, n, kernel, hh)
-    fx = _kde_adaptive(counts, centers, n, x, kernel, hj)
+    h_j, _ = _abramson(counts, centers, n, kernel, hh)
+    fx = _kde_adaptive(counts, centers, n, x, kernel, h_j)
     return support === nothing ? fx : fx / _kernel_mass(kernel, x, hh, support[1], support[2])
   end
   g = adaptive ? _abramson(counts, centers, n, kernel, hh)[2] : 1.0
-  f0 = _kde_h(counts, centers, n, x, kernel, hh)
-  return _local_log(counts, centers, n, x, kernel, degree, _balloon(hh, g, f0, adaptive),
-                    inv(summary.scale), f0)
+  f_0 = _kde_h(counts, centers, n, x, kernel, hh)
+  return _local_log(counts, centers, n, x, kernel, degree, _balloon(hh, g, f_0, adaptive),
+                    inv(summary.scale), f_0)
 end
 
 function density(summary::Histogram1D, xs::AbstractVector; kernel = gaussian_kernel,
@@ -616,15 +616,15 @@ function density(summary::Histogram1D, xs::AbstractVector; kernel = gaussian_ker
     fxs = [_kde_h(counts, centers, n, x, kernel, hh) for x in xs]
     return support === nothing ? fxs : [f / _kernel_mass(kernel, x, hh, support[1], support[2]) for (f, x) in zip(fxs, xs)]
   elseif degree == 0
-    hj, _ = _abramson(counts, centers, n, kernel, hh)
-    fxs = [_kde_adaptive(counts, centers, n, x, kernel, hj) for x in xs]
+    h_j, _ = _abramson(counts, centers, n, kernel, hh)
+    fxs = [_kde_adaptive(counts, centers, n, x, kernel, h_j) for x in xs]
     return support === nothing ? fxs : [f / _kernel_mass(kernel, x, hh, support[1], support[2]) for (f, x) in zip(fxs, xs)]
   end
   b = inv(summary.scale)
   g = adaptive ? _abramson(counts, centers, n, kernel, hh)[2] : 1.0
   return [begin
-            f0 = _kde_h(counts, centers, n, x, kernel, hh)
-            _local_log(counts, centers, n, x, kernel, degree, _balloon(hh, g, f0, adaptive), b, f0)
+            f_0 = _kde_h(counts, centers, n, x, kernel, hh)
+            _local_log(counts, centers, n, x, kernel, degree, _balloon(hh, g, f_0, adaptive), b, f_0)
           end for x in xs]
 end
 

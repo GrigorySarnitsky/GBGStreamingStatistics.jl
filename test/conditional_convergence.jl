@@ -46,15 +46,15 @@ end
 
 @testset "conditional_density: ISE ∝ n^(−2/3) (the 2-D double-kernel rate, §4.3)" begin
   # Bivariate-Gaussian oracle: Y | X=x ∼ N(ρx, 1−ρ²), smooth and curved in both x and y, so the
-  # double-kernel estimate carries the 2-D O(hx²+hy²) bias. At the 2-D rate-optimal bandwidth
-  # hx = hy ∝ n^{-1/(d+4)} = n^{-1/6} the MISE balances bias² ~ h⁴ and variance ~ 1/(n·hx·hy), both
+  # double-kernel estimate carries the 2-D O(h_x²+h_y²) bias. At the 2-D rate-optimal bandwidth
+  # h_x = h_y ∝ n^{-1/(d+4)} = n^{-1/6} the MISE balances bias² ~ h⁴ and variance ~ 1/(n·h_x·h_y), both
   # n^{-2/3}. The ISE is measured in y at the data-densest conditioning point x₀ = 0 (f_X maximal ⇒
   # cleanest slope). The n-range starts higher than the 1-D density test: the slower 2-D rate reaches its
   # asymptotic regime later, and below ~10^5 the measured slope runs shallow (≈ −0.6), the conditional
   # analog of the finite-n muddying the density rate test records for non-Gaussians.
   ρ = 0.6
   sd = sqrt(1 - ρ^2)
-  c = 1.5                                        # hx = hy = c·n^{-1/6}, the 2-D rate-optimal scaling
+  c = 1.5                                        # h_x = h_y = c·n^{-1/6}, the 2-D rate-optimal scaling
   ns = (130_000, 330_000, 800_000, 1_500_000, 2_800_000)
   ys = collect(-3.0:0.03:3.0); truth = gaussian_pdf.(ys; mu = 0.0, sigma = sd)
   function cd_ise(n; seed)
@@ -62,7 +62,7 @@ end
     X = randn(n); Y = ρ .* X .+ sd .* randn(n)
     g = Histogram2D(-6.0, 6.0, 400, -6.0, 6.0, 500; lag = 1); observe_pairs!(g, X, Y)
     hb = c * n^(-1 / 6)
-    return ise(conditional_density(g, 0.0, ys; hx = hb, hy = hb), truth, 0.03)
+    return ise(conditional_density(g, 0.0, ys; h_x = hb, h_y = hb), truth, 0.03)
   end
   ises = [mean(cd_ise(n; seed = 200 + s) for s in 1:4) for n in ns]
   slope = loglog_slope(collect(ns), ises)

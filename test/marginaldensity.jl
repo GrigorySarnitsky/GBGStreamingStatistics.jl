@@ -137,13 +137,13 @@ end
   Random.seed!(31)
   hg = Histogram1D(-8.0, 8.0, 1600); observe!(hg, randn(400_000))
   n = 400_000
-  RK = 1 / (2 * sqrt(π))                                  # R(K) for the Gaussian
+  R_K = 1 / (2 * sqrt(π))                                  # R(K) for the Gaussian
 
   # the SE is exactly the two-term KDE variance √(R(K)·f̂/(n h) − f̂²/n) (Wand & Jones)
   bw = bandwidth(hg)
   for x in (0.0, 1.0, 2.0)
     f = density(hg, x; h = bw)
-    @test density_standard_error(hg, x; h = bw) ≈ sqrt(RK * f / (n * bw) - f^2 / n)  rtol = 1e-6
+    @test density_standard_error(hg, x; h = bw) ≈ sqrt(R_K * f / (n * bw) - f^2 / n)  rtol = 1e-6
   end
 
   # the 95% band f̂ ± 1.96·SE covers the truth across the interior (aggregate; bias dips it at mode/tail)

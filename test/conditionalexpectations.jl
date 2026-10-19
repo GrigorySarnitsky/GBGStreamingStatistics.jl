@@ -174,7 +174,7 @@ end
 @testset "conditional_expectation & pushforward — the general ⟨g(Y)|x⟩ (§4.2)" begin
   # Bivariate-Gaussian: Y|X=x ~ N(ρx, 1−ρ²), so ⟨cos Y|x⟩ = cos(ρx)·e^{−(1−ρ²)/2} (and sin likewise) —
   # a clean analytic oracle for the general conditional expectation. The y-quadrature of a general g uses
-  # the order-2 Y-power-sums, so ny is taken fine.
+  # the order-2 Y-power-sums, so n_y is taken fine.
   Random.seed!(31)
   N = 1_500_000
   ρ = 0.6
@@ -183,39 +183,39 @@ end
   Y = ρ .* X .+ sqrt(v) .* randn(N)
   g = Histogram2D(-6.0, 6.0, 200, -6.0, 6.0, 500)
   observe_pairs!(g, X, Y)
-  hx = 0.4
+  h_x = 0.4
 
   @testset "⟨g(Y)|x⟩ oracle — E[cos Y|x], E[sin Y|x]" begin
     for x in (-1.0, 0.0, 1.0)
-      @test conditional_expectation(g, cos, x; h = hx) ≈ cos(ρ * x) * exp(-v / 2) atol = 0.025
+      @test conditional_expectation(g, cos, x; h = h_x) ≈ cos(ρ * x) * exp(-v / 2) atol = 0.025
     end
-    @test conditional_expectation(g, sin, 0.8; h = hx) ≈ sin(ρ * 0.8) * exp(-v / 2) atol = 0.025
-    @test conditional_expectation(g, sin, 0.0; h = hx) ≈ 0.0 atol = 0.01
+    @test conditional_expectation(g, sin, 0.8; h = h_x) ≈ sin(ρ * 0.8) * exp(-v / 2) atol = 0.025
+    @test conditional_expectation(g, sin, 0.0; h = h_x) ≈ 0.0 atol = 0.01
   end
 
   @testset "conditional_mean is exactly conditional_expectation(identity)" begin
     for x in (-1.5, -0.5, 0.5, 1.5)
-      @test conditional_mean(g, x; h = hx) == conditional_expectation(g, identity, x; h = hx)
-      @test conditional_mean(g, x; h = hx, degree = 2) ==
-            conditional_expectation(g, identity, x; h = hx, degree = 2)
+      @test conditional_mean(g, x; h = h_x) == conditional_expectation(g, identity, x; h = h_x)
+      @test conditional_mean(g, x; h = h_x, degree = 2) ==
+            conditional_expectation(g, identity, x; h = h_x, degree = 2)
     end
   end
 
   @testset "plug-in variance = ⟨Y²|x⟩ − ⟨Y|x⟩² via the general reader" begin
     for x in (-1.0, 0.0, 1.0)
-      plug = conditional_variance(g, x; h = hx, method = :plugin)
-      viaexp = conditional_expectation(g, y -> y^2, x; h = hx) -
-               conditional_expectation(g, identity, x; h = hx)^2
+      plug = conditional_variance(g, x; h = h_x, method = :plugin)
+      viaexp = conditional_expectation(g, y -> y^2, x; h = h_x) -
+               conditional_expectation(g, identity, x; h = h_x)^2
       @test plug ≈ viaexp rtol = 1e-10
     end
   end
 
   @testset "scalar == vector; argument errors" begin
     xs = [-1.0, 0.0, 1.0]
-    @test conditional_expectation(g, cos, xs; h = hx) ≈
-          [conditional_expectation(g, cos, x; h = hx) for x in xs]
+    @test conditional_expectation(g, cos, xs; h = h_x) ≈
+          [conditional_expectation(g, cos, x; h = h_x) for x in xs]
     @test_throws ArgumentError conditional_expectation(g, cos, 0.0; h = -1.0)
-    @test_throws ArgumentError conditional_expectation(g, cos, 0.0; h = hx, degree = 3)
+    @test_throws ArgumentError conditional_expectation(g, cos, 0.0; h = h_x, degree = 3)
   end
 
   # the universal query-point contract (scalar==vector, functional of the merged summary, NaN off support)
@@ -225,11 +225,11 @@ end
   observe_pairs!(a, view(X, 1:half), view(Y, 1:half))
   observe_pairs!(b, view(X, half+1:N), view(Y, half+1:N))
   merge!(a, b)
-  check_point_estimator((s, x) -> conditional_expectation(s, cos, x; h = hx), a, g;
+  check_point_estimator((s, x) -> conditional_expectation(s, cos, x; h = h_x), a, g;
                         points = [-1.0, 0.0, 1.0], outside = 100.0)
-  check_point_estimator((s, x) -> conditional_expectation_standard_error(s, cos, x; h = hx), a, g;
+  check_point_estimator((s, x) -> conditional_expectation_standard_error(s, cos, x; h = h_x), a, g;
                         points = [-1.0, 0.0, 1.0], outside = 100.0)
-  check_standard_error((s, x) -> conditional_expectation_standard_error(s, cos, x; h = hx), g;
+  check_standard_error((s, x) -> conditional_expectation_standard_error(s, cos, x; h = h_x), g;
                        points = [-1.0, 0.0, 1.0])
   check_se_bandwidth_scaling((s, x, hh) -> conditional_expectation_standard_error(s, identity, x; h = hh),
                              g, 0.0; h = 0.1, rtol = 0.06)
@@ -238,44 +238,44 @@ end
     x0 = 0.5
     lognormal_pdf(z) = 1 / (z * sqrt(2π * v)) * exp(-(log(z) - ρ * x0)^2 / (2v))
     for z in (0.8, 1.3, 2.0)
-      @test conditional_pushforward_density(g, exp, x0, z; hx = hx, hz = 0.18) ≈
+      @test conditional_pushforward_density(g, exp, x0, z; h_x = h_x, h_z = 0.18) ≈
             lognormal_pdf(z) rtol = 0.08
     end
-    # exact normalization ∫ f̂ dz = 1 (symmetric kernelz)
+    # exact normalization ∫ f̂ dz = 1 (symmetric kernel_z)
     zs = range(0.02, 15.0; length = 1800)
-    curve = conditional_pushforward_density(g, exp, x0, collect(zs); hx = hx, hz = 0.18)
+    curve = conditional_pushforward_density(g, exp, x0, collect(zs); h_x = h_x, h_z = 0.18)
     integral = sum(curve) * step(zs) - 0.5 * (curve[1] + curve[end]) * step(zs)
     @test integral ≈ 1.0 atol = 0.04
-    # scalar == vector, and the hz > 0 guard
-    @test conditional_pushforward_density(g, exp, x0, [0.8, 1.3]; hx = hx, hz = 0.18) ≈
-          [conditional_pushforward_density(g, exp, x0, z; hx = hx, hz = 0.18) for z in (0.8, 1.3)]
-    @test_throws ArgumentError conditional_pushforward_density(g, exp, x0, 1.0; hx = hx, hz = -0.1)
-    @test_throws ArgumentError conditional_pushforward_density(g, exp, x0, 1.0; hx = -1.0, hz = 0.2)
+    # scalar == vector, and the h_z > 0 guard
+    @test conditional_pushforward_density(g, exp, x0, [0.8, 1.3]; h_x = h_x, h_z = 0.18) ≈
+          [conditional_pushforward_density(g, exp, x0, z; h_x = h_x, h_z = 0.18) for z in (0.8, 1.3)]
+    @test_throws ArgumentError conditional_pushforward_density(g, exp, x0, 1.0; h_x = h_x, h_z = -0.1)
+    @test_throws ArgumentError conditional_pushforward_density(g, exp, x0, 1.0; h_x = -1.0, h_z = 0.2)
 
     # standard error (leverage × the response-kernel variance): paired consistency, MC, off-support, throws
-    rp = conditional_pushforward_density_with_standard_error(g, exp, x0, 1.0; hx = hx, hz = 0.18)
-    @test rp.value == conditional_pushforward_density(g, exp, x0, 1.0; hx = hx, hz = 0.18)
-    @test rp.standard_error == conditional_pushforward_density_standard_error(g, exp, x0, 1.0; hx = hx, hz = 0.18)
-    @test conditional_pushforward_density_with_standard_error(g, exp, x0, [0.8, 1.3]; hx = hx, hz = 0.18).standard_error ==
-          conditional_pushforward_density_standard_error(g, exp, x0, [0.8, 1.3]; hx = hx, hz = 0.18)
+    rp = conditional_pushforward_density_with_standard_error(g, exp, x0, 1.0; h_x = h_x, h_z = 0.18)
+    @test rp.value == conditional_pushforward_density(g, exp, x0, 1.0; h_x = h_x, h_z = 0.18)
+    @test rp.standard_error == conditional_pushforward_density_standard_error(g, exp, x0, 1.0; h_x = h_x, h_z = 0.18)
+    @test conditional_pushforward_density_with_standard_error(g, exp, x0, [0.8, 1.3]; h_x = h_x, h_z = 0.18).standard_error ==
+          conditional_pushforward_density_standard_error(g, exp, x0, [0.8, 1.3]; h_x = h_x, h_z = 0.18)
     # ... and each half against its closed form: the conditional lognormal pdf, and the two-term variance
-    # √(R(K)/(N hx f_X(x)) · (R(K) f/hz − f²)) — the interior local-linear leverage R(K)/(N hx f_X(x)) times
-    # the response-kernel variance R(K) f/hz − f², R(K) = 1/(2√π), f_X the N(0, 1) marginal
-    fz = lognormal_pdf(1.0); fX0 = exp(-x0^2 / 2) / sqrt(2π); RK = 1 / (2 * sqrt(π))
+    # √(R(K)/(N h_x f_X(x)) · (R(K) f/h_z − f²)) — the interior local-linear leverage R(K)/(N h_x f_X(x)) times
+    # the response-kernel variance R(K) f/h_z − f², R(K) = 1/(2√π), f_X the N(0, 1) marginal
+    fz = lognormal_pdf(1.0); fX0 = exp(-x0^2 / 2) / sqrt(2π); R_K = 1 / (2 * sqrt(π))
     @test rp.value ≈ fz rtol = 0.08
-    @test rp.standard_error ≈ sqrt(RK / (N * hx * fX0) * (RK * fz / 0.18 - fz^2)) rtol = 0.12
-    @test isnan(conditional_pushforward_density_standard_error(g, exp, 100.0, 1.0; hx = hx, hz = 0.18))
-    @test_throws ArgumentError conditional_pushforward_density_standard_error(g, exp, x0, 1.0; hx = hx, hz = -0.1)
-    @test_throws ArgumentError conditional_pushforward_density_standard_error(g, exp, x0, 1.0; hx = hx, hz = 0.18, degree = 3)
+    @test rp.standard_error ≈ sqrt(R_K / (N * h_x * fX0) * (R_K * fz / 0.18 - fz^2)) rtol = 0.12
+    @test isnan(conditional_pushforward_density_standard_error(g, exp, 100.0, 1.0; h_x = h_x, h_z = 0.18))
+    @test_throws ArgumentError conditional_pushforward_density_standard_error(g, exp, x0, 1.0; h_x = h_x, h_z = -0.1)
+    @test_throws ArgumentError conditional_pushforward_density_standard_error(g, exp, x0, 1.0; h_x = h_x, h_z = 0.18, degree = 3)
     # 200 datasets put the spread's own error near 5%; 12% separates the two-term variance from the form
     # with −f²/n in place of the leverage, which runs ~17% high here
     Random.seed!(83); chunks = Histogram2D[]; mc = Float64[]
     for _ in 1:200
       Xk = randn(80_000); Yk = ρ .* Xk .+ sqrt(1 - ρ^2) .* randn(80_000)
       s = Histogram2D(-6.0, 6.0, 200, -6.0, 6.0, 200); observe_pairs!(s, Xk, Yk)
-      push!(chunks, s); push!(mc, conditional_pushforward_density(s, exp, x0, 1.0; hx = hx, hz = 0.18))
+      push!(chunks, s); push!(mc, conditional_pushforward_density(s, exp, x0, 1.0; h_x = h_x, h_z = 0.18))
     end
-    @test conditional_pushforward_density_standard_error(chunks[1], exp, x0, 1.0; hx = hx, hz = 0.18) ≈ std(mc) rtol = 0.12
+    @test conditional_pushforward_density_standard_error(chunks[1], exp, x0, 1.0; h_x = h_x, h_z = 0.18) ≈ std(mc) rtol = 0.12
     # coverage: the 95% band brackets the truth f_{exp(Y)|x}(z) across the interior. As for a 2-D density the
     # SE is a variance band and the estimate's bias dominates it at large n, so coverage is checked in the
     # variance-dominated regime (small n, here 5000) and is an aggregate interior fraction, not a pointwise gate.
@@ -283,8 +283,8 @@ end
     Xc = randn(5000); Yc = ρ .* Xc .+ sqrt(1 - ρ^2) .* randn(5000)
     sc = Histogram2D(-6.0, 6.0, 200, -6.0, 6.0, 200); observe_pairs!(sc, Xc, Yc)
     zcov = 0.6:0.2:2.4
-    covered = count(z -> abs(conditional_pushforward_density(sc, exp, x0, z; hx = hx, hz = 0.18) - lognormal_pdf(z)) ≤
-                         1.96 * conditional_pushforward_density_standard_error(sc, exp, x0, z; hx = hx, hz = 0.18), zcov)
+    covered = count(z -> abs(conditional_pushforward_density(sc, exp, x0, z; h_x = h_x, h_z = 0.18) - lognormal_pdf(z)) ≤
+                         1.96 * conditional_pushforward_density_standard_error(sc, exp, x0, z; h_x = h_x, h_z = 0.18), zcov)
     @test covered / length(zcov) ≥ 0.6
   end
 
@@ -292,14 +292,14 @@ end
     # both estimate f_{Y|X}; they agree up to the within-Y-cell correction (pushforward uses the degree-2
     # y-quadrature, conditional_density the cell-center value), i.e. to O(Δ_y²).
     for y in (-0.5, 0.3, 1.0)
-      pf = conditional_pushforward_density(g, identity, 0.5, y; hx = hx, hz = 0.2, degree = 0)
-      cd = conditional_density(g, 0.5, y; hx = hx, hy = 0.2)
+      pf = conditional_pushforward_density(g, identity, 0.5, y; h_x = h_x, h_z = 0.2, degree = 0)
+      cd = conditional_density(g, 0.5, y; h_x = h_x, h_y = 0.2)
       @test pf ≈ cd rtol = 0.02
     end
     # the standard errors coincide too at degree 0 (the pushforward SE reduces to the conditional-density SE)
     for y in (-0.5, 0.3, 1.0)
-      @test conditional_pushforward_density_standard_error(g, identity, 0.5, y; hx = hx, hz = 0.2, degree = 0) ≈
-            conditional_density_standard_error(g, 0.5, y; hx = hx, hy = 0.2) rtol = 0.03
+      @test conditional_pushforward_density_standard_error(g, identity, 0.5, y; h_x = h_x, h_z = 0.2, degree = 0) ≈
+            conditional_density_standard_error(g, 0.5, y; h_x = h_x, h_y = 0.2) rtol = 0.03
     end
   end
 end

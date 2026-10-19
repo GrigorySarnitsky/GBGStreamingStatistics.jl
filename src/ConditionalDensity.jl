@@ -10,30 +10,30 @@ export conditional_density, conditional_density_standard_error, conditional_dens
        transition_density, transition_density_standard_error, transition_density_with_standard_error
 
 
-_check_bandwidths(hx::Real, hy::Real) =
-  (hx > 0 && hy > 0) ||
-    throw(ArgumentError("bandwidths hx, hy must be positive (got hx = $hx, hy = $hy)"))
+_check_bandwidths(h_x::Real, h_y::Real) =
+  (h_x > 0 && h_y > 0) ||
+    throw(ArgumentError("bandwidths h_x, h_y must be positive (got h_x = $h_x, h_y = $h_y)"))
 
 
 # Reduce the joint histogram at conditioning value `x` to a 1-D x-kernel-weighted y-profile:
 # P_l = Σ_j n_{jl} K_{h_x}(c^x_j, x) (the K_{h_x}-weighted count in y-row l) and D = Σ_l P_l = Σ_j N_j
 # K_{h_x}(c^x_j, x) (the marginal-X KDE numerator). The conditional distribution over y-cells is P/D;
 # smoothing it in y gives the density. The per-column weight is the shared `_kernel_weight` atom (symmetric
-# or asymmetric `kernelx` alike); the x-weighting cancels in the f_{X,Y}/f_X ratio, so its normalization is
+# or asymmetric `kernel_x` alike); the x-weighting cancels in the f_{X,Y}/f_X ratio, so its normalization is
 # irrelevant here. Host-side (`Array` is a no-op for CPU summaries).
-function _y_profile(summary::Histogram2D, x::Real, kernelx, hx::Real)
+function _y_profile(summary::Histogram2D, x::Real, kernel_x, h_x::Real)
   counts = Array(summary.counts)
-  nx = summary.nx
-  ny = summary.ny
-  gx = Vector{Float64}(undef, nx)
-  @inbounds for j in 1:nx
-    gx[j] = _kernel_weight(_xbincenter(summary, j), x, kernelx, hx)
+  n_x = summary.n_x
+  n_y = summary.n_y
+  gx = Vector{Float64}(undef, n_x)
+  @inbounds for j in 1:n_x
+    gx[j] = _kernel_weight(_xbincenter(summary, j), x, kernel_x, h_x)
   end
-  P = zeros(Float64, ny)
-  @inbounds for k in 1:ny
-    base = (k - 1) * nx
+  P = zeros(Float64, n_y)
+  @inbounds for k in 1:n_y
+    base = (k - 1) * n_x
     acc = 0.0
-    for j in 1:nx
+    for j in 1:n_x
       c = counts[base + j]
       iszero(c) && continue
       acc += c * gx[j]
@@ -46,17 +46,17 @@ end
 
 # Smooth the y-profile to the density at `y`. The double-kernel ratio f_{X,Y}/f_X cancels the x-kernel
 # weighting (it appears in both the profile P and its total D); only the y-direction normalization
-# survives, carried by the shared `_kernel_weight` atom (its 1/h_y folded in). For a symmetric `kernely`,
-# ∫K = 1 makes ∫ f̂_{Y|X}(y | x) dy = 1 exactly; an asymmetric `kernely` (a normalized density in its data
+# survives, carried by the shared `_kernel_weight` atom (its 1/h_y folded in). For a symmetric `kernel_y`,
+# ∫K = 1 makes ∫ f̂_{Y|X}(y | x) dy = 1 exactly; an asymmetric `kernel_y` (a normalized density in its data
 # argument) gives ∫ f̂_{Y|X} dy ≈ 1 — exact only after `_response_normalizer` (as for the marginal
 # `density`).
-function _density_at(summary::Histogram2D, P, D, y::Real, kernely, hy::Real)
+function _density_at(summary::Histogram2D, P, D, y::Real, kernel_y, h_y::Real)
   D > 0 || return oftype(D, NaN)
   acc = 0.0
-  @inbounds for k in 1:summary.ny
+  @inbounds for k in 1:summary.n_y
     Pk = P[k]
     iszero(Pk) && continue
-    acc += Pk * _kernel_weight(_ybincenter(summary, k), y, kernely, hy)
+    acc += Pk * _kernel_weight(_ybincenter(summary, k), y, kernel_y, h_y)
   end
   return acc / D
 end
@@ -65,34 +65,34 @@ end
 # ∫ f̂_{Y|X}(y | x) dy over the summary's y-range ∩ the response kernel's support, by the trapezoidal rule
 # on a fine grid — the per-x renormalization that makes ∫ f̂_{Y|X} dy = 1 exactly for a non-self-normalizing
 # asymmetric response kernel (a symmetric kernel already gives 1, so `normalize` is a no-op there).
-function _response_normalizer(summary::Histogram2D, P, D, kernely, hy::Real)
-  lower, upper = float(summary.ylower), float(summary.yupper)
-  if kernely isa AsymmetricKernel
-    lower = max(lower, kernely.support[1])
-    upper = min(upper, kernely.support[2])
+function _response_normalizer(summary::Histogram2D, P, D, kernel_y, h_y::Real)
+  lower, upper = float(summary.y_lower), float(summary.y_upper)
+  if kernel_y isa AsymmetricKernel
+    lower = max(lower, kernel_y.support[1])
+    upper = min(upper, kernel_y.support[2])
   end
   npts = 1001
   grid = range(lower, upper; length = npts)
   acc = 0.0
   @inbounds for (i, yy) in enumerate(grid)
     w = (i == 1 || i == npts) ? 0.5 : 1.0
-    acc += w * _density_at(summary, P, D, yy, kernely, hy)
+    acc += w * _density_at(summary, P, D, yy, kernel_y, h_y)
   end
   return acc * step(grid)
 end
 
 
 """
-    conditional_density(summary::Histogram2D, x, y; kernelx = gaussian_kernel,
-                        kernely = gaussian_kernel, hx, hy, normalize = false)
+    conditional_density(summary::Histogram2D, x, y; kernel_x = gaussian_kernel,
+                        kernel_y = gaussian_kernel, h_x, h_y, normalize = false)
 
 **Estimand.** The conditional density
 ``f_{Y\\mid X}(y \\mid x) = f_{X,Y}(x, y) / f_X(x)``.
 
 **Estimator** (double-kernel; Rosenblatt 1969; Hyndman, Bashtannyk & Grunwald 1996). From the joint
 [`Histogram2D`](@ref GBGStreamingStatistics.Histograms.Histogram2D) `summary`, with a conditioning kernel
-``K_x`` (`kernelx`, of bandwidth ``h_x`` given by `hx`, in ``x``) and a response kernel ``K_y`` (`kernely`,
-of bandwidth ``h_y`` given by `hy`, in ``y``); both ``\\int K = 1``, default
+``K_x`` (`kernel_x`, of bandwidth ``h_x`` given by `h_x`, in ``x``) and a response kernel ``K_y`` (`kernel_y`,
+of bandwidth ``h_y`` given by `h_y`, in ``y``); both ``\\int K = 1``, default
 [`gaussian_kernel`](@ref GBGStreamingStatistics.Kernels.gaussian_kernel), the sums running over the observed
 pairs (whose count is the sample size),
 
@@ -111,18 +111,17 @@ evaluated from the bin counts ``n_{jl}`` at cell centers ``(c^x_j, c^y_l)`` (the
 ```
 
 The ``x``-kernel weighting cancels in the ``f_{X,Y}/f_X`` ratio (it appears in both the profile — the
-`kernelx`-weighted column sum of the cell counts — and its total), so the choice
-of `kernelx` only weights the local conditioning window — so a bounded *conditioning* variable needs no
-asymmetric `kernelx`.
+`kernel_x`-weighted column sum of the cell counts — and its total), so the choice
+of `kernel_x` only weights the local conditioning window — so a bounded *conditioning* variable needs no
+asymmetric `kernel_x`.
 
-For a symmetric response `kernely` the surviving ``1/h_y`` makes ``\\int \\hat f_{Y\\mid X}(y \\mid x)\\,\\mathrm{d}y = 1`` exactly (since ``\\int K =
-1``). For a bounded / positive response — a droplet radius as ``Y``, say — pass an asymmetric
-`kernely` ([`gamma_kernel`](@ref GBGStreamingStatistics.Kernels.gamma_kernel) for ``[0,\\infty)``,
-[`beta_kernel`](@ref GBGStreamingStatistics.Kernels.beta_kernel) for ``[0,1]``), the same boundary-bias
-fix the marginal [`density`](@ref GBGStreamingStatistics.MarginalDensity.density) uses: it is a density in
-the data argument ``K_y(c^y_l; y, b)`` (the kernel at the cell center, located at the response point with
-scale ``b`` set by `hy`; no mass leaks past the edge) but only ``\\approx`` normalized in ``y``, so set `normalize = true` to enforce ``\\int \\hat f_{Y\\mid X}\\,\\mathrm{d}y = 1``
-exactly.
+For a symmetric response `kernel_y` the surviving ``1/h_y`` makes ``\\int \\hat f_{Y\\mid X}(y \\mid x)\\,\\mathrm{d}y = 1``
+exactly. For a bounded / positive response pass an asymmetric `kernel_y`
+([`gamma_kernel`](@ref GBGStreamingStatistics.Kernels.gamma_kernel) for ``[0,\\infty)``,
+[`beta_kernel`](@ref GBGStreamingStatistics.Kernels.beta_kernel) for ``[0,1]``), the boundary-bias fix the
+marginal [`density`](@ref GBGStreamingStatistics.MarginalDensity.density) uses: a density in the data
+argument ``K_y(c^y_l; y, b)``, with scale ``b`` set by `h_y`, so no mass leaks past the edge, but only
+``\\approx`` normalized in ``y``; set `normalize = true` for ``\\int \\hat f_{Y\\mid X}\\,\\mathrm{d}y = 1`` exactly.
 
 The conditional MISE rate is slower than a marginal density (``O(n^{-2/3})``). A vector `y` returns the
 curve at the fixed conditioning value `x`; where no data is local to `x` the
@@ -133,22 +132,22 @@ estimate is `NaN`.
 - `summary` — the joint `Histogram2D` of ``(X, Y)``.
 - `x` — the conditioning value (a scalar).
 - `y` — the response point(s) at which the density is evaluated (scalar, or a vector for the curve).
-- `kernelx` — the conditioning-direction (``x``) kernel (any ``\\int K = 1`` callable; default
-  `gaussian_kernel`); it cancels in the ratio, so a symmetric kernel is the natural choice.
-- `kernely` — the response-direction (``y``) kernel (default `gaussian_kernel`). A symmetric kernel
-  gives ``\\int\\hat f_{Y\\mid X}\\,\\mathrm dy = 1`` exactly; an asymmetric `gamma_kernel` / `beta_kernel`, for a
-  bounded / positive response, is boundary-bias-free but needs `normalize = true` for an exact integral —
-  or supply your own [`AsymmetricKernel`](@ref GBGStreamingStatistics.Kernels.AsymmetricKernel).
-- `hx`, `hy` — the conditioning (``x``) and response (``y``) bandwidths (both ``> 0``), supplied.
+- `kernel_x` — the ``x``-direction kernel (default `gaussian_kernel`); it cancels in the ratio, so a
+  symmetric kernel is natural.
+- `kernel_y` — the ``y``-direction kernel (default `gaussian_kernel`): symmetric, with
+  ``\\int\\hat f_{Y\\mid X}\\,\\mathrm dy = 1`` exactly, or an asymmetric `gamma_kernel` / `beta_kernel` (or your
+  own [`AsymmetricKernel`](@ref GBGStreamingStatistics.Kernels.AsymmetricKernel)) for a bounded / positive
+  response, boundary-bias-free but needing `normalize = true`.
+- `h_x`, `h_y` — the conditioning (``x``) and response (``y``) bandwidths (both ``> 0``), supplied.
 - `normalize` — when `true`, divide by ``\\int\\hat f_{Y\\mid X}(y\\mid x)\\,\\mathrm dy`` over the response range so
-  the curve integrates to 1 exactly: needed for an asymmetric `kernely`, a no-op for a symmetric one.
+  the curve integrates to 1 exactly: needed for an asymmetric `kernel_y`, a no-op for a symmetric one.
 
 ```jldoctest
 julia> g = Histogram2D(-1.0, 1.0, 2, -1.0, 1.0, 2);
 
 julia> observe_pairs!(g, [0.4], [0.4]);   # one pair → cell with centers (0.5, 0.5)
 
-julia> round(conditional_density(g, 0.5, 0.5; hx = 0.5, hy = 0.2); digits = 4)
+julia> round(conditional_density(g, 0.5, 0.5; h_x = 0.5, h_y = 0.2); digits = 4)
 1.9947
 ```
 
@@ -158,28 +157,28 @@ julia> round(conditional_density(g, 0.5, 0.5; hx = 0.5, hy = 0.2); digits = 4)
 - R. J. Hyndman, D. M. Bashtannyk & G. K. Grunwald (1996), [*Estimating and visualizing conditional densities*](https://doi.org/10.1080/10618600.1996.10474715), J. Comput. Graph. Statist. 5(4).
 """
 function conditional_density(summary::Histogram2D, x::Real, y::Real;
-                             kernelx = gaussian_kernel, kernely = gaussian_kernel,
-                             hx::Real, hy::Real, normalize::Bool = false)
-  _check_bandwidths(hx, hy)
-  P, D = _y_profile(summary, x, kernelx, hx)
-  f = _density_at(summary, P, D, y, kernely, hy)
+                             kernel_x = gaussian_kernel, kernel_y = gaussian_kernel,
+                             h_x::Real, h_y::Real, normalize::Bool = false)
+  _check_bandwidths(h_x, h_y)
+  P, D = _y_profile(summary, x, kernel_x, h_x)
+  f = _density_at(summary, P, D, y, kernel_y, h_y)
   (normalize && D > 0) || return f
-  return f / _response_normalizer(summary, P, D, kernely, hy)
+  return f / _response_normalizer(summary, P, D, kernel_y, h_y)
 end
 
 function conditional_density(summary::Histogram2D, x::Real, ys::AbstractVector;
-                             kernelx = gaussian_kernel, kernely = gaussian_kernel,
-                             hx::Real, hy::Real, normalize::Bool = false)
-  _check_bandwidths(hx, hy)
-  P, D = _y_profile(summary, x, kernelx, hx)
-  Z = (normalize && D > 0) ? _response_normalizer(summary, P, D, kernely, hy) : 1.0
-  return [_density_at(summary, P, D, y, kernely, hy) / Z for y in ys]
+                             kernel_x = gaussian_kernel, kernel_y = gaussian_kernel,
+                             h_x::Real, h_y::Real, normalize::Bool = false)
+  _check_bandwidths(h_x, h_y)
+  P, D = _y_profile(summary, x, kernel_x, h_x)
+  Z = (normalize && D > 0) ? _response_normalizer(summary, P, D, kernel_y, h_y) : 1.0
+  return [_density_at(summary, P, D, y, kernel_y, h_y) / Z for y in ys]
 end
 
 
 """
-    transition_density(summary::Histogram2D, x, y; kernelx = gaussian_kernel,
-                       kernely = gaussian_kernel, hx, hy, normalize = false)
+    transition_density(summary::Histogram2D, x, y; kernel_x = gaussian_kernel,
+                       kernel_y = gaussian_kernel, h_x, h_y, normalize = false)
 
 **Estimand.** The two-time transition density
 ``p_\\tau(y \\mid x) = f_{Y(t+\\tau) \\mid X(t)}(y \\mid x)`` — the conditional density of the state a
@@ -198,25 +197,25 @@ transition-density curve at the fixed present state `x`.
 - `summary` — the per-lag joint [`Histogram2D`](@ref GBGStreamingStatistics.Histograms.Histogram2D) of ``(X(t), Y(t+\\tau))``.
 - `x` — the present state, the conditioning value (a scalar).
 - `y` — the later state(s) at which the density is evaluated (a scalar, or a vector for the curve).
-- `kernelx`, `kernely` — the conditioning and response kernels, as for `conditional_density` (an asymmetric
-  `kernely` for a bounded / positive state).
-- `hx`, `hy` — the conditioning (``x``) and response (``y``) bandwidths (both ``> 0``), as for
+- `kernel_x`, `kernel_y` — the conditioning and response kernels, as for `conditional_density` (an asymmetric
+  `kernel_y` for a bounded / positive state).
+- `h_x`, `h_y` — the conditioning (``x``) and response (``y``) bandwidths (both ``> 0``), as for
   `conditional_density`.
 - `normalize` — as for `conditional_density`: `true` makes ``\\int \\hat p_\\tau(y\\mid x)\\,\\mathrm dy = 1``
-  exact for an asymmetric `kernely`.
+  exact for an asymmetric `kernel_y`.
 """
-transition_density(summary::Histogram2D, x::Real, y; kernelx = gaussian_kernel,
-                   kernely = gaussian_kernel, hx::Real, hy::Real,
+transition_density(summary::Histogram2D, x::Real, y; kernel_x = gaussian_kernel,
+                   kernel_y = gaussian_kernel, h_x::Real, h_y::Real,
                    normalize::Bool = false) =
-  conditional_density(summary, x, y; hx = hx, hy = hy, kernelx = kernelx, kernely = kernely,
+  conditional_density(summary, x, y; h_x = h_x, h_y = h_y, kernel_x = kernel_x, kernel_y = kernel_y,
                       normalize = normalize)
 
 
 # The double-kernel variance R(K_x)R(K_y) f_{Y|X}/(n h_x h_y f_X) is for symmetric (translation) kernels;
 # the asymmetric gamma/beta kernels have a different variance structure — a recorded gap, as for the
 # marginal density SE.
-function _check_cd_se(kernelx, kernely)
-  (kernelx isa AsymmetricKernel || kernely isa AsymmetricKernel) && throw(ArgumentError(
+function _check_cd_se(kernel_x, kernel_y)
+  (kernel_x isa AsymmetricKernel || kernel_y isa AsymmetricKernel) && throw(ArgumentError(
     "the conditional-density standard error is for symmetric kernels; the asymmetric gamma/beta-kernel variance is not supported"))
 end
 
@@ -229,21 +228,21 @@ end
 # second term carries the same local weight as the first — the marginal −f̂_X²/n has weight 1/n because
 # every sample counts there, which is not so here. Both NaN where no data is local to x (D = 0). Shared by
 # the SE reader and the paired value-plus-error reader, so the two agree by construction.
-function _cd_value_and_se(summary::Histogram2D, P, D, y::Real, kernelx, kernely, hx::Real, hy::Real)
-  f = _density_at(summary, P, D, y, kernely, hy)
+function _cd_value_and_se(summary::Histogram2D, P, D, y::Real, kernel_x, kernel_y, h_x::Real, h_y::Real)
+  f = _density_at(summary, P, D, y, kernel_y, h_y)
   isfinite(f) || return (f, oftype(f, NaN))
-  roughness_x = _quad(u -> kernelx(u)^2)                       # R(K_x)
-  roughness_y = _quad(u -> kernely(u)^2)                       # R(K_y)
+  roughness_x = _quad(u -> kernel_x(u)^2)                       # R(K_x)
+  roughness_y = _quad(u -> kernel_y(u)^2)                       # R(K_y)
   fnn = max(f, 0.0)
-  variance = roughness_x / (hx * D) * (roughness_y * fnn / hy - fnn^2)
+  variance = roughness_x / (h_x * D) * (roughness_y * fnn / h_y - fnn^2)
   return (f, sqrt(max(variance, 0.0)))
 end
 
 
 """
     conditional_density_standard_error(summary::Histogram2D, x, y;
-                                       kernelx = gaussian_kernel,
-                                       kernely = gaussian_kernel, hx, hy)
+                                       kernel_x = gaussian_kernel,
+                                       kernel_y = gaussian_kernel, h_x, h_y)
 
 **Estimand.** The pointwise standard error of the conditional-density estimator
 `conditional_density`,
@@ -262,13 +261,13 @@ Here ``f_X`` is the marginal density of ``X``; the bracket is the variance of on
 
 **Estimator.** The two-term ``\\sqrt{R(K_x)/(h_x D) \\cdot [R(K_y) \\hat f_{Y\\mid X}(y\\mid x)/h_y - \\hat f_{Y\\mid X}(y\\mid x)^2]}``
 from the conditional density
-``\\hat f_{Y\\mid X}(y\\mid x)``, the bandwidths ``h_x`` and ``h_y`` (`hx` and `hy`), the kernel
+``\\hat f_{Y\\mid X}(y\\mid x)``, the bandwidths ``h_x`` and ``h_y`` (`h_x` and `h_y`), the kernel
 roughnesses ``R(K_x)``, ``R(K_y)`` (by quadrature), and the ``x``-window denominator
 ``D = \\sum_j N_j K_{h_x}(c^x_j - x) = n \\hat f_X(x)``, the sum `conditional_density` forms to normalize its
 profile. It is the two-dimensional analog of the marginal
 [`density_standard_error`](@ref GBGStreamingStatistics.MarginalDensity.density_standard_error), with the ``x``-window effective sample size ``n h_x \\hat f_X(x)`` in place of ``n``; the 95% band
 ``\\hat f_{Y\\mid X}(y\\mid x) \\pm 1.96 \\operatorname{SE}`` covers ``f_{Y\\mid X}`` where the ``O(h^2)`` smoothing bias is
-small. Symmetric kernels only (the asymmetric-`kernely` variance is not implemented). It is `NaN` where no data is local to ``x``.
+small. Symmetric kernels only (the asymmetric-`kernel_y` variance is not implemented). It is `NaN` where no data is local to ``x``.
 
 Arguments: as for [`conditional_density`](@ref
 GBGStreamingStatistics.ConditionalDensity.conditional_density), without `normalize` (the band is for the
@@ -278,30 +277,30 @@ Reference: R. J. Hyndman, D. M. Bashtannyk & G. K. Grunwald (1996), [*Estimating
 conditional densities*](https://doi.org/10.1080/10618600.1996.10474715), J. Comput. Graph. Statist. 5(4).
 """
 function conditional_density_standard_error(summary::Histogram2D, x::Real, y::Real;
-                                            kernelx = gaussian_kernel,
-                                            kernely = gaussian_kernel, hx::Real,
-                                            hy::Real)
-  _check_bandwidths(hx, hy)
-  _check_cd_se(kernelx, kernely)
-  P, D = _y_profile(summary, x, kernelx, hx)
-  return _cd_value_and_se(summary, P, D, y, kernelx, kernely, hx, hy)[2]
+                                            kernel_x = gaussian_kernel,
+                                            kernel_y = gaussian_kernel, h_x::Real,
+                                            h_y::Real)
+  _check_bandwidths(h_x, h_y)
+  _check_cd_se(kernel_x, kernel_y)
+  P, D = _y_profile(summary, x, kernel_x, h_x)
+  return _cd_value_and_se(summary, P, D, y, kernel_x, kernel_y, h_x, h_y)[2]
 end
 
 function conditional_density_standard_error(summary::Histogram2D, x::Real, ys::AbstractVector;
-                                            kernelx = gaussian_kernel,
-                                            kernely = gaussian_kernel, hx::Real,
-                                            hy::Real)
-  _check_bandwidths(hx, hy)
-  _check_cd_se(kernelx, kernely)
-  P, D = _y_profile(summary, x, kernelx, hx)
-  return [_cd_value_and_se(summary, P, D, y, kernelx, kernely, hx, hy)[2] for y in ys]
+                                            kernel_x = gaussian_kernel,
+                                            kernel_y = gaussian_kernel, h_x::Real,
+                                            h_y::Real)
+  _check_bandwidths(h_x, h_y)
+  _check_cd_se(kernel_x, kernel_y)
+  P, D = _y_profile(summary, x, kernel_x, h_x)
+  return [_cd_value_and_se(summary, P, D, y, kernel_x, kernel_y, h_x, h_y)[2] for y in ys]
 end
 
 
 """
     conditional_density_with_standard_error(summary::Histogram2D, x, y;
-                                            kernelx = gaussian_kernel,
-                                            kernely = gaussian_kernel, hx, hy)
+                                            kernel_x = gaussian_kernel,
+                                            kernel_y = gaussian_kernel, h_x, h_y)
 
 Returns the estimate and its standard error from one ``x``-profile reduction, the `NamedTuple`
 ``(\\texttt{value}, \\texttt{standard\\_error})``, with `value` the
@@ -316,32 +315,32 @@ without `normalize` (the band is for the un-normalized estimate); symmetric kern
 
 """
 function conditional_density_with_standard_error(summary::Histogram2D, x::Real, y::Real;
-                                                 kernelx = gaussian_kernel,
-                                                 kernely = gaussian_kernel, hx::Real,
-                                                 hy::Real)
-  _check_bandwidths(hx, hy)
-  _check_cd_se(kernelx, kernely)
-  P, D = _y_profile(summary, x, kernelx, hx)
-  v, se = _cd_value_and_se(summary, P, D, y, kernelx, kernely, hx, hy)
+                                                 kernel_x = gaussian_kernel,
+                                                 kernel_y = gaussian_kernel, h_x::Real,
+                                                 h_y::Real)
+  _check_bandwidths(h_x, h_y)
+  _check_cd_se(kernel_x, kernel_y)
+  P, D = _y_profile(summary, x, kernel_x, h_x)
+  v, se = _cd_value_and_se(summary, P, D, y, kernel_x, kernel_y, h_x, h_y)
   return (value = v, standard_error = se)
 end
 
 function conditional_density_with_standard_error(summary::Histogram2D, x::Real, ys::AbstractVector;
-                                                 kernelx = gaussian_kernel,
-                                                 kernely = gaussian_kernel, hx::Real,
-                                                 hy::Real)
-  _check_bandwidths(hx, hy)
-  _check_cd_se(kernelx, kernely)
-  P, D = _y_profile(summary, x, kernelx, hx)
-  vses = [_cd_value_and_se(summary, P, D, y, kernelx, kernely, hx, hy) for y in ys]
+                                                 kernel_x = gaussian_kernel,
+                                                 kernel_y = gaussian_kernel, h_x::Real,
+                                                 h_y::Real)
+  _check_bandwidths(h_x, h_y)
+  _check_cd_se(kernel_x, kernel_y)
+  P, D = _y_profile(summary, x, kernel_x, h_x)
+  vses = [_cd_value_and_se(summary, P, D, y, kernel_x, kernel_y, h_x, h_y) for y in ys]
   return (value = [vs[1] for vs in vses], standard_error = [vs[2] for vs in vses])
 end
 
 
 """
     transition_density_standard_error(summary::Histogram2D, x, y;
-                                      kernelx = gaussian_kernel,
-                                      kernely = gaussian_kernel, hx, hy)
+                                      kernel_x = gaussian_kernel,
+                                      kernel_y = gaussian_kernel, h_x, h_y)
 
 The standard error of `transition_density` is
 [`conditional_density_standard_error`](@ref GBGStreamingStatistics.ConditionalDensity.conditional_density_standard_error)
@@ -353,15 +352,15 @@ without `normalize` (the band is for the un-normalized estimate).
 
 """
 transition_density_standard_error(summary::Histogram2D, x::Real, y;
-                                  kernelx = gaussian_kernel,
-                                  kernely = gaussian_kernel, hx::Real, hy::Real) =
-  conditional_density_standard_error(summary, x, y; hx = hx, hy = hy, kernelx = kernelx, kernely = kernely)
+                                  kernel_x = gaussian_kernel,
+                                  kernel_y = gaussian_kernel, h_x::Real, h_y::Real) =
+  conditional_density_standard_error(summary, x, y; h_x = h_x, h_y = h_y, kernel_x = kernel_x, kernel_y = kernel_y)
 
 
 """
     transition_density_with_standard_error(summary::Histogram2D, x, y;
-                                           kernelx = gaussian_kernel,
-                                           kernely = gaussian_kernel, hx, hy)
+                                           kernel_x = gaussian_kernel,
+                                           kernel_y = gaussian_kernel, h_x, h_y)
 
 Returns the transition density `transition_density` and its standard error from one pass (the
 `(value, standard_error)` `NamedTuple`), the two-time reading of
@@ -372,8 +371,8 @@ without `normalize` (the band is for the un-normalized estimate).
 
 """
 transition_density_with_standard_error(summary::Histogram2D, x::Real, y;
-                                       kernelx = gaussian_kernel,
-                                       kernely = gaussian_kernel, hx::Real, hy::Real) =
-  conditional_density_with_standard_error(summary, x, y; hx = hx, hy = hy, kernelx = kernelx, kernely = kernely)
+                                       kernel_x = gaussian_kernel,
+                                       kernel_y = gaussian_kernel, h_x::Real, h_y::Real) =
+  conditional_density_with_standard_error(summary, x, y; h_x = h_x, h_y = h_y, kernel_x = kernel_x, kernel_y = kernel_y)
 
 end # module ConditionalDensity

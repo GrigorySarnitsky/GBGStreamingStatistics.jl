@@ -132,11 +132,11 @@ estimands.
   docstrings to the documentation policy below.
 - `src/ConditionalDensity.jl` — §4.3 `conditional_density` ``\equiv f_{Y\mid X}``,
   `transition_density` ``\equiv p_\tau(y\mid x)`` (binned double-kernel, Rosenblatt) — a separate
-  `kernelx` / `kernely`, with an **asymmetric** `kernely` (`gamma_kernel` / `beta_kernel`) for a
+  `kernel_x` / `kernel_y`, with an **asymmetric** `kernel_y` (`gamma_kernel` / `beta_kernel`) for a
   bounded/positive response and `normalize` for exact ``\int\hat f_{Y\mid X}\,\mathrm dy = 1`` — each with its
   pointwise `conditional_density_standard_error` (the two-term double-kernel band
   ``\sqrt{R(K_x)/(h_x D) \cdot [R(K_y)\hat f_{Y\mid X}/h_y - \hat f_{Y\mid X}^2]}``, ``D = n\hat f_X(x)`` the estimator's own
-  denominator; symmetric-kernel, the asymmetric-`kernely` variance a recorded gap) and the paired
+  denominator; symmetric-kernel, the asymmetric-`kernel_y` variance a recorded gap) and the paired
   `conditional_density_with_standard_error`, `transition_density` aliased.
 - `src/Bandwidth.jl` — §4.5 `bandwidth`: for the marginal (`Histogram1D`) the **kernel- and degree-aware
   normal-reference rule** (the default, Silverman the Gaussian/degree-0 case;
@@ -211,8 +211,9 @@ The PF discipline: a missing capability encodes a decision (`docs/ARCHITECTURE.m
 
 Two-space indentation; two blank lines between top-level definitions; section banner comments;
 descriptive names — no cryptic or domain abbreviations (spell out range bounds as `lower`/`upper`, not
-`lo`/`hi`), though universal idioms are fine (`n`-prefixed counts like `nbins`/`nx`, standard
-single-letter math symbols); moderately long lines are fine. When unsure about
+`lo`/`hi`), though universal idioms are fine (`nbins`, standard single-letter math symbols); a
+subscript, index or direction follows an underscore, as in the mathematics (`h_x`, `kernel_x`, `n_x`,
+`c_j`); moderately long lines are fine. When unsure about
 Base/stdlib/package behavior, check official docs — don't guess. For a linear solve use
 `\`/factorizations/`ldiv!`, never an explicit matrix inverse (the local-polynomial normal equations
 are a 2×2/3×3 solve). Operators and extended Base/`Statistics` functions are imported before being
@@ -224,7 +225,7 @@ arguments **object → query point(s) → smoothing controls → modifiers**: (1
 `n` — in their natural order); (2) the **query point(s)** `x` (then `y` / the response point) where the
 estimand is evaluated; (3) the smoothing controls — a **primary algorithm-selector** first where the function has one (`rule`,
 which picks the whole estimator), then the fixed sub-order **kernel → degree → bandwidth** (`kernel` /
-`kernelx` / `kernely` / `kernelz`, then `degree`, then `h` / `hx` / `hy` / `hz` / `pilot_bandwidth`): the
+`kernel_x` / `kernel_y` / `kernel_z`, then `degree`, then `h` / `h_x` / `h_y` / `h_z` / `pilot_bandwidth`): the
 bandwidth comes last because it is a function of the kernel and the degree — `density`'s default is
 `h = bandwidth(summary; kernel, degree)`, and Julia evaluates keyword defaults left to right, so the
 inputs of a default precede it; (4) the **secondary** modifiers and refinements (`method`, `adaptive`,
@@ -372,7 +373,7 @@ Mechanical bar:
    (extending `Statistics`; these now live in `Expectations` §4.B as the ``g = x^p`` quadrature case). Tested:
    Gaussian moment recovery (exact vs direct, and vs the true moments), mergeability, bounded
    allocation, Float32→Float64.
-2. **`Histograms.Histogram2D` + `observe_pairs!`** — the joint two-time summary: `nx×ny` cells, per-cell
+2. **`Histograms.Histogram2D` + `observe_pairs!`** — the joint two-time summary: `n_x×n_y` cells, per-cell
    counts + order-2 bivariate power-sums ``S_{pp'}`` about the cell center (the regression sufficient
    statistic). Tested: independent-Gaussian oracle (marginals + covariance), mergeability, allocation.
 3. **The portable scatter kernel** — `observe!` / `observe_pairs!` are one KernelAbstractions + Atomix
@@ -447,10 +448,10 @@ Mechanical bar:
    raises its per-cell order for the third and higher Kramers–Moyal moments.
 8. **`ConditionalDensity`** (§4.3) — `conditional_density` ``\equiv f_{Y\mid X}`` and `transition_density`
    ``\equiv p_\tau(y\mid x)`` by the binned double-kernel (Rosenblatt) from the `Histogram2D` cell
-   counts: the joint is reduced at ``x`` to a `kernelx`-weighted y-profile, then smoothed in ``y`` by
-   `kernely` (the surviving ``1/h_y`` gives ``\int \hat f_{Y\mid X}\,\mathrm dy = 1`` exactly for a symmetric
-   `kernely`). Supplied bandwidths `hx`, `hy`; for a **bounded/positive response** (a droplet radius as
-   ``Y``) an **asymmetric** `kernely` (`gamma_kernel` / `beta_kernel`) is boundary-bias-free in ``y``,
+   counts: the joint is reduced at ``x`` to a `kernel_x`-weighted y-profile, then smoothed in ``y`` by
+   `kernel_y` (the surviving ``1/h_y`` gives ``\int \hat f_{Y\mid X}\,\mathrm dy = 1`` exactly for a symmetric
+   `kernel_y`). Supplied bandwidths `h_x`, `h_y`; for a **bounded/positive response** (a droplet radius as
+   ``Y``) an **asymmetric** `kernel_y` (`gamma_kernel` / `beta_kernel`) is boundary-bias-free in ``y``,
    with `normalize = true` for an exact integral. Each carries its pointwise **standard error**
    `conditional_density_standard_error` / `conditional_density_with_standard_error` (the two-term
    double-kernel variance ``R(K_x)/(n h_x f_X) \cdot [R(K_y)\hat f_{Y\mid X}/h_y - \hat f_{Y\mid X}^2]``, Hyndman–Bashtannyk–Grunwald
@@ -460,7 +461,7 @@ Mechanical bar:
    (normalization + pointwise) and the **Ornstein–Uhlenbeck** transition density
    ``\mathcal{N}(x e^{-\kappa\tau}, \sigma_X^2(1-e^{-2\kappa\tau}))``; scalar/vector forms, `transition_density`
    equivalence, off-support NaN, mergeability, and the **bounded-response** oracle (``Y\sim\mathrm{Exp}(1)``:
-   the gamma `kernely` recovers the boundary the Gaussian leaks, `normalize` ``\Rightarrow`` ``\int\hat f_{Y\mid X} = 1``).
+   the gamma `kernel_y` recovers the boundary the Gaussian leaks, `normalize` ``\Rightarrow`` ``\int\hat f_{Y\mid X} = 1``).
 9. **The cone — `scale!` + weighted `merge!`** (§10 hyperstatistics / forgetting) — the unnormalized
    summaries are scalable, so they form a convex cone, not merely an additive monoid: `scale!(summary, λ)`
    reweights every count and power-sum (the scalar action), and `merge!(into, from; weight)` forms
@@ -580,7 +581,7 @@ last one, `conditional_variance_standard_error` (the residual approximation ``\\
   (theory) or a *gap to close*. Known asymmetries to settle: `adaptive` / `support` / `start` exist for
   `density` but not the conditional densities; `conditional_density` is a fixed degree-0 double-kernel (no
   local-polynomial `degree` on either axis); the asymmetric kernels reach `density` (`kernel`),
-  `conditional_density` (`kernely`), and degree-0 `conditional_mean` (`kernel`) — is the ``x`` axis at
+  `conditional_density` (`kernel_y`), and degree-0 `conditional_mean` (`kernel`) — is the ``x`` axis at
   parity? Output: the parity matrix + a short list of justified additions.
 - **Conditional accuracy from the unused per-cell moments.** The conditional readers (`conditional_mean` /
   `conditional_variance` / `conditional_expectation` / `conditional_density`) consume only the cell counts,

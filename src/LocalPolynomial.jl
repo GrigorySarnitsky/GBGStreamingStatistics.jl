@@ -145,10 +145,10 @@ function _leverage(locations, weights, x, kernel, degree, h)
     Mmat[i, j] = M[i + j - 1]
     Qmat[i, j] = Q[i + j - 1]
   end
-  e0 = zeros(Float64, d1)
-  e0[1] = 1.0
+  e_0 = zeros(Float64, d1)
+  e_0[1] = 1.0
   u = try
-    Mmat \ e0
+    Mmat \ e_0
   catch
     return NaN
   end

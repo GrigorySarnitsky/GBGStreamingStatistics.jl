@@ -15,10 +15,10 @@ using Random
   hist = Histogram2D(-6.0, 6.0, 240, -8.0, 40.0, 240)
   observe_pairs!(hist, X, Y)
 
-  RK = 1 / (2 * sqrt(π))                 # R(gaussian) = 1/(2√π)
+  R_K = 1 / (2 * sqrt(π))                 # R(gaussian) = 1/(2√π)
   μ2 = 1.0                               # μ₂(gaussian) = 1
   φ(x) = exp(-x^2 / 2) / sqrt(2π)
-  hstar_true(x) = (RK * σ^2 / (μ2^2 * 4.0 * φ(x) * n))^(1 / 5)
+  hstar_true(x) = (R_K * σ^2 / (μ2^2 * 4.0 * φ(x) * n))^(1 / 5)
   hp = 0.4                               # explicit pilot (m'' = 2 exact for the quadratic; deterministic)
 
   @testset "recovers the closed-form h⋆(x) near the centre" begin

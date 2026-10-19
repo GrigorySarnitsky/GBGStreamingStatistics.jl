@@ -38,10 +38,10 @@ function _distance_hist(counts)
   nbins = length(counts)
   dist = zeros(Float64, nbins)
   @inbounds for j in 1:nbins
-    cj = counts[j]
-    cj == 0 && continue
+    c_j = counts[j]
+    c_j == 0 && continue
     for k in j:nbins
-      dist[k - j + 1] += cj * counts[k]
+      dist[k - j + 1] += c_j * counts[k]
     end
   end
   return dist
@@ -50,14 +50,14 @@ end
 
 # The density functional ψ_r(h̃) at the pilot bandwidth h̃ (the code's `g`) = (1/(n²h̃^{r+1}))[Σ_{j,j′} n_j n_{j′} φ⁽ʳ⁾((c_j−c_{j′})/h̃) − nφ⁽ʳ⁾(0)],
 # the n self-pairs removed, from the distance histogram. φ⁽ʳ⁾ is even, so bin-lags ±m fold to 2·dist[m].
-function _psi(dist, binwidth, n, g, phir, r)
-  acc = dist[1] * phir(0.0)
+function _psi(dist, binwidth, n, g, phi_r, r)
+  acc = dist[1] * phi_r(0.0)
   @inbounds for m in 1:length(dist)-1
     d = dist[m + 1]
     d == 0 && continue
-    acc += 2 * d * phir(m * binwidth / g)
+    acc += 2 * d * phi_r(m * binwidth / g)
   end
-  acc -= n * phir(0.0)
+  acc -= n * phi_r(0.0)
   return acc / (n^2 * g^(r + 1))
 end
 
@@ -457,44 +457,44 @@ end
 # The default pilot: σ̂_X n^(−1/9), the rule-of-thumb scale at the second-derivative (curvature) rate —
 # wider than the final h⋆ ∝ n^(−1/5), since estimating m'' needs a more stable (wider) window. σ̂_X is
 # the binned x-marginal standard deviation (the column centers, adequate for a pilot).
-function _local_pilot(cx, N, n)
+function _local_pilot(c_x, N, n)
   xbar = 0.0
-  @inbounds for j in eachindex(cx)
-    xbar += N[j] * cx[j]
+  @inbounds for j in eachindex(c_x)
+    xbar += N[j] * c_x[j]
   end
   xbar /= n
   v = 0.0
-  @inbounds for j in eachindex(cx)
-    v += N[j] * (cx[j] - xbar)^2
+  @inbounds for j in eachindex(c_x)
+    v += N[j] * (c_x[j] - xbar)^2
   end
   return sqrt(v / n) * n^(-1 / 9)
 end
 
 
-function _hstar_at(cx, N, sumY, SR2, n, x, kernel, pilot_bandwidth, RK, mu2, xrange)
-  fX = _kde_h(N, cx, n, x, kernel, pilot_bandwidth)
+function _hstar_at(c_x, N, sum_Y, SR2, n, x, kernel, pilot_bandwidth, R_K, mu_2, xrange)
+  fX = _kde_h(N, c_x, n, x, kernel, pilot_bandwidth)
   fX > 0 || return oftype(fX, NaN)                       # x outside the data's support
-  sigma2 = local_fit(cx, N, SR2, x, kernel, 1, pilot_bandwidth)[1]      # Fan–Yao conditional variance σ̂²(x)
-  mpp = 2 * local_fit(cx, N, sumY, x, kernel, 2, pilot_bandwidth)[3]    # m̂''(x) = 2 β̂₂
+  sigma2 = local_fit(c_x, N, SR2, x, kernel, 1, pilot_bandwidth)[1]      # Fan–Yao conditional variance σ̂²(x)
+  mpp = 2 * local_fit(c_x, N, sum_Y, x, kernel, 2, pilot_bandwidth)[3]    # m̂''(x) = 2 β̂₂
   (isfinite(sigma2) && isfinite(mpp)) || return oftype(fX, NaN)
   sigma2 = max(sigma2, 0.0)
-  denom = mu2^2 * mpp^2 * fX * n
+  denom = mu_2^2 * mpp^2 * fX * n
   denom > 0 || return oftype(fX, xrange)                 # locally linear (m̂'' ≈ 0) ⇒ h unbounded; cap
-  return min((RK * sigma2 / denom)^(1 / 5), xrange)
+  return min((R_K * sigma2 / denom)^(1 / 5), xrange)
 end
 
 
 function _local_setup(summary::Histogram2D, kernel, pilot_bandwidth)
-  cx, N, sumY, sumY2 = _column_sums(summary)
+  c_x, N, sum_Y, sum_Y2 = _column_sums(summary)
   n = sum(N)
   n ≥ 2 || throw(ArgumentError("bandwidth needs at least 2 samples (got n = $n)"))
-  hp = pilot_bandwidth === nothing ? _local_pilot(cx, N, n) : float(pilot_bandwidth)
+  hp = pilot_bandwidth === nothing ? _local_pilot(c_x, N, n) : float(pilot_bandwidth)
   hp > 0 || throw(ArgumentError("pilot bandwidth pilot_bandwidth must be positive (got pilot_bandwidth = $hp)"))
-  RK = _quad(v -> kernel(v)^2)
-  mu2 = _quad(v -> v^2 * kernel(v))
-  xrange = summary.xupper - summary.xlower
-  SR2 = _residual_response(cx, N, sumY, sumY2, kernel, 1, hp)   # Fan–Yao residual response for σ²(x)
-  return cx, N, sumY, SR2, n, hp, RK, mu2, xrange
+  R_K = _quad(v -> kernel(v)^2)
+  mu_2 = _quad(v -> v^2 * kernel(v))
+  xrange = summary.x_upper - summary.x_lower
+  SR2 = _residual_response(c_x, N, sum_Y, sum_Y2, kernel, 1, hp)   # Fan–Yao residual response for σ²(x)
+  return c_x, N, sum_Y, SR2, n, hp, R_K, mu_2, xrange
 end
 
 
@@ -549,8 +549,8 @@ function bandwidth(summary::Histogram2D, x::Real; rule::Symbol = :local,
   rule === :local ||
     throw(ArgumentError("a joint summary supports only rule = :local (the response-aware local " *
                         "plug-in); got :$rule"))
-  cx, N, sumY, SR2, n, hp, RK, mu2, xrange = _local_setup(summary, kernel, pilot_bandwidth)
-  return _hstar_at(cx, N, sumY, SR2, n, x, kernel, hp, RK, mu2, xrange)
+  c_x, N, sum_Y, SR2, n, hp, R_K, mu_2, xrange = _local_setup(summary, kernel, pilot_bandwidth)
+  return _hstar_at(c_x, N, sum_Y, SR2, n, x, kernel, hp, R_K, mu_2, xrange)
 end
 
 function bandwidth(summary::Histogram2D, xs::AbstractVector; rule::Symbol = :local,
@@ -558,8 +558,8 @@ function bandwidth(summary::Histogram2D, xs::AbstractVector; rule::Symbol = :loc
   rule === :local ||
     throw(ArgumentError("a joint summary supports only rule = :local (the response-aware local " *
                         "plug-in); got :$rule"))
-  cx, N, sumY, SR2, n, hp, RK, mu2, xrange = _local_setup(summary, kernel, pilot_bandwidth)
-  return [_hstar_at(cx, N, sumY, SR2, n, x, kernel, hp, RK, mu2, xrange) for x in xs]
+  c_x, N, sum_Y, SR2, n, hp, R_K, mu_2, xrange = _local_setup(summary, kernel, pilot_bandwidth)
+  return [_hstar_at(c_x, N, sum_Y, SR2, n, x, kernel, hp, R_K, mu_2, xrange) for x in xs]
 end
 
 end # module Bandwidth

@@ -64,8 +64,8 @@ end
 
 m  = conditional_mean(joint, 0.0; h = 0.3)                     # 𝔼[Y | X = 0]
 s2 = conditional_variance(joint, 0.0; h = 0.3)                 # Var(Y | X = 0)
-# hx and hy are the bandwidths in x and y
-pτ = transition_density(joint, 0.0, 0.0; hx = 0.3, hy = 0.2)   # p_τ(0 | 0)
+# h_x and h_y are the bandwidths in x and y
+pτ = transition_density(joint, 0.0, 0.0; h_x = 0.3, h_y = 0.2)   # p_τ(0 | 0)
 ```
 
 ## Where to go next

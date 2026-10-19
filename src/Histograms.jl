@@ -202,12 +202,12 @@ end
 
 """
     Histogram2D <: AbstractAccumulator
-    Histogram2D(xlower, xupper, nx, ylower, yupper, ny; lag = 0,
+    Histogram2D(x_lower, x_upper, n_x, y_lower, y_upper, n_y; lag = 0,
                 accumulator_type = Float64, count_type = UInt64)
 
 A joint binned empirical measure of ``(X, Y)`` — one per lag ``\\tau`` — for conditional and
-two-time transition densities. Its ``\\texttt{nx} \\times \\texttt{ny}`` equal-width cells tile
-``[\\texttt{xlower}, \\texttt{xupper}) \\times [\\texttt{ylower}, \\texttt{yupper})``; each cell `(ix, iy)` (flattened `ix + (iy-1)*nx`) carries its
+two-time transition densities. Its ``\\texttt{n\\_x} \\times \\texttt{n\\_y}`` equal-width cells tile
+``[\\texttt{x_lower}, \\texttt{x_upper}) \\times [\\texttt{y_lower}, \\texttt{y_upper})``; each cell `(i_x, i_y)` (flattened `i_x + (i_y-1)*n_x`) carries its
 count and the order-2 bivariate power-sums ``S_{pp'} = \\sum_{(X,Y)\\in\\text{cell}} (X -
 c^x)^p (Y - c^y)^{p'}`` about the cell center ``(c^x, c^y)`` — ``S_{10}, S_{01}, S_{20}, S_{11},
 S_{02}`` — the local sufficient statistic for the joint density and for local-linear conditioning.
@@ -221,9 +221,9 @@ are as for [`Histogram1D`](@ref GBGStreamingStatistics.Histograms.Histogram1D).
 
 # Arguments
 
-- `xlower`, `xupper`, `ylower`, `yupper` — the edges of the box
-  ``[\\texttt{xlower}, \\texttt{xupper}) \\times [\\texttt{ylower}, \\texttt{yupper})``.
-- `nx`, `ny` — the numbers of equal-width cells in ``x`` and in ``y``.
+- `x_lower`, `x_upper`, `y_lower`, `y_upper` — the edges of the box
+  ``[\\texttt{x_lower}, \\texttt{x_upper}) \\times [\\texttt{y_lower}, \\texttt{y_upper})``.
+- `n_x`, `n_y` — the numbers of equal-width cells in ``x`` and in ``y``.
 - `lag` — the lag ``\\tau`` the pairs are formed at (default `0`, the static joint).
 - `accumulator_type` — the element type the power-sums are accumulated in (default `Float64`).
 - `count_type` — the element type of the counts: `UInt64` (the default) or `Float64` for the Float-count
@@ -245,45 +245,45 @@ julia> Int(sum(joint.counts))                                 # the two in-box p
 # Fields
 
 The fields hold the summary's whole internal state, distinct from the constructor arguments
-(`xscale`/`yscale` derived, `counts` and `powersums` allocated); each is reachable by dot
-(`summary.xlower`, `summary.xscale`, `summary.lag`, …):
-- `xlower`, `xupper`, `ylower`, `yupper`, `nx`, `ny` — the box and cell counts.
-- `xscale`, `yscale` — the precomputed binning factors `nx/(xupper-xlower)`, `ny/(yupper-ylower)`, stored.
+(`x_scale`/`y_scale` derived, `counts` and `powersums` allocated); each is reachable by dot
+(`summary.x_lower`, `summary.x_scale`, `summary.lag`, …):
+- `x_lower`, `x_upper`, `y_lower`, `y_upper`, `n_x`, `n_y` — the box and cell counts.
+- `x_scale`, `y_scale` — the precomputed binning factors `n_x/(x_upper-x_lower)`, `n_y/(y_upper-y_lower)`, stored.
 - `lag` — the lag ``\\tau`` this joint summary is accumulated at (`0` for the static joint).
-- `counts` — per-cell counts, length `nx*ny` (cell `(ix, iy)` at `ix + (iy-1)*nx`; `UInt64`, or `count_type`).
-- `powersums` — ``5 \\times (\\texttt{nx} \\cdot \\texttt{ny})``: rows ``S_{10}, S_{01}, S_{20}, S_{11}, S_{02}`` about the cell center.
+- `counts` — per-cell counts, length `n_x*n_y` (cell `(i_x, i_y)` at `i_x + (i_y-1)*n_x`; `UInt64`, or `count_type`).
+- `powersums` — ``5 \\times (\\texttt{n\\_x} \\cdot \\texttt{n\\_y})``: rows ``S_{10}, S_{01}, S_{20}, S_{11}, S_{02}`` about the cell center.
 """
 struct Histogram2D{T<:AbstractFloat,C<:AbstractVector,M<:AbstractMatrix} <: AbstractAccumulator
-  xlower::T; xupper::T; xscale::T     # x range and nx/(xupper−xlower)
-  ylower::T; yupper::T; yscale::T     # y range and ny/(yupper−ylower)
-  nx::Int
-  ny::Int
+  x_lower::T; x_upper::T; x_scale::T     # x range and n_x/(x_upper−x_lower)
+  y_lower::T; y_upper::T; y_scale::T     # y range and n_y/(y_upper−y_lower)
+  n_x::Int
+  n_y::Int
   lag::Int                       # the lag τ this joint summary is accumulated at (0 for the static joint)
-  counts::C                      # length nx·ny, per-cell integer counts (UInt64)
-  powersums::M                   # 5 × (nx·ny): rows S_10, S_01, S_20, S_11, S_02 about the cell center
+  counts::C                      # length n_x·n_y, per-cell integer counts (UInt64)
+  powersums::M                   # 5 × (n_x·n_y): rows S_10, S_01, S_20, S_11, S_02 about the cell center
 end
 
 
-function Histogram2D(xlower::Real, xupper::Real, nx::Integer, ylower::Real, yupper::Real, ny::Integer;
+function Histogram2D(x_lower::Real, x_upper::Real, n_x::Integer, y_lower::Real, y_upper::Real, n_y::Integer;
                      lag::Integer = 0, accumulator_type::Type{<:AbstractFloat} = Float64,
                      count_type::Type{<:Real} = UInt64)
-  (xupper > xlower && yupper > ylower) ||
-    throw(ArgumentError("Histogram2D requires xupper > xlower and yupper > ylower"))
-  (nx ≥ 1 && ny ≥ 1) || throw(ArgumentError("Histogram2D requires nx ≥ 1 and ny ≥ 1"))
-  xlowerT, xupperT, ylowerT, yupperT = promote(float(xlower), float(xupper), float(ylower), float(yupper))
+  (x_upper > x_lower && y_upper > y_lower) ||
+    throw(ArgumentError("Histogram2D requires x_upper > x_lower and y_upper > y_lower"))
+  (n_x ≥ 1 && n_y ≥ 1) || throw(ArgumentError("Histogram2D requires n_x ≥ 1 and n_y ≥ 1"))
+  xlowerT, xupperT, ylowerT, yupperT = promote(float(x_lower), float(x_upper), float(y_lower), float(y_upper))
   T = typeof(xlowerT)
-  xscale = T(nx) / (xupperT - xlowerT)
-  yscale = T(ny) / (yupperT - ylowerT)
-  counts = zeros(count_type, nx * ny)
-  powersums = zeros(accumulator_type, 5, nx * ny)
-  return Histogram2D(xlowerT, xupperT, xscale, ylowerT, yupperT, yscale, Int(nx), Int(ny), Int(lag), counts, powersums)
+  x_scale = T(n_x) / (xupperT - xlowerT)
+  y_scale = T(n_y) / (yupperT - ylowerT)
+  counts = zeros(count_type, n_x * n_y)
+  powersums = zeros(accumulator_type, 5, n_x * n_y)
+  return Histogram2D(xlowerT, xupperT, x_scale, ylowerT, yupperT, y_scale, Int(n_x), Int(n_y), Int(lag), counts, powersums)
 end
 
 
 _ncells(h::Histogram2D) = length(h.counts)
 _total(h::Histogram2D) = sum(h.counts)
-_xbincenter(h::Histogram2D, ix::Integer) = h.xlower + (oftype(h.xlower, ix) - oftype(h.xlower, 0.5)) / h.xscale
-_ybincenter(h::Histogram2D, iy::Integer) = h.ylower + (oftype(h.ylower, iy) - oftype(h.ylower, 0.5)) / h.yscale
+_xbincenter(h::Histogram2D, i_x::Integer) = h.x_lower + (oftype(h.x_lower, i_x) - oftype(h.x_lower, 0.5)) / h.x_scale
+_ybincenter(h::Histogram2D, i_y::Integer) = h.y_lower + (oftype(h.y_lower, i_y) - oftype(h.y_lower, 0.5)) / h.y_scale
 
 
 # Per-x-column reduction of a `Histogram2D` (the regression-ready sufficient statistic): for each x-bin j,
@@ -293,45 +293,45 @@ _ybincenter(h::Histogram2D, iy::Integer) = h.ylower + (oftype(h.ylower, iy) - of
 function _column_sums(summary::Histogram2D)
   counts = Array(summary.counts)
   S = Array(summary.powersums)
-  nx = summary.nx
-  ny = summary.ny
-  cx = [_xbincenter(summary, ix) for ix in 1:nx]
-  N = zeros(Float64, nx)
-  sumY = zeros(Float64, nx)
-  sumY2 = zeros(Float64, nx)
-  for iy in 1:ny
-    cy = _ybincenter(summary, iy)
-    for ix in 1:nx
-      cell = ix + (iy - 1) * nx
+  n_x = summary.n_x
+  n_y = summary.n_y
+  c_x = [_xbincenter(summary, i_x) for i_x in 1:n_x]
+  N = zeros(Float64, n_x)
+  sum_Y = zeros(Float64, n_x)
+  sum_Y2 = zeros(Float64, n_x)
+  for i_y in 1:n_y
+    c_y = _ybincenter(summary, i_y)
+    for i_x in 1:n_x
+      cell = i_x + (i_y - 1) * n_x
       nc = counts[cell]
       iszero(nc) && continue
       s01 = S[2, cell]
       s02 = S[5, cell]
-      N[ix] += nc
-      sumY[ix] += cy * nc + s01                       # Σ Y over the column, exact
-      sumY2[ix] += cy * cy * nc + 2 * cy * s01 + s02  # Σ Y² over the column, exact
+      N[i_x] += nc
+      sum_Y[i_x] += c_y * nc + s01                       # Σ Y over the column, exact
+      sum_Y2[i_x] += c_y * c_y * nc + 2 * c_y * s01 + s02  # Σ Y² over the column, exact
     end
   end
-  return cx, N, sumY, sumY2
+  return c_x, N, sum_Y, sum_Y2
 end
 
 
 # The 2D scatter-add: one work-item per pair atomically accumulates the per-cell count and the five
 # order-2 bivariate power-sums about the cell center. Out-of-box pairs are skipped.
 @kernel function _scatter2d!(counts, powersums, @Const(xs), @Const(ys),
-                             xlower, xscale, nx, ylower, yscale, ny)
+                             x_lower, x_scale, n_x, y_lower, y_scale, n_y)
   s = @index(Global, Linear)
   if s ≤ length(xs)
     @inbounds begin
       x = xs[s]
       y = ys[s]
-      ix = floor(Int, (x - xlower) * xscale) + 1
-      iy = floor(Int, (y - ylower) * yscale) + 1
-      if 1 ≤ ix ≤ nx && 1 ≤ iy ≤ ny
-        cell = ix + (iy - 1) * nx
+      i_x = floor(Int, (x - x_lower) * x_scale) + 1
+      i_y = floor(Int, (y - y_lower) * y_scale) + 1
+      if 1 ≤ i_x ≤ n_x && 1 ≤ i_y ≤ n_y
+        cell = i_x + (i_y - 1) * n_x
         Atomix.@atomic counts[cell] += one(eltype(counts))
-        dx = x - (xlower + (oftype(xlower, ix) - oftype(xlower, 0.5)) / xscale)
-        dy = y - (ylower + (oftype(ylower, iy) - oftype(ylower, 0.5)) / yscale)
+        dx = x - (x_lower + (oftype(x_lower, i_x) - oftype(x_lower, 0.5)) / x_scale)
+        dy = y - (y_lower + (oftype(y_lower, i_y) - oftype(y_lower, 0.5)) / y_scale)
         base = (cell - 1) * 5
         Atomix.@atomic powersums[base + 1] += dx
         Atomix.@atomic powersums[base + 2] += dy
@@ -365,15 +365,15 @@ function observe_pairs!(summary::Histogram2D, x_past, y_now)
     throw(ArgumentError("observe_pairs!: x_past and y_now must have equal length"))
   backend = get_backend(summary.counts)
   _scatter2d!(backend)(summary.counts, summary.powersums, x_past, y_now,
-                       summary.xlower, summary.xscale, summary.nx, summary.ylower, summary.yscale, summary.ny; ndrange = length(x_past))
+                       summary.x_lower, summary.x_scale, summary.n_x, summary.y_lower, summary.y_scale, summary.n_y; ndrange = length(x_past))
   synchronize(backend)
   return summary
 end
 
 
 _compatible(a::Histogram2D, b::Histogram2D) =
-  a.xlower == b.xlower && a.xupper == b.xupper && a.ylower == b.ylower && a.yupper == b.yupper &&
-  a.nx == b.nx && a.ny == b.ny && a.lag == b.lag
+  a.x_lower == b.x_lower && a.x_upper == b.x_upper && a.y_lower == b.y_lower && a.y_upper == b.y_upper &&
+  a.n_x == b.n_x && a.n_y == b.n_y && a.lag == b.lag
 
 function merge!(into::Histogram2D, from::Histogram2D; weight = 1)
   _compatible(into, from) ||
@@ -411,7 +411,7 @@ HDF5 `File` or `Group`), returning that group. The summary is the durable artifa
 across runs; the reload is exact.
 
 The group is self-describing: the arrays become datasets (`counts`, `powersums`) and the scalar
-parameters become attributes (`type`, `version`, the range edges, `nbins` / `nx` / `ny`, `order`, `lag`),
+parameters become attributes (`type`, `version`, the range edges, `nbins` / `n_x` / `n_y`, `order`, `lag`),
 so any HDF5 tool can read it. Device (GPU) arrays are copied to the host on write, and the count element
 type is preserved, so the `count_type = Float64` cone variant round-trips. The sugar `parent[name] = summary`
 is equivalent.

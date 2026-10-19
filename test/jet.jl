@@ -44,19 +44,19 @@ using GBGStreamingStatistics: Histograms, MarginalDensity, Bandwidth, Conditiona
   @test_call target_modules = mods conditional_expectation(g, cos, 0.0; h = 0.5)   # the general ⟨g(Y)|x⟩
   @test_call target_modules = mods conditional_expectation_standard_error(g, cos, 0.0; h = 0.5)
   @test_call target_modules = mods conditional_expectation_with_standard_error(g, cos, 0.0; h = 0.5)
-  @test_call target_modules = mods conditional_pushforward_density(g, exp, 0.0, 0.0; hx = 0.5, hz = 0.5)
-  @test_call target_modules = mods conditional_pushforward_density_standard_error(g, exp, 0.0, 0.0; hx = 0.5, hz = 0.5)
-  @test_call target_modules = mods conditional_pushforward_density_with_standard_error(g, exp, 0.0, 0.0; hx = 0.5, hz = 0.5)
+  @test_call target_modules = mods conditional_pushforward_density(g, exp, 0.0, 0.0; h_x = 0.5, h_z = 0.5)
+  @test_call target_modules = mods conditional_pushforward_density_standard_error(g, exp, 0.0, 0.0; h_x = 0.5, h_z = 0.5)
+  @test_call target_modules = mods conditional_pushforward_density_with_standard_error(g, exp, 0.0, 0.0; h_x = 0.5, h_z = 0.5)
   @test_call target_modules = mods bandwidth(g, 0.0; rule = :local)   # the response-aware local h⋆(x)
 
   glag = Histogram2D(-5.0, 5.0, 50, -5.0, 5.0, 50; lag = 1)
   observe_pairs!(glag, xs, ys)
-  @test_call target_modules = mods conditional_density(glag, 0.0, 0.0; hx = 0.5, hy = 0.5)
-  # the asymmetric-response path (gamma kernely + normalize) — its own specialization / branch
-  @test_call target_modules = mods conditional_density(glag, 0.0, 0.0; hx = 0.5, hy = 0.5, kernely = gamma_kernel, normalize = true)
-  @test_call target_modules = mods transition_density(glag, 0.0, 0.0; hx = 0.5, hy = 0.5)
-  @test_call target_modules = mods conditional_density_standard_error(glag, 0.0, 0.0; hx = 0.5, hy = 0.5)
-  @test_call target_modules = mods conditional_density_with_standard_error(glag, 0.0, 0.0; hx = 0.5, hy = 0.5)
+  @test_call target_modules = mods conditional_density(glag, 0.0, 0.0; h_x = 0.5, h_y = 0.5)
+  # the asymmetric-response path (gamma kernel_y + normalize) — its own specialization / branch
+  @test_call target_modules = mods conditional_density(glag, 0.0, 0.0; h_x = 0.5, h_y = 0.5, kernel_y = gamma_kernel, normalize = true)
+  @test_call target_modules = mods transition_density(glag, 0.0, 0.0; h_x = 0.5, h_y = 0.5)
+  @test_call target_modules = mods conditional_density_standard_error(glag, 0.0, 0.0; h_x = 0.5, h_y = 0.5)
+  @test_call target_modules = mods conditional_density_with_standard_error(glag, 0.0, 0.0; h_x = 0.5, h_y = 0.5)
 
   # the §4.B power-sum quadrature readouts — the `coeffs!` / test-function closures are the inference risk
   @test_call target_modules = mods expectation(h, cos)

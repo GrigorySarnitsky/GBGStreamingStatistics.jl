@@ -45,8 +45,8 @@ using Random
         @test size(rc.powersums, 1) == 3            # order preserved
 
         @test r2 isa Histogram2D
-        @test r2.nx == h2.nx && r2.ny == h2.ny && r2.lag == 4
-        @test r2.xlower == h2.xlower && r2.yupper == h2.yupper
+        @test r2.n_x == h2.n_x && r2.n_y == h2.n_y && r2.lag == 4
+        @test r2.x_lower == h2.x_lower && r2.y_upper == h2.y_upper
         @test r2.counts == h2.counts
         @test r2.powersums == h2.powersums
       end

@@ -46,23 +46,23 @@ include("testoracles.jl"); using .TestOracles
     for x in (-0.5, 0.0, 0.5)
       μx = x * exp(-θ * τ)
       for y in (μx - 0.4, μx, μx + 0.4)
-        @test transition_density(g, x, y; hx = 0.25, hy = 0.15) ≈ ptrans(y, x) atol = 0.04
+        @test transition_density(g, x, y; h_x = 0.25, h_y = 0.15) ≈ ptrans(y, x) atol = 0.04
       end
     end
     ys = collect(-5s:0.02:5s)
-    @test sum(transition_density(g, 0.0, ys; hx = 0.25, hy = 0.15)) * 0.02 ≈ 1 atol = 1e-2
+    @test sum(transition_density(g, 0.0, ys; h_x = 0.25, h_y = 0.15)) * 0.02 ≈ 1 atol = 1e-2
 
     # the transition-density standard error against the closed-form two-term double-kernel variance
-    # √(R(K)/(n hx f_X(x)) · (R(K) p_τ(y|x)/hy − p_τ²)), every factor analytic: R(K) = 1/(2√π) for the Gaussian
+    # √(R(K)/(n h_x f_X(x)) · (R(K) p_τ(y|x)/h_y − p_τ²)), every factor analytic: R(K) = 1/(2√π) for the Gaussian
     # kernel, p_τ the OU transition law, f_X the stationary N(0, s²) — no package operation in the oracle.
     # The paired reader's value is held to the transition law itself, as above.
-    RK = 1 / (2 * sqrt(π))
+    R_K = 1 / (2 * sqrt(π))
     fX(x) = exp(-x^2 / (2s^2)) / (s * sqrt(2π))
     for (x, y) in ((0.0, 0.0), (0.5, 0.5 * exp(-θ * τ) + 0.3))
       p = ptrans(y, x)
-      closed = sqrt(RK / (n * 0.25 * fX(x)) * (RK * p / 0.15 - p^2))
-      @test transition_density_standard_error(g, x, y; hx = 0.25, hy = 0.15) ≈ closed rtol = 0.08
-      r = transition_density_with_standard_error(g, x, y; hx = 0.25, hy = 0.15)
+      closed = sqrt(R_K / (n * 0.25 * fX(x)) * (R_K * p / 0.15 - p^2))
+      @test transition_density_standard_error(g, x, y; h_x = 0.25, h_y = 0.15) ≈ closed rtol = 0.08
+      r = transition_density_with_standard_error(g, x, y; h_x = 0.25, h_y = 0.15)
       @test r.value ≈ p atol = 0.04
       @test r.standard_error ≈ closed rtol = 0.08
     end
