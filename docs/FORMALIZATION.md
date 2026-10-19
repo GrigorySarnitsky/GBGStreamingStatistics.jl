@@ -159,13 +159,13 @@ recorded in `ARCHITECTURE.md` §4 meanwhile.
 ## Marginal density (§4.1) — `density`
 
 - **Estimand.** ``f_X = \mathrm{d}\mathbb{P}_X/\mathrm{d}x``, the Lebesgue density of ``X``.
-- **Estimator.** the binned KDE ``\hat f_h(x) = \frac{1}{nh}\sum_j n_j K\Bigl(\frac{x-\tilde c_j}{h}\Bigr)``
+- **Estimator.** the binned KDE ``\hat f_X(x) = \frac{1}{nh}\sum_j n_j K\Bigl(\frac{x-\tilde c_j}{h}\Bigr)``
   (``\int K = 1``, Gaussian ``K``) from the bin counts ``n_j`` at bin locations ``\tilde c_j`` — the within-bin
   centroid ``\tilde c_j = c_j + S_1^{(j)}/n_j`` (linear binning, the default `binning = :linear`) or the
   geometric center ``\tilde c_j = c_j`` (`binning = :simple`) — with ``h`` from `bandwidth`
   (Silverman ``h = (4/3)^{1/5}\hat\sigma_X n^{-1/5}``).
-- **Consistency claim** (``h \to 0``, ``nh \to \infty``): ``\operatorname{bias}\hat f_h(x) \approx
-  \tfrac{1}{2} h^2 \mu_2(K)  f_X''(x)`` and ``\operatorname{Var}\hat f_h(x) \approx R(K) f_X(x)/(n h)``;
+- **Consistency claim** (``h \to 0``, ``nh \to \infty``): ``\operatorname{bias}\hat f_X(x) \approx
+  \tfrac{1}{2} h^2 \mu_2(K)  f_X''(x)`` and ``\operatorname{Var}\hat f_X(x) \approx R(K) f_X(x)/(n h)``;
   the binning error converges to the exact KDE at ``O(\Delta^2)`` in the bin width ``\Delta`` for linear
   binning — the centroid matches the within-bin first moment, ``\sum_{i\in j}(X_i - \tilde c_j) = 0``, so the
   leading ``O(\Delta)`` discretization term vanishes — and at ``O(\Delta)`` for simple binning; either is
@@ -217,8 +217,8 @@ recorded in `ARCHITECTURE.md` §4 meanwhile.
 
 ## Pointwise standard error (§4.1) — `density_standard_error`, `density_with_standard_error`
 
-- **Estimand.** the standard error of the density estimator, ``\operatorname{SE}(x) = \sqrt{\operatorname{Var}\hat f_h(x)}`` with the finite-sample KDE variance ``\operatorname{Var}\hat f_h(x) \approx R(K) f_X(x)/(nh) - f_X(x)^2/n`` (Wand & Jones 1995).
-- **Estimator.** ``\sqrt{R(K) \hat f_h(x)/(nh) - \hat f_h(x)^2/n}`` from the recovered ``\hat f_h``, ``n``, ``h``, and ``R(K) = \int K^2`` (by quadrature) — the band ``\hat f_h(x) \pm 1.96 \operatorname{SE}(x)`` about ``\mathbb{E}\hat f_h``, covering ``f_X`` where the ``O(h^2)`` smoothing bias is small. It tracks the estimator's options: `adaptive` uses the local Abramson bandwidth ``h(x)`` in place of ``h``; `support` (Jones renormalization) uses the boundary-restricted roughness ``R_a(x) = \frac{1}{h}\int_{\text{support}} K((x-v)/h)^2\,\mathrm dv`` and divides by the squared in-support kernel mass ``a(x)^2``, inflating the variance near an edge; a parametric `start` leaves the leading variance unchanged (its ``\hat\theta`` uncertainty is an ``O(1/n)`` omission). `density_with_standard_error` returns the estimate and this band from one option specification (the `NamedTuple` ``(\texttt{value}, \texttt{standard\_error})``), so they describe the same estimator by construction. Degree 0/1 and a symmetric kernel (the asymmetric-kernel variance and degree ``\ge 2`` are coverage gaps).
+- **Estimand.** the standard error of the density estimator, ``\operatorname{SE}(x) = \sqrt{\operatorname{Var}\hat f_X(x)}`` with the finite-sample KDE variance ``\operatorname{Var}\hat f_X(x) \approx R(K) f_X(x)/(nh) - f_X(x)^2/n`` (Wand & Jones 1995).
+- **Estimator.** ``\sqrt{R(K) \hat f_X(x)/(nh) - \hat f_X(x)^2/n}`` from the recovered ``\hat f_X``, ``n``, ``h``, and ``R(K) = \int K^2`` (by quadrature) — the band ``\hat f_X(x) \pm 1.96 \operatorname{SE}(x)`` about ``\mathbb{E}\hat f_X``, covering ``f_X`` where the ``O(h^2)`` smoothing bias is small. It tracks the estimator's options: `adaptive` uses the local Abramson bandwidth ``h(x)`` in place of ``h``; `support` (Jones renormalization) uses the boundary-restricted roughness ``R_a(x) = \frac{1}{h}\int_{\text{support}} K((x-v)/h)^2\,\mathrm dv`` and divides by the squared in-support kernel mass ``a(x)^2``, inflating the variance near an edge; a parametric `start` leaves the leading variance unchanged (its ``\hat\theta`` uncertainty is an ``O(1/n)`` omission). `density_with_standard_error` returns the estimate and this band from one option specification (the `NamedTuple` ``(\texttt{value}, \texttt{standard\_error})``), so they describe the same estimator by construction. Degree 0/1 and a symmetric kernel (the asymmetric-kernel variance and degree ``\ge 2`` are coverage gaps).
 - **Test.** `test/marginaldensity.jl` — the SE equals the two-term ``\sqrt{R(K)\hat f_X/(nh) - \hat f_X^2/n}`` exactly; a Monte-Carlo check (the predicted SE matches the empirical sampling standard deviation of ``\hat f_X(0)`` across independent datasets to ``20\%``); `adaptive` lowers the tail variance and `support` inflates the edge variance; `density_with_standard_error` matches the separate calls exactly; the 95\% band covers the ``\mathcal{N}(0,1)`` truth over ``\ge 75\%`` of the interior; vector / empty / error forms.
 
 ## Bandwidth selection (§4.5) — `bandwidth`
@@ -235,7 +235,7 @@ recorded in `ARCHITECTURE.md` §4 meanwhile.
 
 - **Estimand.** ``m(x) = \mathbb{E}[Y \mid X = x] = \int y  f_{Y\mid X}(y \mid x)\,\mathrm{d}y``,
   the ``L^2(\mathbb{P}_X)`` projection of the response onto the conditioning variable.
-- **Estimator.** the local-linear fit ``\hat m_h(x) = (U_2 V_0 - U_1 V_1)/(U_0 U_2 - U_1^2)`` from
+- **Estimator.** the local-linear fit ``\hat m(x) = (U_2 V_0 - U_1 V_1)/(U_0 U_2 - U_1^2)`` from
   the kernel-weighted power-sums ``U_p = \sum_i K_h(X_i-x)(X_i-x)^p`` and
   ``V_p = \sum_i K_h(X_i-x)(X_i-x)^p Y_i`` — recovered from the joint `Histogram2D`'s per-x-column
   counts and response totals ``\sum Y`` (exact from the per-cell power-sums); the ``g = \mathrm{identity}``
@@ -243,9 +243,9 @@ recorded in `ARCHITECTURE.md` §4 meanwhile.
 - **Consistency claim** (interior ``x``, ``h \to 0``, ``nh \to \infty``):
 
   ```math
-  \operatorname{bias}\hat m_h(x) \approx \tfrac{1}{2} h^2 \mu_2(K)  m''(x),
+  \operatorname{bias}\hat m(x) \approx \tfrac{1}{2} h^2 \mu_2(K)  m''(x),
   \qquad
-  \operatorname{Var}\hat m_h(x) \approx \frac{R(K) \sigma^2(x)}{n h f_X(x)},
+  \operatorname{Var}\hat m(x) \approx \frac{R(K) \sigma^2(x)}{n h f_X(x)},
   ```
 
   giving the optimal rate ``\hat m_{h^\star(x)}(x) - m(x) = O_p(n^{-2/5})`` at ``h^\star(x) \sim n^{-1/5}``.
@@ -266,7 +266,7 @@ recorded in `ARCHITECTURE.md` §4 meanwhile.
   ``\sum (Y - \hat m_j)^2 = \sum Y^2 - 2\hat m_j \sum Y + \hat m_j^2 N_j`` (``\hat m_j = \hat m(c^x_j)``,
   exact from the stored column sums), and take a second local fit of it,
   ``\hat\sigma^2(x) = \widehat{\mathbb{E}}[(Y - \hat m(X))^2 \mid X = x]``. The `:plugin` alternative is the
-  simple difference ``\widehat{\mathbb{E}}[Y^2 \mid X = x] - \hat m_h(x)^2``; both clamped non-negative.
+  simple difference ``\widehat{\mathbb{E}}[Y^2 \mid X = x] - \hat m(x)^2``; both clamped non-negative.
 - **Consistency claim.** both are consistent for ``\sigma^2(x)``. The plug-in carries the local-polynomial
   smoothing bias of the curved ``\mathbb{E}[Y^2\mid X = x]`` — an ``O(h^2)`` term driven by ``m''`` and the
   curvature of ``\mathbb{E}[Y^2\mid X = x]``, large where ``m`` curves. The residual-based estimator fits the

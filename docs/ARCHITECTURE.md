@@ -321,7 +321,7 @@ The local / smoothing readouts: each a degree-zero readout of the kernel-weighte
 **Estimand.** The estimand is ``f_X = \mathrm{d}\mathbb{P}_X/\mathrm{d}x``, the Lebesgue density of the law ``\mathbb{P}_X`` of ``X``:
 ``\mathbb{P}_X(A) = \int_A f_X(x)\,\mathrm{d}x``.
 
-**Estimator** (binned KDE / WARPing): the estimate is ``\hat f_h(x) = \frac{1}{nh}\sum_j n_j K((x-\tilde c_j)/h)``, for a kernel with ``\int K = 1``,
+**Estimator** (binned KDE / WARPing): the estimate is ``\hat f_X(x) = \frac{1}{nh}\sum_j n_j K((x-\tilde c_j)/h)``, for a kernel with ``\int K = 1``,
 from counts ``n_j`` at the within-bin centroid ``\tilde c_j = c_j + S_1^{(j)}/n_j`` (`binning = :linear`,
 the default — matching the bin's first moment, so the discretization is ``O(\Delta^2)`` in the bin width
 ``\Delta``; ``\tilde c_j = c_j`` is `binning = :simple`, ``O(\Delta)``), the centroid free from the stored
@@ -366,7 +366,7 @@ published or a direct composition, that the package has not implemented; every r
 **Estimator** (local-linear; Fan & Gijbels 1996): from
 ``U_p = \sum_i K_h(X_i-x)(X_i-x)^p`` and ``V_p = \sum_i K_h(X_i-x)(X_i-x)^p Y_i``, with each sample moved to its `Histogram2D` column center,
 ```math
-\hat m_h(x) = \frac{U_2 V_0 - U_1 V_1}{U_0 U_2 - U_1^{2}}
+\hat m(x) = \frac{U_2 V_0 - U_1 V_1}{U_0 U_2 - U_1^{2}}
 ```
 — the intercept ``\beta_0`` of one `LocalPolynomial.local_fit`; local-linear removes the design-density
 bias ``2 m'(x) f_X'(x)/f_X(x)`` that the degree-0 Nadaraya–Watson ``V_0/U_0`` carries. The variance is the
@@ -538,7 +538,7 @@ These conventions mirror PF's; the deltas are noted.
 - **Estimand-first docstrings** (§2) — state the estimand (the population quantity, in standard notation,
   with its formula) before the estimator. `conditional_mean` is the reference: lead with
   ``m(x) = \mathbb{E}[Y \mid X = x] = \int y  f_{Y\mid X}(y\mid x)\,\mathrm{d}y`` (the ``L^2`` projection),
-  *then* the local-linear ``\hat m_h``. Self-contained pages, rendered LaTeX in standard notation, every
+  *then* the local-linear ``\hat m``. Self-contained pages, rendered LaTeX in standard notation, every
   code object bound to its math symbol on first mention, in apposition (`density` (``f_X``),
   `conditional_mean` (``m(x)``), `transition_density` (``p_\tau(y\mid x)``)).
 - **Every estimator reports its standard error.** An estimator from a finite stream is incomplete
@@ -550,8 +550,8 @@ These conventions mirror PF's; the deltas are noted.
 - **A `FORMALIZATION.md` analog.** PF records a typed statement per operation, expansion-checked
   against the code and test-linked. Here the typed entry states the estimand, the
   estimator, and the consistency claim — its bias and variance, e.g.
-  ``\operatorname{bias} \hat m_h(x) \approx \tfrac{1}{2} h^2 \mu_2(K) m''(x)`` and
-  ``\operatorname{Var} \hat m_h(x) \approx \frac{R(K) \sigma^2(x)}{n h f_X(x)}`` for local-linear
+  ``\operatorname{bias} \hat m(x) \approx \tfrac{1}{2} h^2 \mu_2(K) m''(x)`` and
+  ``\operatorname{Var} \hat m(x) \approx \frac{R(K) \sigma^2(x)}{n h f_X(x)}`` for local-linear
   regression — every normalization constant pinned, each linked to the test that verifies the
   convergence rate numerically.
 - **Testing against analytic oracles** — the statistics analog of PF's analytic round-trips:
@@ -701,8 +701,8 @@ intentional).
   *[Superseded — built and OU-tested, then archived; see
   below.]* The first slice implements the increment moments and the finite-``\tau`` Kramers–Moyal coefficients
   drift (``M_1/\tau``) and diffusion (``M_2/(2\tau)``) directly from the order-2
-  `Histogram2D`, via ``M_1(x) = \hat m_h(x) - x`` and
-  ``M_2(x) = \widehat{\mathbb{E}}[Y^2\mid X = x] - 2x \hat m_h(x) + x^2`` — reusing the §4.2 local-linear
+  `Histogram2D`, via ``M_1(x) = \hat m(x) - x`` and
+  ``M_2(x) = \widehat{\mathbb{E}}[Y^2\mid X = x] - 2x \hat m(x) + x^2`` — reusing the §4.2 local-linear
   primitives (no new accumulator), reported as the plain finite-``\tau`` ratio ``M_n/(n! \tau)``. The
   all-orders Bell-polynomial finite-time correction (Rydin Gorjão et al. 2021) and the ``\tau\to0``
   limit stay forthcoming / consumer-side. Orders three and above — the higher Kramers–Moyal coefficients and

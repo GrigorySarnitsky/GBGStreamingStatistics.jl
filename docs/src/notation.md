@@ -96,6 +96,7 @@ Axis names are lower-case: an ``x``-column of bins, its ``y``-quadrature of resp
 | ``\pi_k``, ``\pi(\theta)`` | the mixing weight of component ``k`` and the mixing law of a parameter mixture |
 
 A density symbol always carries its subscript, and an estimate its hat: ``\hat f_X``, ``\hat m(x)``.
+Where the bandwidth varies, as in ``\operatorname{MISE}(h)``, the estimate at bandwidth ``h`` is written ``\hat f_h``, ``\hat m_h``.
 
 ## The moments of the data
 

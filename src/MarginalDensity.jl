@@ -418,7 +418,7 @@ end
 **Estimand.** The estimand is the marginal (Lebesgue) density ``f_X = \\mathrm{d}\\mathbb{P}_X/\\mathrm{d}x`` of the
 variate ``X`` with law ``\\mathbb{P}_X``, defined by ``\\mathbb{P}_X(A) = \\int_A f_X(x)\\,\\mathrm{d}x``.
 
-**Estimator.** The estimator is the smoothed estimate ``\\hat f_h(x)`` at bandwidth `h` from the accumulated `summary`: a
+**Estimator.** The estimator is the smoothed estimate ``\\hat f_X(x)`` at bandwidth `h` from the accumulated `summary`: a
 binned local smoother of the counts ``n_j`` at bin locations ``\\tilde c_j`` (the within-bin centroid by
 default; see the `binning` option) — a binned KDE (WARPing, weighted averaging of rounded points) at
 `degree = 0`, or a local-log-polynomial fit of ``\\log f_X`` at `degree` ``\\ge 1``.
@@ -697,18 +697,18 @@ end
 
 **Estimand.** The estimand is the pointwise standard error of the `density` estimate at ``x``,
 ``\\operatorname{SE}(x) =
-\\sqrt{\\operatorname{Var}\\hat f_h(x)}`` with the kernel-density asymptotic variance
+\\sqrt{\\operatorname{Var}\\hat f_X(x)}`` with the kernel-density asymptotic variance
 
 ```math
-\\operatorname{Var}\\hat f_h(x) \\approx \\frac{R(K) f_X(x)}{n h} - \\frac{f_X(x)^2}{n}, \\qquad R(K) = \\int K^2.
+\\operatorname{Var}\\hat f_X(x) \\approx \\frac{R(K) f_X(x)}{n h} - \\frac{f_X(x)^2}{n}, \\qquad R(K) = \\int K^2.
 ```
 
-**Estimator.** The estimator is ``\\sqrt{R(K) \\hat f_h(x)/(n h) - \\hat f_h(x)^2/n}``, from the estimate ``\\hat f_h(x)``,
+**Estimator.** The estimator is ``\\sqrt{R(K) \\hat f_X(x)/(n h) - \\hat f_X(x)^2/n}``, from the estimate ``\\hat f_X(x)``,
 the count ``n``, the bandwidth `h` (default the normal reference), and the roughness ``R(K) = \\int K^2`` of the
 smoothing `kernel` ``K`` — any symmetric ``\\int K = 1`` callable, default
 [`gaussian_kernel`](@ref GBGStreamingStatistics.Kernels.gaussian_kernel) — by quadrature. The
-pointwise *variability band* is ``\\hat f_h(x) \\pm 1.96 \\operatorname{SE}(x)`` (95\\%) — a
-band about ``\\mathbb{E}\\hat f_h``, so it covers ``f_X`` where the ``O(h^2)`` smoothing bias is small
+pointwise *variability band* is ``\\hat f_X(x) \\pm 1.96 \\operatorname{SE}(x)`` (95\\%) — a
+band about ``\\mathbb{E}\\hat f_X``, so it covers ``f_X`` where the ``O(h^2)`` smoothing bias is small
 and narrows that coverage at a sharp mode or in a tail.
 
 **It tracks the estimator's options** — pass the *same* options you gave `density` and the standard error is
@@ -721,7 +721,7 @@ variability is an unmodelled higher-order term, so the band runs slightly narrow
 renormalization) replaces ``R(K)`` by the boundary-restricted roughness ``R_a(x) =
 \\frac{1}{h}\\int_{\\text{support}} K((x-v)/h)^2\\,\\mathrm dv`` and divides by the squared in-support kernel
 mass ``a(x)^2``, inflating the variance near an edge; a parametric `start` leaves the leading variance
-``R(K)\\hat f_h/(nh)`` unchanged (the fitted-parameter uncertainty is an ``O(1/n)`` omission). Only
+``R(K)\\hat f_X/(nh)`` unchanged (the fitted-parameter uncertainty is an ``O(1/n)`` omission). Only
 `degree` 0/1 and a symmetric kernel are supported (``\\texttt{degree} \\ge 2`` and an asymmetric gamma/beta kernel
 are refused); a vector of query points returns a vector.
 

@@ -102,7 +102,7 @@ estimands.
   via the stored ``S_1``; `:simple` bin-center, ``O(\Delta)``) — accepting any `kernel` from `Kernels`
   (the symmetric `gaussian_kernel` / `epanechnikov_kernel`, or the asymmetric `gamma_kernel` /
   `beta_kernel` for bounded/positive support), and `density_standard_error` (the pointwise variability
-  band ``\operatorname{SE}(x) = \sqrt{R(K)\hat f_h(x)/(nh) - \hat f_h(x)^2/n}``, the two-term KDE variance — it
+  band ``\operatorname{SE}(x) = \sqrt{R(K)\hat f_X(x)/(nh) - \hat f_X(x)^2/n}``, the two-term KDE variance — it
   **tracks the estimator's options**: the local Abramson ``h(x)`` for `adaptive`, the boundary-restricted
   ``R_a(x)/a(x)^2`` for `support`, `start` leading-order-neutral; degree-0/1 symmetric-kernel, the asymmetric
   variance a recorded gap), plus `density_with_standard_error` returning the estimate and its band from one

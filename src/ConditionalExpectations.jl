@@ -266,21 +266,21 @@ and response sums, weighted by the kernel scaled to the bandwidth, ``U_p(x) = \\
 order in the bin width), from the per-bin counts and exact response totals ``\\sum Y`` — and solve the local
 normal equations of order `degree` for the *jet* ``(\\hat\\beta_0, \\dots, \\hat\\beta_{\\texttt{degree}})`` — the
 local-polynomial coefficients at ``x`` (``\\hat\\beta_0`` the fitted value, ``\\hat\\beta_1`` the slope, ``2\\hat\\beta_2``
-the curvature); the estimate is the fitted value ``\\hat m_h(x) = \\hat\\beta_0``. At the default `degree = 1`
+the curvature); the estimate is the fitted value ``\\hat m(x) = \\hat\\beta_0``. At the default `degree = 1`
 (local-linear) this is
 
 ```math
-\\hat m_h(x) = \\frac{U_2 V_0 - U_1 V_1}{U_0 U_2 - U_1^{2}},
+\\hat m(x) = \\frac{U_2 V_0 - U_1 V_1}{U_0 U_2 - U_1^{2}},
 ```
 
 which removes the design-density bias ``2 m'(x) f_X'(x)/f_X(x)`` (the design density being the marginal
 density of the conditioning variable) of the Nadaraya–Watson reduction
-``\\hat m_h = V_0/U_0`` (the `degree = 0` local-constant fit). The bandwidth ``h`` is supplied (or the
+``\\hat m = V_0/U_0`` (the `degree = 0` local-constant fit). The bandwidth ``h`` is supplied (or the
 response-aware local plug-in ``h^\\star(x)`` from
 [`bandwidth(summary, x; rule = :local)`](@ref GBGStreamingStatistics.Bandwidth.bandwidth));
 `degree = 2` (local-quadratic) additionally exposes the curvature ``\\hat m''(x)`` that ``h^\\star(x)`` needs. A vector of query points
-returns a vector. It is consistent, with leading-order ``\\operatorname{bias}\\hat m_h(x) \\approx
-\\tfrac{1}{2} h^2 \\mu_2(K)  m''(x)`` and ``\\operatorname{Var}\\hat m_h(x) \\approx
+returns a vector. It is consistent, with leading-order ``\\operatorname{bias}\\hat m(x) \\approx
+\\tfrac{1}{2} h^2 \\mu_2(K)  m''(x)`` and ``\\operatorname{Var}\\hat m(x) \\approx
 R(K) \\sigma^2(x)/(n h f_X(x))``, in the kernel's second moment and roughness, the conditional variance
 and the sample count.
 
@@ -376,7 +376,7 @@ squared-residual total of ``x``-column ``j`` is recovered exactly from its store
 ``\\sum Y^2 - 2\\hat m \\sum Y + \\hat m^2 N_j``.
 
 **Estimator** (`method = :plugin`). The estimate is the difference ``\\widehat{\\mathbb{E}}[Y^2 \\mid X = x] -
-\\hat m_h(x)^2`` (the same local fit applied to the ``Y^2`` response), clamped non-negative; cheaper
+\\hat m(x)^2`` (the same local fit applied to the ``Y^2`` response), clamped non-negative; cheaper
 (no first stage), it carries the curved-``\\mathbb{E}[Y^2 \\mid X = x]`` smoothing bias. A vector `x` returns a
 vector, `NaN` where no data is local.
 
