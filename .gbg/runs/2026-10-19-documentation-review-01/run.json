@@ -9,7 +9,8 @@
         "2026-10-15-documentation-review-01-032",
         "2026-10-19-documentation-review-01-054",
         "2026-10-19-documentation-review-01-055",
-        "2026-10-19-documentation-review-01-114"
+        "2026-10-19-documentation-review-01-114",
+        "2026-10-19-documentation-review-01-123"
     ],
     "covered": [
     ],
@@ -482,9 +483,9 @@
             ],
             "id": "2026-10-19-documentation-review-01-123-code",
             "decision": "This finding needs a change only you may make. Will you make it?",
-            "direction": "",
+            "direction": "Set :sj as a code span.",
             "context": "Needs the owner: setting the math span :sj back as a code span in Architecture section 11 is ruled 'mathematics changed' by the guard (clause 6), although it only respells a Julia symbol set as math.",
-            "answer": null
+            "answer": "fix it on my ruling"
         }
     ],
     "rulebook": "0dbd6dd4cb657c7f88366d94d16f382c66dd1151c3047395120a0b0180b77046",

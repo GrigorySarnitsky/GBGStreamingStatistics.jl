@@ -785,7 +785,7 @@ intentional).
   rejected before the plug-in: the binned AIC (as for the symmetric kernels) is *monotonic* in ``b``
   — the gamma self-influence ``\sim 1/\sqrt{xb}`` makes the df penalty too weak against the flat binned
   likelihood of dense data, so it oversmooths without bound; the ``\psi_4`` U-statistic curvature
-  (the ``:sj`` machinery) assumes ``f_X`` vanishes at the boundary (integration by parts) and goes
+  (the `:sj` machinery) assumes ``f_X`` vanishes at the boundary (integration by parts) and goes
   *negative* on the half-line where ``f_X(0) > 0`` (e.g. the exponential); a gamma-reference plug-in is
   pathological for shape ``\alpha \le 1`` (a non-integrable ``f_X''`` boundary singularity, ``b^\star \to 0``).
   The shipped `rule = :plugin` is the Chen plug-in with the curvature ``\int w(x)^2 f_X''(x)^2\,\mathrm{d}x`` (weight
