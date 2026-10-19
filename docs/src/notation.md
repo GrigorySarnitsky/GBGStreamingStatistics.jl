@@ -86,6 +86,7 @@ Axis names are lower-case: an ``x``-column, the ``y``-quadrature.
 | ``f_{g(X)}``, ``f_{g(Y) \mid X}`` | the density of a transformed variable, marginal and conditional |
 | ``P_l`` | the conditional density's kernel-weighted ``y``-profile |
 | ``D`` | the conditional density's ``x``-window denominator, ``\sum_j N_j K_{h_x}(c^x_j - x) = n \hat f_X(x)`` |
+| ``M_n(x, \tau)`` | the conditional increment moment ``\mathbb{E}[(X(t+\tau) - x)^n \mid X(t) = x]`` of the archived module; ``M_n/(n! \tau)`` its finite-``\tau`` Kramers–Moyal coefficient |
 
 ## Parameters
 

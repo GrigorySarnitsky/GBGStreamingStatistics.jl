@@ -71,8 +71,8 @@ unit,words,longest_paragraph,admonitions
 "Expectations.jl :: pushforward_density(summary::Histogram1D, g, z;   # ≡ f_{g(X",201,87,0
 "Expectations.jl :: pushforward_density_standard_error(summary::Histogram1D, g, ",68,38,0
 "Expectations.jl :: pushforward_density_with_standard_error(summary::Histogram1D",47,36,0
-"Expectations.jl :: std(summary::Histogram1D; corrected = true)",58,26,0
-"Expectations.jl :: var(summary::Histogram1D; corrected = true)",74,46,0
+"Expectations.jl :: std(summary::Histogram1D; corrected = true)",52,20,0
+"Expectations.jl :: var(summary::Histogram1D; corrected = true)",72,44,0
 "Expectations.md § Expectations",113,113,0
 "Expectations.md § Recovered moments",21,21,0
 "FORMALIZATION.md § (preamble)",22,22,1
@@ -149,7 +149,7 @@ unit,words,longest_paragraph,admonitions
 "index.md § Main components",425,399,0
 "internals.md § Internals",103,71,1
 "internals.md § The local-polynomial jet — `LocalPolynomial.local_fit`",44,44,0
-"notation.md § Estimands",111,111,0
+"notation.md § Estimands",129,129,0
 "notation.md § Notation",65,65,0
 "notation.md § Orders",51,51,0
 "notation.md § Parameters",53,39,0
