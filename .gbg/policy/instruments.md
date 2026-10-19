@@ -1,4 +1,4 @@
-<!-- gbg:managed begin v2.0.0-rc.83 — rewritten by `gbg sync`; do not edit -->
+<!-- gbg:managed begin v2.0.0-rc.84 — rewritten by `gbg sync`; do not edit -->
 # Instruments — `RULE.INST.*`
 
 What a session runs or sends unasked, and how it reads what a scan prints. 3 rules, written from the rule values themselves,

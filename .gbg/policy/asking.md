@@ -1,4 +1,4 @@
-<!-- gbg:managed begin v2.0.0-rc.83 — rewritten by `gbg sync`; do not edit -->
+<!-- gbg:managed begin v2.0.0-rc.84 — rewritten by `gbg sync`; do not edit -->
 # Asking the owner — `RULE.ASK.*`
 
 One decision, short, in his words rather than this package's, with every identifier moved out of the sentence. 5 rules, written from the rule values themselves,

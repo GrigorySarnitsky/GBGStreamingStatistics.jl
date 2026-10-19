@@ -1,4 +1,4 @@
-<!-- gbg:managed begin v2.0.0-rc.83 — rewritten by `gbg sync`; do not edit -->
+<!-- gbg:managed begin v2.0.0-rc.84 — rewritten by `gbg sync`; do not edit -->
 # Glossary
 
 The terms the rules use. A rule may use any of these without defining it; a term not here is defined

@@ -1,4 +1,4 @@
-<!-- gbg:managed begin v2.0.0-rc.83 — rewritten by `gbg sync`; do not edit -->
+<!-- gbg:managed begin v2.0.0-rc.84 — rewritten by `gbg sync`; do not edit -->
 # Documentation and API — `RULE.DOC.*`, `RULE.API.*`
 
 What a docstring and an API page contain, in what order and in what shape. 50 rules, written from the rule values themselves,
