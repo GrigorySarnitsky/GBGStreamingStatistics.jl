@@ -64,11 +64,11 @@ unit,words,longest_paragraph,admonitions
 "ConditionalExpectations.jl :: conditional_variance_with_standard_error(summary::Histogram2",68,46,0
 "ConditionalExpectations.md § ConditionalExpectations",87,87,0
 "Expectations.jl :: central_moment(summary::Histogram1D, p)",91,79,0
-"Expectations.jl :: expectation(summary::Histogram1D, g)   # ≡ 𝔼[g(X)]",226,105,0
+"Expectations.jl :: expectation(summary::Histogram1D, g)",231,103,0
 "Expectations.jl :: expectation_standard_error(summary::Histogram1D, g)",77,56,0
 "Expectations.jl :: expectation_with_standard_error(summary::Histogram1D, g)",81,43,0
 "Expectations.jl :: mean(summary::Histogram1D)",65,56,0
-"Expectations.jl :: pushforward_density(summary::Histogram1D, g, z;   # ≡ f_{g(X",201,87,0
+"Expectations.jl :: pushforward_density(summary::Histogram1D, g, z;",218,86,0
 "Expectations.jl :: pushforward_density_standard_error(summary::Histogram1D, g, ",71,38,0
 "Expectations.jl :: pushforward_density_with_standard_error(summary::Histogram1D",49,38,0
 "Expectations.jl :: std(summary::Histogram1D; corrected = true)",59,24,0
