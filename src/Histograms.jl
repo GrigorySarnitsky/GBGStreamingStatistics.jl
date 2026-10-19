@@ -111,6 +111,12 @@ _bincenter(summary::Histogram1D, i::Integer) = summary.lower + (oftype(summary.l
 _total(summary::Histogram1D) = sum(summary.counts)
 
 
+# A summary array on the host, for the readouts' scalar loops: a CPU `Array` is returned as it is (`Array(a)`
+# would copy it on every readout), a device array is copied once. Readers only read it.
+_host(a::Array) = a
+_host(a::AbstractArray) = Array(a)
+
+
 # `bin_index` (the binning map, `floor(Int, (x - lower) * scale) + 1`) is archived: it had no internal
 # caller (the scatter kernels inline the map), and the public path it was exposed for — pre-quantizing the
 # snapshot buffer to compact bin indices and folding them through an index-taking `observe_pairs!` (lossless,
@@ -296,10 +302,10 @@ _ybincenter(summary::Histogram2D, i_y::Integer) = summary.lower_y + (oftype(summ
 # Per-x-column reduction of a `Histogram2D` (the regression-ready sufficient statistic): for each x-bin j,
 # the count N_j, the response totals Σ Y and Σ Y² — recovered *exactly* from the per-cell
 # counts and power-sums (S_01 / S_02 use the actual Y, not the cell center). Host-side;
-# a no-op `Array` for CPU summaries. Shared by the conditional-mean / increment-moment / bandwidth consumers.
+# `_host`, no copy for a CPU summary. Shared by the conditional-mean / increment-moment / bandwidth consumers.
 function _column_sums(summary::Histogram2D)
-  counts = Array(summary.counts)
-  S = Array(summary.powersums)
+  counts = _host(summary.counts)
+  S = _host(summary.powersums)
   n_x = summary.n_x
   n_y = summary.n_y
   c_x = [_xbincenter(summary, i_x) for i_x in 1:n_x]

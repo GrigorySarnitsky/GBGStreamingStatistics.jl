@@ -3,7 +3,7 @@
 
 module ConditionalDensity
 
-using ..Histograms: Histogram2D, _xbincenter, _ybincenter, _total
+using ..Histograms: Histogram2D, _xbincenter, _ybincenter, _total, _host
 using ..Kernels: gaussian_kernel, _kernel_weight, AsymmetricKernel, _quad
 
 export conditional_density, conditional_density_standard_error, conditional_density_with_standard_error,
@@ -20,9 +20,9 @@ _check_bandwidths(h_x::Real, h_y::Real) =
 # K_{h_x}(c^x_j, x) (the marginal-X KDE numerator). The conditional distribution over y-cells is P/D;
 # smoothing it in y gives the density. The per-column weight is the shared `_kernel_weight` atom (symmetric
 # or asymmetric `kernel_x` alike); the x-kernel's normalization cancels in the f_{X,Y}/f_X ratio, so it is
-# irrelevant here. Host-side (`Array` is a no-op for CPU summaries).
-function _y_profile(summary::Histogram2D, x::Real, kernel_x, h_x::Real)
-  counts = Array(summary.counts)
+# irrelevant here. Host-side (`_host`: no copy for a CPU summary).
+function _y_profile(summary::Histogram2D, x::Real, kernel_x::KX, h_x::Real) where {KX}
+  counts = _host(summary.counts)
   n_x = summary.n_x
   n_y = summary.n_y
   gx = Vector{Float64}(undef, n_x)
@@ -50,7 +50,7 @@ end
 # ∫K = 1 makes ∫ f̂_{Y|X}(y | x) dy = 1 exactly; an asymmetric `kernel_y` (a normalized density in its data
 # argument) gives ∫ f̂_{Y|X} dy ≈ 1 — exact only after `_response_normalizer` (as for the marginal
 # `density`).
-function _density_at(summary::Histogram2D, P, D, y::Real, kernel_y, h_y::Real)
+function _density_at(summary::Histogram2D, P, D, y::Real, kernel_y::KY, h_y::Real) where {KY}
   D > 0 || return oftype(D, NaN)
   acc = 0.0
   @inbounds for k in 1:summary.n_y
@@ -65,7 +65,7 @@ end
 # ∫ f̂_{Y|X}(y | x) dy over the summary's y-range ∩ the response kernel's support, by the trapezoidal rule
 # on a fine grid — the per-x renormalization that makes ∫ f̂_{Y|X} dy = 1 exactly for a non-self-normalizing
 # asymmetric response kernel (a symmetric kernel already gives 1, so `normalize` is a no-op there).
-function _response_normalizer(summary::Histogram2D, P, D, kernel_y, h_y::Real)
+function _response_normalizer(summary::Histogram2D, P, D, kernel_y::KY, h_y::Real) where {KY}
   lower, upper = float(summary.lower_y), float(summary.upper_y)
   if kernel_y isa AsymmetricKernel
     lower = max(lower, kernel_y.support[1])
@@ -229,7 +229,7 @@ end
 # second term carries the same local weight as the first — the marginal −f̂_X²/n has weight 1/n because
 # every sample counts there, which is not so here. Both NaN where no data is local to x (D = 0). Shared by
 # the SE reader and the paired value-plus-error reader, so the two agree by construction.
-function _cd_value_and_se(summary::Histogram2D, P, D, y::Real, kernel_x, kernel_y, h_x::Real, h_y::Real)
+function _cd_value_and_se(summary::Histogram2D, P, D, y::Real, kernel_x::KX, kernel_y::KY, h_x::Real, h_y::Real) where {KX, KY}
   f = _density_at(summary, P, D, y, kernel_y, h_y)
   isfinite(f) || return (f, oftype(f, NaN))
   roughness_x = _quad(u -> kernel_x(u)^2)                       # R(K_x)

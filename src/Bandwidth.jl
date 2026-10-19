@@ -9,7 +9,7 @@ module Bandwidth
 
 using FFTW
 
-using ..Histograms: Histogram1D, Histogram2D, _total, _bincenter, _column_sums
+using ..Histograms: Histogram1D, Histogram2D, _total, _bincenter, _column_sums, _host
 using ..Expectations: _sample_std
 using ..LocalPolynomial: local_fit
 using ..Kernels: gaussian_kernel, _quad, AsymmetricKernel
@@ -85,8 +85,8 @@ _canonical_ratio(kernel) =
   (2 * sqrt(π) * _quad(v -> kernel(v)^2) / _quad(v -> v^2 * kernel(v))^2)^(1 / 5)
 
 
-function _sheather_jones(summary::Histogram1D, kernel)
-  counts = Float64.(Array(summary.counts))
+function _sheather_jones(summary::Histogram1D, kernel::K) where {K}
+  counts = Float64.(_host(summary.counts))
   n = float(_total(summary))
   binwidth = inv(summary.scale)
   σ = _sample_std(summary)
@@ -172,8 +172,8 @@ function _aic_gauss(counts, occ, n, h, binwidth)
 end
 
 
-function _aic_select(summary::Histogram1D, kernel)
-  counts = Float64.(Array(summary.counts))
+function _aic_select(summary::Histogram1D, kernel::K) where {K}
+  counts = Float64.(_host(summary.counts))
   n = float(_total(summary))
   binwidth = inv(summary.scale)
   bw0 = _normal_reference_h(summary, gaussian_kernel, 0)   # the Gaussian normal reference centres the grid
@@ -212,8 +212,8 @@ function _isj_fixed_point(t, N, Isq, logIsq, a2)
 end
 
 
-function _isj(summary::Histogram1D, kernel)
-  counts = Float64.(Array(summary.counts))
+function _isj(summary::Histogram1D, kernel::K) where {K}
+  counts = Float64.(_host(summary.counts))
   nbins = length(counts)
   N = float(_total(summary))
   a = FFTW.r2r(counts ./ N, FFTW.REDFT10)               # type-2 DCT of the binned density (sums to 1)
@@ -279,7 +279,7 @@ end
 
 
 function _plugin_asymmetric(summary::Histogram1D, kernel::AsymmetricKernel)
-  counts = Float64.(Array(summary.counts))
+  counts = Float64.(_host(summary.counts))
   n = float(_total(summary))
   centers = [_bincenter(summary, j) for j in eachindex(counts)]
   klower, kupper = kernel.support
@@ -471,7 +471,7 @@ function _local_pilot(c_x, N, n)
 end
 
 
-function _hstar_at(c_x, N, sum_Y, SR2, n, x, kernel, pilot_bandwidth, R_K, mu_2, xrange)
+function _hstar_at(c_x, N, sum_Y, SR2, n, x, kernel::K, pilot_bandwidth, R_K, mu_2, xrange) where {K}
   fX = _kde_h(N, c_x, n, x, kernel, pilot_bandwidth)
   fX > 0 || return oftype(fX, NaN)                       # x outside the data's support
   sigma2 = local_fit(c_x, N, SR2, x, kernel, 1, pilot_bandwidth)[1]      # Fan–Yao conditional variance σ̂²(x)
@@ -484,7 +484,7 @@ function _hstar_at(c_x, N, sum_Y, SR2, n, x, kernel, pilot_bandwidth, R_K, mu_2,
 end
 
 
-function _local_setup(summary::Histogram2D, kernel, pilot_bandwidth)
+function _local_setup(summary::Histogram2D, kernel::K, pilot_bandwidth) where {K}
   c_x, N, sum_Y, sum_Y2 = _column_sums(summary)
   n = sum(N)
   n ≥ 2 || throw(ArgumentError("bandwidth needs at least 2 samples (got n = $n)"))

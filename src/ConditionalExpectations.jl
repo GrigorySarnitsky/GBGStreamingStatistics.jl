@@ -10,7 +10,7 @@ module ConditionalExpectations
 
 using LinearAlgebra: mul!
 
-using ..Histograms: Histogram2D, _column_sums, _xbincenter, _ybincenter, _total
+using ..Histograms: Histogram2D, _column_sums, _xbincenter, _ybincenter, _total, _host
 using ..LocalPolynomial: local_fit, _leverage
 using ..Kernels: gaussian_kernel, _quad, AsymmetricKernel
 using ..Expectations: _interp_matrix
@@ -37,8 +37,8 @@ end
 # Σ Y, g = y² gives Σ Y², matching `_column_sums` — and O(Δ_y²) for a general g). g's coefficients depend
 # only on the y-bin center, so they are formed once per y-bin via the shared `Expectations._interp_matrix`.
 function _column_response(summary::Histogram2D, g)
-  counts = Array(summary.counts)
-  S = Array(summary.powersums)
+  counts = _host(summary.counts)
+  S = _host(summary.powersums)
   n_x = summary.n_x
   n_y = summary.n_y
   halfwidth = 0.5 / summary.scale_y                         # Δ_y/2
@@ -146,7 +146,7 @@ end
 # √(leverage · Var(g(Y) | X = x)), with the plug-in conditional variance 𝔼̂[g² | X = x] − 𝔼̂[g | X = x]² and
 # the leverage Σ_j N_j ω_j². Both NaN where the fit is degenerate (no local data). Shared by the standard-error reader
 # and the paired value-plus-error reader, so the two agree by construction.
-function _ce_value_and_se(c_x, N, sum_G, sum_G2, x, kernel, degree, h)
+function _ce_value_and_se(c_x, N, sum_G, sum_G2, x, kernel::K, degree, h) where {K}
   eg = local_fit(c_x, N, sum_G, x, kernel, degree, h)[1]
   lev = _leverage(c_x, N, x, kernel, degree, h)
   (isfinite(eg) && isfinite(lev)) || return (eg, oftype(eg, NaN))
@@ -328,7 +328,7 @@ conditional_mean(summary::Histogram2D, x; kernel = gaussian_kernel,
 # stored column sums. A second local fit of this response (≡ 𝔼̂[(Y − m̂)² | X = x]) estimates σ²(x) with the
 # curved-𝔼[Y² | X = x] bias of the plug-in removed — 𝔼[(Y − m)² | X = x] = σ²(x) is far flatter than
 # 𝔼[Y² | X = x].
-function _residual_response(c_x, N, sum_Y, sum_Y2, kernel, degree, h)
+function _residual_response(c_x, N, sum_Y, sum_Y2, kernel::K, degree, h) where {K}
   SR2 = similar(sum_Y2)
   @inbounds for j in eachindex(c_x)
     if N[j] > 0
@@ -343,7 +343,7 @@ end
 
 
 # σ²(x) at a single point by the chosen method, from the pre-reduced column sums.
-function _conditional_variance(c_x, N, sum_Y, sum_Y2, x, kernel, degree, h, method)
+function _conditional_variance(c_x, N, sum_Y, sum_Y2, x, kernel::K, degree, h, method) where {K}
   if method === :residual
     SR2 = _residual_response(c_x, N, sum_Y, sum_Y2, kernel, degree, h)
     return _clamp_var(local_fit(c_x, N, SR2, x, kernel, degree, h)[1])
@@ -585,7 +585,7 @@ end
 
 
 # The local-fit leverage ℓ(x) at the conditioning point (z-independent, so formed once per SE call).
-function _cpf_leverage(summary::Histogram2D, x::Real, kernel_x, degree, h_x)
+function _cpf_leverage(summary::Histogram2D, x::Real, kernel_x::KX, degree, h_x) where {KX}
   c_x, N, _ = _column_response(summary, identity)   # c_x, N do not depend on the response
   return _leverage(c_x, N, x, kernel_x, degree, h_x)
 end
@@ -597,7 +597,7 @@ end
 # analytic R(K_z), since the order-2 y-quadrature cannot resolve K_{h_z}². Both terms carry ℓ(x); the
 # marginal −f̂²/n has weight 1/n because every sample counts there, which is not so here. At degree 0 this
 # reduces asymptotically to the `conditional_density` standard error. Both NaN where the fit is degenerate.
-function _cpf_value_and_se(summary::Histogram2D, g, x::Real, z::Real, kernel_x, kernel_z, degree, h_x, h_z, lev)
+function _cpf_value_and_se(summary::Histogram2D, g, x::Real, z::Real, kernel_x::KX, kernel_z::KZ, degree, h_x, h_z, lev) where {KX, KZ}
   f = conditional_pushforward_density(summary, g, x, z; h_x = h_x, h_z = h_z, kernel_x = kernel_x,
                                       kernel_z = kernel_z, degree = degree)
   (isfinite(f) && isfinite(lev)) || return (f, oftype(f, NaN))

@@ -13,7 +13,7 @@ import Statistics: mean, var, std
 
 using LinearAlgebra: inv, mul!
 
-using ..Histograms: Histogram1D, _bincenter, _order, _total
+using ..Histograms: Histogram1D, _bincenter, _order, _total, _host
 using ..Kernels: gaussian_kernel
 
 
@@ -29,11 +29,11 @@ export mean, var, std, central_moment,
 # length-(order+1) buffer; it is called only on non-empty bins, so g is never probed off the data. The
 # recovered moments are the g = x^p / (x−X̄)^p case (closed-form binomial coefficients — the shift
 # formula); the general `expectation` supplies interpolation coefficients for a general smooth g. Reads
-# the summary to the host first (a no-op for CPU arrays). Returns 𝔼[g] (NaN for an empty summary).
+# the summary to the host first (`_host`: no copy for CPU arrays). Returns 𝔼[g] (NaN for an empty summary).
 function _quadrature(summary::Histogram1D, coeffs!)
   order = _order(summary)
-  counts = Array(summary.counts)
-  S = Array(summary.powersums)
+  counts = _host(summary.counts)
+  S = _host(summary.powersums)
   a = zeros(Float64, order + 1)          # reused per-bin coefficient buffer (a[p+1] ↔ (x−c_j)^p)
   n = 0.0
   acc = 0.0

@@ -25,7 +25,7 @@ using ..Kernels: _kernel_weight, AsymmetricKernel
 # right-hand side, or the IRLS working weight (n̂_j, or the residual count n_j − n̂_j) for local likelihood.
 # The weight comes from the shared `_kernel_weight` atom (the 1/h it folds in cancels in the solve);
 # powers are built iteratively in one pass over the bins.
-function _design_moments(locations, weights, x, kernel, maxorder, h)
+function _design_moments(locations, weights, x, kernel::K, maxorder, h) where {K}
   moments = zeros(Float64, maxorder + 1)
   @inbounds for j in eachindex(locations)
     d = locations[j] - x
@@ -105,7 +105,7 @@ kernel-weighted-moment solve as the iteratively reweighted (IRLS) inner step of 
   (local-linear), or `2` (local-quadratic); the returned jet then has `degree + 1` entries.
 - `h` — the smoothing bandwidth (``h > 0``); it scales the kernel argument.
 """
-function local_fit(locations, mass, response, x, kernel, degree, h)
+function local_fit(locations, mass, response, x, kernel::K, degree, h) where {K}
   (kernel isa AsymmetricKernel && degree ≥ 1) && throw(ArgumentError(
     "an asymmetric kernel is a degree-0 boundary kernel — it has no jet; `degree` must be 0 (got $degree)"))
   T = _design_moments(locations, mass, x, kernel, 2 * degree, float(h))
@@ -122,7 +122,7 @@ end
 # U_p = Σ_j N_j K_h(c_j−x)(c_j−x)^p, gives ℓ(x) = Σ_j N_j ω_j² = e_0ᵀ U⁻¹ W U⁻¹ e_0, where W = [W_{r+s}]
 # is the Hankel of the squared-kernel moments W_p = Σ_j N_j K_h(c_j−x)² (c_j−x)^p
 # (the 1/h in K_h cancels between U and W). Degenerate design (too little local data) ⇒ NaN.
-function _leverage(locations, weights, x, kernel, degree, h)
+function _leverage(locations, weights, x, kernel::K, degree, h) where {K}
   hf = float(h)
   U_p = zeros(Float64, 2 * degree + 1)         # plain-kernel design moments U_p = Σ_j N_j K_h(c_j−x)(c_j−x)^p
   W_p = zeros(Float64, 2 * degree + 1)         # squared-kernel moments      W_p = Σ_j N_j K_h(c_j−x)²(c_j−x)^p
