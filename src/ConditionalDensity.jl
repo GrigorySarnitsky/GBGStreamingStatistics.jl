@@ -120,7 +120,7 @@ exactly. For a bounded / positive response pass an asymmetric `kernel_y`
 marginal [`density`](@ref GBGStreamingStatistics.MarginalDensity.density) uses: a density
 ``K_y(c^y_l; y, b)`` in its data argument (the cell center), of scale ``b`` set by `h_y`, so no mass
 leaks past the edge, but only
-``\\approx`` normalized in ``y``; set `normalize = true` for ``\\int \\hat f_{Y\\mid X}\\,\\mathrm{d}y = 1`` exactly.
+approximately normalized in ``y``; set `normalize = true` for ``\\int \\hat f_{Y\\mid X}\\,\\mathrm{d}y = 1`` exactly.
 
 The conditional MISE falls as ``O(n^{-2/3})`` in the sample size, slower than a marginal density's. A vector `y` returns the
 curve at the fixed conditioning value `x`; where no data is local to `x` the
