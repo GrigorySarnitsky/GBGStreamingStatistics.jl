@@ -90,8 +90,8 @@ using SpecialFunctions: loggamma
 # estimator); the AMISE weight w(x) = x serves rule = :plugin
 mygamma = AsymmetricKernel(
     (v, x, b) -> v > 0 ?
-        (α = x < 2b ? (x / b)^2 / 4 + 1 : x / b;
-         exp((α - 1) * log(v) - v / b - α * log(b) - loggamma(α))) : 0.0,
+        (ρ = x < 2b ? (x / b)^2 / 4 + 1 : x / b;
+         exp((ρ - 1) * log(v) - v / b - ρ * log(b) - loggamma(ρ))) : 0.0,
     (0.0, Inf);
     local_scale_weight = x -> x)
 # summary: a Histogram1D of the stream, accumulated with observe!
@@ -126,8 +126,8 @@ end
 @inline (k::AsymmetricKernel)(c, x, b) = k.pdf(c, x, b)
 
 
-# Chen's modified gamma kernel (the kernel of his bias-reduced estimator): shape α(x) = x/b in the interior (so the kernel
-# mean is exactly x, removing the f_X' bias term of the naive x/b+1 form) and α(x) = (x/b)²/4 + 1 within 2b of the edge.
+# Chen's modified gamma kernel (the kernel of his bias-reduced estimator): shape ρ(x) = x/b in the interior (so the kernel
+# mean is exactly x, removing the f_X' bias term of the naive x/b+1 form) and ρ(x) = (x/b)²/4 + 1 within 2b of the edge.
 function _gamma_pdf(c, x, b)
   c > 0 || return 0.0
   ρ = x < 2b ? (x / b)^2 / 4 + 1 : x / b
@@ -138,13 +138,13 @@ end
     gamma_kernel
 
 The gamma kernel (Chen 2000) estimates a density on the half-line ``[0,\\infty)`` as an asymmetric
-kernel: at the query point ``x`` it is the modified ``\\mathrm{Gamma}(\\alpha(x), b)`` density in the
+kernel: at the query point ``x`` it is the modified ``\\mathrm{Gamma}(\\rho(x), b)`` density in the
 data argument, with the bandwidth (the keyword `h`) as its scale. Chen's bias-reduced shape is
-``\\alpha(x) = x/b`` in the interior, so the kernel mean is exactly ``x``, removing the slope ``f_X'``
+``\\rho(x) = x/b`` in the interior, so the kernel mean is exactly ``x``, removing the slope ``f_X'``
 from the bias of the naive ``x/b+1`` shape, and ``(x/b)^2/4 + 1`` within ``2b`` of the edge.
 
 With `kernel = gamma_kernel`, [`density`](@ref GBGStreamingStatistics.MarginalDensity.density) returns
-``\\hat f_X(x) = \\tfrac{1}{n} \\sum_j n_j \\mathrm{Gamma}(c_j; \\alpha(x), b)`` from the bin counts at
+``\\hat f_X(x) = \\tfrac{1}{n} \\sum_j n_j \\mathrm{Gamma}(c_j; \\rho(x), b)`` from the bin counts at
 the bin centers, with ``O(b)`` bias uniformly, also at the boundary, where a symmetric kernel is
 inconsistent; the variance grows toward the edge. Use it for non-negative data, usually sharper than
 the `support` renormalization of `density`. The bandwidth defaults to ``\\hat\\sigma_X n^{-2/5}``, the

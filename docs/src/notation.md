@@ -54,7 +54,7 @@ Axis names are lower-case: an ``x``-column of bins, its ``y``-quadrature of resp
 | ``G`` | the geometric mean of the Abramson pilot values |
 | ``b`` | the scale of the gamma or beta kernel, and nothing else |
 | ``A``, ``V`` | the bias and variance constants of the gamma or beta kernel's AMISE, ``A b^2 + V b^{-1/2}/n`` |
-| ``\alpha(x)``, ``w(x)`` | the gamma kernel's shape, and the gamma or beta kernel's local-scale weight |
+| ``\rho(x)``, ``w(x)`` | the gamma kernel's shape, and the gamma or beta kernel's local-scale weight |
 | ``R(K)`` | the kernel roughness, ``\int K^2`` |
 | ``\mu_p(K)`` | the kernel moment, ``\int u^p K(u)\,\mathrm{d}u`` |
 | ``\delta(K)`` | the canonical factor, ``[R(K)/\mu_2(K)^2]^{1/5}`` |
