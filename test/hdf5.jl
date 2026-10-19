@@ -46,7 +46,7 @@ using Random
 
         @test r2 isa Histogram2D
         @test r2.n_x == h2.n_x && r2.n_y == h2.n_y && r2.lag == 4
-        @test r2.x_lower == h2.x_lower && r2.y_upper == h2.y_upper
+        @test r2.lower_x == h2.lower_x && r2.upper_y == h2.upper_y
         @test r2.counts == h2.counts
         @test r2.powersums == h2.powersums
       end

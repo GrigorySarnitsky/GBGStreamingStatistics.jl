@@ -41,7 +41,7 @@ function _column_response(summary::Histogram2D, g)
   S = Array(summary.powersums)
   n_x = summary.n_x
   n_y = summary.n_y
-  halfwidth = 0.5 / summary.y_scale                         # Δ_y/2
+  halfwidth = 0.5 / summary.scale_y                         # Δ_y/2
   nodes, vandermonde_inv = _interp_matrix(2)               # degree-2: the order-2 y-power-sums
   gsamples = Vector{Float64}(undef, 3)
   bcoeffs = Vector{Float64}(undef, 3)

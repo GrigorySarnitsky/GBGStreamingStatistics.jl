@@ -492,7 +492,7 @@ function _local_setup(summary::Histogram2D, kernel, pilot_bandwidth)
   hp > 0 || throw(ArgumentError("pilot bandwidth pilot_bandwidth must be positive (got pilot_bandwidth = $hp)"))
   R_K = _quad(v -> kernel(v)^2)
   mu_2 = _quad(v -> v^2 * kernel(v))
-  xrange = summary.x_upper - summary.x_lower
+  xrange = summary.upper_x - summary.lower_x
   SR2 = _residual_response(c_x, N, sum_Y, sum_Y2, kernel, 1, hp)   # Fan–Yao residual response for σ²(x)
   return c_x, N, sum_Y, SR2, n, hp, R_K, mu_2, xrange
 end

@@ -66,7 +66,7 @@ end
 # on a fine grid — the per-x renormalization that makes ∫ f̂_{Y|X} dy = 1 exactly for a non-self-normalizing
 # asymmetric response kernel (a symmetric kernel already gives 1, so `normalize` is a no-op there).
 function _response_normalizer(summary::Histogram2D, P, D, kernel_y, h_y::Real)
-  lower, upper = float(summary.y_lower), float(summary.y_upper)
+  lower, upper = float(summary.lower_y), float(summary.upper_y)
   if kernel_y isa AsymmetricKernel
     lower = max(lower, kernel_y.support[1])
     upper = min(upper, kernel_y.support[2])

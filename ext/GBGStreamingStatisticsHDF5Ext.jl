@@ -37,11 +37,11 @@ function write_histogram(parent::HDF5.H5DataStore, name::AbstractString, h::Hist
   a = attrs(g)
   a["type"] = TAG_2D
   a["version"] = SCHEMA_VERSION
-  a["xlower"] = h.x_lower
-  a["xupper"] = h.x_upper
+  a["xlower"] = h.lower_x
+  a["xupper"] = h.upper_x
   a["nx"] = h.n_x
-  a["ylower"] = h.y_lower
-  a["yupper"] = h.y_upper
+  a["ylower"] = h.lower_y
+  a["yupper"] = h.upper_y
   a["ny"] = h.n_y
   a["lag"] = h.lag
   return g
