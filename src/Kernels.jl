@@ -73,9 +73,8 @@ The constructor takes the three fields, the last as a keyword:
 
 - `pdf(v, x, b)` — the kernel as a density in the data argument ``v``, whose shape is set by the
   evaluation point ``x`` and bandwidth ``b`` (normalized: ``\\int \\texttt{pdf}(v, x, b)\\,\\mathrm{d}v = 1``
-  over the support, for each ``x`` and ``b``). The estimate is
-  ``\\hat f_X(x) = \\tfrac{1}{n} \\sum_j n_j \\texttt{pdf}(c_j, x, b)`` over the bin counts ``n_j`` at centers
-  ``c_j``, so merged summaries give the same estimate.
+  over the support, for each ``x`` and ``b``). `density` sums it over the bin counts at the bin
+  locations, so merged summaries give the same estimate.
 - `support` — the data domain the kernel covers, as a `(lower, upper)` tuple (e.g. `(0.0, Inf)`).
 - `local_scale_weight` — the AMISE local-scale weight ``w(x)``, a callable `x -> w(x)`: the leading bias is
   ``\\tfrac{1}{2} b w(x) f_X''(x)`` and the interior variance ``\\propto w(x)^{-1/2}`` (``w(x) = x`` for the gamma
@@ -144,8 +143,7 @@ data argument, with the bandwidth (the keyword `h`) as its scale. Chen's bias-re
 from the bias of the naive ``x/b+1`` shape, and ``(x/b)^2/4 + 1`` within ``2b`` of the edge.
 
 With `kernel = gamma_kernel`, [`density`](@ref GBGStreamingStatistics.MarginalDensity.density) returns
-``\\hat f_X(x) = \\tfrac{1}{n} \\sum_j n_j \\mathrm{Gamma}(c_j; \\rho(x), b)`` from the bin counts at
-the bin centers, with ``O(b)`` bias uniformly, also at the boundary, where a symmetric kernel is
+the estimate from the bin counts at the bin locations, with ``O(b)`` bias uniformly, also at the boundary, where a symmetric kernel is
 inconsistent; the variance grows toward the edge. Use it for non-negative data, usually sharper than
 the `support` renormalization of `density`. The bandwidth defaults to ``\\hat\\sigma_X n^{-2/5}``, the
 sample standard deviation times the sample-size rate; override it with `h`, or use the Chen plug-in

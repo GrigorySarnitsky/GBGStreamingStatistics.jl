@@ -438,7 +438,8 @@ default; see the `binning` option) — a binned KDE (WARPing, weighted averaging
   support. An asymmetric kernel is its own degree-0, boundary-free estimator: `degree` and
   `support` are refused with it as redundant (a second boundary cure), `adaptive` because the square-root
   law is unproved for a varying-shape kernel, and a parametric `start` because that composition is not
-  built; it takes its own scale ``b`` in place of `h`.
+  built; it takes its own scale ``b`` in place of `h`, and the estimate is
+  ``\\hat f_X(x) = \\tfrac{1}{n} \\sum_j n_j K(\\tilde c_j; x, b)``.
 - `degree` — the local-polynomial order. `degree = 0` (default) is the binned KDE / WARPing
   ``\\hat f_X(x) = \\frac{1}{n} \\sum_j (n_j/h_j)  K((x-\\tilde c_j)/h_j)`` (``\\int K = 1``), normalized by the total count; each bin's bandwidth is `h`
   unless `adaptive`. `degree` ``\\ge 1`` is the

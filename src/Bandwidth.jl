@@ -388,9 +388,8 @@ AMISE weight ``w(x)`` (its `local_scale_weight` keyword); one built without it c
 `:isj` / `:aic` do not apply to an asymmetric kernel; a fully
 data-adaptive curvature pilot is not yet offered.
 
-The response-aware *local* plug-in ``h^\\star(x) = \\bigl[R(K) \\sigma^2(x) /
-(\\mu_2(K)^2  m''(x)^2  f_X(x)  n)\\bigr]^{1/5}`` — each conditioning value its own bandwidth from
-the conditional variance ``\\sigma^2(x)`` and regression curvature ``m''(x)`` — is the separate
+The response-aware *local* plug-in, which gives each conditioning value its own bandwidth
+``h^\\star(x)`` from the conditional variance and the regression curvature, is the separate
 joint-summary selector `bandwidth(summary::Histogram2D, x; rule = :local)` (below).
 
 # Arguments

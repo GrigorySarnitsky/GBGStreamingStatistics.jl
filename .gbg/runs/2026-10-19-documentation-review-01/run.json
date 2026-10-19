@@ -7,7 +7,8 @@
         "2026-10-15-documentation-review-01-010",
         "2026-10-19-documentation-review-01-058",
         "2026-10-15-documentation-review-01-032",
-        "2026-10-19-documentation-review-01-054"
+        "2026-10-19-documentation-review-01-054",
+        "2026-10-19-documentation-review-01-055"
     ],
     "covered": [
     ],
@@ -399,9 +400,9 @@
             ],
             "id": "2026-10-19-documentation-review-01-055-code",
             "decision": "This finding needs a change only you may make. Will you make it?",
-            "direction": "",
+            "direction": "Each formula lives in its home docstring: the 1-D bandwidth keeps one line in words and a link for h*(x); density states the asymmetric estimator, and gamma_kernel and AsymmetricKernel keep the kernel and point to density.",
             "context": "Needs math changes: the restated h*(x) formula in the Histogram1D docstring and the asymmetric estimator formula in gamma_kernel and AsymmetricKernel should leave those docstrings, keeping only a pointer to bandwidth and density, which hold them.",
-            "answer": null
+            "answer": "fix it on my ruling"
         },
         {
             "options": [
