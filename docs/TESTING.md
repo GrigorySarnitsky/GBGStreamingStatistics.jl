@@ -68,8 +68,10 @@ analytic round-trips: estimators are checked against distributions with closed f
   temporary — the GPU-hot-loop contract of invariant 4.
 - **GPU-vs-CPU parity.** The gated suite (`test/gpu/`, run on a machine with a device) exercises
   `observe!` / `merge!` / `observe_pairs!` on device arrays under `allowscalar(false)` and compares against
-  the CPU result — counts exactly, power-sums to round-off, including heavy atomic contention. Verified on
-  the AMD RX 6700 XT (ROCm); the vendor stacks (CUDA / AMDGPU) stay test-only dependencies.
+  the CPU result — counts exactly, power-sums to round-off, including heavy atomic contention. Its
+  summaries are built with the array-family constructors; it checks they allocate on the device, that a
+  device summary's readouts equal the host's, and that a summary and data on different backends are
+  refused. Verified on the AMD RX 6700 XT and RX 7900 XTX (ROCm); the vendor stacks stay test-only.
 - **Package-quality checks.** `test/aqua.jl` (`Aqua.test_all`: ambiguities, piracy, stale deps, compat
   support, undefined exports) and `test/jet.jl` (JET static analysis of every public estimator path — including
   the asymmetric-kernel, parametric-start, `normalize`, and bandwidth-selector paths, whose function-typed

@@ -471,6 +471,12 @@ These rules are PF's backend and allocation invariants, inherited wholesale:
 
 - **Storage is generic `AbstractArray`**; no scalar indexing of device arrays in package methods;
   allocate via `similar`.
+- **A summary is allocated in its array family.** `Histogram1D(ROCArray, lower, upper, nbins)` (and
+  `Histogram2D` likewise) allocates its counts and power-sums on the device, never through the host — the
+  allocating-constructor form of GBGPeriodicFields' fields, a generic array type rather than a vendor
+  dependency. The family is bare: `count_type` and `accumulator_type` set the two element types. A summary
+  scatters on its own backend, so `observe!`, `observe_pairs!` and `merge!` refuse data or a summary on
+  another one, naming both.
 - **Accumulation is allocation-free.** `observe!(summary, batch)` allocates only a bounded amount
   (the kernel launch) on a preallocated summary — never an ``O(n)`` or ``O(\text{bins})`` temporary,
   which on a GPU hot loop would escape the host GC and wedge the run. Enforced by an `@allocated` audit
@@ -957,6 +963,13 @@ intentional).
   owning its parametrization, as `kde(…; bandwidth, kernel)` does elsewhere); and the `density` variants
   stay keywords rather than one estimator value — the axes are independent corrections, and the refused
   pairs are redundancies or undeveloped estimators, now tabulated in §4.1, not a reason to redesign.
+- **Summaries are built in an array family** (2026-10-20). The constructors allocated host zeros only, so
+  a device summary existed only hand-built from the struct's fields, as the GPU tests did, and a host
+  summary handed a device field ran the CPU scatter over device memory unchecked (found by
+  [`GBGHomogeneousTurbulence`](https://grigorysarnitsky.github.io/GBGHomogeneousTurbulence.jl/)). The constructors gain a leading `array_family`, GBGPeriodicFields' form,
+  allocating on the device directly; the form without it is the `Array` case. A parameterized family is
+  refused rather than read for an element type, since a summary has two. The scatter and merge refuse a
+  backend mismatch; a batch with no backend KernelAbstractions can name (a range) is host data, accepted.
 
 Open decisions still flagged [OPEN] in §10 (the projection road, `HistogramND`, vector-valued
 conditioning, prior-art mirroring) graduate to entries here when they are settled.

@@ -15,7 +15,8 @@ julia --project=test/gpu/rocm test/gpu/rocm/runtests.jl
 ```
 
 The shared, backend-parameterized suite lives in `test/gpu/suite.jl`; the entry script
-`rocm/runtests.jl` defines `to_device`, `device_functional`, and `GPU_BACKEND`, and calls
+`rocm/runtests.jl` defines `to_device`, `DEVICE_FAMILY` (the array family the summaries are built in),
+`device_functional`, and `GPU_BACKEND`, and calls
 `AMDGPU.allowscalar(false)` before including it. A CUDA backend would add a parallel
-`test/gpu/cuda/` with the same three definitions. The sub-environment `Manifest.toml` is gitignored
+`test/gpu/cuda/` with the same four definitions. The sub-environment `Manifest.toml` is gitignored
 and resolves fresh per machine.

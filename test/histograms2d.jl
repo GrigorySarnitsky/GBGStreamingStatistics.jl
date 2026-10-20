@@ -4,6 +4,14 @@ using GBGStreamingStatistics: Histograms
 using Random, Statistics
 const H = Histograms
 
+# A stand-in for a device array (as in histograms.jl): its backend is not the CPU's.
+struct ElsewhereVector2 <: AbstractVector{Float64}
+  data::Vector{Float64}
+end
+Base.size(v::ElsewhereVector2) = size(v.data)
+Base.getindex(v::ElsewhereVector2, i::Int) = v.data[i]
+H.get_backend(::ElsewhereVector2) = :elsewhere
+
 # Recover the X/Y marginal moments and covariance from a Histogram2D's per-cell power-sums (the 2D
 # shift formula) — exercises that the bivariate power-sums S_10 … S_02 are accumulated correctly.
 function recover_2d(h)
@@ -39,6 +47,19 @@ end
     @test H._total(hd) == 3
     @test hd.counts[1] == 1 && hd.counts[2] == 1 && hd.counts[16] == 1
     @test_throws ArgumentError observe_pairs!(hd, [1.0], [1.0, 2.0])
+  end
+
+  @testset "the array-family constructor and the backend check" begin
+    a = Histogram2D(-1.0, 1.0, 5, -2.0, 2.0, 6; lag = 2, count_type = Float64)
+    b = Histogram2D(Array, -1.0, 1.0, 5, -2.0, 2.0, 6; lag = 2, count_type = Float64)
+    @test typeof(a) == typeof(b)
+    @test (a.scale_x, a.scale_y, a.n_x, a.n_y, a.lag) == (b.scale_x, b.scale_y, b.n_x, b.n_y, b.lag)
+    @test a.counts == b.counts && a.powersums == b.powersums && size(b.powersums) == (5, 30)
+    @test_throws ArgumentError Histogram2D(Array{Float64}, -1.0, 1.0, 5, -1.0, 1.0, 5)
+    @test_throws ArgumentError Histogram2D(Array, 1.0, -1.0, 5, -1.0, 1.0, 5)
+    @test_throws ArgumentError observe_pairs!(b, ElsewhereVector2([0.1]), [0.1])
+    @test_throws ArgumentError observe_pairs!(b, [0.1], ElsewhereVector2([0.1]))
+    @test all(iszero, b.counts)
   end
 
   @testset "independent-Gaussian oracle (marginals + covariance)" begin

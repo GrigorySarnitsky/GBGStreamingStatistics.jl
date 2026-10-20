@@ -251,7 +251,7 @@ module = "Bandwidth"
 
 [module]
 Accumulators = 1
-Histograms = 35   # 33 → 35 on 2026-10-19: `_host` (a CPU array as it is, a device array copied) — the readouts no longer copy a CPU summary
+Histograms = 39   # 33 → 35 on 2026-10-19: `_host` (a CPU array as it is, a device array copied) — the readouts no longer copy a CPU summary; 35 → 39 on 2026-10-20: `_check_array_family`, `_zeroed`, `_backend`, `_check_same_backend` — the array-family constructors and the backend check
 Kernels = 8      # 10 → 8 on 2026-10-17: `_quad`'s two defaults became keywords, so its three positional-default methods are one
 Expectations = 21
 LocalPolynomial = 4

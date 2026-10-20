@@ -24,7 +24,17 @@ using GBGStreamingStatistics
 summary = Histogram1D(-5.0, 5.0, 1000)
 ```
 
-**2. Observe the stream.** Each batch is folded in once with [`observe!`](@ref) and discarded —
+To accumulate on a GPU, name the array family first; the summary is then allocated on the device and
+[`observe!`](@ref) reads device data where it lies, a whole field array included:
+
+```julia
+using AMDGPU   # or CUDA, with CuArray
+
+summary = Histogram1D(ROCArray, -5.0, 5.0, 1000)
+observe!(summary, field)   # field a ROCArray; a host summary given it is refused
+```
+
+**2. Observe the stream.** Each batch is folded in once with `observe!` and discarded —
 the samples are never stored. Accumulation is *estimand-agnostic*: it commits to no estimand, bandwidth,
 or kernel.
 

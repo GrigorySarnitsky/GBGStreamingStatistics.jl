@@ -76,7 +76,9 @@ estimands.
   local-polynomial fitting). Accumulated by one **KernelAbstractions + Atomix atomic scatter-add**
   (`observe!` / `observe_pairs!`, one work-item per sample, CPU and GPU alike); `merge!` is elementwise
   addition (and `scale!` / weighted `merge!` elementwise scaling — the cone, on the `count_type = Float64`
-  Float-count variant); `bin_index` (the binning map) is **archived**, the pre-quantization / index-ingestion path deferred. The **pure summary**
+  Float-count variant); built in an **array family** (`Histogram1D(ROCArray, …)`, PF's allocating-
+  constructor form) a summary is allocated on the device directly, and `observe!` / `observe_pairs!` /
+  `merge!` refuse a summary and data on different backends; `bin_index` (the binning map) is **archived**, the pre-quantization / index-ingestion path deferred. The **pure summary**
   (accumulate / `merge!` / `scale!` / bin) — the shift-formula moment recovery (`mean` / `var` / `std` /
   `central_moment`) and the general quadrature moved to `Expectations` (§4.B); the power-sums it stores are
   their sufficient statistic. Owns `KernelAbstractions`, `Atomix`.

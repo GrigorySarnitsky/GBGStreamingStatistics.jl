@@ -4,6 +4,16 @@ using GBGStreamingStatistics: Histograms
 using Random, Statistics
 const H = Histograms
 
+# A stand-in for a device array on a machine without one: a vector whose backend is not the CPU's, so the
+# backend check can be exercised here (the real device cases run in the gated GPU suite, test/gpu/).
+struct ElsewhereVector <: AbstractVector{Float64}
+  data::Vector{Float64}
+end
+Base.size(v::ElsewhereVector) = size(v.data)
+Base.getindex(v::ElsewhereVector, i::Int) = v.data[i]
+struct ElsewhereBackend end
+H.get_backend(::ElsewhereVector) = ElsewhereBackend()
+
 @testset "Histogram1D" begin
   @testset "construction & binning" begin
     h = Histogram1D(-5.0, 5.0, 10)
@@ -12,6 +22,32 @@ const H = Histograms
     @test_throws ArgumentError Histogram1D(5.0, -5.0, 10)
     @test_throws ArgumentError Histogram1D(-5.0, 5.0, 0)
     @test_throws ArgumentError Histogram1D(-5.0, 5.0, 10; order = 1)
+  end
+
+  @testset "the array-family constructor" begin
+    # `Histogram1D(Array, …)` is the host form spelled out: the same type, fields and zeroed storage.
+    for kw in ((;), (; order = 6), (; count_type = Float64, accumulator_type = Float32))
+      a = Histogram1D(-2.0, 3.0, 7; kw...)
+      b = Histogram1D(Array, -2.0, 3.0, 7; kw...)
+      @test typeof(a) == typeof(b)
+      @test (a.lower, a.upper, a.scale) == (b.lower, b.upper, b.scale)
+      @test a.counts == b.counts && a.powersums == b.powersums
+      @test all(iszero, b.counts) && all(iszero, b.powersums)
+    end
+    @test_throws ArgumentError Histogram1D(Array{Float64}, -1.0, 1.0, 4)   # element types are keywords
+    @test_throws ArgumentError Histogram1D(Vector{UInt64}, -1.0, 1.0, 4)
+    @test_throws ArgumentError Histogram1D(AbstractArray, -1.0, 1.0, 4)    # not an allocatable family
+    @test_throws ArgumentError Histogram1D(Array, 1.0, -1.0, 4)            # the range checks still apply
+    @test_throws ArgumentError Histogram1D(Array, -1.0, 1.0, 0)
+  end
+
+  @testset "a batch on another backend is refused" begin
+    h = Histogram1D(-5.0, 5.0, 10)
+    @test_throws ArgumentError observe!(h, ElsewhereVector([0.5, 1.5]))
+    @test all(iszero, h.counts)                       # a refusal folds nothing
+    # host batches without a KernelAbstractions backend (a range, a view) are host data and accepted
+    observe!(h, 1:3); observe!(h, view([0.1, 0.2, 0.3], 1:2)); observe!(h, reshape([0.1, 0.2], 1, 2))
+    @test H._total(h) == 7
   end
 
   @testset "counts & out-of-range skipping" begin

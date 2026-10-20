@@ -7,5 +7,6 @@ AMDGPU.allowscalar(false)
 const GPU_BACKEND = "ROCm / AMDGPU"
 device_functional() = AMDGPU.functional()
 to_device(host_array) = AMDGPU.ROCArray(host_array)
+const DEVICE_FAMILY = AMDGPU.ROCArray
 
 include(joinpath(@__DIR__, "..", "suite.jl"))

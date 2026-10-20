@@ -17,6 +17,8 @@ export Histogram1D, Histogram2D, observe_pairs!, scale!, write_histogram, read_h
     Histogram1D <: AbstractAccumulator
     Histogram1D(lower, upper, nbins; order = 4, accumulator_type = Float64,
                 count_type = UInt64)
+    Histogram1D(array_family, lower, upper, nbins; order = 4, accumulator_type = Float64,
+                count_type = UInt64)
 
 A finely binned empirical measure of a scalar variate ``X`` — the summary
 ``T(n\\mathbb{P}_n)``, the summary map applied to the empirical measure of the samples seen so far, scaled
@@ -45,6 +47,9 @@ Samples outside ``[\\texttt{lower}, \\texttt{upper})`` are skipped (not counted)
 
 # Arguments
 
+- `array_family` — the array family the summary's storage is allocated in: `Array` (the default, and the
+  form without it) on the host, `ROCArray` or `CuArray` to build it on a GPU, where `observe!` then
+  reads device data in place. The bare family: element types are the two keywords below.
 - `lower`, `upper` — the edges of the half-open range ``[\\texttt{lower}, \\texttt{upper})`` (`upper` must exceed `lower`).
 - `nbins` — the number of equal-width bins.
 - `order` — the highest power-sum order stored per bin (default `4`, recovering up to ``\\hat\\mu_4``).
@@ -91,18 +96,58 @@ struct Histogram1D{T<:AbstractFloat,C<:AbstractVector,M<:AbstractMatrix} <: Abst
 end
 
 
-function Histogram1D(lower::Real, upper::Real, nbins::Integer;
+# A summary is allocated directly in the caller's array family — `Array`, `ROCArray`, `CuArray` — so a
+# device summary never passes through the host (the GBGPeriodicFields allocating-constructor form). The
+# family is bare: a summary carries two element types, set by `count_type` and `accumulator_type`, so a
+# family parameter could name neither and is refused rather than guessed.
+function _check_array_family(array_family::Type{<:AbstractArray})
+  eltype(array_family) === Any || throw(ArgumentError(
+    "pass the bare array family ($(Base.typename(array_family).wrapper), not $(array_family)): a summary's " *
+    "element types are set by `count_type` and `accumulator_type`"))
+  isabstracttype(Base.typename(array_family).wrapper) && throw(ArgumentError(
+    "the array family must be a concrete array type such as `Array`, `ROCArray` or `CuArray` (got $(array_family))"))
+  return nothing
+end
+
+_zeroed(array_family, ::Type{S}, shape::Dims) where {S} =
+  fill!(Base.typename(array_family).wrapper{S}(undef, shape), zero(S))
+
+
+# The backend a batch lives on, or `nothing` when it has none KernelAbstractions can name (a range, a
+# generator): those are host values, never refused. A summary's arrays always have one.
+_backend(batch) = try get_backend(batch) catch; nothing end
+
+# A summary scatters on its own backend, so a batch on another one would be read across memories: a host
+# summary handed a device array, or the reverse. Refused, naming both, as GBGPeriodicFields refuses a
+# mixed pair of array families.
+function _check_same_backend(summary, batch, op)
+  backend = get_backend(summary.counts)
+  other = _backend(batch)
+  (other === nothing || typeof(other) == typeof(backend)) || throw(ArgumentError(
+    "$op: the summary lives on $(nameof(typeof(backend))) but the data on $(nameof(typeof(other))); " *
+    "build the summary in the data's array family, its first constructor argument (e.g. `ROCArray`)"))
+  return nothing
+end
+
+
+function Histogram1D(array_family::Type{<:AbstractArray}, lower::Real, upper::Real, nbins::Integer;
                      order::Integer = 4, accumulator_type::Type{<:AbstractFloat} = Float64,
                      count_type::Type{<:Real} = UInt64)
+  _check_array_family(array_family)
   upper > lower || throw(ArgumentError("Histogram1D requires upper > lower (got lower = $lower, upper = $upper)"))
   nbins ≥ 1 || throw(ArgumentError("Histogram1D requires nbins ≥ 1 (got $nbins)"))
   order ≥ 2 || throw(ArgumentError("Histogram1D requires order ≥ 2 (got $order)"))
   lowerT, upperT = promote(float(lower), float(upper))
   scale = oftype(lowerT, nbins) / (upperT - lowerT)
-  counts = zeros(count_type, nbins)
-  powersums = zeros(accumulator_type, order, nbins)
+  counts = _zeroed(array_family, count_type, (nbins,))
+  powersums = _zeroed(array_family, accumulator_type, (order, nbins))
   return Histogram1D(lowerT, upperT, scale, counts, powersums)
 end
+
+Histogram1D(lower::Real, upper::Real, nbins::Integer;
+            order::Integer = 4, accumulator_type::Type{<:AbstractFloat} = Float64,
+            count_type::Type{<:Real} = UInt64) =
+  Histogram1D(Array, lower, upper, nbins; order, accumulator_type, count_type)
 
 
 _nbins(summary::Histogram1D) = length(summary.counts)
@@ -151,6 +196,7 @@ end
 
 
 function observe!(summary::Histogram1D, batch)
+  _check_same_backend(summary, batch, "observe!")
   backend = get_backend(summary.counts)
   _scatter1d!(backend)(summary.counts, summary.powersums, batch, summary.lower, summary.scale,
                        _nbins(summary), _order(summary); ndrange = length(batch))
@@ -188,6 +234,7 @@ _require_float_counts(summary, op) =
 function merge!(into::Histogram1D, from::Histogram1D; weight = 1)
   _compatible(into, from) ||
     throw(ArgumentError("merge!: histograms must share lower, upper, bin count, and order"))
+  _check_same_backend(into, from.counts, "merge!")
   if isone(weight)
     into.counts .+= from.counts          # counts and power-sums add (same binning ⇒ same centers)
     into.powersums .+= from.powersums
@@ -214,6 +261,8 @@ end
     Histogram2D <: AbstractAccumulator
     Histogram2D(lower_x, upper_x, n_x, lower_y, upper_y, n_y; lag = 0,
                 accumulator_type = Float64, count_type = UInt64)
+    Histogram2D(array_family, lower_x, upper_x, n_x, lower_y, upper_y, n_y; lag = 0,
+                accumulator_type = Float64, count_type = UInt64)
 
 A joint binned empirical measure of ``(X, Y)`` — one per lag ``\\tau`` — for conditional and
 two-time transition densities. Its ``\\texttt{n\\_x} \\times \\texttt{n\\_y}`` equal-width cells tile
@@ -231,6 +280,8 @@ are as for [`Histogram1D`](@ref GBGStreamingStatistics.Histograms.Histogram1D).
 
 # Arguments
 
+- `array_family` — the array family of the storage (`Array` by default, `ROCArray` or `CuArray` on a
+  GPU), as for `Histogram1D`.
 - `lower_x`, `upper_x`, `lower_y`, `upper_y` — the edges of the box
   ``[\\texttt{lower\\_x}, \\texttt{upper\\_x}) \\times [\\texttt{lower\\_y}, \\texttt{upper\\_y})``.
 - `n_x`, `n_y` — the numbers of equal-width cells in ``x`` and in ``y``.
@@ -277,9 +328,11 @@ struct Histogram2D{T<:AbstractFloat,C<:AbstractVector,M<:AbstractMatrix} <: Abst
 end
 
 
-function Histogram2D(lower_x::Real, upper_x::Real, n_x::Integer, lower_y::Real, upper_y::Real, n_y::Integer;
+function Histogram2D(array_family::Type{<:AbstractArray}, lower_x::Real, upper_x::Real, n_x::Integer,
+                     lower_y::Real, upper_y::Real, n_y::Integer;
                      lag::Integer = 0, accumulator_type::Type{<:AbstractFloat} = Float64,
                      count_type::Type{<:Real} = UInt64)
+  _check_array_family(array_family)
   (upper_x > lower_x && upper_y > lower_y) ||
     throw(ArgumentError("Histogram2D requires upper_x > lower_x and upper_y > lower_y"))
   (n_x ≥ 1 && n_y ≥ 1) || throw(ArgumentError("Histogram2D requires n_x ≥ 1 and n_y ≥ 1"))
@@ -287,10 +340,15 @@ function Histogram2D(lower_x::Real, upper_x::Real, n_x::Integer, lower_y::Real, 
   T = typeof(xlowerT)
   scale_x = T(n_x) / (xupperT - xlowerT)
   scale_y = T(n_y) / (yupperT - ylowerT)
-  counts = zeros(count_type, n_x * n_y)
-  powersums = zeros(accumulator_type, 5, n_x * n_y)
+  counts = _zeroed(array_family, count_type, (n_x * n_y,))
+  powersums = _zeroed(array_family, accumulator_type, (5, n_x * n_y))
   return Histogram2D(xlowerT, xupperT, scale_x, ylowerT, yupperT, scale_y, Int(n_x), Int(n_y), Int(lag), counts, powersums)
 end
+
+Histogram2D(lower_x::Real, upper_x::Real, n_x::Integer, lower_y::Real, upper_y::Real, n_y::Integer;
+            lag::Integer = 0, accumulator_type::Type{<:AbstractFloat} = Float64,
+            count_type::Type{<:Real} = UInt64) =
+  Histogram2D(Array, lower_x, upper_x, n_x, lower_y, upper_y, n_y; lag, accumulator_type, count_type)
 
 
 _ncells(summary::Histogram2D) = length(summary.counts)
@@ -376,6 +434,8 @@ calling code's) responsibility, formed at the summary's lag ``\\tau``.
 function observe_pairs!(summary::Histogram2D, x_past, y_now)
   length(x_past) == length(y_now) ||
     throw(ArgumentError("observe_pairs!: x_past and y_now must have equal length"))
+  _check_same_backend(summary, x_past, "observe_pairs!")
+  _check_same_backend(summary, y_now, "observe_pairs!")
   backend = get_backend(summary.counts)
   _scatter2d!(backend)(summary.counts, summary.powersums, x_past, y_now,
                        summary.lower_x, summary.scale_x, summary.n_x, summary.lower_y, summary.scale_y, summary.n_y; ndrange = length(x_past))
@@ -391,6 +451,7 @@ _compatible(a::Histogram2D, b::Histogram2D) =
 function merge!(into::Histogram2D, from::Histogram2D; weight = 1)
   _compatible(into, from) ||
     throw(ArgumentError("merge!: 2D histograms must share box, cell counts, and lag"))
+  _check_same_backend(into, from.counts, "merge!")
   if isone(weight)
     into.counts .+= from.counts
     into.powersums .+= from.powersums
