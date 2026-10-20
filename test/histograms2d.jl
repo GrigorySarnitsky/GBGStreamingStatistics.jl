@@ -47,6 +47,9 @@ end
     @test H._total(hd) == 3
     @test hd.counts[1] == 1 && hd.counts[2] == 1 && hd.counts[16] == 1
     @test_throws ArgumentError observe_pairs!(hd, [1.0], [1.0, 2.0])
+    nan = Histogram2D(0.0, 4.0, 4, 0.0, 4.0, 4)
+    observe_pairs!(nan, [0.5, NaN, 0.5, Inf, 1.5], [0.5, 0.5, NaN, 0.5, -Inf])
+    @test H._total(nan) == 1 && nan.counts[1] == 1 && all(isfinite, nan.powersums)
   end
 
   @testset "the array-family constructor and the backend check" begin

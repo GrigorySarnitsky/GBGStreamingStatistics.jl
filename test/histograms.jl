@@ -59,6 +59,18 @@ H.get_backend(::ElsewhereVector) = ElsewhereBackend()
     @test h.counts[10] == 1           # 9.9
   end
 
+  @testset "a NaN or infinite sample is skipped like an out-of-range one" begin
+    h = Histogram1D(0.0, 10.0, 10)
+    observe!(h, [0.5, NaN, Inf, -Inf, 5.5, 1e300])
+    observe!(h, NaN); observe!(h, Inf); observe!(h, 2.5)
+    @test H._total(h) == 3
+    @test h.counts[1] == 1 && h.counts[6] == 1 && h.counts[3] == 1
+    @test all(isfinite, h.powersums)
+    # the bin edges are unchanged: lower is in bin 1, upper is out, the last bin's top edge is in
+    e = Histogram1D(0.0, 10.0, 10); observe!(e, [0.0, prevfloat(10.0), 10.0, prevfloat(0.0)])
+    @test e.counts[1] == 1 && e.counts[10] == 1 && H._total(e) == 2
+  end
+
   @testset "moment recovery — Gaussian oracle, exact vs direct" begin
     Random.seed!(20240624)
     data = randn(2_000_000)

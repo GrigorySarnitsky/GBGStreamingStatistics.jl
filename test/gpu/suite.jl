@@ -4,6 +4,7 @@
 # include:
 #   to_device(host_array)  -> a device array (e.g. ROCArray / CuArray)
 #   DEVICE_FAMILY          -> the device array family (e.g. ROCArray), the summaries' first constructor argument
+#   DEVICE_CODE_LLVM(io, f) -> print to `io` the device LLVM of the kernels `f()` launches
 #   device_functional()    -> Bool, whether a usable device is present
 #   GPU_BACKEND::String     -> a human-readable backend label
 # and must already have called <Backend>.allowscalar(false). With scalar indexing disabled, any
@@ -126,6 +127,25 @@ end
     @test j.lag == 3 && all(iszero, Array(j.counts))
     @test_throws ArgumentError Histogram1D(DEVICE_FAMILY{Float32}, -1.0, 1.0, 50)
     @test_throws ArgumentError Histogram2D(DEVICE_FAMILY{Float64}, -1.0, 1.0, 7, -1.0, 1.0, 7)
+  end
+end
+
+@testset "the scatter kernels carry no exception path — $GPU_BACKEND" begin
+  # A device exception is compiled in as a host call (AMDGPU warns "Global hostcalls detected"); the
+  # binning is range-checked in floating point so no conversion can throw. A NaN sample is skipped.
+  if device_functional()
+    field = to_device(randn(Float32, 16, 16, 8))
+    h = Histogram1D(DEVICE_FAMILY, -1.25, 1.25, 250)
+    io = IOBuffer(); DEVICE_CODE_LLVM(io, () -> observe!(h, field))
+    @test !occursin("signal_exception", String(take!(io)))
+    j = Histogram2D(DEVICE_FAMILY, -3.0, 3.0, 20, -3.0, 3.0, 20)
+    io = IOBuffer(); DEVICE_CODE_LLVM(io, () -> observe_pairs!(j, vec(field), vec(field)))
+    @test !occursin("signal_exception", String(take!(io)))
+    n = Histogram1D(DEVICE_FAMILY, 0.0, 10.0, 10); observe!(n, to_device([0.5, NaN, Inf, -Inf, 5.5]))
+    @test sum(Array(n.counts)) == 2
+    m = Histogram2D(DEVICE_FAMILY, 0.0, 4.0, 4, 0.0, 4.0, 4)
+    observe_pairs!(m, to_device([0.5, NaN, 1.5]), to_device([0.5, 0.5, Inf]))
+    @test sum(Array(m.counts)) == 1
   end
 end
 

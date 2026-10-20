@@ -43,7 +43,7 @@ and weighted [`merge!`](@ref Base.merge!) require — the convex cone (summaries
 post-hoc re-weighting of a family of summaries (hyperstatistics) and down-weighting old data
 (exponential forgetting) need (a fractional weighted count is not an integer).
 
-Samples outside ``[\\texttt{lower}, \\texttt{upper})`` are skipped (not counted).
+Samples outside ``[\\texttt{lower}, \\texttt{upper})``, and NaNs, are skipped.
 
 # Arguments
 
@@ -170,6 +170,13 @@ _host(a::AbstractArray) = Array(a)
 # @inline bin_index(h::Histogram1D, x) = floor(Int, (x - h.lower) * h.scale) + 1
 
 
+# The bin of a sample at offset `t = (x − lower)·scale`, once `0 ≤ t < nbins` has been checked in floating
+# point. `floor(Int, t)` would carry an `InexactError` path for a NaN, an infinity or an offset past `Int`;
+# on a GPU that path is a device exception, compiled into the kernel as a host call. Checked first, the
+# truncation cannot fail, and a NaN or infinite sample fails the check like any out-of-range one.
+@inline _bin(t) = unsafe_trunc(Int, t) + 1
+
+
 # The portable scatter-add: one work-item per sample atomically accumulates the count and the
 # per-bin power-sums about the bin center, directly into the preallocated summary. Runs on CPU and
 # any GPU backend (KernelAbstractions + Atomix). Out-of-range samples are skipped.
@@ -178,8 +185,9 @@ _host(a::AbstractArray) = Array(a)
   if s ≤ length(samples)
     @inbounds begin
       x = samples[s]
-      i = floor(Int, (x - lower) * scale) + 1
-      if 1 ≤ i ≤ nbins
+      t = (x - lower) * scale
+      if 0 ≤ t < nbins
+        i = _bin(t)
         Atomix.@atomic counts[i] += one(eltype(counts))
         center = lower + (oftype(lower, i) - oftype(lower, 0.5)) / scale
         dx = x - center
@@ -207,8 +215,9 @@ end
 
 # Scalar fold — a direct host update (scalar-indexes the summary, so host arrays only; batch on GPU).
 function observe!(summary::Histogram1D, batch::Real)
-  i = floor(Int, (batch - summary.lower) * summary.scale) + 1
-  (1 ≤ i ≤ _nbins(summary)) || return summary
+  t = (batch - summary.lower) * summary.scale
+  (0 ≤ t < _nbins(summary)) || return summary
+  i = _bin(t)
   @inbounds summary.counts[i] += one(eltype(summary.counts))
   dx = batch - _bincenter(summary, i)
   dxp = dx
@@ -396,9 +405,11 @@ end
     @inbounds begin
       x = xs[s]
       y = ys[s]
-      i_x = floor(Int, (x - lower_x) * scale_x) + 1
-      i_y = floor(Int, (y - lower_y) * scale_y) + 1
-      if 1 ≤ i_x ≤ n_x && 1 ≤ i_y ≤ n_y
+      t_x = (x - lower_x) * scale_x
+      t_y = (y - lower_y) * scale_y
+      if 0 ≤ t_x < n_x && 0 ≤ t_y < n_y
+        i_x = _bin(t_x)
+        i_y = _bin(t_y)
         cell = i_x + (i_y - 1) * n_x
         Atomix.@atomic counts[cell] += one(eltype(counts))
         dx = x - (lower_x + (oftype(lower_x, i_x) - oftype(lower_x, 0.5)) / scale_x)
