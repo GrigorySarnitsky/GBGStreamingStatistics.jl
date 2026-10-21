@@ -1,4 +1,4 @@
-<!-- gbg:managed begin v2.0.0-rc.84 — rewritten by `gbg sync`; do not edit -->
+<!-- gbg:managed begin v2.3.0 — rewritten by `gbg sync`; do not edit -->
 # What GBGStreamingStatistics has switched off
 
 Each entry names a rule this package does not hold itself to, and why. A rule listed

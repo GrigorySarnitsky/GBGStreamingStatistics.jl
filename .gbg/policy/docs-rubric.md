@@ -1,7 +1,7 @@
-<!-- gbg:managed begin v2.0.0-rc.84 — rewritten by `gbg sync`; do not edit -->
+<!-- gbg:managed begin v2.3.0 — rewritten by `gbg sync`; do not edit -->
 # Documentation and API — `RULE.DOC.*`, `RULE.API.*`
 
-What a docstring and an API page contain, in what order and in what shape. 50 rules, written from the rule values themselves,
+What a docstring and an API page contain, in what order and in what shape. 51 rules, written from the rule values themselves,
 so a rule reworded here was reworded in the program that checks it.
 
 ### RULE.API.POSITIONAL
@@ -153,6 +153,13 @@ A function docstring is ordered: identity, when-to-use, arguments (under `# Argu
 In full: (1) a plain one-sentence identity in the user's terms; (2) when to use it, versus the alternatives; (3) each argument (positional and keyword) and its effect, bound in prose or listed under `# Arguments` as `RULE.DOC.ARGS_FORM` decides; (4) one formula if a clean one exists, never overflowing; (5) an inline citation for a named or published method and none for a classical one; (6) cross-links; (7) the caveats a user needs, as an admonition where load-bearing — the last block of the home's PROSE. Then the sections that are not prose, in this order and no other: the `# References` section of `RULE.CIT.FULL_INLINE`, then `# Fields`, which is last (`RULE.DOC.FIELDS`). Three rules each used to claim the end of a docstring; the order lives here, and they defer to it. Excluded: implementation internals (a `#` comment), unexplained specialist jargon, architectural rationale and the formal apparatus (the rationale documents).
 
 Covered by a reader given other documents.
+
+### RULE.DOC.INSTALL
+Once a package is released, its README and its pages install it as released: every set of instructions adds `General` and the fleet's registry before it installs, installs a fleet package by its name, never by its URL or at a branch, and no sentence calls the package unregistered.
+
+Installed by its URL, or at a branch, a package is a commit no release vouches for; installed by name through the fleet's registry it is its latest release, and moves only between releases (a package's request, the owner's ruling, 2026-10-21). `General` is added too because adding any registry to a fresh Julia stops Pkg from adding `General` itself, and every dependency outside the fleet is there. A package is released once its `CHANGELOG.md` has an entry for a final version; before that, its URL is the only way to install it.
+
+Covered by a program.
 
 ### RULE.DOC.INTERNAL_API
 An API page puts its internal section last, holds no empty block of collected docstrings, and is never indexed.
