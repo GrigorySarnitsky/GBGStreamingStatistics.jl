@@ -10,18 +10,21 @@ The `GBG` part in the name `GBGStreamingStatistics.jl` comes from the city of GÃ
 
 ## Installation
 
-This is an unregistered package, so it is not listed in the `General` Julia registry. To install it, run:
-
-```julia
-]add https://github.com/GrigorySarnitsky/GBGStreamingStatistics.jl
-```
-
-or
+Install it by name from the GBG packages' own registry,
+[GBGRegistry](https://github.com/GrigorySarnitsky/GBGRegistry), added after `General`:
 
 ```julia
 using Pkg
+Pkg.Registry.add("General")
+Pkg.Registry.add(url = "https://github.com/GrigorySarnitsky/GBGRegistry")
+Pkg.add("GBGStreamingStatistics")
+```
 
-Pkg.add(url="https://github.com/GrigorySarnitsky/GBGStreamingStatistics.jl")
+or at the package prompt:
+
+```
+pkg> registry add General https://github.com/GrigorySarnitsky/GBGRegistry
+pkg> add GBGStreamingStatistics
 ```
 
 Then you can use it as usual:
