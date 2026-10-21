@@ -44,9 +44,11 @@ end
 @testset "cone: weighted merge! (the addition, §10)" begin
   Random.seed!(111); da = randn(50_000); db = randn(40_000) .+ 1.0
 
-  # weight = 1 reduces to the plain monoid merge!
-  i_w1 = _mk(da); merge!(i_w1, _mk(db); weight = 1)
-  i_plain = _mk(da); merge!(i_plain, _mk(db))
+  # weight = 1 reduces to the plain monoid merge! — exactly, from the same operands (two accumulations of
+  # the same data differ by round-off on more than one thread: the float atomic adds have no fixed order)
+  a = _mk(da); b = _mk(db)
+  i_w1 = merge!(deepcopy(a), b; weight = 1)
+  i_plain = merge!(deepcopy(a), b)
   @test i_w1.counts == i_plain.counts && i_w1.powersums == i_plain.powersums
 
   # a weighted merge needs a Float-count `into`
@@ -155,7 +157,8 @@ end
   # the structural cone laws hold cell-wise, exactly as for Histogram1D
   @test_throws ArgumentError scale!(Histogram2D(-6.0, 6.0, 120, -6.0, 6.0, 120), 0.5)
   summary_a = Histogram2D(-6.0, 6.0, 120, -6.0, 6.0, 120; count_type = Float64); observe_pairs!(summary_a, x, y)
-  w1 = Histogram2D(-6.0, 6.0, 120, -6.0, 6.0, 120; count_type = Float64); observe_pairs!(w1, x, y); merge!(w1, summary_a; weight = 1)
-  plain = Histogram2D(-6.0, 6.0, 120, -6.0, 6.0, 120; count_type = Float64); observe_pairs!(plain, x, y); merge!(plain, summary_a)
+  base = Histogram2D(-6.0, 6.0, 120, -6.0, 6.0, 120; count_type = Float64); observe_pairs!(base, x, y)
+  w1 = merge!(deepcopy(base), summary_a; weight = 1)       # one accumulation, copied: exact on any thread count
+  plain = merge!(deepcopy(base), summary_a)
   @test w1.counts == plain.counts && w1.powersums == plain.powersums
 end

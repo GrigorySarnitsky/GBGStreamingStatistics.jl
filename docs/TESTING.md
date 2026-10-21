@@ -234,8 +234,7 @@ the cross-cutting files are `oracles.jl` (the Gaussian / OU end-to-end oracles),
 `testoracles.jl` (the shared `TestOracles` analytic library — the closed forms), and
 `testcontracts.jl` (the `TestContracts` universal-contract battery — `check_point_estimator`). `aqua.jl`
 and `jet.jl` are the package-quality checks; `gpu/` is the gated device suite. The test environment is
-`test/Project.toml` (Aqua, GBGCodingTools, HDF5, JET, Random, SpecialFunctions, Statistics, TOML, Test,
-plus the `LoweredCodeUtils` compat pin JET needs).
+`test/Project.toml` (Aqua, GBGCodingTools, HDF5, JET, Random, SpecialFunctions, Statistics, TOML, Test).
 
 !!! note "Status"
     The summary suites (`Histogram1D`, `Histogram2D`), `density` (with the asymmetric kernels, the
