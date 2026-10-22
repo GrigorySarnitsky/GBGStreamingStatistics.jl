@@ -24,7 +24,7 @@ the bottleneck:
 - **memory-tight or GPU-resident** — the summary is fixed-size and the accumulation hot path is
   allocation-free and runs on the GPU.
 
-It is used, for example, in turbulence (conditional and Lagrangian statistics, transition densities)
+It suits, for example, turbulence (conditional and Lagrangian statistics, transition densities)
 and molecular dynamics (the van Hove and intermediate scattering functions are
 two-time conditional densities) — but nothing in the library is specific to a domain.
 
